@@ -138,3 +138,13 @@ npm start
 ```
 
 Jest 29 with `jest-expo` 57, React Native Testing Library 14 and its test renderer provide a nonempty component harness. Sources: [Expo testing](https://docs.expo.dev/develop/unit-testing/), [RNTL setup](https://oss.callstack.com/react-native-testing-library/docs/start/quick-start). Verified 2026-09-23 with Node 24.21.0: npm ci, one rendered component test, strict typecheck, Expo dependency compatibility and iOS/Android exports all passed. An export is bundle evidence, not a native launch. The scaffold contains no selected artwork or product/onboarding flow. Native acceptance needs a compatible Expo Go/development client and an installed emulator/simulator or attached device.
+
+## Mobile API connectivity
+
+Copy `apps/mobile/.env.example` to `apps/mobile/.env` if absent, set `EXPO_PUBLIC_API_BASE_URL` to an API address reachable by the selected client, then run `npm start` from `apps/mobile`. These variables are public bundle content; never put credentials in them. `EXPO_PUBLIC_DIAGNOSTIC_LOCALE=pl` or `en` selects the development diagnostic fixture; it does not settle the product's language-selection policy. Source: [Expo environment variables](https://docs.expo.dev/guides/environment-variables/); fixture choice is local.
+
+The shell starts pending, validates HTTP200, JSON content type and the exact `{ "status": "ok" }` body, then reports connection success. Network errors, invalid responses and an eight-second timeout show a localized retry action. Unmount aborts pending work, and responses arriving after timeout cannot change the result. Tests exercise both Polish and English, including accessible retry labels. This is a diagnostic screen, not onboarding or a product Oath flow.
+
+For an Android emulator, the host alias is normally `10.0.2.2`; an iOS simulator can use host loopback. Physical devices need a reachable LAN address and an explicit local networking arrangement because Compose publishes only loopback. Native HTTP policy must be verified on the actual client; do not relax production transport security to pass a development smoke test. Sources: [Android emulator networking](https://developer.android.com/studio/run/emulator-networking), [Expo iOS simulator](https://docs.expo.dev/workflow/ios-simulator/), [React Native networking](https://reactnative.dev/docs/network), checked 2026-09-23.
+
+Native acceptance is pending: the execution host has neither an available `simctl` nor `adb`. Required evidence is a real native screen connecting to this API, showing a recoverable error when the API stops, and succeeding after restart/retry. Unit/component tests and iOS/Android bundle exports do not satisfy that device acceptance.
