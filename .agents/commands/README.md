@@ -9,7 +9,7 @@ Run from repository root. Commands are shared shell/Python entrypoints, not vend
 | `git status --short` | Inspect changed/untracked files |
 | `mkdir -p graphics` | Recreate ignored local artwork directory after clone |
 
-Application install/test/build commands will be added to [development](../../docs/engineering/development.md) when implemented. No dummy success targets are provided.
+API commands from `apps/api`: `composer install --no-interaction`, `composer validate --strict`, `composer check-platform-reqs`, `composer test`, `composer analyse`. See [development](../../docs/engineering/development.md) for prerequisites, example configuration and local HTTP startup. Mobile and service commands are pending.
 
 Skills supply reusable prompts: `$oathforge-spec` in Codex or `/oathforge-spec` in Claude Code. See [agent catalog](../README.md). No legacy `.claude/commands` copy is necessary.
 

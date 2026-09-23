@@ -2,7 +2,7 @@
 
 ## Purpose and current state
 
-Build the accountability game described in [README](README.md). This is a documentation-only foundation: the mobile and API directories are reserved, not runnable. Do not report planned behavior as implemented. **Source: [foundation decision](docs/decisions/0001-project-foundation.md).**
+Build the accountability game described in [README](README.md). The Symfony API kernel, public liveness endpoint and API checks are runnable; mobile, database and queue setup remain pending. Do not report planned behavior as implemented. **Sources: [development guide](docs/engineering/development.md), [foundation decision](docs/decisions/0001-project-foundation.md).**
 
 ## Working agreement
 
@@ -20,7 +20,7 @@ Build the accountability game described in [README](README.md). This is a docume
 
 ## Commands and validation
 
-- Available now: `python3 .agents/commands/check_repository.py` (Python 3.11+), `git diff --check`. App checks are not configured. **Source: [command catalog](.agents/commands/README.md).**
+- Available now: `python3 .agents/commands/check_repository.py` (Python 3.11+), `git diff --check`. API checks from `apps/api`: `composer test`, `composer analyse`, `composer validate --strict`. Setup/configuration and local server commands: [development guide](docs/engineering/development.md). **Source: [command catalog](.agents/commands/README.md).**
 - Run checks appropriate to the changed behavior. For implementation, cover relevant invariants and failure paths from the [testing strategy](docs/engineering/testing.md). Report what ran and what remains unverified. **Local workflow: [ADR 0001](docs/decisions/0001-project-foundation.md).**
 - Update affected docs with behavior/configuration changes; record significant architectural tradeoffs in an ADR. **Basis: [Nygard's ADR practice](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions).**
 - When the user says “commit”, create one new commit containing all uncommitted, non-ignored changes. Use `<arch|web|api|docs> - <gerund phrase>`, at most 10 words for the whole title, and short body bullets explaining why. Follow the [commit convention](.agents/rules/workflow.md#commits). **Local decision: owner instruction, 2026-09-23.**

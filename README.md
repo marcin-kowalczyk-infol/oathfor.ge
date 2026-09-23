@@ -2,7 +2,7 @@
 
 A multiplayer accountability game where real-world commitments power a dark heroic Slavic fantasy world. Domain: [oathfor.ge](https://oathfor.ge).
 
-**Status: documentation foundation; no application runtime has been scaffolded.**
+**Status: Symfony API kernel, public liveness endpoint and API tests/static checks are implemented. Mobile and service integration are pending.**
 
 ## Product
 
@@ -17,7 +17,7 @@ The intended first validation segment is people who repeatedly skip planned work
 | Location | Purpose |
 | --- | --- |
 | `apps/mobile/` | Reserved for React Native + Expo + TypeScript |
-| `apps/api/` | Reserved for Symfony 7.4 LTS + PostgreSQL + Redis + Messenger |
+| `apps/api/` | Symfony 7.4 LTS API; PostgreSQL and Redis/Messenger pending |
 | `docs/` | Product, technical, art, delivery documentation and decisions |
 | `business-plans/` | Reserved for business plans and commercial projections |
 | `AGENTS.md` | Shared agent entrypoint; `CLAUDE.md` is a symlink |
@@ -42,6 +42,6 @@ python3 .agents/commands/check_repository.py
 mkdir -p graphics
 ```
 
-There are no app install, test, build or deployment commands yet. Add real commands to the [development guide](docs/engineering/development.md) when each app is scaffolded.
+API installation, tests, static analysis and local server commands are in the [development guide](docs/engineering/development.md). Mobile and deployment commands remain pending.
 
 Engineering documentation and code identifiers use English. MVP player-facing content supports Polish and English with natural localization; see the [language and naming rules](docs/product/glossary.md#language-and-naming-rules). Human conversation follows the user's language. Current foundation decisions and their provenance are in [ADR 0001](docs/decisions/0001-project-foundation.md).

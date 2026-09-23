@@ -1,6 +1,6 @@
 # Architecture
 
-Status: planned architecture; apps are not scaffolded. Stack and deployment choice: [ADR 0001](../decisions/0001-project-foundation.md).
+Status: API kernel and [liveness contract](api-contract.md) implemented; other boundaries below remain planned. Stack and deployment choice: [ADR 0001](../decisions/0001-project-foundation.md).
 
 ## Boundaries
 

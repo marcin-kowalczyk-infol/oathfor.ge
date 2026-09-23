@@ -1,6 +1,6 @@
 # Engineering rules
 
-Apply to implementation tasks; no application tooling exists yet.
+Apply to implementation tasks; API tooling is available in the [development guide](../../docs/engineering/development.md).
 
 | Rule | Basis |
 | --- | --- |
