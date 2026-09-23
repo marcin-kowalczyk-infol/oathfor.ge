@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: API kernel and liveness tests plus PHPStan are runnable via `composer test` and `composer analyse` in `apps/api`; other application checks below remain planned. See [setup](development.md).
+Status: API kernel/liveness and real PostgreSQL/Redis integration tests, PHPStan, mobile connectivity/component tests and strict TypeScript checks are runnable. Use `python3 .agents/commands/check_api.py` for isolated API/service verification and `npm test -- --runInBand` / `npm run typecheck` from `apps/mobile`. Native acceptance and hosted CI execution are pending. Product-layer checks below remain planned. See [setup](development.md).
 
 Choose tests for observable behavior and failure modes, not for restating implementation. Run the relevant checks once; broaden when changes or failures justify it. **Local workflow decision: [ADR 0001](../decisions/0001-project-foundation.md).**
 

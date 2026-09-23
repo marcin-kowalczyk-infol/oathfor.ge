@@ -2,7 +2,7 @@
 
 A multiplayer accountability game where real-world commitments power a dark heroic Slavic fantasy world. Domain: [oathfor.ge](https://oathfor.ge).
 
-**Status: Symfony API kernel, public liveness endpoint and API tests/static checks are implemented. Mobile and service integration are pending.**
+**Status: local Symfony API, PostgreSQL/Redis integration and bilingual Expo connectivity shell implemented. Native-device acceptance and hosted CI execution remain pending.**
 
 ## Product
 
@@ -16,8 +16,8 @@ The intended first validation segment is people who repeatedly skip planned work
 
 | Location | Purpose |
 | --- | --- |
-| `apps/mobile/` | Reserved for React Native + Expo + TypeScript |
-| `apps/api/` | Symfony 7.4 LTS API; PostgreSQL and Redis/Messenger pending |
+| `apps/mobile/` | Expo + React Native + strict TypeScript connectivity shell |
+| `apps/api/` | Symfony 7.4 LTS + PostgreSQL + Redis/Messenger local runtime |
 | `docs/` | Product, technical, art, delivery documentation and decisions |
 | `business-plans/` | Reserved for business plans and commercial projections |
 | `AGENTS.md` | Shared agent entrypoint; `CLAUDE.md` is a symlink |
@@ -42,6 +42,6 @@ python3 .agents/commands/check_repository.py
 mkdir -p graphics
 ```
 
-API installation, tests, static analysis and local server commands are in the [development guide](docs/engineering/development.md). Mobile and deployment commands remain pending.
+API/mobile setup, tests, type/static checks and isolated service verification are in the [development guide](docs/engineering/development.md). No product game loop or deployment is implemented.
 
 Engineering documentation and code identifiers use English. MVP player-facing content supports Polish and English with natural localization; see the [language and naming rules](docs/product/glossary.md#language-and-naming-rules). Human conversation follows the user's language. Current foundation decisions and their provenance are in [ADR 0001](docs/decisions/0001-project-foundation.md).

@@ -1,6 +1,6 @@
 # Development guide
 
-Status: API kernel and checks scaffolded; mobile and service integration are pending.
+Status: local API, PostgreSQL/Redis integration and bilingual Expo connectivity shell implemented. Native-device acceptance and hosted CI execution remain pending.
 
 ## Available now
 
@@ -14,13 +14,15 @@ mkdir -p graphics
 
 The checker reads tracked/untracked non-ignored project files, resolves local Markdown file links, validates shared skills/role registration, and checks ignore behavior. It does not contact providers or prove application correctness.
 
-## Application setup — pending
+## Quick verification
 
-When scaffolding is requested:
-- Select compatible supported Expo/React Native/Node versions from official documentation; record the versions and commit the chosen lockfile. No Expo SDK version is fixed by the previous chat. **Basis: [Expo monorepos](https://docs.expo.dev/guides/monorepos/); lockfile policy is local.**
-- Create Symfony 7.4 LTS under `apps/api` using its normal structure; document PHP/extensions and commit Composer's lockfile. **Basis: [Symfony practices](https://symfony.com/doc/7.4/best_practices.html); version choice: [ADR 0001](../decisions/0001-project-foundation.md).**
-- Replace this pending section with commands verified against actual manifests for install, run, test, lint, type/static analysis and migrations. **Local workflow.**
-- Document configuration names in reviewed example files with placeholders. Do not put private tokens in examples, mobile variables or logs. **Basis: [security rules](../../.agents/rules/security.md).**
+Requirements: Docker Engine/Compose, Python 3.11+, and Node 24.21.0/npm for mobile. The isolated API check builds its runtime, creates disposable service volumes, runs tests/static checks and verifies HTTP, then removes only its own Compose project:
+
+```sh
+python3 .agents/commands/check_api.py
+```
+
+For interactive development use the Compose and mobile instructions below. Native PHP is optional and needs every declared extension, including redis. Example configuration is inert local data; private provider integrations are absent.
 
 ## API — Symfony 7.4 kernel
 
@@ -45,7 +47,7 @@ composer analyse
 
 The copy step is for a new checkout; preserve an existing `.env`. The example contains an explicitly `DUMMY` local secret, not production credentials. Tests use a separate inert test secret. No database, queue or provider credentials are needed. Real environment files stay ignored. Sources: [Symfony setup](https://symfony.com/doc/7.4/setup.html), [security rules](../../.agents/rules/security.md).
 
-`composer test` runs PHPUnit with nonempty test discovery and a kernel boot check. `composer analyse` runs PHPStan level 8 over `src/` and `tests/`; generated caches stay ignored. The kernel harness follows [Symfony testing](https://symfony.com/doc/7.4/testing.html). The functional test verifies the public [liveness contract](api-contract.md), including its exact JSON body. Database, Messenger, mobile and CI are pending.
+`composer test` runs PHPUnit with nonempty test discovery and a kernel boot check. `composer analyse` runs PHPStan level 8 over `src/` and `tests/`; generated caches stay ignored. The kernel harness follows [Symfony testing](https://symfony.com/doc/7.4/testing.html). The functional test verifies the public [liveness contract](api-contract.md), including its exact JSON body. Database/queue integrations and mobile checks are described below.
 
 ## Run the API locally
 
@@ -72,7 +74,7 @@ Verified 2026-09-23 on macOS with PHP 8.5.7 / Composer 2.10.1: a disposable loca
 - Broken symlink: restore its relative target from the [agent guide](../../.agents/README.md). Do not maintain a second copy.
 - Skill/role absent: restart the agent in this repository, check project trust/settings and supported version; use the documented manual fallback if the host lacks discovery.
 - Missing graphics after clone: expected, because Git excludes the entire directory.
-- Mobile/service commands are pending their scaffold tasks; the API commands above are available.
+- Missing native PHP extensions: use the Compose runtime. Missing simctl/adb: native acceptance cannot run until a simulator/device is available.
 
 ## Local database and queue runtime
 
@@ -90,11 +92,11 @@ docker compose -p oathforge-local up -d --wait api
 curl --fail http://127.0.0.1:18082/api/health
 ```
 
-Copy `apps/api/.env.example` to `.env` before installation if absent. Compose environment overrides container connection settings. `OATHFORGE_API_PORT` can select another loopback port. Normal tests do not require services; integration commands will be introduced with their tests. Use `docker compose -p oathforge-local down` to stop this project while preserving its data. To discard only a disposable test project's volumes, run `docker compose -p YOUR_DISPOSABLE_PROJECT down --volumes`; never apply that command to data you intend to keep.
+Copy `apps/api/.env.example` to `apps/api/.env` before installation if absent. Compose environment overrides container connection settings. `OATHFORGE_API_PORT` can select another loopback port. Normal tests do not require services; `composer test:integration` requires PostgreSQL and Redis. Use `docker compose -p oathforge-local down` to stop this project while preserving its data. To discard only a disposable test project's volumes, run `docker compose -p YOUR_DISPOSABLE_PROJECT down --volumes`; never apply that command to data you intend to keep.
 
 The initialization script creates `oathforge_test` alongside `oathforge` only on a new PostgreSQL volume. Existing volumes retain their contents. Doctrine DBAL and migrations are installed without ORM/domain entities. Inspect migration status with `docker compose -p oathforge-local run --rm api php bin/console doctrine:migrations:status`; generate a deliberate migration later with `doctrine:migrations:generate` and apply reviewed migrations with `doctrine:migrations:migrate`. An empty migration directory is expected now.
 
-T05 verified on 2026-09-23: Docker Engine 29.4.0 / Compose 5.1.2; container PHP 8.5.10, phpredis 6.3.0, PostgreSQL 17.11 and Redis 7.4.11. Image build, empty database/test database initialization, Redis PING, locked Composer install/validation/platform checks, 2 tests / 5 assertions, PHPStan and migration status (zero migrations) passed. The same API tests passed with PostgreSQL and Redis stopped. HTTP through the loopback Compose port returned the liveness JSON. Service probes and actual message delivery are subsequent tasks.
+T05 verified on 2026-09-23: Docker Engine 29.4.0 / Compose 5.1.2; container PHP 8.5.10, phpredis 6.3.0, PostgreSQL 17.11 and Redis 7.4.11. Image build, empty database/test database initialization, Redis PING, locked Composer install/validation/platform checks, 2 tests / 5 assertions, PHPStan and migration status (zero migrations) passed. The same API tests passed with PostgreSQL and Redis stopped. HTTP through the loopback Compose port returned the liveness JSON. The service probes and delivery tests below are also implemented.
 
 ## Database transaction diagnostic
 
@@ -137,7 +139,7 @@ npx expo export --platform ios --platform android
 npm start
 ```
 
-Jest 29 with `jest-expo` 57, React Native Testing Library 14 and its test renderer provide a nonempty component harness. Sources: [Expo testing](https://docs.expo.dev/develop/unit-testing/), [RNTL setup](https://oss.callstack.com/react-native-testing-library/docs/start/quick-start). Verified 2026-09-23 with Node 24.21.0: npm ci, one rendered component test, strict typecheck, Expo dependency compatibility and iOS/Android exports all passed. An export is bundle evidence, not a native launch. The scaffold contains no selected artwork or product/onboarding flow. Native acceptance needs a compatible Expo Go/development client and an installed emulator/simulator or attached device.
+Jest 29 with `jest-expo` 57, React Native Testing Library 14 and its test renderer provide a nonempty component harness. Sources: [Expo testing](https://docs.expo.dev/develop/unit-testing/), [RNTL setup](https://oss.callstack.com/react-native-testing-library/docs/start/quick-start). Verified 2026-09-23 with Node 24.21.0: npm ci, 14 API/client component tests, strict typecheck, Expo dependency compatibility and iOS/Android exports all passed. An export is bundle evidence, not a native launch. The scaffold contains no selected artwork or product/onboarding flow. Native acceptance needs a compatible Expo Go/development client and an installed emulator/simulator or attached device.
 
 ## Mobile API connectivity
 
@@ -148,3 +150,13 @@ The shell starts pending, validates HTTP200, JSON content type and the exact `{ 
 For an Android emulator, the host alias is normally `10.0.2.2`; an iOS simulator can use host loopback. Physical devices need a reachable LAN address and an explicit local networking arrangement because Compose publishes only loopback. Native HTTP policy must be verified on the actual client; do not relax production transport security to pass a development smoke test. Sources: [Android emulator networking](https://developer.android.com/studio/run/emulator-networking), [Expo iOS simulator](https://docs.expo.dev/workflow/ios-simulator/), [React Native networking](https://reactnative.dev/docs/network), checked 2026-09-23.
 
 Native acceptance is pending: the execution host has neither an available `simctl` nor `adb`. Required evidence is a real native screen connecting to this API, showing a recoverable error when the API stops, and succeeding after restart/retry. Unit/component tests and iOS/Android bundle exports do not satisfy that device acceptance.
+
+## CI and acceptance status
+
+[GitHub Actions checks](../../.github/workflows/checks.yml) run repository validation, the isolated API check above, npm ci, mobile tests/type checks, Expo compatibility and both native bundle exports. Actions are pinned to inspected upstream commits; token permissions are read-only. Local workflow choice: MVP-02-T11. Sources checked 2026-09-23: [workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax), [checkout](https://github.com/actions/checkout), [setup-node](https://github.com/actions/setup-node), [setup-python](https://github.com/actions/setup-python).
+
+The workflow has not been published or run on GitHub. Local script execution is recorded separately and does not prove hosted execution. Publishing/pushing requires explicit authorization. Native connectivity acceptance remains pending as described above. Dummy local database/application secrets are intentional development fixtures, not production provisioning; no external provider credentials or artwork are needed for this scaffold.
+
+Local clean-checkout verification, 2026-09-23: a disposable clone of `9e1fea0` plus the intended CI diff passed repository checks, fresh isolated API build/install, 2 ordinary API tests / 5 assertions, 5 integration tests / 19 assertions, PHPStan, migration status and HTTP over a dynamically assigned loopback port. Mobile npm ci, 14 tests, strict types, Expo compatibility and both exports passed using only the example configuration. The API script removed its UUID project and volumes. Hosted execution and a native screen were not exercised.
+
+Failure propagation was checked in the disposable checkout: temporary failing PHPUnit and Jest assertions each produced a nonzero exit; the API orchestrator still cleaned its project. Both temporary faults were removed. These local checks do not substitute for a GitHub Actions run.

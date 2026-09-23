@@ -1,6 +1,6 @@
 # Architecture
 
-Status: API kernel and [liveness contract](api-contract.md) implemented; other boundaries below remain planned. Stack and deployment choice: [ADR 0001](../decisions/0001-project-foundation.md).
+Status: API [liveness contract](api-contract.md), local PostgreSQL/Redis transport and Expo connectivity shell implemented. Product responsibilities below remain planned; see [local infrastructure decision](../decisions/0002-local-infrastructure.md). Stack and deployment choice: [ADR 0001](../decisions/0001-project-foundation.md).
 
 ## Boundaries
 
@@ -10,7 +10,7 @@ Status: API kernel and [liveness contract](api-contract.md) implemented; other b
 | Symfony API | Authentication, authorization, Oath rules and authoritative state |
 | PostgreSQL | Durable Oaths, proof metadata, outcomes and progression ledger |
 | Messenger workers | Asynchronous verification, reminders and summaries |
-| Redis | Queue/cache responsibilities to be selected during scaffold |
+| Redis | Messenger Streams transport implemented locally; cache use deferred |
 | S3-compatible storage | Private proof objects with controlled lifecycle |
 | OpenAI | Evidence assessment and constrained companion wording |
 | RevenueCat | Subscription integration; backend maintains validated entitlements |
