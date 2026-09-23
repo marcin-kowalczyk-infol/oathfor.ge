@@ -1,6 +1,6 @@
 # Development guide
 
-Status: local API, PostgreSQL/Redis integration and bilingual Expo connectivity shell implemented. Native-device acceptance and hosted CI execution remain pending.
+Status: local API, PostgreSQL/Redis integration and bilingual Expo connectivity shell implemented. Hosted CI checks passed; native-device acceptance remains pending.
 
 ## Available now
 
@@ -155,8 +155,8 @@ Native acceptance is pending: the execution host has neither an available `simct
 
 [GitHub Actions checks](../../.github/workflows/checks.yml) run repository validation, the isolated API check above, npm ci, mobile tests/type checks, Expo compatibility and both native bundle exports. Actions are pinned to inspected upstream commits; token permissions are read-only. Local workflow choice: MVP-02-T11. Sources checked 2026-09-23: [workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax), [checkout](https://github.com/actions/checkout), [setup-node](https://github.com/actions/setup-node), [setup-python](https://github.com/actions/setup-python).
 
-The workflow has not been published or run on GitHub. Local script execution is recorded separately and does not prove hosted execution. Publishing/pushing requires explicit authorization. Native connectivity acceptance remains pending as described above. Dummy local database/application secrets are intentional development fixtures, not production provisioning; no external provider credentials or artwork are needed for this scaffold.
+The workflow passed on GitHub for commit `3853216` on 2026-09-23: [hosted run 35922303447](https://github.com/marcin-kowalczyk-infol/oathfor.ge/actions/runs/35922303447). Repository checks, API/PostgreSQL/Redis verification, mobile tests/types and both native bundle exports succeeded. Initial publication was explicitly authorized by the owner; this is CI evidence, not a production deployment. Native connectivity acceptance remains pending as described above. Dummy local database/application secrets are intentional development fixtures, not production provisioning; no external provider credentials or artwork are needed for this scaffold.
 
-Local clean-checkout verification, 2026-09-23: a disposable clone of `9e1fea0` plus the intended CI diff passed repository checks, fresh isolated API build/install, 2 ordinary API tests / 5 assertions, 5 integration tests / 19 assertions, PHPStan, migration status and HTTP over a dynamically assigned loopback port. Mobile npm ci, 14 tests, strict types, Expo compatibility and both exports passed using only the example configuration. The API script removed its UUID project and volumes. Hosted execution and a native screen were not exercised.
+Local clean-checkout verification, 2026-09-23: a disposable clone of `9e1fea0` plus the intended CI diff passed repository checks, fresh isolated API build/install, 2 ordinary API tests / 5 assertions, 5 integration tests / 19 assertions, PHPStan, migration status and HTTP over a dynamically assigned loopback port. Mobile npm ci, 14 tests, strict types, Expo compatibility and both exports passed using only the example configuration. The API script removed its UUID project and volumes. That local check did not exercise hosted execution or a native screen; hosted evidence is recorded above.
 
 Failure propagation was checked in the disposable checkout: temporary failing PHPUnit and Jest assertions each produced a nonzero exit; the API orchestrator still cleaned its project. Both temporary faults were removed. These local checks do not substitute for a GitHub Actions run.

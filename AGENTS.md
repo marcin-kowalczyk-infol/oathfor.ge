@@ -2,7 +2,7 @@
 
 ## Purpose and current state
 
-Build the accountability game described in [README](README.md). The Symfony API, local PostgreSQL/Redis integration and bilingual Expo connectivity shell are implemented. Native-device acceptance and hosted CI execution remain pending; no product game loop exists. Do not report planned behavior as implemented. **Sources: [development guide](docs/engineering/development.md), [foundation decision](docs/decisions/0001-project-foundation.md).**
+Build the accountability game described in [README](README.md). The Symfony API, local PostgreSQL/Redis integration and bilingual Expo connectivity shell are implemented. Hosted CI checks passed; native-device acceptance remains pending; no product game loop exists. Do not report planned behavior as implemented. **Sources: [development guide](docs/engineering/development.md), [foundation decision](docs/decisions/0001-project-foundation.md).**
 
 ## Working agreement
 

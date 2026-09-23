@@ -2,7 +2,7 @@
 
 A multiplayer accountability game where real-world commitments power a dark heroic Slavic fantasy world. Domain: [oathfor.ge](https://oathfor.ge).
 
-**Status: local Symfony API, PostgreSQL/Redis integration and bilingual Expo connectivity shell implemented. Native-device acceptance and hosted CI execution remain pending.**
+**Status: local Symfony API, PostgreSQL/Redis integration and bilingual Expo connectivity shell implemented. Hosted CI checks passed; native-device acceptance remains pending.**
 
 ## Product
 
