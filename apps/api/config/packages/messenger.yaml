@@ -1,10 +1,27 @@
 framework:
     messenger:
+        failure_transport: failed
         transports:
             async:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                retry_strategy:
+                    max_retries: 1
+                    delay: 0
                 options:
                     lazy: true
                     timeout: 2
                     read_timeout: 2
                     consumer: '%env(MESSENGER_CONSUMER_NAME)%'
+            failed:
+                dsn: '%env(MESSENGER_FAILURE_DSN)%'
+                options:
+                    lazy: true
+                    timeout: 2
+                    read_timeout: 2
+                    consumer: '%env(MESSENGER_CONSUMER_NAME)%'
+
+when@test:
+    framework:
+        messenger:
+            routing:
+                App\Tests\Fixtures\ProbeMessage: async

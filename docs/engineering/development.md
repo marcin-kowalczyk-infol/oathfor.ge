@@ -106,3 +106,18 @@ docker compose -p oathforge-local run --rm api composer test:integration
 ```
 
 The CLI probe writes and reads one synthetic value in a temporary table, then rolls back. Success prints `DATABASE_OK` and exits 0. Failure prints only `DATABASE_UNAVAILABLE` and exits 1, with no raw exception/connection string. DBAL's PDO connection timeout is two seconds. Integration tests use the separate `oathforge_test` database and verify rollback cleanup plus a refused-port failure in a bounded subprocess. `composer test` excludes service integration tests; `composer test:integration` requires healthy services. No production entity, schema or user data is involved. Local diagnostic contract, MVP-02-T06.
+
+## Redis worker verification
+
+`composer test:integration` includes real Redis transport tests: enqueue leaves the handler idle until a separate `messenger:consume` process runs; a synthetic failure retries once then lands in the failed stream; a refused connection fails dispatch without a success receipt. Fixtures are registered only in `test`, use random per-test stream/receipt names, bound workers to ten seconds, and remove their own streams, delayed queues and files. This is infrastructure evidence, not reward idempotency or production monitoring.
+
+Local Messenger configuration selects `async` and `failed` Redis streams with two-second connection/read timeouts, one immediate retry, and deletion after acknowledgement (the transport default). Production retry/backoff policy belongs to the operations epic. Source: [Symfony 7.4 Messenger](https://symfony.com/doc/7.4/messenger.html), checked 2026-09-23; exact retry choice is local.
+
+For future routed application messages, run one worker with:
+
+```sh
+docker compose -p oathforge-local run --rm -e MESSENGER_CONSUMER_NAME=worker-1 api php bin/console messenger:consume async --time-limit=60
+docker compose -p oathforge-local run --rm api php bin/console messenger:failed:show
+```
+
+Each concurrent worker needs a unique consumer name for the same stream/group. The scaffold deliberately has no production messages; synthetic fixture routing exists only under `test`. Inspect failed messages before explicitly retrying with `messenger:failed:retry ID` or removing with `messenger:failed:remove ID`. Do not treat queue availability as an Oath outcome. Sources: [Messenger consumer identity and failures](https://symfony.com/doc/7.4/messenger.html#redis-transport), [architecture invariants](architecture.md).

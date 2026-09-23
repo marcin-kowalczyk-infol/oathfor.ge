@@ -1,0 +1,3 @@
+services:
+    App\Tests\Fixtures\ProbeHandler:
+        autoconfigure: true
