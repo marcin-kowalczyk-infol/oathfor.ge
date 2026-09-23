@@ -44,4 +44,4 @@ mkdir -p graphics
 
 There are no app install, test, build or deployment commands yet. Add real commands to the [development guide](docs/engineering/development.md) when each app is scaffolded.
 
-Documentation and code use English. Human conversation follows the user's language. Current foundation decisions and their provenance are in [ADR 0001](docs/decisions/0001-project-foundation.md).
+Engineering documentation and code identifiers use English. MVP player-facing content supports Polish and English with natural localization; see the [language and naming rules](docs/product/glossary.md#language-and-naming-rules). Human conversation follows the user's language. Current foundation decisions and their provenance are in [ADR 0001](docs/decisions/0001-project-foundation.md).

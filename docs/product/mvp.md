@@ -2,6 +2,22 @@
 
 Status: draft for refinement; not a final release commitment. Product source: [ADR 0001](../decisions/0001-project-foundation.md).
 
+## Accepted language scope
+
+Polish and English are required across the MVP player experience. Copy may be adapted naturally in each language, but mechanics and acceptance conditions must remain equivalent. Slavic-inspired terminology follows the [language and naming rules](glossary.md#language-and-naming-rules). **Local decision: owner instruction, 2026-09-23.** Localization is not implemented yet.
+
+## Accepted progression direction
+
+**Local decision: owner approval, 2026-09-23.** Reward fulfillment of the committed Oath with base XP plus one capped evidence-tier bonus. Use the highest qualifying tier, not the number of submitted files: a context photo and an activity-result record have separate criteria. Neither tier proves authenticity or independently establishes workout quality.
+
+- Additional images of the same activity do not stack bonuses. An accepted upgrade awards only the difference; repeated processing cannot award it again.
+- Define minimum fulfillment evidence separately from bonus eligibility. Failure to qualify for a higher bonus does not invalidate an otherwise fulfilled Oath.
+- Defer calorie, step and distance-to-XP conversions. Initial progression rewards fulfillment and supporting evidence, without direct activity-provider integrations.
+- Each level requires more XP than the previous level, with a gentle initial curve. Each level gives a small character unlock; milestone levels provide larger visual changes. Show the next unlock before it is earned.
+- Exact XP values, thresholds, unlock catalog, upgrade window and cross-Oath activity-reuse rules remain to be specified. The example of 30 base XP plus a 10 or 20 XP bonus is a balancing proposal, not a frozen rule.
+
+This extends the initial single-upgrade production scope into small per-level unlocks, not a new full character design for every level. Implementation belongs to MVP-03/09; policy definition belongs to MVP-01. No progression runtime or artwork unlocks exist yet.
+
 ## Proposed smallest complete loop
 
 | Step | Player/system action | Acceptance example |

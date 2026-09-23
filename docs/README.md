@@ -6,7 +6,7 @@ All product and delivery documents live here except business plans, which belong
 | --- | --- |
 | [Product brief](product/brief.md) | Purpose, accepted direction, unresolved choices |
 | [MVP](product/mvp.md) | Draft loop, boundaries and acceptance scenarios |
-| [English glossary](product/glossary.md) | Consistent product language |
+| [Product glossary](product/glossary.md) | Terminology, Polish/English localization and Slavic-inspired naming |
 | [Architecture](engineering/architecture.md) | Monorepo boundaries and service responsibilities |
 | [Development](engineering/development.md) | Actual setup status, available commands |
 | [AI verification](engineering/ai-verification.md) | Referee scope and evaluation requirements |
