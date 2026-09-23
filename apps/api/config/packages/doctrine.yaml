@@ -2,6 +2,8 @@ doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
         server_version: '17'
+        options:
+            !php/const PDO::ATTR_TIMEOUT: 2
 
 when@test:
     doctrine:

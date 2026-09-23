@@ -23,7 +23,9 @@
     <testsuites>
         <testsuite name="Project Test Suite">
             <directory>tests</directory>
+            <exclude>tests/Integration</exclude>
         </testsuite>
+        <testsuite name="Integration"><directory>tests/Integration</directory></testsuite>
     </testsuites>
 
     <source ignoreSuppressionOfDeprecations="true"

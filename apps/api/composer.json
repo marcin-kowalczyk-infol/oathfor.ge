@@ -68,8 +68,9 @@
         "post-update-cmd": [
             "@auto-scripts"
         ],
-        "test": "phpunit --fail-on-empty-test-suite",
-        "analyse": "phpstan analyse --no-progress"
+        "test": "phpunit --testsuite \"Project Test Suite\" --fail-on-empty-test-suite",
+        "analyse": "phpstan analyse --no-progress",
+        "test:integration": "phpunit --testsuite Integration --fail-on-empty-test-suite"
     },
     "conflict": {
         "symfony/symfony": "*"

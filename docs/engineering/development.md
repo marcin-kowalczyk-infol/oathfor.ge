@@ -95,3 +95,14 @@ Copy `apps/api/.env.example` to `.env` before installation if absent. Compose en
 The initialization script creates `oathforge_test` alongside `oathforge` only on a new PostgreSQL volume. Existing volumes retain their contents. Doctrine DBAL and migrations are installed without ORM/domain entities. Inspect migration status with `docker compose -p oathforge-local run --rm api php bin/console doctrine:migrations:status`; generate a deliberate migration later with `doctrine:migrations:generate` and apply reviewed migrations with `doctrine:migrations:migrate`. An empty migration directory is expected now.
 
 T05 verified on 2026-09-23: Docker Engine 29.4.0 / Compose 5.1.2; container PHP 8.5.10, phpredis 6.3.0, PostgreSQL 17.11 and Redis 7.4.11. Image build, empty database/test database initialization, Redis PING, locked Composer install/validation/platform checks, 2 tests / 5 assertions, PHPStan and migration status (zero migrations) passed. The same API tests passed with PostgreSQL and Redis stopped. HTTP through the loopback Compose port returned the liveness JSON. Service probes and actual message delivery are subsequent tasks.
+
+## Database transaction diagnostic
+
+From repository root, with the local services running:
+
+```sh
+docker compose -p oathforge-local run --rm api php bin/console app:check-database
+docker compose -p oathforge-local run --rm api composer test:integration
+```
+
+The CLI probe writes and reads one synthetic value in a temporary table, then rolls back. Success prints `DATABASE_OK` and exits 0. Failure prints only `DATABASE_UNAVAILABLE` and exits 1, with no raw exception/connection string. DBAL's PDO connection timeout is two seconds. Integration tests use the separate `oathforge_test` database and verify rollback cleanup plus a refused-port failure in a bounded subprocess. `composer test` excludes service integration tests; `composer test:integration` requires healthy services. No production entity, schema or user data is involved. Local diagnostic contract, MVP-02-T06.
