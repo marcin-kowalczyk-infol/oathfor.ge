@@ -121,3 +121,20 @@ docker compose -p oathforge-local run --rm api php bin/console messenger:failed:
 ```
 
 Each concurrent worker needs a unique consumer name for the same stream/group. The scaffold deliberately has no production messages; synthetic fixture routing exists only under `test`. Inspect failed messages before explicitly retrying with `messenger:failed:retry ID` or removing with `messenger:failed:remove ID`. Do not treat queue availability as an Oath outcome. Sources: [Messenger consumer identity and failures](https://symfony.com/doc/7.4/messenger.html#redis-transport), [architecture invariants](architecture.md).
+
+## Mobile harness
+
+Local tooling selection, 2026-09-23: Node 24.21.0 LTS (`.nvmrc`) and npm; Expo 57, React Native 0.86.3, React 19.2.3 and strict TypeScript 6. Exact packages are locked in `apps/mobile/package-lock.json`. Use your Node version manager to select `.nvmrc`; no global Node setting is changed by repository commands. Sources: [Expo SDK matrix](https://docs.expo.dev/versions/latest/), [Node releases](https://nodejs.org/en/about/previous-releases), checked 2026-09-23.
+
+From `apps/mobile`:
+
+```sh
+npm ci
+npm test -- --runInBand
+npm run typecheck
+npx expo install --check
+npx expo export --platform ios --platform android
+npm start
+```
+
+Jest 29 with `jest-expo` 57, React Native Testing Library 14 and its test renderer provide a nonempty component harness. Sources: [Expo testing](https://docs.expo.dev/develop/unit-testing/), [RNTL setup](https://oss.callstack.com/react-native-testing-library/docs/start/quick-start). Verified 2026-09-23 with Node 24.21.0: npm ci, one rendered component test, strict typecheck, Expo dependency compatibility and iOS/Android exports all passed. An export is bundle evidence, not a native launch. The scaffold contains no selected artwork or product/onboarding flow. Native acceptance needs a compatible Expo Go/development client and an installed emulator/simulator or attached device.
