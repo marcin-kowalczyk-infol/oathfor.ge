@@ -1,0 +1,10 @@
+framework:
+    messenger:
+        transports:
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    lazy: true
+                    timeout: 2
+                    read_timeout: 2
+                    consumer: '%env(MESSENGER_CONSUMER_NAME)%'

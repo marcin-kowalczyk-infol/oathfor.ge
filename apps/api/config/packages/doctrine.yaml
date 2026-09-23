@@ -1,0 +1,9 @@
+doctrine:
+    dbal:
+        url: '%env(resolve:DATABASE_URL)%'
+        server_version: '17'
+
+when@test:
+    doctrine:
+        dbal:
+            dbname_suffix: '_test'

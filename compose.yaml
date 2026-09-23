@@ -1,0 +1,53 @@
+# DUMMY local services only. Use a unique project name for isolated runs.
+services:
+  api:
+    build: apps/api
+    working_dir: /app
+    volumes:
+      - ./apps/api:/app
+      - api_vendor:/app/vendor
+      - api_var:/app/var
+    environment:
+      APP_ENV: dev
+      APP_SECRET: DUMMY-compose-local-only
+      DEFAULT_URI: http://127.0.0.1:18082
+      DATABASE_URL: postgresql://oathforge:DUMMY-local-db@postgres:5432/oathforge?serverVersion=17&charset=utf8
+      MESSENGER_TRANSPORT_DSN: redis://redis:6379/messages
+      MESSENGER_FAILURE_DSN: redis://redis:6379/failed
+      MESSENGER_CONSUMER_NAME: local-worker
+    ports:
+      - "127.0.0.1:${OATHFORGE_API_PORT:-18082}:8000"
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/api/health') === '{\"status\":\"ok\"}' ? 0 : 1);"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: oathforge
+      POSTGRES_USER: oathforge
+      POSTGRES_PASSWORD: DUMMY-local-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init-test.sql:/docker-entrypoint-initdb.d/10-test.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oathforge -d oathforge"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  redis:
+    image: redis:7.4-bookworm
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  api_vendor:
+  api_var:
+  postgres_data:
+  redis_data:

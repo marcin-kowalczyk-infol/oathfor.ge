@@ -26,7 +26,7 @@ When scaffolding is requested:
 
 Local tooling selection, 2026-09-23: PHP 8.5.x CLI and Composer 2.x. Verified host: PHP 8.5.7, Composer 2.10.1. Locked dependencies include FrameworkBundle 7.4.19, PHPUnit 12.5.35 and PHPStan 2.2.15. Symfony components stay constrained to `7.4.*`; exact versions live in `apps/api/composer.lock` and Flex recipes in `symfony.lock`.
 
-Runtime prerequisites: Ctype, iconv, PCRE, Session, SimpleXML and Tokenizer for [Symfony 7.4](https://symfony.com/doc/7.4/setup.html); DOM, JSON, libxml, mbstring, XML and XMLWriter for [PHPUnit 12.5](https://docs.phpunit.de/en/12.5/installation.html). PHP 8.5 satisfies Symfony's PHP 8.2+ and PHPUnit's PHP 8.3+ floors. [PHPStan](https://phpstan.org/user-guide/getting-started) requires PHP 7.4+; [Composer](https://getcomposer.org/doc/00-intro.md) requires PHP 7.2.5+. Sources checked 2026-09-23. Required extensions were present in `php -m`; coverage drivers are optional and not installed.
+Runtime prerequisites: pdo_pgsql and redis 6.3+ (provided by the Compose image below), Ctype, iconv, PCRE, Session, SimpleXML and Tokenizer for [Symfony 7.4](https://symfony.com/doc/7.4/setup.html); DOM, JSON, libxml, mbstring, XML and XMLWriter for [PHPUnit 12.5](https://docs.phpunit.de/en/12.5/installation.html). PHP 8.5 satisfies Symfony's PHP 8.2+ and PHPUnit's PHP 8.3+ floors. [PHPStan](https://phpstan.org/user-guide/getting-started) requires PHP 7.4+; [Composer](https://getcomposer.org/doc/00-intro.md) requires PHP 7.2.5+. Sources checked 2026-09-23. Core test extensions were present in the native host; redis was absent, so the service-enabled runtime uses Compose. Coverage drivers are optional and not installed.
 
 On a new macOS machine, use the [PHP macOS package instructions](https://www.php.net/manual/en/install.macosx.packages.php) to install PHP 8.5, then Composer's linked installer instructions with its current checksum verification. Check `php --version`, `php -m` and `composer --version` before installing this project.
 
@@ -73,3 +73,25 @@ Verified 2026-09-23 on macOS with PHP 8.5.7 / Composer 2.10.1: a disposable loca
 - Skill/role absent: restart the agent in this repository, check project trust/settings and supported version; use the documented manual fallback if the host lacks discovery.
 - Missing graphics after clone: expected, because Git excludes the entire directory.
 - Mobile/service commands are pending their scaffold tasks; the API commands above are available.
+
+## Local database and queue runtime
+
+Local selection: [ADR 0002](../decisions/0002-local-infrastructure.md). Docker Engine with Compose is required. The PHP container supplies pdo_pgsql and redis; native PHP must provide the same extensions for service integration. PostgreSQL 17 and Redis 7.4 stay on the Compose network; dummy passwords are for this isolated local setup only.
+
+From repository root (Docker service runtime):
+
+```sh
+docker compose -p oathforge-local build api
+docker compose -p oathforge-local up -d --wait postgres redis
+docker compose -p oathforge-local run --rm api composer install --no-interaction
+docker compose -p oathforge-local run --rm api composer test
+docker compose -p oathforge-local run --rm api composer analyse
+docker compose -p oathforge-local up -d --wait api
+curl --fail http://127.0.0.1:18082/api/health
+```
+
+Copy `apps/api/.env.example` to `.env` before installation if absent. Compose environment overrides container connection settings. `OATHFORGE_API_PORT` can select another loopback port. Normal tests do not require services; integration commands will be introduced with their tests. Use `docker compose -p oathforge-local down` to stop this project while preserving its data. To discard only a disposable test project's volumes, run `docker compose -p YOUR_DISPOSABLE_PROJECT down --volumes`; never apply that command to data you intend to keep.
+
+The initialization script creates `oathforge_test` alongside `oathforge` only on a new PostgreSQL volume. Existing volumes retain their contents. Doctrine DBAL and migrations are installed without ORM/domain entities. Inspect migration status with `docker compose -p oathforge-local run --rm api php bin/console doctrine:migrations:status`; generate a deliberate migration later with `doctrine:migrations:generate` and apply reviewed migrations with `doctrine:migrations:migrate`. An empty migration directory is expected now.
+
+T05 verified on 2026-09-23: Docker Engine 29.4.0 / Compose 5.1.2; container PHP 8.5.10, phpredis 6.3.0, PostgreSQL 17.11 and Redis 7.4.11. Image build, empty database/test database initialization, Redis PING, locked Composer install/validation/platform checks, 2 tests / 5 assertions, PHPStan and migration status (zero migrations) passed. The same API tests passed with PostgreSQL and Redis stopped. HTTP through the loopback Compose port returned the liveness JSON. Service probes and actual message delivery are subsequent tasks.
