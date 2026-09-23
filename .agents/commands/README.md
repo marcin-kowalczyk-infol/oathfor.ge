@@ -6,6 +6,7 @@ Run from repository root. Commands are shared shell/Python entrypoints, not vend
 | --- | --- |
 | `python3 .agents/commands/check_repository.py` | Validate docs, local links, symlinks, skills, role adapters and artwork exclusion; Python 3.11+ |
 | `python3 .agents/commands/check_api.py` | Build an isolated Compose runtime, run API/unit/integration/static checks and real HTTP; removes its own temporary project |
+| `python3 .agents/commands/check_docker.py` | Verify clean Compose startup, managed worker, persistence and bootstrap failure in a disposable source copy/project |
 | `git diff --check` | Whitespace check on tracked changes |
 | `git status --short` | Inspect changed/untracked files |
 | `mkdir -p graphics` | Recreate ignored local artwork directory after clone |

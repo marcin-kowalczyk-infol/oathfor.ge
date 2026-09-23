@@ -42,6 +42,6 @@ python3 .agents/commands/check_repository.py
 mkdir -p graphics
 ```
 
-API/mobile setup, tests, type/static checks and isolated service verification are in the [development guide](docs/engineering/development.md). No product game loop or deployment is implemented.
+API/mobile setup, tests, type/static checks and isolated service verification are in the [development guide](docs/engineering/development.md). The local backend starts with `docker compose -p oathforge-local up --build -d --wait` after copying the API example environment when absent; Compose installs dependencies and manages the worker. No product game loop or deployment is implemented.
 
 Engineering documentation and code identifiers use English. MVP player-facing content supports Polish and English with natural localization; see the [language and naming rules](docs/product/glossary.md#language-and-naming-rules). Human conversation follows the user's language. Current foundation decisions and their provenance are in [ADR 0001](docs/decisions/0001-project-foundation.md).

@@ -15,3 +15,10 @@ Sources checked 2026-09-23: [PHP image extension installation](https://hub.docke
 Local Compose credentials are visibly `DUMMY` values. PostgreSQL and Redis have no host-published ports; only the API maps to loopback. Use separate Compose project names to isolate databases, streams and volumes between validation runs. These are local safety/lifecycle choices, informed by the Redis image's exposed-port warning and [Compose project isolation](https://docs.docker.com/compose/how-tos/project-name/).
 
 PHP dependencies and generated cache use dedicated volumes to avoid mixing host and container runtime artifacts. Image major/minor tags permit maintenance patches; Composer lockfiles fix PHP package versions. A clean image rebuild may receive upstream security updates. This scaffold is local development infrastructure, not a production topology, backup strategy or monitoring system.
+
+
+## Local orchestration completion — MVP-02-T12
+
+Local decision, 2026-09-23: a one-shot Composer initialization service owns dependency installation in the shared vendor volume. API and one managed Messenger worker share the PHP build, source, environment and cache volumes, and depend on successful initialization plus healthy database/Redis. `up --build -d --wait` checks API HTTP and worker process/transport startup. Normal `down` retains volumes; volume deletion remains explicit. No automatic migration/schema reset is added. Stop the stack before installing changed dependencies; restart the worker after handler edits.
+
+Sequencing basis: [Compose startup dependency conditions](https://docs.docker.com/compose/how-tos/startup-order/), checked 2026-09-23. A disposable lifecycle harness verifies bootstrap failure propagation, managed synthetic delivery and data persistence. This remains development orchestration; native-device and hosted acceptance evidence are recorded separately in the development guide.

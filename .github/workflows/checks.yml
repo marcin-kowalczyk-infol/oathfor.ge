@@ -23,6 +23,8 @@ jobs:
         run: |
           python3 .agents/commands/check_repository.py
           git diff --check
+      - name: Docker startup, worker and persistence lifecycle
+        run: python3 .agents/commands/check_docker.py
       - name: API, PostgreSQL and Redis integration
         run: python3 .agents/commands/check_api.py
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6

@@ -21,14 +21,12 @@ def main() -> int:
 
     def run(*args: str) -> None:
         print('+ ' + ' '.join(args), flush=True)
-        subprocess.run(args, cwd=ROOT, env=env, check=True)
+        subprocess.run(args, cwd=ROOT, env=env, check=True, timeout=600)
 
     try:
         run(*compose, 'config', '--quiet')
-        run(*compose, 'build', 'api')
-        run(*compose, 'up', '-d', '--wait', 'postgres', 'redis')
+        run(*compose, 'up', '--build', '-d', '--wait', '--wait-timeout', '120')
         for command in [
-            ['composer', 'install', '--no-interaction'],
             ['composer', 'validate', '--strict'],
             ['composer', 'check-platform-reqs'],
             ['php', 'bin/console', 'about'],
@@ -37,10 +35,9 @@ def main() -> int:
             ['composer', 'test:integration'],
             ['php', 'bin/console', 'doctrine:migrations:status'],
         ]:
-            run(*compose, 'run', '--rm', 'api', *command)
-        run(*compose, 'up', '-d', '--wait', 'api')
+            run(*compose, 'run', '--rm', '--no-deps', 'api', *command)
         address = subprocess.check_output(
-            [*compose, 'port', 'api', '8000'], cwd=ROOT, env=env, text=True,
+            [*compose, 'port', 'api', '8000'], cwd=ROOT, env=env, text=True, timeout=30,
         ).strip()
         with urllib.request.urlopen(f'http://{address}/api/health', timeout=5) as response:
             if response.status != 200 or response.headers.get_content_type() != 'application/json' or json.load(response) != {'status': 'ok'}:
@@ -51,7 +48,7 @@ def main() -> int:
         return error.returncode or 1
     finally:
         # This UUID project was created by this invocation, never a user's existing project.
-        subprocess.run([*compose, 'down', '--volumes', '--remove-orphans'], cwd=ROOT, env=env, check=True)
+        subprocess.run([*compose, 'down', '--volumes', '--remove-orphans'], cwd=ROOT, env=env, check=True, timeout=600)
 
 
 if __name__ == '__main__':

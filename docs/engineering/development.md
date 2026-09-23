@@ -83,18 +83,16 @@ Local selection: [ADR 0002](../decisions/0002-local-infrastructure.md). Docker E
 From repository root (Docker service runtime):
 
 ```sh
-docker compose -p oathforge-local build api
-docker compose -p oathforge-local up -d --wait postgres redis
-docker compose -p oathforge-local run --rm api composer install --no-interaction
-docker compose -p oathforge-local run --rm api composer test
-docker compose -p oathforge-local run --rm api composer analyse
-docker compose -p oathforge-local up -d --wait api
+test -f apps/api/.env || cp apps/api/.env.example apps/api/.env
+docker compose -p oathforge-local up --build -d --wait
+docker compose -p oathforge-local exec api composer test
+docker compose -p oathforge-local exec api composer analyse
 curl --fail http://127.0.0.1:18082/api/health
 ```
 
-Copy `apps/api/.env.example` to `apps/api/.env` before installation if absent. Compose environment overrides container connection settings. `OATHFORGE_API_PORT` can select another loopback port. Normal tests do not require services; `composer test:integration` requires PostgreSQL and Redis. Use `docker compose -p oathforge-local down` to stop this project while preserving its data. To discard only a disposable test project's volumes, run `docker compose -p YOUR_DISPOSABLE_PROJECT down --volumes`; never apply that command to data you intend to keep.
+The single startup command installs locked dependencies in a one-shot `init` container, then starts the API and managed worker after initialization succeeds and PostgreSQL/Redis are healthy. API HTTP and worker process/transport healthchecks gate `--wait`. No host PHP/Composer or manual install is required. Source files remain mounted for development; dependencies/cache stay in project volumes. Initialization does not overwrite `.env` or run migrations. Inspect bootstrap failures with `docker compose -p oathforge-local logs init`; use `logs worker` for worker diagnostics. After changing dependencies, stop the stack with ordinary `down`, then run the same startup command. Compose environment overrides container connection settings. `OATHFORGE_API_PORT` can select another loopback port. Normal tests do not require services; `composer test:integration` requires PostgreSQL and Redis. Use `docker compose -p oathforge-local down` to stop this project while preserving its data. To discard only a disposable test project's volumes, run `docker compose -p YOUR_DISPOSABLE_PROJECT down --volumes`; never apply that command to data you intend to keep.
 
-The initialization script creates `oathforge_test` alongside `oathforge` only on a new PostgreSQL volume. Existing volumes retain their contents. Doctrine DBAL and migrations are installed without ORM/domain entities. Inspect migration status with `docker compose -p oathforge-local run --rm api php bin/console doctrine:migrations:status`; generate a deliberate migration later with `doctrine:migrations:generate` and apply reviewed migrations with `doctrine:migrations:migrate`. An empty migration directory is expected now.
+The initialization script creates `oathforge_test` alongside `oathforge` only on a new PostgreSQL volume. Existing volumes retain their contents. Doctrine DBAL and migrations are installed without ORM/domain entities. Inspect migration status with `docker compose -p oathforge-local exec api php bin/console doctrine:migrations:status`; generate a deliberate migration later with `doctrine:migrations:generate` and apply reviewed migrations with `doctrine:migrations:migrate`. An empty migration directory is expected now.
 
 T05 verified on 2026-09-23: Docker Engine 29.4.0 / Compose 5.1.2; container PHP 8.5.10, phpredis 6.3.0, PostgreSQL 17.11 and Redis 7.4.11. Image build, empty database/test database initialization, Redis PING, locked Composer install/validation/platform checks, 2 tests / 5 assertions, PHPStan and migration status (zero migrations) passed. The same API tests passed with PostgreSQL and Redis stopped. HTTP through the loopback Compose port returned the liveness JSON. The service probes and delivery tests below are also implemented.
 
@@ -103,8 +101,8 @@ T05 verified on 2026-09-23: Docker Engine 29.4.0 / Compose 5.1.2; container PHP 
 From repository root, with the local services running:
 
 ```sh
-docker compose -p oathforge-local run --rm api php bin/console app:check-database
-docker compose -p oathforge-local run --rm api composer test:integration
+docker compose -p oathforge-local exec api php bin/console app:check-database
+docker compose -p oathforge-local exec api composer test:integration
 ```
 
 The CLI probe writes and reads one synthetic value in a temporary table, then rolls back. Success prints `DATABASE_OK` and exits 0. Failure prints only `DATABASE_UNAVAILABLE` and exits 1, with no raw exception/connection string. DBAL's PDO connection timeout is two seconds. Integration tests use the separate `oathforge_test` database and verify rollback cleanup plus a refused-port failure in a bounded subprocess. `composer test` excludes service integration tests; `composer test:integration` requires healthy services. No production entity, schema or user data is involved. Local diagnostic contract, MVP-02-T06.
@@ -115,11 +113,10 @@ The CLI probe writes and reads one synthetic value in a temporary table, then ro
 
 Local Messenger configuration selects `async` and `failed` Redis streams with two-second connection/read timeouts, one immediate retry, and deletion after acknowledgement (the transport default). Production retry/backoff policy belongs to the operations epic. Source: [Symfony 7.4 Messenger](https://symfony.com/doc/7.4/messenger.html), checked 2026-09-23; exact retry choice is local.
 
-For future routed application messages, run one worker with:
+Compose already manages one worker, named `local-worker` inside its isolated Redis project. It restarts on process failure; after editing handler code, restart it with `docker compose -p oathforge-local restart worker`. Do not scale this service without assigning distinct consumer identities. For failed-message inspection:
 
 ```sh
-docker compose -p oathforge-local run --rm -e MESSENGER_CONSUMER_NAME=worker-1 api php bin/console messenger:consume async --time-limit=60
-docker compose -p oathforge-local run --rm api php bin/console messenger:failed:show
+docker compose -p oathforge-local exec api php bin/console messenger:failed:show
 ```
 
 Each concurrent worker needs a unique consumer name for the same stream/group. The scaffold deliberately has no production messages; synthetic fixture routing exists only under `test`. Inspect failed messages before explicitly retrying with `messenger:failed:retry ID` or removing with `messenger:failed:remove ID`. Do not treat queue availability as an Oath outcome. Sources: [Messenger consumer identity and failures](https://symfony.com/doc/7.4/messenger.html#redis-transport), [architecture invariants](architecture.md).
@@ -155,8 +152,17 @@ Native acceptance is pending: the execution host has neither an available `simct
 
 [GitHub Actions checks](../../.github/workflows/checks.yml) run repository validation, the isolated API check above, npm ci, mobile tests/type checks, Expo compatibility and both native bundle exports. Actions are pinned to inspected upstream commits; token permissions are read-only. Local workflow choice: MVP-02-T11. Sources checked 2026-09-23: [workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax), [checkout](https://github.com/actions/checkout), [setup-node](https://github.com/actions/setup-node), [setup-python](https://github.com/actions/setup-python).
 
-The workflow passed on GitHub for commit `3853216` on 2026-09-23: [hosted run 35922303447](https://github.com/marcin-kowalczyk-infol/oathfor.ge/actions/runs/35922303447). Repository checks, API/PostgreSQL/Redis verification, mobile tests/types and both native bundle exports succeeded. Initial publication was explicitly authorized by the owner; this is CI evidence, not a production deployment. Native connectivity acceptance remains pending as described above. Dummy local database/application secrets are intentional development fixtures, not production provisioning; no external provider credentials or artwork are needed for this scaffold.
+The previously published workflow passed on GitHub for commit `3853216` on 2026-09-23: [hosted run 35922303447](https://github.com/marcin-kowalczyk-infol/oathfor.ge/actions/runs/35922303447). Repository checks, API/PostgreSQL/Redis verification, mobile tests/types and both native bundle exports succeeded. Initial publication was explicitly authorized by the owner; this is CI evidence, not a production deployment. Native connectivity acceptance remains pending as described above. Dummy local database/application secrets are intentional development fixtures, not production provisioning; no external provider credentials or artwork are needed for this scaffold.
 
 Local clean-checkout verification, 2026-09-23: a disposable clone of `9e1fea0` plus the intended CI diff passed repository checks, fresh isolated API build/install, 2 ordinary API tests / 5 assertions, 5 integration tests / 19 assertions, PHPStan, migration status and HTTP over a dynamically assigned loopback port. Mobile npm ci, 14 tests, strict types, Expo compatibility and both exports passed using only the example configuration. The API script removed its UUID project and volumes. That local check did not exercise hosted execution or a native screen; hosted evidence is recorded above.
 
 Failure propagation was checked in the disposable checkout: temporary failing PHPUnit and Jest assertions each produced a nonzero exit; the API orchestrator still cleaned its project. Both temporary faults were removed. These local checks do not substitute for a GitHub Actions run.
+
+
+## Docker lifecycle verification
+
+Run `python3 .agents/commands/check_docker.py` (Docker and Python 3.11+) to copy non-ignored source into a disposable checkout and start a unique Compose project with empty volumes. It checks real HTTP/database health, repeated startup, PostgreSQL/Redis persistence across ordinary `down`/`up`, delivery by the managed worker using test-only fixtures, and nonzero startup failure from deliberately invalid Composer input. The fault exists only in the disposable copy. Cleanup removes only that invocation's project and volumes, including on failure; subprocesses have bounded timeouts. Existing project environment files are neither copied nor overwritten. The harness uses only DUMMY configuration.
+
+CI now includes this lifecycle check as well as the existing API and mobile checks. Hosted evidence above predates this orchestration change; its updated hosted run remains pending publication. Native T10 acceptance remains separately pending. Local orchestration follows the initialization/health dependency conditions in [Docker Compose startup order](https://docs.docker.com/compose/how-tos/startup-order/) (checked 2026-09-23); the lifecycle and single-worker scope are local MVP-02-T12 decisions.
+
+Verified locally on 2026-09-23 for T12: the full lifecycle harness passed, including preserved PostgreSQL/Redis values and actual managed-worker delivery after restart. The adapted API check passed 2 tests / 5 assertions, 5 integration tests / 19 assertions, PHPStan, Composer validation/platform checks, migration status and real HTTP. Compose configuration, repository/whitespace checks, Python compilation and workflow lint also passed. Mobile source was unchanged; native and updated hosted validation remain pending.
