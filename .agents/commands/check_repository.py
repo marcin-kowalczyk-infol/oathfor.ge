@@ -21,6 +21,8 @@ EXPECTED_LINKS = {
     ".claude/agents": "../.agents/subagents",
     ".codex/agents": "../.agents/adapters/codex/agents",
 }
+# Local owner decision, 2026-09-23: backlog is not distributed in Git.
+OPTIONAL_LOCAL_DOCUMENTS = {ROOT / "docs/delivery/mvp-backlog.md"}
 ERRORS: list[str] = []
 
 
@@ -100,7 +102,9 @@ def main() -> int:
             if parsed.scheme or not parsed.path:
                 continue
             dest = (path.parent / unquote(parsed.path)).resolve()
-            if not dest.is_relative_to(ROOT) or not dest.exists():
+            if not dest.is_relative_to(ROOT) or (
+                not dest.exists() and dest not in OPTIONAL_LOCAL_DOCUMENTS
+            ):
                 fail(f"{path.relative_to(ROOT)}: missing/nonportable link {target}")
 
     roles = sorted((ROOT / ".agents/subagents").glob("*.md"))
