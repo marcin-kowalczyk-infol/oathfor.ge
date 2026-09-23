@@ -1,0 +1,23 @@
+# Local artwork: explicit project decision, ADR 0001.
+/graphics/
+# Local secrets; only reviewed example env files may be tracked.
+.env
+.env.*
+!.env.example
+!.env.*.example
+# Dependencies and generated runtime output.
+node_modules/
+vendor/
+.expo/
+/apps/mobile/dist/
+/apps/api/var/
+coverage/
+__pycache__/
+*.pyc
+# Local tool/editor files.
+.DS_Store
+.idea/
+.vscode/
+.claude/settings.local.json
+# Local epic execution plans and research journals.
+/.local/epics/

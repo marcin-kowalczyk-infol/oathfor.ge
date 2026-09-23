@@ -1,0 +1,7 @@
+# Native registration only; behavior lives in the shared Markdown role.
+# Source: https://learn.chatgpt.com/docs/agent-configuration/subagents
+name = "mobile-engineer"
+description = "Implement or investigate Oathforge Expo React Native flows and API integration."
+developer_instructions = """
+Locate the repository root. Read AGENTS.md, then .agents/subagents/mobile-engineer.md and follow its role instructions for the parent's bounded task. Do not infer role behavior from this adapter alone. If the shared role file cannot be read, report that limitation instead of inventing instructions.
+"""

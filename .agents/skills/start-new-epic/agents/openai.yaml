@@ -1,0 +1,4 @@
+interface:
+  display_name: "Start New Epic"
+  short_description: "Prepare ordered epic tasks for agentic TDD execution"
+  default_prompt: "Use $start-new-epic to prepare an ordered TDD plan for the supplied MVP epic ID."
