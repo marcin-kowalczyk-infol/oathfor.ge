@@ -24,6 +24,7 @@ Build the accountability game described in [README](README.md). This is a docume
 - Run checks appropriate to the changed behavior. For implementation, cover relevant invariants and failure paths from the [testing strategy](docs/engineering/testing.md). Report what ran and what remains unverified. **Local workflow: [ADR 0001](docs/decisions/0001-project-foundation.md).**
 - Update affected docs with behavior/configuration changes; record significant architectural tradeoffs in an ADR. **Basis: [Nygard's ADR practice](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions).**
 - When the user says “commit”, create one new commit containing all uncommitted, non-ignored changes. Use `<arch|web|api|docs> - <gerund phrase>`, at most 10 words for the whole title, and short body bullets explaining why. Follow the [commit convention](.agents/rules/workflow.md#commits). **Local decision: owner instruction, 2026-09-23.**
+- Task branches use `feature/EPIC-ID_TASK-ID` or `bugfix/EPIC-ID_TASK-ID`, for example `feature/MVP-02_T01`; see [task branches](.agents/rules/workflow.md#task-branches). **Local decision: owner instruction, 2026-09-23.**
 
 ## Skills and delegation
 

@@ -24,6 +24,12 @@ Do not require a fixed number of subagents, hardcode their model, or delegate de
 
 Update relevant documentation when behavior changes. For significant architectural choices add/supersede an ADR. Summarize outcome, validation and material limitations; do not claim commit, push, deployment or live verification unless performed.
 
+## Task branches
+
+**Local decision: owner instruction, 2026-09-23.** Name task branches `feature/EPIC-ID_TASK-ID` for planned additions or `bugfix/EPIC-ID_TASK-ID` for fixes. For plan task `MVP-02-T01`, use `feature/MVP-02_T01` or `bugfix/MVP-02_T01`; retain the full task ID in the plan. Create each new task branch from local `main`, and resume an existing matching branch only after checking its history and task record.
+
+The [implement-epic skill](../skills/implement-epic/SKILL.md) executes prepared plans with TDD, per-task review, short documentation, a convention-compliant commit and local merge to `main` before the next task. An implementation invocation authorizes that local cycle, not push or deployment. Preserve unrelated changes; use an isolated task worktree when needed and do not include unrelated edits in automatic task commits. Keep resumable records in ignored `.local/tasks/` and checkmarks in `.local/epics/`.
+
 ## Commits
 
 **Local decision: owner instruction, 2026-09-23.** An explicit “commit” request means one new commit combining all current uncommitted changes: staged, unstaged, deleted and non-ignored untracked files, including changes from earlier work. Preserve their contents. Here, “squash commit” means combining working changes, not amending, rebasing or squashing existing commits. Do not push unless requested. If there are no changes, report that without creating an empty commit.

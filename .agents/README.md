@@ -30,6 +30,7 @@ No model, permissions, tools or global settings are overridden. A role's read-on
 | Skill | Use |
 | --- | --- |
 | [start-new-epic](skills/start-new-epic/SKILL.md) | Prepare a local, ordered epic plan with TDD task contracts and research blockers |
+| [implement-epic](skills/implement-epic/SKILL.md) | Execute a prepared epic with TDD, per-task review, local commits/merges and resumable progress |
 | [oathforge-spec](skills/oathforge-spec/SKILL.md) | Turn a feature request into a bounded implementable specification |
 | [oathforge-review](skills/oathforge-review/SKILL.md) | Review changes for Oath domain and reliability risks |
 | [oathforge-art-handoff](skills/oathforge-art-handoff/SKILL.md) | Inspect selected artwork and prepare its implementation handoff |
@@ -37,6 +38,8 @@ No model, permissions, tools or global settings are overridden. A role's read-on
 Example: Codex `$oathforge-spec`; Claude Code `/oathforge-spec`. Plain language also works: “Use the oathforge-spec skill to specify proof resubmission.”
 
 Epic planning: Codex `$start-new-epic MVP-01`; Claude Code `/start-new-epic MVP-01`. Plans and temporary research journals live in gitignored `.local/epics/`. This workflow prepares tasks for later execution; it does not implement the epic. **Local workflow:** [start-new-epic](skills/start-new-epic/SKILL.md).
+
+Epic execution: Codex `$implement-epic MVP-02`; Claude Code `/implement-epic MVP-02`. Requires an existing plan; task records live in ignored `.local/tasks/`, with completion checkmarks in the plan. Missing external inputs use labeled dummy replacements where feasible and appear in the final `WHAT IS NEEDED` report. **Local workflow:** [implement-epic](skills/implement-epic/SKILL.md).
 
 ## Subagents
 

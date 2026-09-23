@@ -22,6 +22,10 @@ Next task: [stable ID, or blocking decision]
 | --- | --- | --- |
 | [requirement] | [coverage] | [observable evidence] |
 
+## Execution progress
+
+- [ ] EPIC-ID-T01 — [task title; checked only after reviewed integration]
+
 ## Ordered tasks
 
 ### EPIC-ID-T01 — [one verifiable outcome]
@@ -57,6 +61,8 @@ The epic remains incomplete while acceptance coverage or required verification i
 ```
 
 For non-code tasks replace Red/Green/Refactor with `Verification mode`, `Artifact`, `Review criteria` and `Check`. Do not invent failing tests for policy decisions or visual judgment. For setup tasks distinguish harness checks from later behavioral TDD. Commands not yet available must be labeled proposed and linked to the task that establishes them.
+
+The execution checklist supports [implement-epic](../../implement-epic/SKILL.md). Planning leaves its new tasks unchecked; preserve existing completion evidence when revising a plan. Execution records live in `.local/tasks/EPIC-ID_TASK-ID.md`, for example `.local/tasks/MVP-02_T01.md`. **Local workflow: owner instruction, 2026-09-23.**
 
 For executable tasks, split any acceptance scenario that requires an independent design decision or unrelated change into its own task. Include API contracts, authorization, duplicate delivery, time boundaries or provider failures only where the behavior requires them. Prefer test fixtures with fixed inputs, clock and provider outcomes over live services; follow the project's testing/security rules.
 

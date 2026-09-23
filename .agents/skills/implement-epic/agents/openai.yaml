@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement Epic"
+  short_description: "Execute planned epic tasks with TDD and review"
+  default_prompt: "Use $implement-epic MVP-02 to execute its prepared plan task by task."
