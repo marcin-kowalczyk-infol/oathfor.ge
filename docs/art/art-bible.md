@@ -1,6 +1,6 @@
 # Art Bible — direction v0.1
 
-Status: accepted direction; the starting companion brief is accepted for visual exploration; initial concept references are selected for continued production; UI palette and app exports remain pending. Source: [ADR 0001](../decisions/0001-project-foundation.md).
+Status: accepted direction; the starting companion brief is accepted for visual exploration; initial concept references are selected for continued production; five initial static app exports are selected; UI system and native acceptance remain pending. Source: [ADR 0001](../decisions/0001-project-foundation.md).
 
 ## Visual direction
 
@@ -10,13 +10,13 @@ Names, narrative language and original lore should draw from Slavic legends and 
 
 ## Companion design requirements
 
-Explore one distinctive guardian identity with four stages of progression. Preserve face/head structure, proportions and signature motif while changing equipment, material richness and effects. The accepted mythological anchor is Weles/Veles: an original personal guide linked to Weles, not automatically Weles himself. **Local decision: owner reply “Weles brzmi dobrze :D”, 2026-09-24.** “Max” is not canonical. The [Żaromir / Zharomir brief](companion.md), including starting form and persona, is accepted for artwork development with iterative refinement (owner decision, 2026-09-24). Initial references and actual visual refinements are recorded in the [concept manifest](companion-assets.md); final app artwork remains pending.
+Explore one distinctive guardian identity with four stages of progression. Preserve face/head structure, proportions and signature motif while changing equipment, material richness and effects. The accepted mythological anchor is Weles/Veles: an original personal guide linked to Weles, not automatically Weles himself. **Local decision: owner reply “Weles brzmi dobrze :D”, 2026-09-24.** “Max” is not canonical. The [Żaromir / Zharomir brief](companion.md), including starting form and persona, is accepted for artwork development with iterative refinement (owner decision, 2026-09-24). Initial references and actual visual refinements are recorded in the [concept manifest](companion-assets.md); five-level static exports are selected in that manifest; native acceptance remains pending.
 
 The player must recognize the same character at small mobile sizes. Review silhouette, facial readability, contrast and UI text placement. **Local production acceptance criteria.**
 
 ## Level unlocks
 
-Provide a small character unlock at each level and larger visual changes at milestone levels; preserve identity throughout. Small unlocks may be ornaments, equipment details, symbols or titles rather than a complete new character design. The accepted initial [five-level policy](../product/first-loop.md#initial-levels-and-unlock-ownership) has a starting form, small changes at levels 2–4 and a larger milestone at level 5 (owner approval, 2026-09-24). Content identifiers there are DUMMY handoffs; actual designs, bilingual names and selected assets remain to be produced. **Local decision: owner approval, 2026-09-23; [progression direction](../product/mvp.md#accepted-progression-direction).**
+Provide a small character unlock at each level and larger visual changes at milestone levels; preserve identity throughout. Small unlocks may be ornaments, equipment details, symbols or titles rather than a complete new character design. The accepted initial [five-level policy](../product/first-loop.md#initial-levels-and-unlock-ownership) has a starting form, small changes at levels 2–4 and a larger milestone at level 5 (owner approval, 2026-09-24). Its former DUMMY content identifiers are mapped to selected designs, bilingual names and five static exports in the [asset manifest](companion-assets.md#selected-five-level-exports); backend grants and native loading remain unimplemented. **Local decision: owner approval, 2026-09-23; [progression direction](../product/mvp.md#accepted-progression-direction).**
 
 ## Before production
 

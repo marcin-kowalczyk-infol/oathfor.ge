@@ -12,6 +12,11 @@ Status: accepted first-loop terms and reviewed mechanical PL/EN copy; other lore
 | Weles / Veles | Accepted PL/EN mythological anchor for an original companion, not the companion’s selected proper name (owner decision, 2026-09-24) |
 | Żaromir / Zharomir | Accepted starting PL/EN proper name for the original Weles-linked guide; [brief](../art/companion.md) may evolve during artwork production (owner decision, 2026-09-24) |
 | Strażnik Przysięgi / Oath Guardian | Accepted starting PL/EN role description, not a new action or historical title (owner decision, 2026-09-24) |
+| Wędrowiec / Wanderer | Selected level 1 appearance name; original content handoff in the [asset manifest](../art/companion-assets.md#selected-five-level-exports), local production selection 2026-09-24; grants/runtime pending |
+| Wstęga Żaru / Ember Sash | Selected level 2 appearance name; original content handoff in the [asset manifest](../art/companion-assets.md#selected-five-level-exports), local production selection 2026-09-24; grants/runtime pending |
+| Znak Strażnika / Guardian’s Token | Selected level 3 appearance name; original content handoff in the [asset manifest](../art/companion-assets.md#selected-five-level-exports), local production selection 2026-09-24; grants/runtime pending |
+| Okucia Przysięgi / Oath Fittings | Selected level 4 appearance name; original content handoff in the [asset manifest](../art/companion-assets.md#selected-five-level-exports), local production selection 2026-09-24; grants/runtime pending |
+| Płaszcz Iskry / Spark Mantle | Selected level 5 appearance name; original content handoff in the [asset manifest](../art/companion-assets.md#selected-five-level-exports), local production selection 2026-09-24; grants/runtime pending |
 | Referee | Evidence-assessment role, not a separate required character |
 | Squad | Private group sharing progress |
 | Recovery Quest / Zadanie Powrotu | Follow-up after a missed Oath; Polish mechanical translation reviewed in the T07 handoff, not a new lore name |

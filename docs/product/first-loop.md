@@ -202,7 +202,7 @@ Owner accepted the single 24-hour window with two corrections, three provider at
 
 ## Progression and Recovery
 
-Status: **T04 accepted local decision: owner approval, 2026-09-24.** Three explicit replies accepted rewards/Recovery, bonus upgrade/reuse, and the initial five-level curve. These are initial balancing choices, not measured outcomes or implemented behavior. Artwork identifiers remain provisional DUMMY handoffs.
+Status: **T04 accepted local decision: owner approval, 2026-09-24.** Three explicit replies accepted rewards/Recovery, bonus upgrade/reuse, and the initial five-level curve. These are initial balancing choices, not measured outcomes or implemented behavior. Artwork identifiers now reference the selected MVP-03 exports; runtime/native validation remains pending.
 
 ### Reward policy v1
 
@@ -246,15 +246,15 @@ History retains original `missed` plus the linked Recovery outcome, with a “Na
 
 Use a player progression policy `levels_v1` separate from per-Oath reward snapshots. Start at level 1 with 0 lifetime awarded XP. Accepted initial cap: level 5; XP continues accumulating at the cap, with no implied unpublished level threshold. New levels or curve migrations require an explicit later version. No loss of levels/unlocks from an ordinary miss. For levels 1–4, show the next threshold and unlock before earning it; at the cap, show that the initial progression track is complete.
 
-| Level | Total XP threshold | XP from previous level | Proposed content handoff (not an existing asset) |
+| Level | Total XP threshold | XP from previous level | Selected content handoff (static export; runtime pending) |
 | --- | --- | --- | --- |
-| 1 | 0 | — | DUMMY `companion_base`: starting form |
-| 2 | 100 | 100 | DUMMY `ember_mark`: small original mark/detail |
-| 3 | 250 | 150 | DUMMY `guardian_token`: small ornament |
-| 4 | 450 | 200 | DUMMY `oath_binding`: small equipment detail |
-| 5 | 700 | 250 | DUMMY `spark_mantle`: first larger milestone change |
+| 1 | 0 | — | `zharomir-wanderer-v01`: Wędrowiec / Wanderer |
+| 2 | 100 | 100 | `zharomir-ember-sash-v01`: Wstęga Żaru / Ember Sash |
+| 3 | 250 | 150 | `zharomir-guardian-token-v01`: Znak Strażnika / Guardian’s Token |
+| 4 | 450 | 200 | `zharomir-oath-fittings-v01`: Okucia Przysięgi / Oath Fittings |
+| 5 | 700 | 250 | `zharomir-spark-mantle-v01`: Płaszcz Iskry / Spark Mantle |
 
-These are content identifiers and ideas, not accepted lore names or generated graphics. MVP-03 owns original visual design, bilingual names and selected asset exports; MVP-09 owns the backend threshold/unlock ledger and display. Each eligible level unlock is granted once per player/catalog entry, including when one XP settlement crosses several thresholds; retries cannot duplicate it. Real artwork is not present for these IDs. The four-stage companion concept direction remains broader concept work; this initial five-level catalog does not assert that four finished forms exist. T07 must keep missing selected assets visible in the downstream handoff.
+MVP-03 T03 selected these original static exports on 2026-09-24; the [asset manifest](../art/companion-assets.md#selected-five-level-exports) records bilingual names, previews, metadata and the mapping from prior DUMMY identifiers. This replaces provisional content only, preserving every threshold and reward rule. MVP-03 owns visual design/content; MVP-09 owns the backend threshold/unlock ledger and display. Each eligible level unlock is granted once per player/catalog entry, including when one XP settlement crosses several thresholds; retries cannot duplicate it. Artwork exists but runtime loading, grants and native acceptance remain pending. Four-stage continuity concepts remain broader concept work, not four finished forms or a change to the five-level policy.
 
 ### Artifact scenarios
 
@@ -274,7 +274,7 @@ These are content identifiers and ideas, not accepted lore names or generated gr
 
 ### T04 decision record and handoff
 
-Owner accepted all three T04 decision questions on 2026-09-24: 30 base XP plus highest 10/20 bonus; one new same-type Recovery workout completed within 24 hours of the miss, with 15 minutes for evidence and 15 XP without bonus or chaining; one bonus upgrade received within 24 hours of fulfillment with delta-only payment; one workout per commitment; initial levels 1–5 at total XP 0/100/250/450/700, continuing XP accumulation at the cap. Unlock content ideas remain provisional DUMMY identifiers for MVP-03/09. T05 specifies pause; T06 defines appeals/retention/reconciliation, and real artwork/layout compatibility remains pending. No application tests or gameplay runtime are claimed.
+Owner accepted all three T04 decision questions on 2026-09-24: 30 base XP plus highest 10/20 bonus; one new same-type Recovery workout completed within 24 hours of the miss, with 15 minutes for evidence and 15 XP without bonus or chaining; one bonus upgrade received within 24 hours of fulfillment with delta-only payment; one workout per commitment; initial levels 1–5 at total XP 0/100/250/450/700, continuing XP accumulation at the cap. The original DUMMY unlock ideas were subsequently replaced by the selected MVP-03 content handoff above. T05 specifies pause; T06 defines appeals/retention/reconciliation, and real artwork/layout compatibility remains pending. No application tests or gameplay runtime are claimed.
 
 ## Pause and alternatives
 
@@ -474,14 +474,14 @@ The correction message describes the lifetime limit, not the remaining count; a 
 | Initiation title, declaration and separate photo/record criteria | Owner T01 decision, 2026-09-24 | Accepted; Apple Fitness is a candidate, real PL/EN examples not inspected |
 | Completion/receipt deadlines and timezone semantics | Owner T02 approval, 2026-09-24 | Accepted; no product clock/upload implementation |
 | Corrections, provider escalation, review and neutral closure | Both owner T03 approvals, 2026-09-24 | Accepted; provider/model/queue/operator acceptance pending |
-| XP, Recovery, upgrades/reuse and five-level curve | Three owner T04 approvals, 2026-09-24 | Accepted; DUMMY unlock content identifiers need selected artwork |
+| XP, Recovery, upgrades/reuse and five-level curve | Three owner T04 approvals, 2026-09-24 | Accepted; MVP-03 selected static unlock exports, runtime/native validation pending |
 | Pause/withdrawal, fixed Recovery windows and Minimum Quest deferral | Both owner T05 approvals, 2026-09-24 | Accepted; no native reminder/pause implementation |
 | Appeals, retention/operator responsibility and deletion | Three owner T06 approvals, 2026-09-24 | Accepted; actual service configuration, deletion and restore verification required |
 
 Remaining needs are explicit handoff gates, not unresolved core game-policy choices:
 
 - **Apple Fitness:** inspect consented real completed Apple Watch workout details on iPhone in PL and EN separately, record versions/language, confirm required fields and evaluate the model. `DUMMY Activity` in this document remains synthetic content only; it cannot satisfy compatibility acceptance. Resolve any observed layout/contract mismatch before enabling that layout.
-- **Artwork:** replace the five DUMMY content IDs in the level table with intentionally selected original assets and bilingual names in MVP-03/09. No asset files were created or selected by this epic.
+- **Artwork:** MVP-03 has replaced the five DUMMY content IDs with selected static exports and bilingual names in the [manifest](../art/companion-assets.md#selected-five-level-exports). MVP-09 still owns authoritative grants/display; bundle loading and PL/EN iOS acceptance remain pending. These images were produced by MVP-03, not by this specification epic.
 - **Localization:** implement the glossary's catalog/API, locale fallback, interpolation/plural and native-resource requirements; migrate diagnostic copy and verify product flows on iOS in both languages. The bilingual prose here is not hardcoded application UI.
 - **Operations:** assign real operators and implement authorized review/appeal tools, incident evidence, private storage/provider settings, deletion reconciliation and tested restore suppression in MVP-08/14 before collecting real evidence. DUMMY reviewer fixtures cover only local deterministic tests; no live integration or paid provider call was performed.
 
