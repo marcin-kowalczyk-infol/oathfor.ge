@@ -2,7 +2,7 @@
 
 ## Purpose and current state
 
-Build the accountability game described in [README](README.md). The Symfony API, local PostgreSQL/Redis integration, bilingual Expo connectivity shell and durable anonymous login-challenge boundary are implemented. The internal Apple token-verification boundary exists; provider code exchange, accounts and sessions remain pending. iOS simulator connectivity acceptance and earlier hosted CI checks passed; the updated Docker lifecycle workflow awaits a hosted run; no product game loop exists. Do not report planned behavior as implemented. **Sources: [development guide](docs/engineering/development.md), [foundation decision](docs/decisions/0001-project-foundation.md).**
+Build the accountability game described in [README](README.md). The Symfony API, local PostgreSQL/Redis integration, bilingual Expo connectivity shell and durable anonymous login-challenge boundary are implemented. Internal Apple token verification, code exchange and provider-token encryption exist; account/session persistence, protected identity reads and current-session revocation exist. Public login composition and onboarding remain pending. iOS simulator connectivity acceptance and earlier hosted CI checks passed; the updated Docker lifecycle workflow awaits a hosted run; no product game loop exists. Do not report planned behavior as implemented. **Sources: [development guide](docs/engineering/development.md), [foundation decision](docs/decisions/0001-project-foundation.md).**
 
 ## Working agreement
 

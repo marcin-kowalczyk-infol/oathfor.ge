@@ -1,0 +1,20 @@
+security:
+    firewalls:
+        dev:
+            pattern: ^/(_profiler|_wdt|assets|build)/
+            security: false
+        # Logout deliberately accepts inactive and unknown well-formed sessions.
+        public:
+            pattern: ^/api/(health|auth/apple/challenges|auth/session)$
+            security: false
+        api:
+            pattern: ^/api/
+            stateless: true
+            entry_point: App\Security\SessionAuthenticationFailure
+            access_token:
+                token_handler: App\Security\SessionTokenHandler
+                token_extractors: ['App\Security\SessionTokenExtractor']
+                failure_handler: App\Security\SessionAuthenticationFailure
+    access_control:
+        - { path: '^/api/(health|auth/apple/challenges|auth/session)$', roles: PUBLIC_ACCESS }
+        - { path: '^/api/', roles: IS_AUTHENTICATED_FULLY }

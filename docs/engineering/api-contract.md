@@ -16,7 +16,7 @@ Producer verification: `composer test -- --filter HealthEndpointTest` from `apps
 
 ## Planned authentication contract
 
-**Status: challenge issuance and transactional one-use storage implemented in MVP-04-T04; internal signature/claims and trusted-key verification implemented in T05. Internal code exchange implemented in T08; public exchange, identity read and session deletion remain planned. Local decisions, 2026-09-24, under [ADR 0003](../decisions/0003-apple-sign-in.md).** The anonymous challenge does not authenticate a user. Remaining sections fix the target contract and do not enable login.
+**Status: challenge issuance and transactional one-use storage implemented in MVP-04-T04; internal signature/claims and trusted-key verification implemented in T05. Internal code exchange implemented in T08. T09 implements account/session persistence, identity read and current-session deletion; public login exchange remains planned. Local decisions, 2026-09-24, under [ADR 0003](../decisions/0003-apple-sign-in.md).** The anonymous challenge does not authenticate a user. Remaining sections fix the target contract and do not enable login.
 
 ### Transport and limits
 
@@ -68,7 +68,7 @@ After provider verification, execute one database transaction: atomically consum
 
 Apple's code consumption cannot roll back with PostgreSQL. If provider success is followed by database failure or an ambiguous network response, do not report login success or automatically replay the code. Return 503 if possible and request a fresh challenge/native login. Do not revoke Apple authorization as rollback cleanup because it could revoke another device's valid grant. An unpersisted provider credential is discarded; account deletion/revocation acceptance must exercise subsequent fresh authorization recovery. This is an explicit distributed-transaction limitation, not an atomicity claim about Apple.
 
-A lost successful API response cannot recover the bearer token: replay encounters a consumed challenge and gets 409. The client starts a fresh native login. The unknown prior session expires at its original fixed deadline or is revoked by account deletion; no token receipt is stored for replay. Failed signature/input/challenge checks create no account/session/provider writes. A provider failure consumes no local challenge, but the client still starts a fresh attempt because code use may be uncertain. All session issuance paths recheck expiry at transaction time.
+A lost successful API response cannot recover the bearer token: replay encounters a consumed challenge and gets 409. The client starts a fresh native login. The unknown prior session expires at its original fixed deadline or is revoked by account deletion; no token receipt is stored for replay. Failed signature/input/challenge checks create no account/session/provider writes. A provider failure consumes no local challenge, but the client still starts a fresh attempt because code use may be uncertain. All session issuance paths recheck expiry at transaction time, including after waiting for the account lock and immediately before inserting the session.
 
 ### App session and sign-out
 
