@@ -14,7 +14,7 @@ Status: working terminology; Oathforge and Oath are established, remaining label
 | Recovery Quest | Follow-up after a missed Oath |
 | Minimum Quest | Optional pre-agreed smaller alternative before the deadline |
 | Trial | Candidate label for a time-bounded challenge |
-| XP | Experience points; tuning undecided |
+| XP | Experience points; accepted initial amounts and level thresholds in [first-loop policy](first-loop.md#progression-and-recovery), owner approval 2026-09-24 |
 | Renown | Candidate lore/progression term; not yet a separate currency |
 | Fulfilled / Missed / Recovered | Distinct outcomes; recovery does not rewrite history |
 

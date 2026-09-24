@@ -16,7 +16,7 @@ The player must recognize the same character at small mobile sizes. Review silho
 
 ## Level unlocks
 
-Provide a small character unlock at each level and larger visual changes at milestone levels; preserve identity throughout. Small unlocks may be ornaments, equipment details, symbols or titles rather than a complete new character design. The level count and asset catalog remain to be defined. **Local decision: owner approval, 2026-09-23; [progression direction](../product/mvp.md#accepted-progression-direction).**
+Provide a small character unlock at each level and larger visual changes at milestone levels; preserve identity throughout. Small unlocks may be ornaments, equipment details, symbols or titles rather than a complete new character design. The accepted initial [five-level policy](../product/first-loop.md#initial-levels-and-unlock-ownership) has a starting form, small changes at levels 2–4 and a larger milestone at level 5 (owner approval, 2026-09-24). Content identifiers there are DUMMY handoffs; actual designs, bilingual names and selected assets remain to be produced. **Local decision: owner approval, 2026-09-23; [progression direction](../product/mvp.md#accepted-progression-direction).**
 
 ## Before production
 

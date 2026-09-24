@@ -12,7 +12,7 @@ Polish and English are required across the MVP player experience. Copy may be ad
 
 ## Accepted first Oath evidence contract
 
-**Owner decision, 2026-09-24:** [Trial of the Spark / Próba Iskry](first-loop.md) is the initiation task. Completion is declared by the player and supported by contextual photo or activity record, selected at submission under precommitted alternatives. Images do not independently prove completion. Apple Fitness workout details are an evaluation candidate; real PL/EN layouts remain unverified. The [time policy](first-loop.md#time-policy) is accepted: finish by the committed deadline and complete first receipt within 15 minutes, with inclusive boundaries and immutable timezone rules. The [resolution policy](first-loop.md#resolution-table) is accepted, including two corrections in a single 24-hour window, bounded provider retries, review and neutral unresolved closure. Reward amounts remain open.
+**Owner decision, 2026-09-24:** [Trial of the Spark / Próba Iskry](first-loop.md) is the initiation task. Completion is declared by the player and supported by contextual photo or activity record, selected at submission under precommitted alternatives. Images do not independently prove completion. Apple Fitness workout details are an evaluation candidate; real PL/EN layouts remain unverified. The [time policy](first-loop.md#time-policy) is accepted: finish by the committed deadline and complete first receipt within 15 minutes, with inclusive boundaries and immutable timezone rules. The [resolution policy](first-loop.md#resolution-table) is accepted, including two corrections in a single 24-hour window, bounded provider retries, review and neutral unresolved closure. The [progression and Recovery contract](first-loop.md#progression-and-recovery) specifies accepted initial rewards, bonus upgrades, activity reuse and five-level thresholds.
 
 ## Accepted progression direction
 
@@ -22,7 +22,7 @@ Polish and English are required across the MVP player experience. Copy may be ad
 - Define minimum fulfillment evidence separately from bonus eligibility. Failure to qualify for a higher bonus does not invalidate an otherwise fulfilled Oath.
 - Defer calorie, step and distance-to-XP conversions. Initial progression rewards fulfillment and supporting evidence, without direct activity-provider integrations.
 - Each level requires more XP than the previous level, with a gentle initial curve. Each level gives a small character unlock; milestone levels provide larger visual changes. Show the next unlock before it is earned.
-- Exact XP values, thresholds, unlock catalog, upgrade window and cross-Oath activity-reuse rules remain to be specified. The example of 30 base XP plus a 10 or 20 XP bonus is a balancing proposal, not a frozen rule.
+- **Owner approval, 2026-09-24:** initial values are 30 base XP plus highest 10/20 evidence bonus; one delta-only upgrade within 24 hours; no activity reuse between commitments. Levels 1–5 use total thresholds 0/100/250/450/700. The [full contract](first-loop.md#progression-and-recovery) defines one 15 XP Recovery and exact windows; real unlock artwork remains pending.
 
 This extends the initial single-upgrade production scope into small per-level unlocks, not a new full character design for every level. Implementation belongs to MVP-03/09; policy definition belongs to MVP-01. No progression runtime or artwork unlocks exist yet.
 
@@ -43,7 +43,7 @@ This extends the initial single-upgrade production scope into small per-level un
 
 [The first-loop resolution table](first-loop.md#resolution-table) is authoritative for MVP-01 (owner approval, 2026-09-24). Normal evidence progression is `scheduled → active → proof_pending → fulfilled`. Corrections use `needs_more_evidence`; operational escalation uses `review_pending`. Terminal outcomes are `fulfilled`, `missed` and neutral `unresolved`.
 
-A rejected/unclear assessment does not itself mean a miss. Timely proof retains eligibility during delayed analysis. Provider/operator non-response follows the bounded review policy and may close neutrally without XP, a miss or Recovery eligibility. Recovery remains a separate post-miss flow to specify in T04, preserving the original miss. These are accepted specifications, not implemented product states.
+A rejected/unclear assessment does not itself mean a miss. Timely proof retains eligibility during delayed analysis. Provider/operator non-response follows the bounded review policy and may close neutrally without XP, a miss or Recovery eligibility. Recovery is the separate post-miss flow specified in T04, preserving the original miss. These are accepted specifications, not implemented product states.
 
 ## Domain guardrails
 

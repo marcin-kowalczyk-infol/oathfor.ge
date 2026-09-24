@@ -1,6 +1,6 @@
 # First workout Oath contract
 
-Status: T01 evidence policy accepted by the owner, 2026-09-24; real-layout acceptance pending. No application behavior or model evaluation is implemented by this document. T02 time and T03 resolution policies are accepted; progression, recovery, pause and retention policies remain open.
+Status: T01 evidence policy accepted by the owner, 2026-09-24; real-layout acceptance pending. No application behavior or model evaluation is implemented by this document. T02 time and T03 resolution policies are accepted; T04 progression and Recovery are accepted; pause and retention policies remain open.
 
 Accepted basis: completion declared by the player, supported by either a photo or an activity screenshot under separate criteria (owner decision, 2026-09-23). The [MVP guardrails and progression direction](mvp.md), [evidence limits](../engineering/ai-verification.md) and [language rules](glossary.md#language-and-naming-rules) remain binding. The T01 rules below are an **accepted local decision: owner instruction, 2026-09-24**. Apple Fitness is an evaluation candidate only; later policy proposals are not accepted by this decision.
 
@@ -20,13 +20,13 @@ Accepted basis: completion declared by the player, supported by either a photo o
 | Completion declaration | Potwierdzam ukończenie treningu wskazanego w tej Przysiędze. Przesłany dowód dotyczy tego treningu. | I confirm that I completed the workout named in this Oath. The evidence I submit relates to that workout. |
 | Evidence caveat | AI ocenia widoczne elementy dowodu. Sam obraz nie potwierdza ukończenia treningu, jego czasu trwania ani tego, kto go wykonał. | AI assesses visible evidence. The image alone does not verify workout completion, duration or who performed it. |
 
-The owner selected “Próba Iskry / Trial of the Spark” as the initiation title. It names the introductory task; the commitment remains an Oath. The spark motif is invented setting terminology, not a claimed traditional Slavic ritual. The accepted bilingual title and commitment term are recorded in the glossary. `{activity}` is the chosen workout type; `{deadline}` must show the committed date, time and timezone under the T02 policy. No exercise duration or intensity target is selected here. These sentences are the completion promise, not a complete activation screen: the submission cutoff is defined in T02; consequence and recovery disclosures await T04/T05.
+The owner selected “Próba Iskry / Trial of the Spark” as the initiation title. It names the introductory task; the commitment remains an Oath. The spark motif is invented setting terminology, not a claimed traditional Slavic ritual. The accepted bilingual title and commitment term are recorded in the glossary. `{activity}` is the chosen workout type; `{deadline}` must show the committed date, time and timezone under the T02 policy. No exercise duration or intensity target is selected here. These sentences are the completion promise, not a complete activation screen: the submission cutoff is defined in T02; rewards and Recovery follow T04, while pause handling awaits T05.
 
 ### Shared evidence rules
 
 The player sees both evidence contracts before committing and chooses either mode at submission. The rule snapshot preserves both alternatives; switching between them does not change the workout promise. Completion declaration is required for either route. A missing declaration blocks submission with a request to confirm it; the model cannot supply it for the player.
 
-An accepted evidence assessment means only that the image satisfies the selected visible-content criteria. Fulfillment additionally relies on the player’s declaration and backend eligibility checks. It is not independent verification of exercise. The accepted T02/T03 sections define timing eligibility, ambiguous/rejected follow-up and final outcomes. Reward amounts remain T04 scope; this document implements no runtime behavior.
+An accepted evidence assessment means only that the image satisfies the selected visible-content criteria. Fulfillment additionally relies on the player’s declaration and backend eligibility checks. It is not independent verification of exercise. The accepted T02/T03 sections define timing eligibility, ambiguous/rejected follow-up and final outcomes. Reward amounts are specified in T04; this document implements no runtime behavior.
 
 Do not require faces, names, body photos, maps, GPS permission or matching upload location. Do not collect or depend on EXIF for this contract. Permit cropping or redacting private areas while preserving required evidence fields; missing metadata is not proof of fraud. The capture/gallery mechanism and upload limits remain downstream implementation details to resolve before MVP-07; this contract makes no camera-only provenance claim.
 
@@ -94,7 +94,7 @@ Status: **T02 accepted local decision: owner approval, 2026-09-24.** The owner a
 - Store workout completion deadline `D` as a UTC instant, with the selected IANA timezone and original local display value in the immutable rule snapshot. Show both `D` and first-evidence receipt cutoff `S = D + 15 minutes` before commitment. Backend time is authoritative. UTC storage and retained IANA timezone follow the existing [architecture rules](../engineering/architecture.md#reliability-rules); the 15-minute period and boundaries are accepted local decisions.
 - Use inclusive boundaries: the workout must finish at or before `D`; the first complete evidence submission must reach the backend at or before `S`. The extra 15 minutes permit submission, not further exercise. Once `S` has passed, do not open a new first-submission attempt under this normal route. T03 defines final outcomes and the submission-incident review route; T06 still owns appeals.
 - Receipt `R` is the backend timestamp recorded atomically with a durable submission record after the complete upload is available in controlled storage, bound to the authenticated owner/Oath and accompanied by the declaration. Record it after synchronous upload-integrity checks, before asynchronous image assessment. Upload start, device time, a storage upload without a finalized submission, screenshot creation and queue completion are not `R`.
-- A retry of the same finalized submission returns the original receipt; interrupted or unfinalized uploads have none. Changing evidence content is a new submission, not an idempotent replay. Later correction and bonus-upgrade windows cannot be inferred from this first-receipt rule; corrections follow T03; bonus upgrades await T04.
+- A retry of the same finalized submission returns the original receipt; interrupted or unfinalized uploads have none. Changing evidence content is a new submission, not an idempotent replay. Later correction and bonus-upgrade windows cannot be inferred from this first-receipt rule; corrections follow T03; bonus upgrades follow T04.
 
 ### Timezone and activity-time handling
 
@@ -135,7 +135,7 @@ Status: **T03 accepted local decision: owner approval, 2026-09-24.** The owner a
 
 ### States and authority
 
-Use `scheduled`, `active`, `proof_pending`, `needs_more_evidence`, `review_pending`, and terminal `fulfilled`, `missed`, `unresolved`. `unresolved` is a neutral closure, displayed as “Nierozstrzygnięta / Unresolved”: no fulfillment reward, no missed mark, no failure consequence or recovery eligibility. It does not remove existing XP. T04 must specify other reward/consequence effects. Recovery is a separate linked flow; it does not overwrite an original miss.
+Use `scheduled`, `active`, `proof_pending`, `needs_more_evidence`, `review_pending`, and terminal `fulfilled`, `missed`, `unresolved`. `unresolved` is a neutral closure, displayed as “Nierozstrzygnięta / Unresolved”: no fulfillment reward, no missed mark, no failure consequence or recovery eligibility. It does not remove existing XP. T04 specifies other reward/consequence effects. Recovery is a separate linked flow; it does not overwrite an original miss.
 
 Only the backend changes Oath state. AI emits `accepted`, `rejected` or `unclear` for a particular evidence revision and committed rule version. A timeout, invalid response, unavailable provider or worker failure is an infrastructure error, never a fourth evidence verdict. Store bounded reason codes and version identifiers; apply the existing [security rules](../../.agents/rules/security.md) to proof access and logs. A review operator may inspect only authorized cases; operational staffing, appeals and evidence retention must be specified in T06 before release.
 
@@ -174,13 +174,13 @@ When entering review, persist `V` and a fixed closure time `V + 72 hours`. An au
 
 For a submission incident with no timely receipt, use an explicitly separate exceptional review route: allow an owner to attach evidence/declaration of the original workout until `S + 24 hours`, inclusive. Do not backdate receipt or extend workout deadline `D`. Only a confirmed service incident overlapping `[D,S]` can justify the submission exception; mere offline-device status cannot. A neutral closure of this incident case is permitted only strictly after `S + 24 hours`, or at the later 72-hour review timeout, preserving the inclusive attachment boundary. Closure and attachment receipt serialize; review considers any finalized eligible attachment before an operator closes the case. If the outage remains unconfirmed, the operator cannot award fulfillment under this exception. The case can close as missed only when healthy submission service and no timely proof are established; otherwise it closes neutrally. If service is still down, the persisted review/exception limits are evaluated after recovery rather than fabricated receipt times. Later-discovered incidents after a terminal settlement require the T06 appeal policy; they are not silently reopened by a callback.
 
-Terminal results ignore automatic callbacks, duplicate cutoff jobs and duplicate operator commands. During `review_pending`, model callbacks cannot settle the case; an authorized operator may use a valid late response as review input before closure. During normal assessment, accept at most one result for the current attempt. Bonus upgrades after fulfillment and appeals after terminal outcomes require separate versioned T04/T06 rules; they cannot replay the original settlement.
+Terminal results ignore automatic callbacks, duplicate cutoff jobs and duplicate operator commands. During `review_pending`, model callbacks cannot settle the case; an authorized operator may use a valid late response as review input before closure. During normal assessment, accept at most one result for the current attempt. Bonus upgrades after fulfillment follow T04; appeals after terminal outcomes still require T06 rules; they cannot replay the original settlement.
 
 ### Artifact scenarios
 
 | ID | Input → action | Expected result under T03 |
 | --- | --- | --- |
-| T03-01 | Timely complete proof; current assessment accepted, no timing conflict | Fulfilled once; reward amount remains T04 output |
+| T03-01 | Timely complete proof; current assessment accepted, no timing conflict | Fulfilled once; reward amount follows T04 |
 | T03-02 | First unclear reason published at 2026-09-24 19:00Z | `C = 2026-09-25 19:00Z`; two correction slots; no missed outcome |
 | T03-03 | Second correction received exactly at `C`; assessment after `C` | Pending until valid result or escalation; accepted can still fulfill; adverse goes to review |
 | T03-04 | First correction receives another unclear result before `C` | Original `C` remains; one slot remains |
@@ -198,4 +198,80 @@ Terminal results ignore automatic callbacks, duplicate cutoff jobs and duplicate
 
 ### T03 decision record and handoff
 
-Owner accepted the single 24-hour window with two corrections, three provider attempts and 15-minute escalation, operator review with neutral closure after 72 hours, and incident-specific evidence through `S+24h` on 2026-09-24. The two explicit replies resolve both T03 decision questions. Artifact scenarios are not runtime tests. T06 still defines appeals, actual operator responsibility and retention/deletion; T04 owns reward amounts and post-fulfillment upgrades. No actual operator service or Apple Fitness layout support is claimed.
+Owner accepted the single 24-hour window with two corrections, three provider attempts and 15-minute escalation, operator review with neutral closure after 72 hours, and incident-specific evidence through `S+24h` on 2026-09-24. The two explicit replies resolve both T03 decision questions. Artifact scenarios are not runtime tests. T06 still defines appeals, actual operator responsibility and retention/deletion; T04 specifies reward amounts and post-fulfillment upgrades. No actual operator service or Apple Fitness layout support is claimed.
+
+## Progression and Recovery
+
+Status: **T04 accepted local decision: owner approval, 2026-09-24.** Three explicit replies accepted rewards/Recovery, bonus upgrade/reuse, and the initial five-level curve. These are initial balancing choices, not measured outcomes or implemented behavior. Artwork identifiers remain provisional DUMMY handoffs.
+
+### Reward policy v1
+
+Snapshot `workout_rewards_v1` with the Oath before activation, including amounts, evidence criteria and upgrade window. Later tuning applies to new commitments; it cannot silently alter an active or fulfilled Oath. Only backend settlement writes XP, atomically with the outcome and activity claim; repeated/concurrent events award nothing extra. Persist a unique settlement identity and monotonic highest-paid tier per Oath. This follows the accepted [progression direction](mvp.md#accepted-progression-direction) and [transaction/idempotency rules](../engineering/architecture.md#reliability-rules).
+
+| Component or outcome | XP | Condition |
+| --- | --- | --- |
+| Base fulfillment | 30 | T01–T03 fulfillment; declaration alone is insufficient. This is an accounting component, not a separate evidence-free route |
+| Context-photo tier | +10 | Accepted T01 contextual photo for this workout |
+| Activity-record tier | +20 | Accepted T01 record with all required fields and eligible activity; Apple Fitness automated support still requires its real-layout evaluation |
+| Fulfilled with photo / record | 40 / 50 total | Add base once and only the highest qualifying tier |
+| Missed | 0 | No subtraction from existing XP or removal of unlocks |
+| Unresolved | 0 | Neutral, no miss or Recovery eligibility under T03 |
+| Successful Recovery | 15 total | Separate eligible Recovery below; no evidence bonus or later bonus upgrade |
+
+Multiple images, calorie/step/distance values and disclosure of identity/location do not increase XP. Failure to qualify for a higher tier preserves already established fulfillment and its existing reward. A context photo does not qualify for the record tier merely because it contains a watch; the required record fields must be readable and assessed under the record contract.
+
+### Bonus upgrade
+
+Let `F` be the server timestamp of initial fulfillment settlement. A photo-tier Oath permits one finalized upgrade submission, received at or before `U = F + 24 hours`, inclusive, presenting a qualifying record of the same original workout. The one submission is separate from the two pre-fulfillment corrections; an interrupted upload or identical transport retry consumes no additional slot. A record-tier Oath already has the maximum and needs no upgrade. An upgrade changes neither the original completion deadline nor the fulfilled outcome.
+
+Assess the upgrade separately, using T03's three provider attempts, 15-minute escalation and up-to-72-hour operator review limits. These statuses belong to the upgrade request, not the fulfilled Oath. An accepted qualifying record pays only `20 - 10 = 10 XP`; a repeated settlement pays zero. A rejected/unclear upgrade goes to review without new player corrections. Unsupported or inconclusive evidence, or review expiry, closes the upgrade without additional XP and preserves the original 40 XP. Timely upgrade receipt remains eligible despite later analysis; receipt after `U` is ineligible, and first-submission incident exceptions do not extend this optional bonus window. T06 still defines appeals, including discovered errors, without authorizing automatic clawbacks here.
+
+### Activity reuse boundary
+
+One physical workout may support only one original Oath or one Recovery, never both or two separate commitments. Initial fulfillment requires the player to attest the workout belongs to that commitment and was not submitted for another one; upgrades and corrections retain the same activity claim. Recovery always requires a new workout begun after its own activation. Do not split one session into multiple claims for rewards.
+
+Backend ties an owner-scoped activity claim to one commitment at first finalized submission; a unique claim/commitment association prevents duplicate reward for that known claim. A missed/unresolved commitment does not transfer its original workout into Recovery. Repeated uploads or a known reused claim cannot create a new entitlement; a detected inconsistent reuse claim follows T03 clarification/review instead of a fabricated authenticity verdict. Similar images alone are not conclusive reuse evidence. Screenshots and declarations cannot reliably identify every duplicate, edited image or different-account claim; this is a game rule with bounded enforcement, not verified provider identity or universal fraud detection. T06 must define the minimum claim metadata retained for this rule and deletion interactions.
+
+### Recovery contract
+
+For an original Oath marked `missed` at server time `M`, offer one linked Recovery. It is unavailable for `fulfilled`, `unresolved`, a pending original Oath or a Recovery itself. A preview consumes nothing; activating Recovery consumes the original Oath's single attempt, with idempotent activation returning the same Recovery. There is no chain of Recovery attempts.
+
+The accepted window requires **completion within 24 hours of the miss**. Commit and activate before `D_R = M + 24 hours`; complete a new workout of the original activity type after Recovery activation and at or before `D_R`; complete evidence receipt at or before `S_R = D_R + 15 minutes`. No universal duration/intensity minimum is introduced. Display the fixed deadline, same T01 evidence alternatives and 15 XP reward before activation. Recovery retains the original committed timezone and snapshots the original v1 reward policy.
+
+Use the same T02/T03 receipt, correction, provider/review and incident rules with Recovery deadlines. Timely Recovery proof can resolve after `D_R` or `S_R`. A successful Recovery grants 15 XP exactly once; failed, expired or unresolved Recovery grants zero and offers no further Recovery. Never subtract original XP. If no Recovery was activated before `D_R`, availability expires without creating a second miss. An activated Recovery follows normal settlement, including no-proof reconciliation after `S_R`.
+
+History retains original `missed` plus the linked Recovery outcome, with a “Nadrobiona / Recovered” presentation only after Recovery success. The original state and original reward remain unchanged. Pause/illness interaction remains a T05 dependency; this contract does not require exercise during illness or grant an extension by assumption. Appeals reversing an original result while Recovery exists require T06 reconciliation before implementation is release-ready.
+
+### Initial levels and unlock ownership
+
+Use a player progression policy `levels_v1` separate from per-Oath reward snapshots. Start at level 1 with 0 lifetime awarded XP. Accepted initial cap: level 5; XP continues accumulating at the cap, with no implied unpublished level threshold. New levels or curve migrations require an explicit later version. No loss of levels/unlocks from an ordinary miss. For levels 1–4, show the next threshold and unlock before earning it; at the cap, show that the initial progression track is complete.
+
+| Level | Total XP threshold | XP from previous level | Proposed content handoff (not an existing asset) |
+| --- | --- | --- | --- |
+| 1 | 0 | — | DUMMY `companion_base`: starting form |
+| 2 | 100 | 100 | DUMMY `ember_mark`: small original mark/detail |
+| 3 | 250 | 150 | DUMMY `guardian_token`: small ornament |
+| 4 | 450 | 200 | DUMMY `oath_binding`: small equipment detail |
+| 5 | 700 | 250 | DUMMY `spark_mantle`: first larger milestone change |
+
+These are content identifiers and ideas, not accepted lore names or generated graphics. MVP-03 owns original visual design, bilingual names and selected asset exports; MVP-09 owns the backend threshold/unlock ledger and display. Each eligible level unlock is granted once per player/catalog entry, including when one XP settlement crosses several thresholds; retries cannot duplicate it. Real artwork is not present for these IDs. The four-stage companion concept direction remains broader concept work; this initial five-level catalog does not assert that four finished forms exist. T07 must keep missing selected assets visible in the downstream handoff.
+
+### Artifact scenarios
+
+| ID | Input → action | Expected result under T04 |
+| --- | --- | --- |
+| LOOP-13 | Photo and record from one eligible workout → settle | 50 XP total, not 60; file count adds nothing |
+| LOOP-14 | Fulfilled photo Oath already paid 40 XP; record upgrade receipt exactly `F+24h` → accept twice | First settlement +10, duplicate +0; total 50; Oath remains fulfilled |
+| T04-01 | Upgrade receipt just after `F+24h`, or timely upgrade unresolved | No extra XP; original 40 XP retained |
+| LOOP-15 | Accepted record shows 500 kcal, steps and distance | Still 50 XP total; no metric conversion |
+| LOOP-17 | Known workout claim submitted for another Oath/Recovery | No second entitlement; clarify/review inconsistent claim, no automatic image-authenticity conclusion |
+| LOOP-10 | Original miss at 2026-09-24 19:00Z; Recovery activated next morning, new workout completed by 2026-09-25 19:00Z and receipt by 19:15Z | Successful Recovery gives 15 XP once; original miss remains |
+| T04-02 | Attempt first Recovery activation exactly at `M+24h`, or request a second Recovery after an activated one fails | No new Recovery available; no XP |
+| T04-03 | Recovery timely proof meets record tier, including repeated callback | 15 XP once; no evidence bonus or upgrade |
+| T04-04 | Original unresolved outcome, or Recovery still pending after its cutoff | No Recovery from unresolved; pending proof retains eligibility, not a timer-generated failure |
+| LOOP-16 | Player has 90 XP; earns 40 XP, then duplicate settlement arrives | 130 XP, level 2, its unlock once; duplicate changes nothing |
+| T04-05 | Player at 690 XP earns 50 XP | 740 XP, level 5 milestone once; XP continues accumulating at cap |
+
+### T04 decision record and handoff
+
+Owner accepted all three T04 decision questions on 2026-09-24: 30 base XP plus highest 10/20 bonus; one new same-type Recovery workout completed within 24 hours of the miss, with 15 minutes for evidence and 15 XP without bonus or chaining; one bonus upgrade received within 24 hours of fulfillment with delta-only payment; one workout per commitment; initial levels 1–5 at total XP 0/100/250/450/700, continuing XP accumulation at the cap. Unlock content ideas remain provisional DUMMY identifiers for MVP-03/09. T05 pause and T06 appeals/retention/reconciliation are still required, and real artwork/layout compatibility remains pending. No application tests or gameplay runtime are claimed.
