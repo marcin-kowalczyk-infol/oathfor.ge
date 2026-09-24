@@ -1,6 +1,6 @@
 # Onboarding into the Trial of the Spark
 
-Status: accepted product intention and local implementation contract, 2026-09-24. Authentication is implemented through MVP-04-T14; profile persistence and these onboarding screens are not yet implemented. Real signed-device acceptance and the actual MVP-05 first-Oath flow remain separate gates.
+Status: accepted product intention and local implementation contract, 2026-09-24. Authentication is implemented through MVP-04-T14; T16 implements profile persistence and server completion. These onboarding screens are not yet implemented. Real signed-device acceptance and the actual MVP-05 first-Oath flow remain separate gates.
 
 ## Intention and boundaries
 

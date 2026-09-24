@@ -85,7 +85,7 @@ Runtime acceptance must include replay/concurrent consumption/rollback, exact ex
 
 ## Onboarding profile contract
 
-Status: accepted local engineering contract for MVP-04-T16, 2026-09-24; endpoints are not yet implemented. Product meaning and recovery follow [onboarding](../product/onboarding.md).
+Status: implemented in MVP-04-T16 with synthetic integration coverage, 2026-09-24; mobile onboarding and real native acceptance remain pending. Product meaning and recovery follow [onboarding](../product/onboarding.md).
 
 Local engineering choice: one account-owned profile row, defaults on account creation or deterministic absent-row defaults until first write. Account ID comes only from the authenticated session, never a request parameter. Reuse account lock when checking active state, mutating profile and completing onboarding; deletion cannot race past that check. Recheck session expiry/revocation after any account-lock wait before applying a mutation. No version/CAS subsystem. Partial updates merge only named fields under the row/account lock; different-field concurrent updates survive. For the same field the last serialized successful write wins, suitable for these preferences. Mobile serializes its own writes and refetches when resuming; no guarantee that another device cannot change the same preference.
 

@@ -29,7 +29,7 @@ final class AppleExchangeEndpointTest extends WebTestCase
         self::assertInstanceOf(Connection::class, $connection);
         $this->connection = $connection;
         self::assertSame('oathforge_test', $connection->fetchOne('SELECT current_database()'));
-        $connection->executeStatement('TRUNCATE login_challenge, auth_rate_bucket, app_session, provider_identity, account');
+        $connection->executeStatement('TRUNCATE login_challenge, auth_rate_bucket, app_session, provider_identity, account CASCADE');
         $this->clock = new FixedClock();
         self::getContainer()->set(Clock::class, $this->clock);
     }

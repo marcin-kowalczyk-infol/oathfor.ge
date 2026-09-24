@@ -276,3 +276,10 @@ One session owner survives changes in the authenticated subtree. Foreground even
 Pending accounts currently reach an onboarding handoff; completed accounts reach a provisional first-Oath entry. Profile confirmation and onboarding steps follow in T16–T20, and the actual first-Oath commitment belongs to MVP-05. These placeholders create no Oath, deadline or reward. Native provider acceptance still requires a rebuilt signed app and a physical device.
 
 Native visual check attempted on 2026-09-24 with an isolated synthetic presentation fixture: Expo opened the project on the booted iPhone 18 Pro/iOS 27.0 simulator, but the computer-use interface could not obtain its window (`cgWindowNotFound`). No layout acceptance is claimed. The temporary entrypoint was restored and Metro stopped; the ignored fixture is `graphics/mvp-04/ui/native-auth-preview.tsx`. Repeat PL/EN layout and system accessibility checks when the native window is accessible.
+
+
+## Account onboarding profile
+
+T16 implements authenticated `GET /api/profile`, atomic partial `PATCH /api/profile` and `POST /api/onboarding/complete` under the [onboarding contract](../product/onboarding.md). Apply migrations in the intended development database before exercising them; the isolated API checker migrates only its owned test database. New accounts expose unconfirmed profile defaults until explicit saves. The request accepts no target account ID, OS permission or numerical goal.
+
+Profile mutations serialize with account deletion and recheck session validity after waiting for the account lock. Different-field updates merge; completion requires every confirmed field, including an explicit enabled/disabled notification preference. Companion acknowledgment and completion cannot be undone by this API. Completing onboarding neither starts an Oath nor extends the fixed session expiry. Mobile steps and physical-device acceptance remain pending.
