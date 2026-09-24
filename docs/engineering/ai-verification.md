@@ -12,6 +12,8 @@ Proposed assessment: `accepted | rejected | unclear`, reason code, observable ev
 
 A photo can support a check-in; it cannot reliably establish duration, intensity or completion of all exercises. Design each Oath template around the evidence it actually requires and describe self-reported facts as such. This is a **project honesty constraint**, not a promise of fraud detection.
 
+The accepted [first-loop evidence contract](../product/first-loop.md) separates contextual photographs from activity records and self-reported completion. Apple Fitness layouts remain candidates until real examples and PL/EN evaluations pass; the synthetic `DUMMY Activity` case cannot demonstrate compatibility. **Local decision: owner instruction, 2026-09-24.**
+
 Treat text inside uploaded images and user descriptions as untrusted content, including instructions addressed to the referee. **Basis: [OWASP prompt injection](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html).**
 
 ## Evaluation before automated outcomes

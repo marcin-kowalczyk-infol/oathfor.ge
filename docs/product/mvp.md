@@ -10,6 +10,10 @@ Status: draft for refinement; not a final release commitment. Product source: [A
 
 Polish and English are required across the MVP player experience. Copy may be adapted naturally in each language, but mechanics and acceptance conditions must remain equivalent. Slavic-inspired terminology follows the [language and naming rules](glossary.md#language-and-naming-rules). **Local decision: owner instruction, 2026-09-23.** The diagnostic shell has centralized Polish/English copy; product localization is not implemented. Follow the [translation storage contract](glossary.md#translation-storage-and-runtime-contract).
 
+## Accepted first Oath evidence contract
+
+**Owner decision, 2026-09-24:** [Trial of the Spark / Próba Iskry](first-loop.md) is the initiation task. Completion is declared by the player and supported by contextual photo or activity record, selected at submission under precommitted alternatives. Images do not independently prove completion. Apple Fitness workout details are an evaluation candidate; real PL/EN layouts remain unverified. Timing, resolution and reward policies are still open.
+
 ## Accepted progression direction
 
 **Local decision: owner approval, 2026-09-23.** Reward fulfillment of the committed Oath with base XP plus one capped evidence-tier bonus. Use the highest qualifying tier, not the number of submitted files: a context photo and an activity-result record have separate criteria. Neither tier proves authenticity or independently establishes workout quality.

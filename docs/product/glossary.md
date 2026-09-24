@@ -4,7 +4,8 @@ Status: working terminology; Oathforge and Oath are established, remaining label
 
 | Term | Meaning |
 | --- | --- |
-| Oath | Commitment with a deadline and agreed evidence |
+| Oath / Przysięga | Accepted EN/PL commitment term; commitment with a deadline and agreed evidence (owner decision, 2026-09-24) |
+| Trial of the Spark / Próba Iskry | Accepted EN/PL name of the first initiation task; the commitment itself remains an Oath (owner decision, 2026-09-24) |
 | Proof | Evidence submitted for an Oath |
 | Verification | Assessment against the agreed evidence requirement |
 | Companion | Player-facing AI character |
