@@ -10,6 +10,7 @@
         "ext-openssl": "*",
         "ext-pdo_pgsql": "*",
         "ext-redis": "^6.3",
+        "ext-sodium": "*",
         "doctrine/dbal": "^4",
         "doctrine/doctrine-bundle": "^3",
         "doctrine/doctrine-migrations-bundle": "^3",
