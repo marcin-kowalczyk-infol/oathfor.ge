@@ -1,6 +1,6 @@
 # ADR 0003 — Sign in with Apple
 
-Status: accepted route and session policy; native credential boundary implemented; account/session integration pending.
+Status: accepted route and session policy; native credential, anonymous challenge and internal Apple verification boundaries implemented; account/session integration pending.
 Date: 2026-09-24.
 
 ## Decision and context
@@ -29,11 +29,11 @@ The integration needs a registered iOS bundle identifier with Sign in with Apple
 
 ## Authentication contract selected for implementation
 
-**Local engineering decisions, 2026-09-24; runtime pending.** The owner accepted extending the native boundary to retain the authorization code and exchanging it on the backend with encrypted provider-token storage. The [API contract](../engineering/api-contract.md#planned-authentication-contract) specifies exact wire values and failure behavior. T02's existing identity-token-only adapter is not yet sufficient for that exchange; extend it in a separate tested task without changing its historical completion evidence.
+**Local engineering decisions, 2026-09-24; challenge and internal verification runtime implemented, full login pending.** The owner accepted extending the native boundary to retain the authorization code and exchanging it on the backend with encrypted provider-token storage. The [API contract](../engineering/api-contract.md#planned-authentication-contract) specifies exact wire values and failure behavior. T02's existing identity-token-only adapter is not yet sufficient for that exchange; extend it in a separate tested task without changing its historical completion evidence.
 
 Use the raw server-generated nonce unchanged through Expo and compare it exactly to the verified token claim; do not add implicit hashing. Expo SDK57 forwards `options.nonce` directly to the native request. **Basis:** [SDK57 native source](https://github.com/expo/expo/blob/sdk-57/packages/expo-apple-authentication/ios/AppleAuthenticationRequest.swift), checked against installed 57.0.2 on 2026-09-24.
 
-Select `firebase/php-jwt:^7.2` for signature/JWK handling, `ext-openssl` for RSA, and `symfony/http-client:7.4.*` for bounded key/token requests. The library's tagged manifest accepts PHP ^8.0, compatible with our PHP ~8.5.0 requirement; installation, lock resolution and tests must still establish compatibility. Only RS256 with trusted Apple RSA signing keys is allowed. Application code checks issuer, audience, nonce and claim types/times after cryptographic verification. This is a local restriction, supported by the current [Apple public JWKS](https://appleid.apple.com/auth/keys) and [library 7.2.0 source](https://github.com/googleapis/php-jwt/tree/v7.2.0), checked 2026-09-24. Token headers cannot select a URL or algorithm. An Apple algorithm change requires review rather than permissive fallback.
+Select `firebase/php-jwt:^7.2` for signature/JWK handling, `ext-openssl` for RSA, and `symfony/http-client:7.4.*` for bounded key/token requests. The library's tagged manifest accepts PHP ^8.0, compatible with our PHP ~8.5.0 requirement; the lock now resolves 7.2.0 with HttpClient 7.4.19, and compatibility is checked by the API test/platform checks. Only RS256 with trusted Apple RSA signing keys is allowed. Application code checks issuer, audience, nonce and claim types/times after cryptographic verification. This is a local restriction, supported by the current [Apple public JWKS](https://appleid.apple.com/auth/keys) and [library 7.2.0 source](https://github.com/googleapis/php-jwt/tree/v7.2.0), checked 2026-09-24. Token headers cannot select a URL or algorithm. An Apple algorithm change requires review rather than permissive fallback.
 
 Use server-stored opaque app sessions and Symfony 7.4 SecurityBundle access-token authentication in the account/session slice. Hash app bearer tokens with SHA-256 at rest; the random 256-bit tokens do not need password stretching. Validate expiry, revocation and account deletion on every protected request. The mechanism is a local choice; [Symfony 7.4 token handlers](https://symfony.com/doc/7.4/security/access_token.html) provide the integration point, not the product session duration.
 

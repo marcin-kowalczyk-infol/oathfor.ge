@@ -16,7 +16,7 @@ Producer verification: `composer test -- --filter HealthEndpointTest` from `apps
 
 ## Planned authentication contract
 
-**Status: challenge issuance and transactional one-use storage implemented in MVP-04-T04; exchange, identity read and session deletion remain planned. Local decisions, 2026-09-24, under [ADR 0003](../decisions/0003-apple-sign-in.md).** The anonymous challenge does not authenticate a user. Remaining sections fix the target contract and do not enable login.
+**Status: challenge issuance and transactional one-use storage implemented in MVP-04-T04; internal signature/claims and trusted-key verification implemented in T05. Exchange, identity read and session deletion remain planned. Local decisions, 2026-09-24, under [ADR 0003](../decisions/0003-apple-sign-in.md).** The anonymous challenge does not authenticate a user. Remaining sections fix the target contract and do not enable login.
 
 ### Transport and limits
 
