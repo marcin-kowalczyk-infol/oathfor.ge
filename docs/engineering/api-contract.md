@@ -16,7 +16,7 @@ Producer verification: `composer test -- --filter HealthEndpointTest` from `apps
 
 ## Planned authentication contract
 
-**Status: selected for implementation, not available endpoints. Local decisions, 2026-09-24, under [ADR 0003](../decisions/0003-apple-sign-in.md).** Only health is currently implemented. This section fixes MVP-04 contracts; it does not enable login.
+**Status: challenge issuance and transactional one-use storage implemented in MVP-04-T04; exchange, identity read and session deletion remain planned. Local decisions, 2026-09-24, under [ADR 0003](../decisions/0003-apple-sign-in.md).** The anonymous challenge does not authenticate a user. Remaining sections fix the target contract and do not enable login.
 
 ### Transport and limits
 

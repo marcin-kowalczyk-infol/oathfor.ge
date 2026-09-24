@@ -36,4 +36,4 @@ One VPS is the initial target, not an availability guarantee. Before a real user
 
 No load capacity, service prices, configured secrets or deployed monitoring are claimed by this document.
 
-Identity route: the owner selected [Sign in with Apple](../decisions/0003-apple-sign-in.md) for the initial iOS MVP. The mobile native credential boundary exists; backend verification, accounts and sessions remain planned.
+Identity route: the owner selected [Sign in with Apple](../decisions/0003-apple-sign-in.md) for the initial iOS MVP. The mobile native credential boundary and anonymous durable challenge endpoint exist; Apple token verification, accounts and sessions remain planned. The selected [authentication contract](api-contract.md#planned-authentication-contract) separates one-use nonce verification, app sessions and provider credentials.

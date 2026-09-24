@@ -30,6 +30,7 @@ def main() -> int:
             ['composer', 'validate', '--strict'],
             ['composer', 'check-platform-reqs'],
             ['php', 'bin/console', 'about'],
+            ['php', 'bin/console', 'doctrine:migrations:migrate', '--env=test', '--no-interaction'],
             ['composer', 'test'],
             ['composer', 'analyse'],
             ['composer', 'test:integration'],
