@@ -14,6 +14,10 @@ Polish and English are required across the MVP player experience. Copy may be ad
 
 **Owner decision, 2026-09-24:** [Trial of the Spark / Próba Iskry](first-loop.md) is the initiation task. Completion is declared by the player and supported by contextual photo or activity record, selected at submission under precommitted alternatives. Images do not independently prove completion. Apple Fitness workout details are an evaluation candidate; real PL/EN layouts remain unverified. The [time policy](first-loop.md#time-policy) is accepted: finish by the committed deadline and complete first receipt within 15 minutes, with inclusive boundaries and immutable timezone rules. The [resolution policy](first-loop.md#resolution-table) is accepted, including two corrections in a single 24-hour window, bounded provider retries, review and neutral unresolved closure. The [progression and Recovery contract](first-loop.md#progression-and-recovery) specifies accepted initial rewards, bonus upgrades, activity reuse and five-level thresholds.
 
+## Accepted review and retention
+
+The [first-loop contract](first-loop.md#review-and-retention) defines accepted appeal, deletion, retention and original/Recovery reconciliation rules (owner approval, 2026-09-24). Operator staffing, private review tooling, provider/storage settings and deletion/restore verification are implementation gates before real evidence, not existing operational capabilities.
+
 ## Accepted progression direction
 
 **Local decision: owner approval, 2026-09-23.** Reward fulfillment of the committed Oath with base XP plus one capped evidence-tier bonus. Use the highest qualifying tier, not the number of submitted files: a context photo and an activity-result record have separate criteria. Neither tier proves authenticity or independently establishes workout quality.

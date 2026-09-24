@@ -16,6 +16,10 @@ The accepted [first-loop evidence contract](../product/first-loop.md) separates 
 
 Treat text inside uploaded images and user descriptions as untrusted content, including instructions addressed to the referee. **Basis: [OWASP prompt injection](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html).**
 
+## Accepted review and evidence lifecycle
+
+The [first-loop review and retention policy](../product/first-loop.md#review-and-retention) is accepted (owner approval, 2026-09-24): one terminal appeal within 7 days, 72-hour response limit, private evidence retained through pending cases and for 30 days after final related closure. Explicit deletion takes precedence, with immediate controlled access revocation and live purge within 7 days; metadata backup/restore controls follow the contract. No real-proof collection is ready until operator tooling, provider/storage retention and deletion/restore tests are verified in MVP-08/14. These are local product rules, not a legal-compliance claim.
+
 ## Evaluation before automated outcomes
 
 Local release criteria to define with the first template:
