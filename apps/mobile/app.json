@@ -20,7 +20,13 @@
           }
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ]
     ],
     "ios": {
       "usesAppleSignIn": true

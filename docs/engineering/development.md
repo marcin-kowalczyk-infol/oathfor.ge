@@ -254,3 +254,14 @@ Deployment must invoke maintenance frequently enough for the retry interval and 
 T12 adds a typed mobile API boundary for challenges, code exchange, current-account reads and current-session deletion. It validates response shapes and values before exposing success and returns safe retry/reauthentication outcomes without surfacing raw server text. This client does not persist a bearer or render authenticated UI; T13/T14 own those steps.
 
 Credential requests use the installed `expo/fetch` implementation with `redirect: 'error'` and `credentials: 'omit'`, a ten-second total deadline and a 64 KiB streamed response limit. Exchange failures that leave code use uncertain explicitly require a fresh login. Production requires an HTTPS API origin; insecure loopback URLs are permitted only by an explicit development option. Bearers appear only in Authorization headers for identity read/logout, and Apple token/code only in the exchange JSON body. No credential query parameters, logging or automatic exchange retries are added. Unit tests inject fake transport; signed native acceptance must still verify actual redirect rejection and backend connectivity.
+
+
+## Mobile session persistence and recovery
+
+T13 adds the SecureStore-backed session owner used by the later UI integration. It stores one versioned envelope under `oathforge.session.v1`, using keychain service `oathforge.session`, `WHEN_UNLOCKED_THIS_DEVICE_ONLY` and `requireAuthentication: false`. The Expo plugin sets `faceIDPermission: false`, so this flow does not introduce unused biometric permission text. Rebuild the native app after installing SecureStore; an iOS bundle export is not keychain acceptance.
+
+A restored bearer must pass `GET /api/me` before authenticated UI is exposed. Login stores its active envelope before reporting authenticated state. Generation guards cover the entire login attempt, and serialized storage writes prevent late work from restoring access after logout. The fixed server expiry is never extended locally; foreground checks and bounded timers enforce the local expired state.
+
+Logout immediately hides authenticated state and durably records `revocation_pending` before calling server deletion. Offline failure keeps the old token solely for revocation and offers retry on foreground/manual action. A server204 receipt permits replacement with `signed_out`. Pending revocation or failed local cleanup blocks new login; storage failures are not treated as confirmed server revocation. Apple identity tokens and authorization codes stay only in memory for the current attempt.
+
+Tests inject storage/API/clock and deferred promises to exercise interrupted writes, restart, logout and late responses. Real-device locked-keychain behavior, reinstall recovery and native revocation acceptance remain required before release; no real credentials are used by these tests.
