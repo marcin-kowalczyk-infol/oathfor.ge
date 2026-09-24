@@ -12,10 +12,11 @@ Status: working terminology; Oathforge and Oath are established, remaining label
 | Referee | Evidence-assessment role, not a separate required character |
 | Squad | Private group sharing progress |
 | Recovery Quest | Follow-up after a missed Oath |
-| Minimum Quest | Optional pre-agreed smaller alternative before the deadline |
+| Minimum Quest | Pre-agreed smaller alternative before the deadline; deferred beyond the first loop (owner approval, 2026-09-24) |
 | Trial | Candidate label for a time-bounded challenge |
 | XP | Experience points; accepted initial amounts and level thresholds in [first-loop policy](first-loop.md#progression-and-recovery), owner approval 2026-09-24 |
 | Renown | Candidate lore/progression term; not yet a separate currency |
+| Withdrawn / Wycofana | Accepted neutral voluntary withdrawal under the [pause policy](first-loop.md#pause-and-alternatives), without XP, miss or Recovery eligibility |
 | Fulfilled / Missed / Recovered | Distinct outcomes; recovery does not rewrite history |
 
 Use plain action labels such as “Submit proof” and “Start recovery.” Preserve distinctive world names where useful, with short explanations. Do not introduce lore names as hidden synonyms for core actions. **Local product convention: [art direction](../art/art-bible.md).**

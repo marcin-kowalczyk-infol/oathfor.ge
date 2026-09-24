@@ -41,7 +41,7 @@ This extends the initial single-upgrade production scope into small per-level un
 
 ## Accepted first-loop state policy
 
-[The first-loop resolution table](first-loop.md#resolution-table) is authoritative for MVP-01 (owner approval, 2026-09-24). Normal evidence progression is `scheduled → active → proof_pending → fulfilled`. Corrections use `needs_more_evidence`; operational escalation uses `review_pending`. Terminal outcomes are `fulfilled`, `missed` and neutral `unresolved`.
+[The first-loop resolution table](first-loop.md#resolution-table) is authoritative for MVP-01 (owner approval, 2026-09-24). Normal evidence progression is `scheduled → active → proof_pending → fulfilled`. Corrections use `needs_more_evidence`; operational escalation uses `review_pending`. Terminal outcomes are `fulfilled`, `missed`, neutral `unresolved`, and voluntary `withdrawn` under the accepted [pause policy](first-loop.md#pause-and-alternatives) (owner approval, 2026-09-24).
 
 A rejected/unclear assessment does not itself mean a miss. Timely proof retains eligibility during delayed analysis. Provider/operator non-response follows the bounded review policy and may close neutrally without XP, a miss or Recovery eligibility. Recovery is the separate post-miss flow specified in T04, preserving the original miss. These are accepted specifications, not implemented product states.
 
@@ -55,7 +55,7 @@ These are project design rules, not externally demonstrated behavioral claims:
 - AI recommendations cannot change entitlement or reward records directly.
 - Show distinct fulfilled, missed and recovered history.
 - No automatic sharing of proof images to squad members.
-- Do not turn illness/injury disclosures into pressure to exercise; define pause handling during specification.
+- Do not turn illness/injury disclosures into pressure to exercise. The accepted pause policy withdraws eligible commitments without proof, preserves pending evidence, suppresses reminders and does not require medical documentation. Minimum Quest is deferred beyond the first loop (owner approval, 2026-09-24).
 
 Basis: project intent in [ADR 0001](../decisions/0001-project-foundation.md). Reliability implementation: [Messenger idempotency](https://symfony.com/doc/7.4/messenger.html#writing-idempotent-handlers).
 

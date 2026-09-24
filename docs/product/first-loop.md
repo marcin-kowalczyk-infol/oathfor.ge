@@ -1,6 +1,6 @@
 # First workout Oath contract
 
-Status: T01 evidence policy accepted by the owner, 2026-09-24; real-layout acceptance pending. No application behavior or model evaluation is implemented by this document. T02 time and T03 resolution policies are accepted; T04 progression and Recovery are accepted; pause and retention policies remain open.
+Status: T01 evidence policy accepted by the owner, 2026-09-24; real-layout acceptance pending. No application behavior or model evaluation is implemented by this document. T02 time and T03 resolution policies are accepted; T04 progression and Recovery are accepted; T05 pause policy is accepted; appeals and retention remain open.
 
 Accepted basis: completion declared by the player, supported by either a photo or an activity screenshot under separate criteria (owner decision, 2026-09-23). The [MVP guardrails and progression direction](mvp.md), [evidence limits](../engineering/ai-verification.md) and [language rules](glossary.md#language-and-naming-rules) remain binding. The T01 rules below are an **accepted local decision: owner instruction, 2026-09-24**. Apple Fitness is an evaluation candidate only; later policy proposals are not accepted by this decision.
 
@@ -20,7 +20,7 @@ Accepted basis: completion declared by the player, supported by either a photo o
 | Completion declaration | Potwierdzam ukończenie treningu wskazanego w tej Przysiędze. Przesłany dowód dotyczy tego treningu. | I confirm that I completed the workout named in this Oath. The evidence I submit relates to that workout. |
 | Evidence caveat | AI ocenia widoczne elementy dowodu. Sam obraz nie potwierdza ukończenia treningu, jego czasu trwania ani tego, kto go wykonał. | AI assesses visible evidence. The image alone does not verify workout completion, duration or who performed it. |
 
-The owner selected “Próba Iskry / Trial of the Spark” as the initiation title. It names the introductory task; the commitment remains an Oath. The spark motif is invented setting terminology, not a claimed traditional Slavic ritual. The accepted bilingual title and commitment term are recorded in the glossary. `{activity}` is the chosen workout type; `{deadline}` must show the committed date, time and timezone under the T02 policy. No exercise duration or intensity target is selected here. These sentences are the completion promise, not a complete activation screen: the submission cutoff is defined in T02; rewards and Recovery follow T04, while pause handling awaits T05.
+The owner selected “Próba Iskry / Trial of the Spark” as the initiation title. It names the introductory task; the commitment remains an Oath. The spark motif is invented setting terminology, not a claimed traditional Slavic ritual. The accepted bilingual title and commitment term are recorded in the glossary. `{activity}` is the chosen workout type; `{deadline}` must show the committed date, time and timezone under the T02 policy. No exercise duration or intensity target is selected here. These sentences are the completion promise, not a complete activation screen: the submission cutoff is defined in T02; rewards and Recovery follow T04, while pause handling follows T05.
 
 ### Shared evidence rules
 
@@ -135,7 +135,7 @@ Status: **T03 accepted local decision: owner approval, 2026-09-24.** The owner a
 
 ### States and authority
 
-Use `scheduled`, `active`, `proof_pending`, `needs_more_evidence`, `review_pending`, and terminal `fulfilled`, `missed`, `unresolved`. `unresolved` is a neutral closure, displayed as “Nierozstrzygnięta / Unresolved”: no fulfillment reward, no missed mark, no failure consequence or recovery eligibility. It does not remove existing XP. T04 specifies other reward/consequence effects. Recovery is a separate linked flow; it does not overwrite an original miss.
+Use `scheduled`, `active`, `proof_pending`, `needs_more_evidence`, `review_pending`, and terminal `fulfilled`, `missed`, `unresolved`, plus `withdrawn` under the accepted T05 pause policy. `unresolved` is a neutral closure, displayed as “Nierozstrzygnięta / Unresolved”: no fulfillment reward, no missed mark, no failure consequence or recovery eligibility. It does not remove existing XP. T04 specifies other reward/consequence effects. Recovery is a separate linked flow; it does not overwrite an original miss.
 
 Only the backend changes Oath state. AI emits `accepted`, `rejected` or `unclear` for a particular evidence revision and committed rule version. A timeout, invalid response, unavailable provider or worker failure is an infrastructure error, never a fourth evidence verdict. Store bounded reason codes and version identifiers; apply the existing [security rules](../../.agents/rules/security.md) to proof access and logs. A review operator may inspect only authorized cases; operational staffing, appeals and evidence retention must be specified in T06 before release.
 
@@ -240,7 +240,7 @@ The accepted window requires **completion within 24 hours of the miss**. Commit 
 
 Use the same T02/T03 receipt, correction, provider/review and incident rules with Recovery deadlines. Timely Recovery proof can resolve after `D_R` or `S_R`. A successful Recovery grants 15 XP exactly once; failed, expired or unresolved Recovery grants zero and offers no further Recovery. Never subtract original XP. If no Recovery was activated before `D_R`, availability expires without creating a second miss. An activated Recovery follows normal settlement, including no-proof reconciliation after `S_R`.
 
-History retains original `missed` plus the linked Recovery outcome, with a “Nadrobiona / Recovered” presentation only after Recovery success. The original state and original reward remain unchanged. Pause/illness interaction remains a T05 dependency; this contract does not require exercise during illness or grant an extension by assumption. Appeals reversing an original result while Recovery exists require T06 reconciliation before implementation is release-ready.
+History retains original `missed` plus the linked Recovery outcome, with a “Nadrobiona / Recovered” presentation only after Recovery success. The original state and original reward remain unchanged. Pause/illness interaction follows T05; this contract does not require exercise during illness or grant an extension by assumption. Appeals reversing an original result while Recovery exists require T06 reconciliation before implementation is release-ready.
 
 ### Initial levels and unlock ownership
 
@@ -274,4 +274,64 @@ These are content identifiers and ideas, not accepted lore names or generated gr
 
 ### T04 decision record and handoff
 
-Owner accepted all three T04 decision questions on 2026-09-24: 30 base XP plus highest 10/20 bonus; one new same-type Recovery workout completed within 24 hours of the miss, with 15 minutes for evidence and 15 XP without bonus or chaining; one bonus upgrade received within 24 hours of fulfillment with delta-only payment; one workout per commitment; initial levels 1–5 at total XP 0/100/250/450/700, continuing XP accumulation at the cap. Unlock content ideas remain provisional DUMMY identifiers for MVP-03/09. T05 pause and T06 appeals/retention/reconciliation are still required, and real artwork/layout compatibility remains pending. No application tests or gameplay runtime are claimed.
+Owner accepted all three T04 decision questions on 2026-09-24: 30 base XP plus highest 10/20 bonus; one new same-type Recovery workout completed within 24 hours of the miss, with 15 minutes for evidence and 15 XP without bonus or chaining; one bonus upgrade received within 24 hours of fulfillment with delta-only payment; one workout per commitment; initial levels 1–5 at total XP 0/100/250/450/700, continuing XP accumulation at the cap. Unlock content ideas remain provisional DUMMY identifiers for MVP-03/09. T05 specifies pause; T06 appeals/retention/reconciliation are still required, and real artwork/layout compatibility remains pending. No application tests or gameplay runtime are claimed.
+
+## Pause and alternatives
+
+Status: **T05 accepted local decision: owner approval, 2026-09-24.** Two explicit replies accepted pause/neutral withdrawal and its Recovery interaction/Minimum Quest deferral. This extends the specified terminal outcomes with `withdrawn`; no runtime behavior is implemented.
+
+### Pause contract
+
+Pause is an explicit player action affecting their Oaths and Recovery, with no required reason, illness diagnosis or medical upload. An illness disclosure prompts a neutral offer to pause; model interpretation does not itself alter commitments. Provide a direct control that works without an AI response. Before confirming pause, show which commitments will be withdrawn and which proof/review cases keep their existing deadlines. Do not ask the player to exercise to avoid losing progress.
+
+Snapshot this opt-out policy before activation in future commitments. Add terminal `withdrawn` (“Wycofana / Withdrawn”) for voluntary withdrawal without a miss, XP, evidence bonus or Recovery eligibility. It differs from T03's `unresolved`, which denotes unresolved evidence/infrastructure. Preserve withdrawn history and all prior XP/unlocks. It is not fulfillment, a moved deadline or an erased miss. The initial game loop has no runtime Oaths to migrate; any later policy change must respect the existing committed version.
+
+Pausing does not stop the server clock. It disables new commitment/Recovery activation and suppresses workout interventions, deadline reminders, correction reminders and re-engagement pressure until explicit resume. In-app status and user-initiated proof/review actions remain available. Evidence corrections and upgrades concern the existing workout and may be submitted voluntarily while paused; never suggest performing another workout to satisfy them. Keep account/security communications outside this gameplay suppression rule.
+
+### Pause decision table
+
+| State at the authoritative pause transaction | Effect on commitment/deadlines | Reward, history and resume behavior |
+| --- | --- | --- |
+| Scheduled original Oath, not activated | Mark `withdrawn`; cancel activation/interventions | No XP/miss/Recovery; resume requires a new commitment |
+| Active original Oath without a finalized first submission | Mark `withdrawn`; cancel future outcome/reminder jobs or make them no-ops | No XP/miss/Recovery; upload bytes without a durable submission confer no eligibility |
+| Original proof pending, including a timely finalized submission awaiting AI | Keep `proof_pending`; analysis and T03 timeouts continue | May still fulfill for the declared original workout; no restart or deadline shift |
+| Needs more evidence or review pending, including submission-incident review | Keep current state and original correction/attachment/review clocks | Optional correction/review remains possible; T03 settles or closes neutrally; no exercise prompts |
+| Original already fulfilled | Preserve fulfillment; the T04 upgrade window keeps running | Retain XP/unlocks; pending upgrade assessment may add only its valid delta |
+| Original already missed, Recovery not activated | Preserve original miss; disable Recovery activation while paused; existing `M+24h` availability continues | Resume can offer Recovery only if the original window has not expired; no new 24-hour window |
+| Recovery activated without finalized proof | Mark that Recovery `withdrawn`; original miss and used attempt remain | No Recovery XP and no replacement attempt; do not add a second miss |
+| Recovery proof/correction/review pending | Keep the pending Recovery and its original clocks | May still grant 15 XP once if fulfilled; original miss remains |
+| Already unresolved, withdrawn, or Recovery terminal | Preserve outcome and history | No replay, new attempt or refund; resume changes only pause state |
+
+Pause is global for this player's first-loop commitments: it withdraws all scheduled originals and active commitments without finalized proof, and suppresses future gameplay interventions. It does not affect another player's state. Resume only clears the pause flag; it does not reactivate withdrawn commitments, reset any receipt/deadline/window, or replay suppressed reminders. New commitments require explicit acceptance of their own rules. The player may remain paused indefinitely; no automatic resume or recurring guilt message is scheduled.
+
+### Pause race and delivery rules
+
+Pause, activation, receipt finalization, cutoff reconciliation and outcome settlement use the persisted state under an atomic serialization boundary. A finalized submission committed before pause is preserved; if pause withdraws first, an unfinished first submission cannot resurrect the commitment. Return its current withdrawn state and offer no backdated receipt. Cutoff jobs must recheck state before writing a miss.
+
+When pausing, first apply any logically expired no-proof cutoff using the accepted T03 service-availability rules: if now is strictly after `S` with no timely receipt, a delayed worker cannot make that Oath eligible for withdrawal instead of its due missed/review outcome. At or before `S`, an active Oath without finalized proof may be withdrawn. Apply the same rule to Recovery using `S_R`. Likewise, an expired review or correction timer follows its existing policy; pause cannot reset it. Identical pause/resume requests are idempotent and never restore a spent Recovery attempt.
+
+Recheck the pause flag when dispatching every gameplay notification or generating an intervention; invalidate outstanding local reminders where the client can do so. A push already handed to the OS/provider may still appear: do not promise recall of delivered/in-flight messages. Opening such a message must show current state, with no obsolete call to exercise. After resume, only new applicable events may produce reminders; no catch-up burst. This is a required future delivery behavior, not verified native notification handling.
+
+### Minimum Quest decision
+
+Defer Minimum Quest beyond the first loop. No smaller replacement workout or reduced-XP alternative can replace a committed Oath before its deadline. Recovery remains the separate post-miss contract in T04, and pause is the neutral opt-out above. A future Minimum Quest must be explicitly included in a new commitment's rule snapshot before activation; it is not a discretionary change made by the companion.
+
+### Artifact scenarios
+
+| ID | Input → action | Expected result under T05 |
+| --- | --- | --- |
+| LOOP-11 | Pause before activation / active without proof before cutoff / after timely proof receipt | Respectively withdrawn / withdrawn / evidence remains pending; no pressure in all three |
+| T05-01 | Player mentions illness without selecting pause | Offer pause without medical proof or exercise pressure; no silent rule/state change |
+| T05-02 | Pause then resume a withdrawn Oath | It stays withdrawn, with zero XP and no Recovery; new Oath needs a new commitment |
+| T05-03 | Pause while a correction window is open and send nothing | Existing clock runs; after expiry T03 review applies, then neutral closure if undecidable; no reminders |
+| T05-04 | Finalized receipt commits before pause / pause commits before unfinished upload | Preserve pending proof / withdraw and refuse resurrection; never duplicate outcome |
+| T05-05 | Pause after `S`; no timely proof; cutoff worker has not run | Apply due T03 missed/review route before pause effects, not retroactive withdrawal |
+| T05-06 | Recovery activated, then paused without proof before `S_R` | Recovery withdrawn, slot consumed, zero XP; original miss remains; no chained attempt |
+| T05-07 | Resume after unactivated Recovery availability expired | No Recovery offered; original miss unchanged |
+| T05-08 | Pause while fulfilled Oath's valid upgrade is being assessed | Keep fulfillment/reward; accepted same-workout upgrade may pay the delta once |
+| T05-09 | Stale reminder opened during pause | Current passive status; no call to exercise or revive the withdrawn commitment |
+| T05-10 | Companion suggests reducing today's committed workout | No Minimum Quest substitution; show only the accepted pause or applicable Recovery rules |
+
+### T05 decision record and handoff
+
+Owner accepted neutral withdrawal for scheduled/active commitments without finalized proof before the applicable cutoff, preservation of pending evidence with unchanged clocks, gameplay reminder suppression without medical evidence, no restoration of Recovery attempts/windows on resume, and deferral of Minimum Quest on 2026-09-24. Expired cutoffs are reconciled before pause effects. T06 still owns deletion, appeal reconciliation and operator procedures. No native notification delivery or product state implementation is claimed.
