@@ -1,6 +1,6 @@
 # First workout Oath contract
 
-Status: T01 evidence policy accepted by the owner, 2026-09-24; real-layout acceptance pending. No application behavior or model evaluation is implemented by this document. Later time, resolution, progression, recovery, pause and retention policies remain open.
+Status: T01 evidence policy accepted by the owner, 2026-09-24; real-layout acceptance pending. No application behavior or model evaluation is implemented by this document. T02 time policy is accepted; resolution, progression, recovery, pause and retention policies remain open.
 
 Accepted basis: completion declared by the player, supported by either a photo or an activity screenshot under separate criteria (owner decision, 2026-09-23). The [MVP guardrails and progression direction](mvp.md), [evidence limits](../engineering/ai-verification.md) and [language rules](glossary.md#language-and-naming-rules) remain binding. The T01 rules below are an **accepted local decision: owner instruction, 2026-09-24**. Apple Fitness is an evaluation candidate only; later policy proposals are not accepted by this decision.
 
@@ -77,10 +77,54 @@ These are expected assessments under the accepted evidence contract, not execute
 | LOOP-05 | Context photo without EXIF, uploaded elsewhere → assess | Neither fact is a rejection reason; apply visible-content criteria only |
 | T01-S02 | Supported strength summary submitted for a run → assess | Reject activity mismatch; no automatic missed outcome |
 | T01-S03 | App summary layout has not been evaluated → assess | Unclear unsupported layout; no fabricated compatibility claim |
-| T01-S04 | Otherwise complete summary omits timezone → inspect | T01 fields complete; time eligibility awaits T02 policy, never guessed from image metadata |
+| T01-S04 | Otherwise complete summary omits timezone → inspect | T01 fields complete; request activity-timezone confirmation under T02, never guess it from image metadata |
 
 ### T01 decision record and handoff
 
 Owner accepted the initiation title, completion promise without a universal duration/intensity minimum, submission-time evidence choice, photo context rule, record fields, privacy cropping, no GPS/EXIF requirement and non-terminal `unclear`/`rejected` assessments on 2026-09-24. Polish and English commitment/declaration copy above implements the same accepted meaning. Backend timing and final resolution still belong to T02/T03.
 
 T01 specifies the contract with a synthetic content placeholder; actual Apple Fitness PL and EN examples and model evaluation remain pending. No actual layout support, product implementation or AI accuracy has been demonstrated. The remaining epic tasks are not completed by this decision.
+
+## Time policy
+
+Status: **T02 accepted local decision: owner approval, 2026-09-24.** The owner accepted the complete time-policy proposal, including inclusive completion and receipt boundaries, offline/retry behavior and timezone interpretation. They neither change T01 evidence requirements nor complete T03–T06. No runtime behavior is implemented.
+
+### Committed times
+
+- Store workout completion deadline `D` as a UTC instant, with the selected IANA timezone and original local display value in the immutable rule snapshot. Show both `D` and first-evidence receipt cutoff `S = D + 15 minutes` before commitment. Backend time is authoritative. UTC storage and retained IANA timezone follow the existing [architecture rules](../engineering/architecture.md#reliability-rules); the 15-minute period and boundaries are accepted local decisions.
+- Use inclusive boundaries: the workout must finish at or before `D`; the first complete evidence submission must reach the backend at or before `S`. The extra 15 minutes permit submission, not further exercise. Once `S` has passed, do not open a new first-submission attempt under this normal route. Final outcomes and exceptional review routes belong to T03/T06.
+- Receipt `R` is the backend timestamp recorded atomically with a durable submission record after the complete upload is available in controlled storage, bound to the authenticated owner/Oath and accompanied by the declaration. Record it after synchronous upload-integrity checks, before asynchronous image assessment. Upload start, device time, a storage upload without a finalized submission, screenshot creation and queue completion are not `R`.
+- A retry of the same finalized submission returns the original receipt; interrupted or unfinalized uploads have none. Changing evidence content is a new submission, not an idempotent replay. Later correction and bonus-upgrade windows cannot be inferred from this first-receipt rule; they need T03/T04 policy.
+
+### Timezone and activity-time handling
+
+Resolve local scheduling time to an instant before commitment. If it falls in a daylight-saving gap, ask for a valid time; do not silently shift it. If it occurs twice, require an explicit offset/occurrence and display that choice. After commitment, device/account timezone or language changes cannot move `D` or `S`. Display the committed timezone; any additional local-time rendering must identify its timezone and represent the same instant. Snapshot rule changes require a new commitment, not reinterpretation of an active one.
+
+For a context photo, completion time relies on the player's declaration that the workout finished by `D`. For a record, the model extracts only visible time fields. A displayed timezone can inform interpretation; when none is visible, ask the player to confirm the activity timezone, defaulting the selection to the committed timezone. This is explicitly self-reported submission metadata, not an extra required image field and not an inference from GPS, EXIF or the upload location.
+
+Do not assume that displayed duration equals elapsed wall-clock time: a paused or moving-time duration may not establish the finish instant. A visible unambiguous finish timestamp, or start plus an explicitly elapsed duration with a resolved timezone/offset, may be checked against `D`. Otherwise rely on the completion declaration; lack of a visible finish time is not a new rejection criterion. If visible timing conflicts with that declaration, flag `unclear` for the T03 correction/review route instead of silently resolving as missed. Ambiguous activity dates, offsets or DST crossings require clarification; do not invent missing image fields. Real Apple Fitness time labels remain unverified until the candidate evaluation gate is satisfied.
+
+### Receipt and processing scenarios
+
+Fixture: `D = 2026-09-24T18:00:00Z`, `S = 2026-09-24T18:15:00Z`. All timestamps below are explicit UTC fixtures; they are not the local start time of the separate DUMMY Activity example.
+
+| ID | Input → action | Expected timing result |
+| --- | --- | --- |
+| T02-01 | Declared finish at 17:59:59Z / 18:00:00Z / 18:00:01Z | Respectively within / within / outside workout deadline; timely upload does not make the third workout timely |
+| LOOP-06 | Complete first receipt at 18:14:59Z / 18:15:00Z / 18:15:01Z | Respectively timely / timely / late; no extra grace after `S` |
+| LOOP-07 | Upload starts at 18:14:50Z; complete receipt at 18:15:01Z | Late; upload-start time does not reserve eligibility |
+| T02-02 | Offline capture at 17:50Z; reconnect and complete receipt at 18:14Z | Timely receipt; original completion declaration still required |
+| T02-03 | Offline capture before `D`; receipt after `S` | Late under normal submission policy; client capture time cannot backdate receipt |
+| T02-04 | Backend finalized at 18:14Z; response lost; same submission retried at 18:16Z | Return original 18:14Z receipt; do not reclassify as late or create a second submission |
+| T02-05 | Bytes stored at 18:14Z but owner/Oath submission finalized at 18:16Z | Late; storage completion alone was not receipt |
+| LOOP-08 | Timely receipt; provider timeout; successful assessment next day | Receipt remains timely; AI delay alone cannot cause player failure; T03 defines retry/escalation and settlement |
+| T02-06 | Device timezone/language changes after commitment | Same UTC `D` and `S`; translated display retains committed timezone |
+| T02-07 | Schedule time is nonexistent / repeated in selected timezone | Request valid time / explicit occurrence before commitment; no silent adjustment |
+| T02-08 | Screenshot time lacks timezone | Request activity-timezone confirmation as metadata; model reports no visible timezone |
+| T02-09 | Submission server unavailable before cutoff; no durable receipt exists | Do not fabricate a timely receipt; infrastructure handling and exceptional review remain unresolved T03/T06 dependencies, not an automatic missed verdict here |
+
+The original timely receipt must survive queue delays and later correction requests. The owner's proposed two corrections within 24 hours of assessment concerns the same workout; it is not a way to submit a new workout after `D`. Whether each assessment restarts that window, how initial lateness interacts with review, and when a pending Oath becomes terminal must be resolved in T03/T06, not assumed from this table.
+
+### T02 decision record and handoff
+
+Owner accepted the complete T02 proposal on 2026-09-24: inclusive `D` and `S = D + 15 minutes`, finalized durable server receipt, original receipt on identical retry, no offline backdating, immutable committed timezone with explicit DST disambiguation, and user-confirmed activity timezone when absent from the image. No visible finish time or timezone is fabricated. Infrastructure exceptions and correction windows remain explicit T03/T06 dependencies. Artifact scenarios are specification checks, not executed application tests.

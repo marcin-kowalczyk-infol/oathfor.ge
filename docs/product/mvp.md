@@ -12,7 +12,7 @@ Polish and English are required across the MVP player experience. Copy may be ad
 
 ## Accepted first Oath evidence contract
 
-**Owner decision, 2026-09-24:** [Trial of the Spark / Próba Iskry](first-loop.md) is the initiation task. Completion is declared by the player and supported by contextual photo or activity record, selected at submission under precommitted alternatives. Images do not independently prove completion. Apple Fitness workout details are an evaluation candidate; real PL/EN layouts remain unverified. Timing, resolution and reward policies are still open.
+**Owner decision, 2026-09-24:** [Trial of the Spark / Próba Iskry](first-loop.md) is the initiation task. Completion is declared by the player and supported by contextual photo or activity record, selected at submission under precommitted alternatives. Images do not independently prove completion. Apple Fitness workout details are an evaluation candidate; real PL/EN layouts remain unverified. The [time policy](first-loop.md#time-policy) is accepted: finish by the committed deadline and complete first receipt within 15 minutes, with inclusive boundaries and immutable timezone rules. Resolution and reward policies remain open.
 
 ## Accepted progression direction
 
