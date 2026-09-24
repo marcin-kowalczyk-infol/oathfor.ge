@@ -35,3 +35,5 @@ Logical modules: identity, Oaths, evidence, verification, progression, squads, n
 One VPS is the initial target, not an availability guarantee. Before a real user rollout: define off-host backups and prove restoration, worker monitoring, queue retries/failure handling, disk alerts, secret provisioning and deployment rollback. **Local release gate.**
 
 No load capacity, service prices, configured secrets or deployed monitoring are claimed by this document.
+
+Identity route: the owner selected [Sign in with Apple](../decisions/0003-apple-sign-in.md) for the initial iOS MVP. The mobile native credential boundary exists; backend verification, accounts and sessions remain planned.
