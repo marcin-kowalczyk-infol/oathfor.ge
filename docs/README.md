@@ -5,7 +5,7 @@ All product and delivery documents live here except business plans, which belong
 | Area | Read for |
 | --- | --- |
 | [Product brief](product/brief.md) | Purpose, accepted direction, unresolved choices |
-| [First-loop contract](product/first-loop.md) | Accepted evidence rules and pending layout/time policies |
+| [First-loop contract](product/first-loop.md) | Accepted first-loop rules, scenario/localization handoff and pending real-validation gates |
 | [MVP](product/mvp.md) | Draft loop, boundaries and acceptance scenarios |
 | [Product glossary](product/glossary.md) | Terminology, Polish/English localization and Slavic-inspired naming |
 | [Architecture](engineering/architecture.md) | Monorepo boundaries and service responsibilities |

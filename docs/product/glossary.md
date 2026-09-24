@@ -1,6 +1,6 @@
 # Product glossary and localization
 
-Status: working terminology; Oathforge and Oath are established, remaining labels may change. Source: [ADR 0001](../decisions/0001-project-foundation.md).
+Status: accepted first-loop terms and reviewed mechanical PL/EN copy; other lore labels remain provisional. Source: [ADR 0001](../decisions/0001-project-foundation.md).
 
 | Term | Meaning |
 | --- | --- |
@@ -11,13 +11,16 @@ Status: working terminology; Oathforge and Oath are established, remaining label
 | Companion | Player-facing AI character |
 | Referee | Evidence-assessment role, not a separate required character |
 | Squad | Private group sharing progress |
-| Recovery Quest | Follow-up after a missed Oath |
+| Recovery Quest / Zadanie Powrotu | Follow-up after a missed Oath; Polish mechanical translation reviewed in the T07 handoff, not a new lore name |
 | Minimum Quest | Pre-agreed smaller alternative before the deadline; deferred beyond the first loop (owner approval, 2026-09-24) |
 | Trial | Candidate label for a time-bounded challenge |
 | XP | Experience points; accepted initial amounts and level thresholds in [first-loop policy](first-loop.md#progression-and-recovery), owner approval 2026-09-24 |
 | Renown | Candidate lore/progression term; not yet a separate currency |
-| Withdrawn / Wycofana | Accepted neutral voluntary withdrawal under the [pause policy](first-loop.md#pause-and-alternatives), without XP, miss or Recovery eligibility |
-| Fulfilled / Missed / Recovered | Distinct outcomes; recovery does not rewrite history |
+| Withdrawn / Wycofana | Accepted neutral voluntary withdrawal under the [pause policy](first-loop.md#pause-and-alternatives), without XP, miss or new Recovery eligibility; an already activated Recovery preserved by appeal retains its rules |
+| Fulfilled / Spełniona | Successful original commitment |
+| Missed / Niewykonana | Original commitment not fulfilled under its rules |
+| Unresolved / Nierozstrzygnięta | Neutral outcome when evidence/infrastructure cannot be resolved; no XP, miss or new Recovery eligibility; an already activated Recovery preserved by appeal retains its rules |
+| Recovered / Nadrobiona | Original miss with successful linked Recovery; original history is preserved |
 
 Use plain action labels such as “Submit proof” and “Start recovery.” Preserve distinctive world names where useful, with short explanations. Do not introduce lore names as hidden synonyms for core actions. **Local product convention: [art direction](../art/art-bible.md).**
 
@@ -30,9 +33,9 @@ Use plain action labels such as “Submit proof” and “Start recovery.” Pre
 - Draw names, imagery and narrative language from Slavic legends and folklore where relevant. Record sources for specific traditional references, distinguish regional variants, and label invented lore as original. Do not present invented names as historical traditions.
 - Keep each concept's meaning stable across locales. When selecting a player-facing term, record its Polish and English forms here, with its meaning and accepted/proposed status. The English terms above are domain references, not a finalized bilingual copy catalog.
 - Lore names may differ between languages to sound natural. Pair evocative titles with clear requirements; narrative wording cannot obscure or change mechanics.
-- Review each player-facing feature in both languages for natural wording, terminology consistency, equivalent rules and readable layout before calling localization complete. Exact terminology and language-selection behavior remain to be specified.
+- Review each player-facing feature in both languages for natural wording, terminology consistency, equivalent rules and readable layout before calling localization complete. First-loop copy is reviewed in the [T07 handoff](first-loop.md#bilingual-implementation-copy-handoff); production locale selection and native layout remain to be implemented and checked.
 
-These rules govern product specification, implementation and content generation. They do not select an internationalization library or approve any previously proposed Oath title.
+These rules govern product specification, implementation and content generation. They do not select an internationalization library or approve additional lore; the accepted initiation title is recorded above.
 
 ## Translation storage and runtime contract
 

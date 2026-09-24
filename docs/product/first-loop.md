@@ -1,6 +1,6 @@
 # First workout Oath contract
 
-Status: T01 evidence policy accepted by the owner, 2026-09-24; real-layout acceptance pending. No application behavior or model evaluation is implemented by this document. T02 time and T03 resolution policies are accepted; T04 progression and Recovery are accepted; T05 pause policy is accepted; T06 appeals and retention are accepted; real validation and runtime implementation remain pending.
+Status: accepted first-loop specification, owner decisions dated 2026-09-24; T07 implementation handoff with explicit placeholders. Real-layout, artwork, operational and runtime acceptance remain pending. No application behavior or model evaluation is implemented by this document.
 
 Accepted basis: completion declared by the player, supported by either a photo or an activity screenshot under separate criteria (owner decision, 2026-09-23). The [MVP guardrails and progression direction](mvp.md), [evidence limits](../engineering/ai-verification.md) and [language rules](glossary.md#language-and-naming-rules) remain binding. The T01 rules below are an **accepted local decision: owner instruction, 2026-09-24**. Apple Fitness is an evaluation candidate only; later policy proposals are not accepted by this decision.
 
@@ -403,3 +403,86 @@ For database backups containing metadata, use at most 30 days' retention after t
 ### T06 decision record and handoff
 
 Owner accepted all three T06 questions on 2026-09-24: one appeal within 7 days and a 72-hour response window; honoring activated Recovery after a supported original amendment; 30-day terminal proof retention with timely-appeal protection, 24-hour unfinalized cleanup and 90-day minimal audit; owner-assigned operators; explicit proof/account deletion with immediate controlled access revocation, live purge within 7 days and metadata-backup/deletion-marker bounds of 30/37 days. Actual operator tooling, provider/storage configuration and deletion/restore tests remain MVP-08/14 acceptance gates. No legal compliance, current staffing or successful deletion of real data is claimed.
+
+## Acceptance scenarios and Decision record
+
+This is the T07 specification handoff of owner-approved T01–T06 decisions dated 2026-09-24. It adds no new game policy. The contract is specified with placeholders; real layout, artwork and operational acceptance remain pending. No product runtime or model accuracy is established by these artifact scenarios.
+
+### Cross-policy acceptance matrix
+
+Common fixture unless stated otherwise: original `D = 2026-09-24T18:00:00Z`, `S = 18:15:00Z`, healthy submission service, no pause or previous payment. Times are server UTC. A qualifying record below is a synthetic content fixture, not a supported Apple Fitness layout. Each amount is the delta awarded by the described action; prior XP is preserved.
+
+| Case | Concrete input/action | Expected state and XP | Existing scenario coverage / implementation owner |
+| --- | --- | --- | --- |
+| T07-01 | Workout declared complete at 17:50; matching photo received 18:10; current accepted assessment applied 18:12 | Fulfilled; +40 XP once | LOOP-02, T03-01; MVP-05/07/08/09 |
+| T07-02 | Same times; complete activity record and additional photo, including displayed calories | Fulfilled; +50 XP total, no stacking/metric bonus | LOOP-13/15; MVP-07/08/09 |
+| T07-03 | No timely receipt; reconcile at 18:15:01 | Missed; +0 XP; Recovery window starts at recorded miss | LOOP-06, T03-09; MVP-05/06/09/10 |
+| T07-04 | Upload starts 18:14:50, finalizes 18:15:01 | No eligible normal first receipt; healthy-service cutoff resolves missed, +0 XP | LOOP-07, T02-03/05; MVP-05/07/09 |
+| T07-05 | Photo receipt 18:10; unclear result available 18:12; same-workout corrected photo received next day 18:11, accepted 18:13 | First needs more evidence with `C=2026-09-25T18:12Z`, +0; then fulfilled, +40 XP despite later analysis | LOOP-03/08, T03-02/03/04; MVP-07/08/09 |
+| T07-06 | Rejected image with no correction by `C`; review begins strictly after `C`; operator gives no decision by `V+72h` | Needs more evidence → review pending → unresolved; +0 XP, no miss or Recovery | T03-05/11; MVP-08/09/14 |
+| T07-07 | Timely qualifying photo receipt 18:10; no applied valid response by `E=18:25`; late valid response arrives | Review pending at `E`, +0; authorized timely operator decision confirming fulfillment awards +40, otherwise neutral closure +0 | LOOP-08, T03-07/13; MVP-08/09/14 |
+| T07-08 | Clear record timing conflicts with declaration; operator later establishes finish at 18:00:01 | Clarification/review, then missed for established late completion; +0 XP, not an automatic image-verdict miss | T02-01, T03-12; MVP-08/09 |
+| T07-09 | Two accepted callbacks and a cutoff job race for the same timely qualifying photo revision | One fulfillment, +40 once; duplicate effects +0 | LOOP-09; MVP-05/08/09 |
+| T07-10 | Original missed at 19:00; new Recovery completed next day 18:50, receipt 19:10, accepted 19:12 | Original remains missed; linked Recovery fulfilled; +15 XP once, including record proof | LOOP-10, T04-02/03; MVP-09/10 |
+| T07-11 | Pause at 18:05 without finalized proof, then resume; separately pause after timely receipt at 18:10 | First withdrawn, +0/no Recovery; second stays pending and can fulfill for +40/+50 | LOOP-11, T05-02/04/05; MVP-05/06/08/09/10 |
+| T07-12 | Photo fulfillment paid 40 at `F`; valid record upgrade received exactly `F+24h`, processed later twice | Original remains fulfilled; upgrade +10 then +0; total 50 | LOOP-14/17, T04-01; MVP-07/08/09 |
+| T07-13 | Player with 90 XP gains valid photo reward | 130 XP, level 2, unlock once; no artwork availability implied | LOOP-16; MVP-03/09 |
+| T07-14 | Original miss appealed within 7d after distinct Recovery paid 15; evidence establishes original record fulfillment | Versioned original amendment to fulfilled, +50 once; keep earlier Recovery 15, total 65 for two workouts | T06-03/04/11; MVP-08/09/10/14 |
+| T07-15 | Explicit deletion of pending original proof bundle | Unresolved with proof_deleted, +0; access revoked and controlled live purge within 7d | LOOP-12, T06-06/08/09/10; MVP-07/08/14 |
+
+The full tables in T01–T06 also define exact-boundary, ownership, retry, privacy, deletion and no-response cases. Preserve all existing IDs; this matrix supplements them rather than replacing them. For each future behavior, create a fixed-clock/synthetic-provider test, observe the missing behavior fail, implement the minimum passing behavior and run the relevant regressions under the [testing strategy](../engineering/testing.md). Documentation checks here are not those runtime tests.
+
+### Downstream scenario ownership
+
+| Epic | Required contract/scenario handoff |
+| --- | --- |
+| MVP-05 | Rule snapshots and activation; LOOP-01/06/07/11, T02 timezone/receipt boundaries, T05 pause races |
+| MVP-06 | Deadline reconciliation and notification suppression; LOOP-06/11, T03-09, T05-05/09 |
+| MVP-07 | Private photo/record submission, required fields, declaration, crop and no GPS/EXIF inference; LOOP-02–07, T01-P/S cases, T02 receipt retries, T06-05/06 |
+| MVP-08 | Accepted/rejected/unclear assessments and timing clarification; LOOP-03/08/09/12, all T03 and appeal scenarios; actual Apple Fitness PL/EN evaluation gate |
+| MVP-09 | Atomic reward/level/unlock ledger and upgrade requests; LOOP-09/13–17, T04-01/04/05 and amendment deltas |
+| MVP-10 | Linked Recovery deadlines, single attempt and pause/appeal interaction; LOOP-10/17, T04-02/03, T05-06/07, T06-03/04/11 |
+| MVP-14 | Operator roles/queue, incident health evidence, retention/deletion and restore tests; LOOP-08/12 and all T06 lifecycle cases |
+
+MVP-03 additionally owns selected unlock artwork, while MVP-04 establishes the production locale/catalog boundary before product screens. Backend reason codes, timestamps and reward policy IDs remain language-independent; AI cannot choose deadlines, rewards, entitlements or operator authorization.
+
+### Bilingual implementation copy handoff
+
+The following mechanical copy translates accepted rules; it does not add lore or new policy. Store it under stable keys in the Polish/English catalogs required by the [translation contract](glossary.md#translation-storage-and-runtime-contract), not in components. Placeholder names must match between locales; formatted deadlines must show the committed timezone. These are reviewed copy specifications, not implemented catalog files or proof of native layout/accessibility.
+
+| Key | Polish | English |
+| --- | --- | --- |
+| oath.deadlines | Ukończ trening do {completionDeadline}. Prześlij dowód tak, aby serwer odebrał go w całości do {submissionDeadline}. | Complete the workout by {completionDeadline}. Submit the evidence so the server receives it in full by {submissionDeadline}. |
+| oath.proofPending | Dowód odebrany. Ocena trwa. Opóźnienie oceny nie zmienia zarejestrowanego czasu odebrania dowodu. | Evidence received. Assessment is in progress. Assessment delays do not change the receipt time. |
+| oath.correction | Możesz przesłać najwyżej dwa poprawione dowody tego samego treningu do {correctionDeadline}. Kolejna ocena nie przedłuża tego terminu. | You can submit up to two corrected proofs of the same workout by {correctionDeadline}. Another assessment does not extend this deadline. |
+| oath.unresolved | Nie udało się rozstrzygnąć Przysięgi. Nie otrzymujesz XP, ale nie zapisujemy porażki. Nie można rozpocząć nowego Zadania Powrotu. Już rozpoczęte zadanie zachowuje swoje zasady. | The Oath could not be resolved. You receive no XP, but no miss is recorded. No new Recovery can be started. An already activated Recovery keeps its existing rules. |
+| oath.withdrawn | Przysięga wycofana. Bez XP i bez porażki. Wznowienie nie przywróci tego zobowiązania. | Oath withdrawn. No XP and no miss. Resuming will not restore this commitment. |
+| recovery.offer | Podejmij nowe Zadanie Powrotu. Ukończ trening do {completionDeadline}. Dowód musi dotrzeć w całości do serwera do {submissionDeadline}. Nagroda: 15 XP, bez bonusu za dowód. | Start a new Recovery Quest. Complete the workout by {completionDeadline}. The server must receive the evidence in full by {submissionDeadline}. Reward: 15 XP, with no evidence bonus. |
+| pause.pending | Pauza wyłącza przypomnienia. Ocena przesłanych dowodów i dotychczasowe terminy nadal obowiązują. | Pause turns off reminders. Submitted evidence is still assessed and existing deadlines remain in effect. |
+| appeal.notResolved | Odwołanie nie zostało rozstrzygnięte w terminie. Dotychczasowy wynik pozostaje bez zmian. Nie naliczono nowej kary. | The appeal was not resolved in time. The existing result is unchanged. No new penalty was applied. |
+| appeal.notGranted | Odwołanie nie uzasadnia zmiany wyniku. Dotychczasowy wynik pozostaje bez zmian. | The appeal does not support changing the result. The existing result is unchanged. |
+| appeal.granted | Odwołanie uwzględnione. Zmieniony wynik i rozliczenie XP są widoczne w historii. | Appeal granted. The amended result and XP settlement are shown in history. |
+| proof.deleteWarning | Usunięcie dowodu zakończy oczekujące sprawy, które go wymagają. Nie będzie już możliwe odwołanie oparte na tym dowodzie. Zdobyte XP pozostaną. | Deleting this evidence will close pending cases that require it. Evidence-based appeals using it will no longer be available. Earned XP will remain. |
+
+The correction message describes the lifetime limit, not the remaining count; a future remaining-attempt message must use locale-aware plural forms. Runtime tests must cover Polish 1/2/5-style plural boundaries for count-based copy, matching interpolation arguments, English fallback, accessible labels and native iOS system text. See the existing glossary contract; no alternate i18n convention is introduced here.
+
+### Decision record and remaining gates
+
+| Decision | Accepted source/date | Status and downstream limit |
+| --- | --- | --- |
+| iOS-only MVP, PL/EN and externalized translations | Owner instructions, 2026-09-24 | Accepted; full product locale runtime and native verification pending |
+| Initiation title, declaration and separate photo/record criteria | Owner T01 decision, 2026-09-24 | Accepted; Apple Fitness is a candidate, real PL/EN examples not inspected |
+| Completion/receipt deadlines and timezone semantics | Owner T02 approval, 2026-09-24 | Accepted; no product clock/upload implementation |
+| Corrections, provider escalation, review and neutral closure | Both owner T03 approvals, 2026-09-24 | Accepted; provider/model/queue/operator acceptance pending |
+| XP, Recovery, upgrades/reuse and five-level curve | Three owner T04 approvals, 2026-09-24 | Accepted; DUMMY unlock content identifiers need selected artwork |
+| Pause/withdrawal, fixed Recovery windows and Minimum Quest deferral | Both owner T05 approvals, 2026-09-24 | Accepted; no native reminder/pause implementation |
+| Appeals, retention/operator responsibility and deletion | Three owner T06 approvals, 2026-09-24 | Accepted; actual service configuration, deletion and restore verification required |
+
+Remaining needs are explicit handoff gates, not unresolved core game-policy choices:
+
+- **Apple Fitness:** inspect consented real completed Apple Watch workout details on iPhone in PL and EN separately, record versions/language, confirm required fields and evaluate the model. `DUMMY Activity` in this document remains synthetic content only; it cannot satisfy compatibility acceptance. Resolve any observed layout/contract mismatch before enabling that layout.
+- **Artwork:** replace the five DUMMY content IDs in the level table with intentionally selected original assets and bilingual names in MVP-03/09. No asset files were created or selected by this epic.
+- **Localization:** implement the glossary's catalog/API, locale fallback, interpolation/plural and native-resource requirements; migrate diagnostic copy and verify product flows on iOS in both languages. The bilingual prose here is not hardcoded application UI.
+- **Operations:** assign real operators and implement authorized review/appeal tools, incident evidence, private storage/provider settings, deletion reconciliation and tested restore suppression in MVP-08/14 before collecting real evidence. DUMMY reviewer fixtures cover only local deterministic tests; no live integration or paid provider call was performed.
+
+Minimum Quest, metric-to-XP conversion, Android delivery and direct activity-provider/GPS integrations are explicitly deferred. Squad contribution rules, sign-in choice and subscriptions remain their own later epic decisions; this contract does not silently settle them.

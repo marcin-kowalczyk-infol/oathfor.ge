@@ -13,21 +13,19 @@ The companion serves as accountability partner and referee. Solo users can start
 - Mobile MVP: iOS only, in Polish and English; Android deferred. Original dark heroic Slavic fantasy. **Local decision: owner instruction, 2026-09-24**, narrowing the earlier iOS/Android direction.
 - Core loop: commitment → deadline → intervention → proof → verification → reward/consequence → recovery/team progress.
 - AI participates before and after the deadline, not only as an open chat interface.
-- Consistent original characters and world, with readable English mechanics.
+- Consistent original characters and world, with readable Polish and English mechanics.
 
-## Draft MVP focus
+## First-loop specification
 
-Start with regularity of planned workouts. Test whether the loop supports repeated follow-through and recovery. Photo proof must describe its actual evidentiary limits; a picture of equipment is not proof of a completed timed workout.
+The accepted [first-loop contract](first-loop.md) specifies workout evidence, time, resolution, rewards/Recovery, pause and appeal/retention rules (owner decisions, 2026-09-24). Real Apple Fitness layouts, selected artwork and operational/runtime validation remain pending. Start with regularity of planned workouts. Test whether the loop supports repeated follow-through and recovery. Photo proof must describe its actual evidentiary limits; a picture of equipment is not proof of a completed timed workout.
 
-Squads of 2–6, one companion, one initial boss and a modest progression system are scope proposals. Four companion stages are a visual exploration target, not a requirement to implement four complete rigs.
+Squads of 2–6, one companion and one initial boss remain scope proposals. Initial progression mechanics follow the accepted first-loop contract. Four companion stages are a visual exploration target, not a requirement to implement four complete rigs.
 
 ## Open decisions
 
-- First Oath template and exactly what its proof can verify.
-- Deadline timezone, grace period, offline submission and appeal rules.
-- Consequence/recovery economy, limits and effect on squad progress.
-- Companion name, persona and progression.
+- Effect of outcomes and Recovery on squad progress.
+- Companion name, persona and selected visual progression assets; initial level mechanics are specified.
 - Authentication methods and premium boundaries.
-- Proof retention and optional sharing.
+- Any future optional sharing beyond the accepted private-proof contract.
 
 Business model, pricing, market research and forecasts belong in `business-plans/`.

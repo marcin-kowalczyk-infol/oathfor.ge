@@ -17,3 +17,9 @@ Choose tests for observable behavior and failure modes, not for restating implem
 Use synthetic proof in automated tests; avoid storing real user images in fixtures. **Local data-minimization rule: [security](../../.agents/rules/security.md).**
 
 For documentation changes run the repository checker and whitespace check. These cannot establish that native agent discovery or a full application workflow works.
+
+## First-loop scenario handoff
+
+The accepted [MVP-01 scenario matrix and ownership map](../product/first-loop.md#acceptance-scenarios-and-decision-record) supplies stable LOOP-01–17 and task-specific cases for MVP-05–10/14. These are artifact-reviewed expectations, not passing application tests. Downstream implementation must retain their IDs, observe behavioral red with fixed clocks/synthetic responses, then implement and verify; this follows the existing [implementation workflow](../../.agents/skills/implement-epic/SKILL.md).
+
+MVP-03/09 must replace DUMMY unlock identifiers with selected original assets. Apple Fitness PL/EN fixtures and model evaluation, bilingual iOS product flows, operator authorization and provider/storage deletion/restore remain separate acceptance gates. No successful infrastructure or connectivity test substitutes for these product checks.

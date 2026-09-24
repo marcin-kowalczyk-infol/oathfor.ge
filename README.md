@@ -10,7 +10,7 @@ Players make **Oaths** with clear deadlines and evidence requirements. An AI com
 
 Commit → deadline → AI intervention → proof → verification → reward/consequence → recovery/team progress.
 
-The intended first validation segment is people who repeatedly skip planned workouts. Product scope, reward tuning and verification criteria remain draft. See [product brief](docs/product/brief.md) and [MVP](docs/product/mvp.md).
+The intended first validation segment is people who repeatedly skip planned workouts. The [first-loop specification](docs/product/first-loop.md) is accepted, including initial rewards and evidence rules. Apple Fitness compatibility, artwork and operational/runtime acceptance remain pending; later product scope remains draft. See [product brief](docs/product/brief.md) and [MVP](docs/product/mvp.md).
 
 ## Monorepo
 
