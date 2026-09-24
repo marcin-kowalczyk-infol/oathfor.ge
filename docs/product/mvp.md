@@ -2,9 +2,13 @@
 
 Status: draft for refinement; not a final release commitment. Product source: [ADR 0001](../decisions/0001-project-foundation.md).
 
+## Accepted platform scope
+
+**Local decision: owner instruction, 2026-09-24.** The MVP targets iOS only. Android delivery and acceptance are deferred; existing Android scaffold/export evidence does not imply a release commitment. iOS scope does not select a workout app, watch or screenshot layout.
+
 ## Accepted language scope
 
-Polish and English are required across the MVP player experience. Copy may be adapted naturally in each language, but mechanics and acceptance conditions must remain equivalent. Slavic-inspired terminology follows the [language and naming rules](glossary.md#language-and-naming-rules). **Local decision: owner instruction, 2026-09-23.** Localization is not implemented yet.
+Polish and English are required across the MVP player experience. Copy may be adapted naturally in each language, but mechanics and acceptance conditions must remain equivalent. Slavic-inspired terminology follows the [language and naming rules](glossary.md#language-and-naming-rules). **Local decision: owner instruction, 2026-09-23.** The diagnostic shell has centralized Polish/English copy; product localization is not implemented. Follow the [translation storage contract](glossary.md#translation-storage-and-runtime-contract).
 
 ## Accepted progression direction
 

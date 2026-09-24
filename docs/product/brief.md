@@ -10,7 +10,7 @@ The companion serves as accountability partner and referee. Solo users can start
 
 ## Accepted direction
 
-- Mobile iOS/Android, original dark heroic Slavic fantasy.
+- Mobile MVP: iOS only, in Polish and English; Android deferred. Original dark heroic Slavic fantasy. **Local decision: owner instruction, 2026-09-24**, narrowing the earlier iOS/Android direction.
 - Core loop: commitment → deadline → intervention → proof → verification → reward/consequence → recovery/team progress.
 - AI participates before and after the deadline, not only as an open chat interface.
 - Consistent original characters and world, with readable English mechanics.
