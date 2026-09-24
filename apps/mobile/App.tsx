@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Action } from './src/ui/Action';
 import { checkHealth } from './src/api/health';
 import { LocalizationProvider, useTranslation } from './src/localization/LocalizationProvider';
 
@@ -32,9 +33,7 @@ export function DiagnosticScreen() {
       <Text accessibilityRole="header" style={styles.heading}>Oathforge</Text>
       <Text accessibilityLiveRegion="polite" style={styles.message}>{t(`diagnostics.${state}`)}</Text>
       {state === 'error' && (
-        <Pressable accessibilityRole="button" accessibilityLabel={t('diagnostics.retry')} onPress={() => setAttempt((value) => value + 1)} style={styles.button}>
-          <Text style={styles.buttonText}>{t('diagnostics.retry')}</Text>
-        </Pressable>
+        <Action label={t('diagnostics.retry')} onPress={() => setAttempt((value) => value + 1)} />
       )}
     </View>
   );
@@ -42,8 +41,6 @@ export function DiagnosticScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#191d21', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 24 },
-  button: { minHeight: 48, paddingHorizontal: 24, paddingVertical: 14, backgroundColor: '#edce8a', borderRadius: 8 },
-  buttonText: { color: '#191d21', fontSize: 18, fontWeight: '600' },
   heading: { color: '#fff', fontSize: 32, fontWeight: '700' },
   message: { color: '#f1eadb', fontSize: 18, textAlign: 'center' },
 });

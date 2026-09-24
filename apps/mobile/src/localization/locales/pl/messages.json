@@ -12,6 +12,7 @@
     "correctionsRemaining_other": "Pozostało {{count, number}} próby uzupełnienia."
   },
   "common": {
-    "greeting": "Witaj, {{name}}."
+    "greeting": "Witaj, {{name}}.",
+    "working": "Trwa przetwarzanie…"
   }
 }
