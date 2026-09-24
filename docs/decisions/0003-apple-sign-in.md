@@ -11,7 +11,7 @@ Use `expo-apple-authentication` for the native request. Configure its plugin and
 
 ## Implemented boundary
 
-`apps/mobile/src/auth/appleCredential.ts` accepts caller-supplied nonce/state, checks availability and requests a credential without name/email scopes. It separates cancellation, unavailability, failure and invalid responses. Missing identity token or mismatched state cannot produce a credential result. Provider exceptions are reduced to reason codes; tokens are not logged or persisted. These are local implementation choices under the [security rules](../../.agents/rules/security.md).
+`apps/mobile/src/auth/appleCredential.ts` accepts caller-supplied nonce/state, checks availability and requests a credential without name/email scopes. It separates cancellation, unavailability, failure and invalid responses. Missing/blank identity token or authorization code, or mismatched state, cannot produce a credential result. The unverified result retains both original token and code for backend exchange. Provider exceptions are reduced to reason codes; tokens are not logged or persisted. These are local implementation choices under the [security rules](../../.agents/rules/security.md).
 
 The result is explicitly **unverified**. It neither creates an account nor grants a session. No current screen invokes the adapter. Tests use synthetic DUMMY provider responses; there is no dummy authentication mode in the app.
 
@@ -29,7 +29,7 @@ The integration needs a registered iOS bundle identifier with Sign in with Apple
 
 ## Authentication contract selected for implementation
 
-**Local engineering decisions, 2026-09-24; challenge and internal verification runtime implemented, full login pending.** The owner accepted extending the native boundary to retain the authorization code and exchanging it on the backend with encrypted provider-token storage. The [API contract](../engineering/api-contract.md#planned-authentication-contract) specifies exact wire values and failure behavior. T02's existing identity-token-only adapter is not yet sufficient for that exchange; extend it in a separate tested task without changing its historical completion evidence.
+**Local engineering decisions, 2026-09-24; challenge and internal verification runtime implemented, full login pending.** The owner accepted extending the native boundary to retain the authorization code and exchanging it on the backend with encrypted provider-token storage. The [API contract](../engineering/api-contract.md#planned-authentication-contract) specifies exact wire values and failure behavior. T06 extends T02's identity-token-only result with the required authorization code; T02's historical completion evidence remains unchanged. Backend code exchange is still pending.
 
 Use the raw server-generated nonce unchanged through Expo and compare it exactly to the verified token claim; do not add implicit hashing. Expo SDK57 forwards `options.nonce` directly to the native request. **Basis:** [SDK57 native source](https://github.com/expo/expo/blob/sdk-57/packages/expo-apple-authentication/ios/AppleAuthenticationRequest.swift), checked against installed 57.0.2 on 2026-09-24.
 

@@ -11,7 +11,7 @@ const signIn = jest.mocked(Apple.signInAsync);
 const request = { nonce: 'DUMMY-nonce', state: 'DUMMY-state' };
 const credential: Apple.AppleAuthenticationCredential = {
   user: 'DUMMY-user', state: request.state, identityToken: 'DUMMY-unverified-token',
-  authorizationCode: null, email: null, fullName: null, realUserStatus: 0,
+  authorizationCode: 'DUMMY-authorization-code', email: null, fullName: null, realUserStatus: 0,
 };
 
 beforeEach(() => {
@@ -20,8 +20,8 @@ beforeEach(() => {
   signIn.mockResolvedValue(credential);
 });
 
-test('returns only an unverified token after a correlated native response, without requiring profile scopes', async () => {
-  await expect(requestAppleCredential(request)).resolves.toEqual({ kind: 'unverified', identityToken: credential.identityToken });
+test('returns the unverified token and code after a correlated response without profile scopes', async () => {
+  await expect(requestAppleCredential(request)).resolves.toEqual({ kind: 'unverified', identityToken: credential.identityToken, authorizationCode: credential.authorizationCode });
   expect(signIn).toHaveBeenCalledWith({ ...request, requestedScopes: [] });
 });
 
@@ -44,7 +44,7 @@ test.each(['availability', 'sign-in'])('contains %s errors without exposing prov
 });
 
 test.each([
-  { identityToken: null }, { identityToken: '  ' }, { state: null }, { state: 'another-request' },
+  { identityToken: null }, { identityToken: '  ' }, { authorizationCode: null }, { authorizationCode: '' }, { authorizationCode: '  ' }, { state: null }, { state: 'another-request' },
 ])('rejects an unusable or uncorrelated response: %j', async (patch) => {
   signIn.mockResolvedValue({ ...credential, ...patch });
   await expect(requestAppleCredential(request)).resolves.toEqual({ kind: 'invalid' });
