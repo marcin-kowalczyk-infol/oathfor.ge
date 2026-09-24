@@ -5,7 +5,7 @@ security:
             security: false
         # Logout deliberately accepts inactive and unknown well-formed sessions.
         public:
-            pattern: ^/api/(health|auth/apple/challenges|auth/session)$
+            pattern: ^/api/(health|auth/apple/(challenges|exchange)|auth/session)$
             security: false
         api:
             pattern: ^/api/
@@ -16,5 +16,5 @@ security:
                 token_extractors: ['App\Security\SessionTokenExtractor']
                 failure_handler: App\Security\SessionAuthenticationFailure
     access_control:
-        - { path: '^/api/(health|auth/apple/challenges|auth/session)$', roles: PUBLIC_ACCESS }
+        - { path: '^/api/(health|auth/apple/(challenges|exchange)|auth/session)$', roles: PUBLIC_ACCESS }
         - { path: '^/api/', roles: IS_AUTHENTICATED_FULLY }

@@ -19,7 +19,7 @@ The result is explicitly **unverified**. It neither creates an account nor grant
 
 **Local decision: owner approval, 2026-09-24.** An Oathforge session lasts 30 days from login, without automatic or sliding renewal. After expiry, the user signs in with Apple again. Signing out revokes the current device session and clears its local authenticated state; sessions on other devices remain active. Account deletion retains the separate requirement to revoke all sessions immediately under the [first-loop deletion policy](../product/first-loop.md#explicit-deletion).
 
-This policy concerns Oathforge sessions, separately from Apple's provider credentials. The planned API contract below defines issuance, validation, expiry enforcement and offline sign-out behavior; clearing a local credential alone does not establish server revocation. T09 implements backend fixed expiry and current-session revocation; mobile persistence/logout recovery and public login composition remain pending.
+This policy concerns Oathforge sessions, separately from Apple's provider credentials. The planned API contract below defines issuance, validation, expiry enforcement and offline sign-out behavior; clearing a local credential alone does not establish server revocation. T09 implements backend fixed expiry and current-session revocation; T10 composes public login. Mobile persistence/logout recovery remains pending.
 
 ## Remaining contracts and acceptance
 
@@ -29,7 +29,7 @@ The integration needs a registered iOS bundle identifier with Sign in with Apple
 
 ## Authentication contract selected for implementation
 
-**Local engineering decisions, 2026-09-24; challenge and internal verification runtime implemented, full login pending.** The owner accepted extending the native boundary to retain the authorization code and exchanging it on the backend with encrypted provider-token storage. The [API contract](../engineering/api-contract.md#planned-authentication-contract) specifies exact wire values and failure behavior. T06 extends T02's identity-token-only result with the required authorization code; T02's historical completion evidence remains unchanged. T08 implements internal backend code exchange; T09 implements account/session persistence; public login composition remains pending.
+**Local engineering decisions, 2026-09-24; backend challenge, verification, account/session and public login runtime implemented; mobile/live-provider acceptance pending.** The owner accepted extending the native boundary to retain the authorization code and exchanging it on the backend with encrypted provider-token storage. The [API contract](../engineering/api-contract.md#planned-authentication-contract) specifies exact wire values and failure behavior. T06 extends T02's identity-token-only result with the required authorization code; T02's historical completion evidence remains unchanged. T08 implements internal backend code exchange; T09 implements account/session persistence; T10 implements public login composition with synthetic provider coverage.
 
 Use the raw server-generated nonce unchanged through Expo and compare it exactly to the verified token claim; do not add implicit hashing. Expo SDK57 forwards `options.nonce` directly to the native request. **Basis:** [SDK57 native source](https://github.com/expo/expo/blob/sdk-57/packages/expo-apple-authentication/ios/AppleAuthenticationRequest.swift), checked against installed 57.0.2 on 2026-09-24.
 

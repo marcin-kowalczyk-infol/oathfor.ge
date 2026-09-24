@@ -16,7 +16,7 @@ Producer verification: `composer test -- --filter HealthEndpointTest` from `apps
 
 ## Planned authentication contract
 
-**Status: challenge issuance and transactional one-use storage implemented in MVP-04-T04; internal signature/claims and trusted-key verification implemented in T05. Internal code exchange implemented in T08. T09 implements account/session persistence, identity read and current-session deletion; public login exchange remains planned. Local decisions, 2026-09-24, under [ADR 0003](../decisions/0003-apple-sign-in.md).** The anonymous challenge does not authenticate a user. Remaining sections fix the target contract and do not enable login.
+**Status: challenge issuance and transactional one-use storage implemented in MVP-04-T04; internal signature/claims and trusted-key verification implemented in T05. Internal code exchange implemented in T08. T09 implements account/session persistence, identity read and current-session deletion; T10 implements public login exchange with signed synthetic integration tests. Real provider/mobile acceptance remains pending. Local decisions, 2026-09-24, under [ADR 0003](../decisions/0003-apple-sign-in.md).** The anonymous challenge does not authenticate a user. The runtime requires valid private provider configuration; no production dummy authentication mode exists.
 
 ### Transport and limits
 

@@ -32,7 +32,21 @@ final class LoginChallengeRepository
         );
     }
 
+    public function findLive(string $id): ?LoginChallengeSnapshot
+    {
+        $row = $this->connection->fetchAssociative('SELECT nonce_digest, expires_at, consumed_at FROM login_challenge WHERE id = ?', [$id]);
+        if (false === $row || null !== $row['consumed_at'] || $this->clock->now() >= (int) $row['expires_at']) {
+            return null;
+        }
+        return new LoginChallengeSnapshot($id, $row['nonce_digest'], (int) $row['expires_at']);
+    }
+
     public function consume(string $id, string $signedNonce): ChallengeConsumption
+    {
+        return $this->consumeMatchingNonceDigest($id, hash('sha256', $signedNonce));
+    }
+
+    public function consumeMatchingNonceDigest(string $id, string $nonceDigest): ChallengeConsumption
     {
         if (!$this->connection->isTransactionActive()) {
             throw new \LogicException('Challenge consumption requires a caller-owned transaction.');
@@ -42,7 +56,7 @@ final class LoginChallengeRepository
         if (false === $row || null !== $row['consumed_at'] || $now >= (int) $row['expires_at']) {
             return ChallengeConsumption::Unavailable;
         }
-        if (!hash_equals($row['nonce_digest'], hash('sha256', $signedNonce))) {
+        if (!hash_equals($row['nonce_digest'], $nonceDigest)) {
             return ChallengeConsumption::InvalidNonce;
         }
         $this->connection->executeStatement('UPDATE login_challenge SET consumed_at = ? WHERE id = ?', [$now, $id]);
