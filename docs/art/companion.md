@@ -15,6 +15,8 @@ Original fiction: Weles entrusted this guardian with accompanying people along t
 
 ## Form and continuity brief
 
+T02 refinement: the [selected concept references](companion-assets.md) retain a relaxed arm, lantern near the knee and a longer cloak rear panel. These observed refinements supersede the original hip-height/squat-lantern and short-rear-cloak details below; preserve the same side and carry in future exports.
+
 Starting body: an upright adult humanoid, broad through the shoulders, with grounded proportions and visible hands. A short charcoal travel cloak leaves the face and lantern unobscured. The face resembles weathered carved wood, with a broad brow, short squared beard and two small warm eyes. Keep him approachable through posture and expression, without turning him into a cute pet. No skull mask, threatening teeth or oversized weapon.
 
 The identifying motif is **one vertical ember seam in the left cheek**, paired with a squat iron lantern held at the right hip. Preserve the cheek side in every pose; never mirror an export silently. The seam is an original design mark, not a claimed traditional rune. Establish both portrait and silhouette recognition: the cheek anchors the portrait, while broad shoulders, short cloak and lantern anchor the full figure. Use no tiny inscriptions as the only identifying feature.

@@ -1,6 +1,6 @@
 # Art Bible — direction v0.1
 
-Status: accepted direction; the starting companion brief is accepted for visual exploration; artwork, palette values and export dimensions are not selected. Source: [ADR 0001](../decisions/0001-project-foundation.md).
+Status: accepted direction; the starting companion brief is accepted for visual exploration; initial concept references are selected for continued production; UI palette and app exports remain pending. Source: [ADR 0001](../decisions/0001-project-foundation.md).
 
 ## Visual direction
 
@@ -10,7 +10,7 @@ Names, narrative language and original lore should draw from Slavic legends and 
 
 ## Companion design requirements
 
-Explore one distinctive guardian identity with four stages of progression. Preserve face/head structure, proportions and signature motif while changing equipment, material richness and effects. The accepted mythological anchor is Weles/Veles: an original personal guide linked to Weles, not automatically Weles himself. **Local decision: owner reply “Weles brzmi dobrze :D”, 2026-09-24.** “Max” is not canonical. The [Żaromir / Zharomir brief](companion.md), including starting form and persona, is accepted for artwork development with iterative refinement (owner decision, 2026-09-24). Actual artwork remains unselected.
+Explore one distinctive guardian identity with four stages of progression. Preserve face/head structure, proportions and signature motif while changing equipment, material richness and effects. The accepted mythological anchor is Weles/Veles: an original personal guide linked to Weles, not automatically Weles himself. **Local decision: owner reply “Weles brzmi dobrze :D”, 2026-09-24.** “Max” is not canonical. The [Żaromir / Zharomir brief](companion.md), including starting form and persona, is accepted for artwork development with iterative refinement (owner decision, 2026-09-24). Initial references and actual visual refinements are recorded in the [concept manifest](companion-assets.md); final app artwork remains pending.
 
 The player must recognize the same character at small mobile sizes. Review silhouette, facial readability, contrast and UI text placement. **Local production acceptance criteria.**
 
