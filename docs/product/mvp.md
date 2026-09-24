@@ -26,9 +26,9 @@ The [first-loop contract](first-loop.md#review-and-retention) defines accepted a
 - Define minimum fulfillment evidence separately from bonus eligibility. Failure to qualify for a higher bonus does not invalidate an otherwise fulfilled Oath.
 - Defer calorie, step and distance-to-XP conversions. Initial progression rewards fulfillment and supporting evidence, without direct activity-provider integrations.
 - Each level requires more XP than the previous level, with a gentle initial curve. Each level gives a small character unlock; milestone levels provide larger visual changes. Show the next unlock before it is earned.
-- **Owner approval, 2026-09-24:** initial values are 30 base XP plus highest 10/20 evidence bonus; one delta-only upgrade within 24 hours; no activity reuse between commitments. Levels 1–5 use total thresholds 0/100/250/450/700. The [full contract](first-loop.md#progression-and-recovery) defines one 15 XP Recovery and exact windows; real unlock artwork remains pending.
+- **Owner approval, 2026-09-24:** initial values are 30 base XP plus highest 10/20 evidence bonus; one delta-only upgrade within 24 hours; no activity reuse between commitments. Levels 1–5 use total thresholds 0/100/250/450/700. The [full contract](first-loop.md#progression-and-recovery) defines one 15 XP Recovery and exact windows; five static unlock panels are selected in the [asset manifest](../art/companion-assets.md); runtime integration remains pending.
 
-This extends the initial single-upgrade production scope into small per-level unlocks, not a new full character design for every level. Implementation belongs to MVP-03/09; policy definition belongs to MVP-01. No progression runtime or artwork unlocks exist yet.
+This extends the initial single-upgrade production scope into small per-level unlocks, not a new full character design for every level. Implementation belongs to MVP-03/09; policy definition belongs to MVP-01. No progression runtime or in-app artwork unlock behavior exists yet.
 
 ## Proposed smallest complete loop
 

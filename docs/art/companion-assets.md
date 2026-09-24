@@ -73,4 +73,4 @@ Minor accepted production variation: the token's engraved diamond and position, 
 
 ## Remaining handoff
 
-T04 defines the UI system around separate opaque art panels. Later mobile slices must bundle static sources from the tracked export paths, use product locale catalogs, render server-supplied current/next state and cap completion, handle load failure visibly, and verify iOS layout/accessibility. Do not load ignored masters or mixed-view reference sheets at runtime. S3 access/upload/restore remain deferred by the owner.
+The reviewed [T04 UI handoff](ui-system.md) defines separate opaque art panels and PL/EN layout studies. Later mobile slices must bundle static sources from the tracked export paths, use product locale catalogs, render server-supplied current/next state and cap completion, handle load failure visibly, and verify iOS layout/accessibility. Do not load ignored masters or mixed-view reference sheets at runtime. S3 access/upload/restore remain deferred by the owner.

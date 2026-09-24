@@ -1,6 +1,6 @@
 # Art Bible — direction v0.1
 
-Status: accepted direction; the starting companion brief is accepted for visual exploration; initial concept references are selected for continued production; five initial static app exports are selected; UI system and native acceptance remain pending. Source: [ADR 0001](../decisions/0001-project-foundation.md).
+Status: accepted direction; the starting companion brief is accepted for visual exploration; initial concept references are selected for continued production; five initial static app exports are selected; the [core-screen UI system](ui-system.md) has a reviewed static handoff; runtime and native acceptance remain pending. Source: [ADR 0001](../decisions/0001-project-foundation.md).
 
 ## Visual direction
 

@@ -14,6 +14,7 @@ All product and delivery documents live here except business plans, which belong
 | [Testing](engineering/testing.md) | Behavior and failure-path validation |
 | [Analytics](product/analytics.md) | Draft events and metric definitions |
 | [Art direction](art/art-bible.md) | Visual identity and companion constraints |
+| [Core-screen visual system](art/ui-system.md) | Selected tokens, PL/EN screen patterns and accessibility handoff |
 | [Asset pipeline](art/pipeline.md) | Sources, continuity, local artwork and exports |
 | [Roadmap](delivery/roadmap.md) | Engineering/product gates, without business forecasts |
 | [Decisions](decisions/0001-project-foundation.md) | Accepted foundation and provenance |
