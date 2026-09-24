@@ -14,7 +14,7 @@ These are **local production practices**, not a claim that a generator guarantee
 
 Keep masters, reference sheets and experimental outputs in `graphics/` (ignored). Preserve prompt, model/version, seed when available, reference IDs, generation date, edits and usage provenance alongside the local master. Add a small tracked manifest under `docs/art/` when assets are selected. **Source: owner request and [ADR 0001](../decisions/0001-project-foundation.md).**
 
-Ignoring artwork excludes it from clones and Git backups. Choose a separate backup location before relying on these masters. Git ignore also does not revoke access for agents or hide already tracked files. **Basis: [Git ignore](https://git-scm.com/docs/gitignore); backup choice is local.**
+Ignoring artwork excludes it from clones and Git backups. A separate backup remains the target. **Accepted temporary exception: owner instruction, 2026-09-24.** Keep masters in the repository-local ignored `graphics/` directory for now; the owner will provide S3 access later. This permits current artwork work without an external backup destination. S3 upload/restore verification remains pending; no remote backup is claimed. Git ignore also does not revoke access for agents or hide already tracked files. **Basis: [Git ignore](https://git-scm.com/docs/gitignore); backup choice is local.**
 
 ## Implementation readiness
 

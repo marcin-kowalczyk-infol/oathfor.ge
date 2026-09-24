@@ -9,6 +9,9 @@ Status: accepted first-loop terms and reviewed mechanical PL/EN copy; other lore
 | Proof | Evidence submitted for an Oath |
 | Verification | Assessment against the agreed evidence requirement |
 | Companion | Player-facing AI character |
+| Weles / Veles | Accepted PL/EN mythological anchor for an original companion, not the companion’s selected proper name (owner decision, 2026-09-24) |
+| Żaromir / Zharomir | Accepted starting PL/EN proper name for the original Weles-linked guide; [brief](../art/companion.md) may evolve during artwork production (owner decision, 2026-09-24) |
+| Strażnik Przysięgi / Oath Guardian | Accepted starting PL/EN role description, not a new action or historical title (owner decision, 2026-09-24) |
 | Referee | Evidence-assessment role, not a separate required character |
 | Squad | Private group sharing progress |
 | Recovery Quest / Zadanie Powrotu | Follow-up after a missed Oath; Polish mechanical translation reviewed in the T07 handoff, not a new lore name |

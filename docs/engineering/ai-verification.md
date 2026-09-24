@@ -33,4 +33,4 @@ Local release criteria to define with the first template:
 
 Use events and recorded history. Do not infer that “no start recorded” means inactivity. Recovery wording must respect the agreed rules, notification preferences and pause conditions. Persona/lore never overrides verification policy. These are **local product guardrails**.
 
-Companion name, voice, memory policy and selected visual progression assets remain open. Reward/Recovery mechanics and initial level thresholds follow the accepted [T04 contract](../product/first-loop.md#progression-and-recovery). “Max” is not canonical.
+The [Żaromir / Zharomir starting brief](../art/companion.md), including name and written persona, is accepted for visual refinement (owner decision, 2026-09-24). Voice/audio is outside the current scope; memory policy and selected visual progression assets remain open. Reward/Recovery mechanics and initial level thresholds follow the accepted [T04 contract](../product/first-loop.md#progression-and-recovery). “Max” is not canonical.
