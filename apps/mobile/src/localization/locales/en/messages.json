@@ -1,0 +1,15 @@
+{
+  "diagnostics": {
+    "pending": "Checking connection…",
+    "success": "Connected to the API.",
+    "error": "Could not confirm the connection.",
+    "retry": "Try again"
+  },
+  "evidence": {
+    "correctionsRemaining_one": "{{count, number}} correction attempt remains.",
+    "correctionsRemaining_other": "{{count, number}} correction attempts remain."
+  },
+  "common": {
+    "greeting": "Welcome, {{name}}."
+  }
+}

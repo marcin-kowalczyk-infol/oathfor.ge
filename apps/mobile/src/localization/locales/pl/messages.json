@@ -1,0 +1,17 @@
+{
+  "diagnostics": {
+    "pending": "Sprawdzanie połączenia…",
+    "success": "Połączenie z API działa.",
+    "error": "Nie udało się potwierdzić połączenia.",
+    "retry": "Spróbuj ponownie"
+  },
+  "evidence": {
+    "correctionsRemaining_one": "Pozostała {{count, number}} próba uzupełnienia.",
+    "correctionsRemaining_few": "Pozostały {{count, number}} próby uzupełnienia.",
+    "correctionsRemaining_many": "Pozostało {{count, number}} prób uzupełnienia.",
+    "correctionsRemaining_other": "Pozostało {{count, number}} próby uzupełnienia."
+  },
+  "common": {
+    "greeting": "Witaj, {{name}}."
+  }
+}

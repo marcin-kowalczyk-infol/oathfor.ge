@@ -1,5 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import App from './App';
+import App, { DiagnosticScreen } from './App';
+import { Pressable } from 'react-native';
+import { LocalizationProvider, useTranslation } from './src/localization/LocalizationProvider';
+
+jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'de-DE' }] }));
 
 beforeEach(() => {
   process.env.EXPO_PUBLIC_API_BASE_URL = 'http://localhost:18082';
@@ -60,4 +64,26 @@ test('shows a recoverable error for a malformed response', async () => {
   await render(<App />);
   expect(await screen.findByText('Nie udało się potwierdzić połączenia.')).toBeOnTheScreen();
   expect(screen.queryByText('Połączenie z API działa.')).not.toBeOnTheScreen();
+});
+
+function ChangeLanguage() {
+  const { i18n } = useTranslation();
+  return <Pressable accessibilityRole="button" accessibilityLabel="English" onPress={() => { void i18n.changeLanguage('en'); }} />;
+}
+
+test('uses English fallback for an unsupported device language without diagnostic override', async () => {
+  delete process.env.EXPO_PUBLIC_DIAGNOSTIC_LOCALE;
+  jest.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}));
+  await render(<App />);
+  expect(screen.getByText('Checking connection…')).toBeOnTheScreen();
+});
+
+test('language changes translate pending work without restarting the request', async () => {
+  const fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}));
+  await render(<LocalizationProvider initialLocale="pl"><DiagnosticScreen /><ChangeLanguage /></LocalizationProvider>);
+  expect(screen.getByText('Sprawdzanie połączenia…')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'English' }));
+  expect(screen.getByText('Checking connection…')).toBeOnTheScreen();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect((fetchMock.mock.calls[0][1]?.signal as AbortSignal).aborted).toBe(false);
 });

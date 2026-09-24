@@ -8,7 +8,7 @@ Status: draft for refinement; not a final release commitment. Product source: [A
 
 ## Accepted language scope
 
-Polish and English are required across the MVP player experience. Copy may be adapted naturally in each language, but mechanics and acceptance conditions must remain equivalent. Slavic-inspired terminology follows the [language and naming rules](glossary.md#language-and-naming-rules). **Local decision: owner instruction, 2026-09-23.** The diagnostic shell has centralized Polish/English copy; product localization is not implemented. Follow the [translation storage contract](glossary.md#translation-storage-and-runtime-contract).
+Polish and English are required across the MVP player experience. Copy may be adapted naturally in each language, but mechanics and acceptance conditions must remain equivalent. Slavic-inspired terminology follows the [language and naming rules](glossary.md#language-and-naming-rules). **Local decision: owner instruction, 2026-09-23.** The diagnostic shell uses the shared Polish/English localization runtime; product screens and their full bilingual acceptance remain pending. Follow the [translation storage contract](glossary.md#translation-storage-and-runtime-contract).
 
 ## Accepted first Oath evidence contract
 

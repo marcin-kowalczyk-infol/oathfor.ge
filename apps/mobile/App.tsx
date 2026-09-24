@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { checkHealth } from './src/api/health';
-import { copy } from './src/diagnostics/copy';
+import { LocalizationProvider, useTranslation } from './src/localization/LocalizationProvider';
 
-export default function App() {
+export function DiagnosticScreen() {
   const [state, setState] = useState<'pending' | 'success' | 'error'>('pending');
   const [attempt, setAttempt] = useState(0);
   const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
-  const text = copy[process.env.EXPO_PUBLIC_DIAGNOSTIC_LOCALE === 'en' ? 'en' : 'pl'];
+  const { t } = useTranslation();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -30,10 +30,10 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="light" />
       <Text accessibilityRole="header" style={styles.heading}>Oathforge</Text>
-      <Text accessibilityLiveRegion="polite" style={styles.message}>{text[state]}</Text>
+      <Text accessibilityLiveRegion="polite" style={styles.message}>{t(`diagnostics.${state}`)}</Text>
       {state === 'error' && (
-        <Pressable accessibilityRole="button" accessibilityLabel={text.retry} onPress={() => setAttempt((value) => value + 1)} style={styles.button}>
-          <Text style={styles.buttonText}>{text.retry}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('diagnostics.retry')} onPress={() => setAttempt((value) => value + 1)} style={styles.button}>
+          <Text style={styles.buttonText}>{t('diagnostics.retry')}</Text>
         </Pressable>
       )}
     </View>
@@ -47,3 +47,10 @@ const styles = StyleSheet.create({
   heading: { color: '#fff', fontSize: 32, fontWeight: '700' },
   message: { color: '#f1eadb', fontSize: 18, textAlign: 'center' },
 });
+
+export default function App() {
+  const override = process.env.EXPO_PUBLIC_DIAGNOSTIC_LOCALE;
+  return <LocalizationProvider initialLocale={override === 'pl' || override === 'en' ? override : undefined}>
+    <DiagnosticScreen />
+  </LocalizationProvider>;
+}

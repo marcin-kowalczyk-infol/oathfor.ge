@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "main": "index.ts",
   "dependencies": {
-    "expo": "~57.0.24",
+    "expo": "~57.0.25",
+    "expo-localization": "~57.0.2",
     "expo-status-bar": "~57.0.1",
+    "i18next": "^26.4.2",
     "react": "19.2.3",
+    "react-i18next": "^17.0.15",
     "react-native": "0.86.3"
   },
   "devDependencies": {
