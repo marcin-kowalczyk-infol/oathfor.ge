@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { Action } from './src/ui/Action';
+import { AuthScreen } from './src/auth/AuthScreen';
+import { getSessionRuntime } from './src/auth/runtime';
 import { checkHealth } from './src/api/health';
 import { LocalizationProvider, useTranslation } from './src/localization/LocalizationProvider';
 
@@ -46,8 +48,11 @@ const styles = StyleSheet.create({
 });
 
 export default function App() {
-  const override = process.env.EXPO_PUBLIC_DIAGNOSTIC_LOCALE;
-  return <LocalizationProvider initialLocale={override === 'pl' || override === 'en' ? override : undefined}>
-    <DiagnosticScreen />
-  </LocalizationProvider>;
+  if (__DEV__ && process.env.EXPO_PUBLIC_DIAGNOSTIC_MODE === 'true') {
+    const override = process.env.EXPO_PUBLIC_DIAGNOSTIC_LOCALE;
+    return <LocalizationProvider initialLocale={override === 'pl' || override === 'en' ? override : undefined}>
+      <DiagnosticScreen />
+    </LocalizationProvider>;
+  }
+  return <LocalizationProvider><AuthScreen {...getSessionRuntime()} /></LocalizationProvider>;
 }

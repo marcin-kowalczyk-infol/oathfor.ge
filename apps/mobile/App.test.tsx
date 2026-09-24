@@ -5,7 +5,14 @@ import { LocalizationProvider, useTranslation } from './src/localization/Localiz
 
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'de-DE' }] }));
 
+jest.mock('./src/auth/AuthScreen', () => ({ AuthScreen: () => {
+  const { Text } = require('react-native');
+  const { useTranslation } = require('./src/localization/LocalizationProvider');
+  return <Text>{useTranslation().t('auth.signInTitle')}</Text>;
+} }));
+
 beforeEach(() => {
+  process.env.EXPO_PUBLIC_DIAGNOSTIC_MODE = 'true';
   process.env.EXPO_PUBLIC_API_BASE_URL = 'http://localhost:18082';
   process.env.EXPO_PUBLIC_DIAGNOSTIC_LOCALE = 'pl';
 });
@@ -86,4 +93,12 @@ test('language changes translate pending work without restarting the request', a
   expect(screen.getByText('Checking connection…')).toBeOnTheScreen();
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect((fetchMock.mock.calls[0][1]?.signal as AbortSignal).aborted).toBe(false);
+});
+
+test('product entry ignores diagnostic locale unless diagnostic mode is explicit', async () => {
+  process.env.EXPO_PUBLIC_DIAGNOSTIC_MODE = 'false';
+  const fetch = jest.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}));
+  await render(<App />);
+  expect(screen.getByText('Welcome to Oathforge')).toBeOnTheScreen();
+  expect(fetch).not.toHaveBeenCalled();
 });
