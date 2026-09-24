@@ -1,6 +1,6 @@
 # Onboarding into the Trial of the Spark
 
-Status: accepted product intention and local implementation contract, 2026-09-24. Authentication is implemented through MVP-04-T14; T16 implements profile persistence and server completion. These onboarding screens are not yet implemented. Real signed-device acceptance and the actual MVP-05 first-Oath flow remain separate gates.
+Status: accepted product intention and local implementation contract, 2026-09-24. Authentication is implemented through MVP-04-T14; T16 implements profile persistence and server completion; T17 implements mobile profile hydration and confirmed language/timezone/intention. Companion, notification and final completion screens remain pending. Real signed-device acceptance and the actual MVP-05 first-Oath flow remain separate gates.
 
 ## Intention and boundaries
 
@@ -13,7 +13,7 @@ An authenticated player can start alone, without an invitation. Confirm language
 The following are local interaction and persistence choices for MVP-04. The exact [profile API contract](../engineering/api-contract.md#onboarding-profile-contract) is authoritative for request shapes and server validation.
 
 - Load the server profile for every authenticated account, including returning accounts whose onboarding is complete. Apply its confirmed language before routing. On load failure, offer retry and logout in the current resolved language; do not guess completion or reuse another account’s profile.
-- Language, timezone and intention begin unconfirmed. Device language/timezone can suggest a choice but must not silently save it. Require explicit confirmation; unsupported timezone suggestions need correction, with a visible IANA example such as `Europe/Warsaw`.
+- Language, timezone and intention begin unconfirmed. Device language/timezone can suggest a choice but must not silently save it. Require explicit confirmation; unsupported timezone suggestions need correction, with a visible IANA example such as `Europe/Warsaw`. A saved server zone unsupported by the current device must not block profile/language loading; pending onboarding offers correction before confirmation. Completed accounts still bypass onboarding; the later Oath flow validates its scheduling input.
 - Save only confirmed fields with atomic partial updates. A failed save does not advance or claim persistence. Serialize mobile writes; after an ambiguous response, refetch before retrying. Ignore results from an earlier account/session generation.
 - Restart at the first incomplete step from the server profile. Preserve confirmed fields, not unsaved draft claims. Once all fields are saved but completion is pending, show a final review with the recorded notification preference and freshly read device permission, without automatically prompting.
 - Completion requires confirmed language, timezone, `regular_activity`, companion introduction and a notification preference of enabled or disabled. OS permission is not a requirement. Complete only through the server endpoint; repeated completion is harmless and cannot issue XP, create an Oath or renew a session.

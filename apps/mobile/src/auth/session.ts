@@ -206,6 +206,12 @@ export function createSessionController(options: { storage: SessionStorage; api:
     getToken: () => !disposed && state.kind === 'authenticated' && !expired() ? session?.token : undefined,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     start, login, logout, retry, foreground, nativeRevoked: logout,
+    async reauthenticate() {
+      if (disposed) return;
+      const epoch = invalidate();
+      publish({ kind: 'revocation_pending' });
+      await clearSession(epoch, { kind: 'reauthenticate' });
+    },
     dispose() { disposed = true; invalidate(); listeners.clear(); },
   };
 }
