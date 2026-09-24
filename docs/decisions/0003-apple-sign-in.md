@@ -1,6 +1,6 @@
 # ADR 0003 — Sign in with Apple
 
-Status: accepted route; native credential boundary implemented; account/session integration pending.
+Status: accepted route and session policy; native credential boundary implemented; account/session integration pending.
 Date: 2026-09-24.
 
 ## Decision and context
@@ -15,8 +15,40 @@ Use `expo-apple-authentication` for the native request. Configure its plugin and
 
 The result is explicitly **unverified**. It neither creates an account nor grants a session. No current screen invokes the adapter. Tests use synthetic DUMMY provider responses; there is no dummy authentication mode in the app.
 
+## Accepted app session policy
+
+**Local decision: owner approval, 2026-09-24.** An Oathforge session lasts 30 days from login, without automatic or sliding renewal. After expiry, the user signs in with Apple again. Signing out revokes the current device session and clears its local authenticated state; sessions on other devices remain active. Account deletion retains the separate requirement to revoke all sessions immediately under the [first-loop deletion policy](../product/first-loop.md#explicit-deletion).
+
+This policy concerns Oathforge sessions, separately from Apple's provider credentials. The planned API contract below defines issuance, validation, expiry enforcement and offline sign-out behavior; clearing a local credential alone does not establish server revocation. The policy is accepted, not implemented.
+
 ## Remaining contracts and acceptance
 
-Before login is enabled, the backend slice must define one-use challenge issuance/expiry/consumption, Apple token verification, account identity and session issuance/revocation. Mobile must use that contract, secure credential storage and a usable expiry/sign-out path. This adapter's input is not an HTTP contract and does not replace backend nonce validation. Never trust the mobile result as account identity. Backend authentication ownership follows [architecture](../engineering/architecture.md).
+Before login is enabled, the backend slice must implement the selected one-use challenge, Apple verification, account identity and session issuance/revocation contracts below. Mobile must use that contract, secure credential storage and a usable expiry/sign-out path. This adapter's input is not an HTTP contract and does not replace backend nonce validation. Never trust the mobile result as account identity. Backend authentication ownership follows [architecture](../engineering/architecture.md).
 
 The integration needs a registered iOS bundle identifier with Sign in with Apple capability and a signed build on a physical test device. These are later setup inputs, not credentials to paste into chat. Verify successful login, cancellation, provider failure and revoked credentials against the actual backend. No Apple console changes, live sign-in or signed-device verification have been performed.
+
+## Authentication contract selected for implementation
+
+**Local engineering decisions, 2026-09-24; runtime pending.** The owner accepted extending the native boundary to retain the authorization code and exchanging it on the backend with encrypted provider-token storage. The [API contract](../engineering/api-contract.md#planned-authentication-contract) specifies exact wire values and failure behavior. T02's existing identity-token-only adapter is not yet sufficient for that exchange; extend it in a separate tested task without changing its historical completion evidence.
+
+Use the raw server-generated nonce unchanged through Expo and compare it exactly to the verified token claim; do not add implicit hashing. Expo SDK57 forwards `options.nonce` directly to the native request. **Basis:** [SDK57 native source](https://github.com/expo/expo/blob/sdk-57/packages/expo-apple-authentication/ios/AppleAuthenticationRequest.swift), checked against installed 57.0.2 on 2026-09-24.
+
+Select `firebase/php-jwt:^7.2` for signature/JWK handling, `ext-openssl` for RSA, and `symfony/http-client:7.4.*` for bounded key/token requests. The library's tagged manifest accepts PHP ^8.0, compatible with our PHP ~8.5.0 requirement; installation, lock resolution and tests must still establish compatibility. Only RS256 with trusted Apple RSA signing keys is allowed. Application code checks issuer, audience, nonce and claim types/times after cryptographic verification. This is a local restriction, supported by the current [Apple public JWKS](https://appleid.apple.com/auth/keys) and [library 7.2.0 source](https://github.com/googleapis/php-jwt/tree/v7.2.0), checked 2026-09-24. Token headers cannot select a URL or algorithm. An Apple algorithm change requires review rather than permissive fallback.
+
+Use server-stored opaque app sessions and Symfony 7.4 SecurityBundle access-token authentication in the account/session slice. Hash app bearer tokens with SHA-256 at rest; the random 256-bit tokens do not need password stretching. Validate expiry, revocation and account deletion on every protected request. The mechanism is a local choice; [Symfony 7.4 token handlers](https://symfony.com/doc/7.4/security/access_token.html) provide the integration point, not the product session duration.
+
+### Provider credentials and deletion
+
+Exchange the native authorization code at Apple's fixed token endpoint, using backend-only client ID and signed client secret. Native requests without a redirect URI omit it. Apple's code is single-use and valid for five minutes; the exchange supplies provider refresh/access credentials. Revocation needs one of those credentials, not an identity token. **Basis:** [Apple token exchange](https://developer.apple.com/documentation/signinwithapplerestapi/generate-and-validate-tokens), [revocation](https://developer.apple.com/documentation/signinwithapplerestapi/revoke-tokens), [TN3194](https://developer.apple.com/documentation/technotes/tn3194-handling-account-deletions-and-revoking-tokens-for-sign-in-with-apple) (2025-10-03), checked 2026-09-24.
+
+**Local lifecycle choice:** persist the provider refresh token encrypted with authenticated encryption and a versioned backend-only key; discard provider access tokens after exchange. Use libsodium XChaCha20-Poly1305 with a random nonce and provider-identity ID as associated data; keep the key outside PostgreSQL/backups of application data. Rotation reads old key versions and writes the current version. No hardcoded fallback key. Never expose provider credentials to mobile, diagnostics or logs. **Mechanism:** [PHP sodium AEAD](https://www.php.net/manual/en/function.sodium-crypto-aead-xchacha20poly1305-ietf-encrypt.php); handling follows [security rules](../../.agents/rules/security.md).
+
+App sign-out revokes only that Oathforge session. It does not revoke Apple authorization shared by other device sessions. Account deletion immediately denies all app sessions transactionally, then uses a durable revocation job before purging the encrypted provider credential. Provider outages never restore app access; unresolved provider revocation remains visible to operations under the existing deletion bounds. That integration is required before real accounts are enabled and is exercised with MVP-14 deletion acceptance.
+
+Provider validity checks never renew an app session. For accounts with live sessions, schedule a refresh validation no more than once per 24 hours per provider identity; retry transport failures on the next daily run. An explicit provider `invalid_grant` revokes all associated app sessions; a transport/provider outage retains existing app sessions only until their original expiry. Mobile native revocation detection clears local access and requests current-session revocation. These are local availability choices; Apple describes provider validation frequency in [Verifying a user](https://developer.apple.com/documentation/signinwithapple/verifying-a-user). External revocation is not promised to propagate instantly; test the daily detection and native paths before acceptance.
+
+### Mobile storage and recovery
+
+Select SDK-compatible `expo-secure-store` for the app session envelope, with `WHEN_UNLOCKED_THIS_DEVICE_ONLY`, no biometric requirement and a fixed keychain service. Store no Apple identity token or authorization code beyond the in-memory login attempt. Keychain reads/writes/deletes may fail and data may survive reinstall; a stored token is never proof of current authorization. Validate through `GET /api/me` before entering the authenticated shell after restart. **Basis:** [Expo SecureStore SDK57 documentation](https://docs.expo.dev/versions/latest/sdk/securestore/) (page reports ~57.0.4, checked 2026-09-24); storage policy is local.
+
+Serialize storage writes and bind login requests to a local generation counter. Logout/account switching invalidates earlier generations, preventing a delayed exchange or persistence completion from restoring access. On sign-out, immediately leave authenticated UI and persist a single envelope marked `revocation_pending` containing the old token solely for revocation. Retry on foreground/manual action; never use a pending token for product requests. After server 204, replace the envelope with `signed_out`; confirmed invalid/expired token also ends the pending state. A network failure remains visibly pending in PL/EN. A failed secure write must be reported as incomplete local cleanup and retried; do not claim durable sign-out or confirmed server revocation. While revocation or local cleanup is pending, block a new login/account switch until the pending envelope is resolved; keep retry available. Guard revocation acknowledgments by the same generation and session identity so a late response cannot overwrite newer state. Tests must cover restart at each persistence boundary, attempted login while pending and a late revocation acknowledgment. SecureStore installation/native storage acceptance remains pending.
