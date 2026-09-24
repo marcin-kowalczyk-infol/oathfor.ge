@@ -6,7 +6,7 @@ Status: design guardrails and draft evaluation plan. Product basis: [MVP](../pro
 
 AI evaluates submitted evidence and suggests wording. Backend validates the response against a versioned schema and applies the committed rule. Model text cannot grant XP, change deadlines or authorize another user's resources. **Local design supported by [OWASP prompt-injection prevention](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html).**
 
-Proposed assessment: `accepted | rejected | unclear`, reason code, observable evidence summary and rule/prompt/model version. Keep provider errors separate from evidence outcomes. Exact response schema is to be implemented and tested.
+Proposed assessment: `accepted | rejected | unclear`, reason code, observable evidence summary and rule/prompt/model version. Keep provider errors separate from evidence outcomes. The accepted [resolution contract](../product/first-loop.md#resolution-table) bounds retries and correction windows and routes unresolved infrastructure/evidence cases to review with neutral closure; it does not constitute a running review service. Exact response schema is to be implemented and tested.
 
 ## Evidence limits
 
