@@ -1,6 +1,6 @@
 # Development guide
 
-Status: local API, PostgreSQL/Redis integration and bilingual Expo connectivity shell implemented. Hosted CI checks passed; native-device acceptance remains pending.
+Status: local API, PostgreSQL/Redis integration and bilingual Expo connectivity shell implemented. iOS simulator connectivity acceptance passed; earlier hosted CI checks passed, with the updated Docker lifecycle workflow awaiting a hosted run.
 
 ## Available now
 
@@ -74,7 +74,7 @@ Verified 2026-09-23 on macOS with PHP 8.5.7 / Composer 2.10.1: a disposable loca
 - Broken symlink: restore its relative target from the [agent guide](../../.agents/README.md). Do not maintain a second copy.
 - Skill/role absent: restart the agent in this repository, check project trust/settings and supported version; use the documented manual fallback if the host lacks discovery.
 - Missing graphics after clone: expected, because Git excludes the entire directory.
-- Missing native PHP extensions: use the Compose runtime. Missing simctl/adb: native acceptance cannot run until a simulator/device is available.
+- Missing native PHP extensions: use the Compose runtime. Missing simctl/adb on another machine: install the appropriate simulator tooling before native checks. The verified local iOS setup is described below.
 
 ## Local database and queue runtime
 
@@ -146,13 +146,24 @@ The shell starts pending, validates HTTP200, JSON content type and the exact `{ 
 
 For an Android emulator, the host alias is normally `10.0.2.2`; an iOS simulator can use host loopback. Physical devices need a reachable LAN address and an explicit local networking arrangement because Compose publishes only loopback. Native HTTP policy must be verified on the actual client; do not relax production transport security to pass a development smoke test. Sources: [Android emulator networking](https://developer.android.com/studio/run/emulator-networking), [Expo iOS simulator](https://docs.expo.dev/workflow/ios-simulator/), [React Native networking](https://reactnative.dev/docs/network), checked 2026-09-23.
 
-Native acceptance is pending: the execution host has neither an available `simctl` nor `adb`. Required evidence is a real native screen connecting to this API, showing a recoverable error when the API stops, and succeeding after restart/retry. Unit/component tests and iOS/Android bundle exports do not satisfy that device acceptance.
+Native acceptance passed on 2026-09-24: Xcode 27.0 (27A266a), iOS 27.0, iPhone 18 Pro simulator, Expo Go 57.0.9 and project SDK 57. The native screen showed connection success against `http://127.0.0.1:18082`; stopping the API and reloading the app showed the recoverable error; restarting the API and pressing the native retry button restored success. These were actual simulator observations, not mocked requests. Android and physical-device behavior were not verified; this evidence satisfies the planned T10 device/emulator acceptance.
+
+For the verified iOS workflow, start Docker as above, select Node from `.nvmrc`, and run from `apps/mobile`:
+
+```sh
+npm ci
+EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:18082 EXPO_PUBLIC_DIAGNOSTIC_LOCALE=pl NODE_OPTIONS=--dns-result-order=ipv4first npm run ios -- --localhost
+```
+
+Local observed workaround: without the process-scoped Node option, Metro bound only to `::1` while Expo opened `exp://127.0.0.1:8081`, producing a connection refusal. Preferring IPv4 resolved it without changing application transport security or global settings. The command overrides only the public diagnostic values for this run and preserves existing `.env` files. Xcode 27 displays the simulator in Device Hub. Leave Metro running; `r` reloads the app and Ctrl+C stops Metro.
+
+To repeat acceptance, stop the API with `docker compose -p oathforge-local stop api`, then press `r` in Metro. The current screen checks on mount/retry, so stopping the API alone does not update an already successful screen. Restore with `docker compose -p oathforge-local up -d --wait api`; after health succeeds, press **Spróbuj ponownie** in the app. Ordinary `docker compose -p oathforge-local down` stops the backend while retaining data.
 
 ## CI and acceptance status
 
 [GitHub Actions checks](../../.github/workflows/checks.yml) run repository validation, the isolated API check above, npm ci, mobile tests/type checks, Expo compatibility and both native bundle exports. Actions are pinned to inspected upstream commits; token permissions are read-only. Local workflow choice: MVP-02-T11. Sources checked 2026-09-23: [workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax), [checkout](https://github.com/actions/checkout), [setup-node](https://github.com/actions/setup-node), [setup-python](https://github.com/actions/setup-python).
 
-The previously published workflow passed on GitHub for commit `3853216` on 2026-09-23: [hosted run 35922303447](https://github.com/marcin-kowalczyk-infol/oathfor.ge/actions/runs/35922303447). Repository checks, API/PostgreSQL/Redis verification, mobile tests/types and both native bundle exports succeeded. Initial publication was explicitly authorized by the owner; this is CI evidence, not a production deployment. Native connectivity acceptance remains pending as described above. Dummy local database/application secrets are intentional development fixtures, not production provisioning; no external provider credentials or artwork are needed for this scaffold.
+The previously published workflow passed on GitHub for commit `3853216` on 2026-09-23: [hosted run 35922303447](https://github.com/marcin-kowalczyk-infol/oathfor.ge/actions/runs/35922303447). Repository checks, API/PostgreSQL/Redis verification, mobile tests/types and both native bundle exports succeeded. Initial publication was explicitly authorized by the owner; this is CI evidence, not a production deployment. The subsequent iOS simulator acceptance is recorded above. Dummy local database/application secrets are intentional development fixtures, not production provisioning; no external provider credentials or artwork are needed for this scaffold.
 
 Local clean-checkout verification, 2026-09-23: a disposable clone of `9e1fea0` plus the intended CI diff passed repository checks, fresh isolated API build/install, 2 ordinary API tests / 5 assertions, 5 integration tests / 19 assertions, PHPStan, migration status and HTTP over a dynamically assigned loopback port. Mobile npm ci, 14 tests, strict types, Expo compatibility and both exports passed using only the example configuration. The API script removed its UUID project and volumes. That local check did not exercise hosted execution or a native screen; hosted evidence is recorded above.
 
@@ -163,6 +174,6 @@ Failure propagation was checked in the disposable checkout: temporary failing PH
 
 Run `python3 .agents/commands/check_docker.py` (Docker and Python 3.11+) to copy non-ignored source into a disposable checkout and start a unique Compose project with empty volumes. It checks real HTTP/database health, repeated startup, PostgreSQL/Redis persistence across ordinary `down`/`up`, delivery by the managed worker using test-only fixtures, and nonzero startup failure from deliberately invalid Composer input. The fault exists only in the disposable copy. Cleanup removes only that invocation's project and volumes, including on failure; subprocesses have bounded timeouts. Existing project environment files are neither copied nor overwritten. The harness uses only DUMMY configuration.
 
-CI now includes this lifecycle check as well as the existing API and mobile checks. Hosted evidence above predates this orchestration change; its updated hosted run remains pending publication. Native T10 acceptance remains separately pending. Local orchestration follows the initialization/health dependency conditions in [Docker Compose startup order](https://docs.docker.com/compose/how-tos/startup-order/) (checked 2026-09-23); the lifecycle and single-worker scope are local MVP-02-T12 decisions.
+CI now includes this lifecycle check as well as the existing API and mobile checks. Hosted evidence above predates this orchestration change; its updated hosted run remains pending publication. Native T10 acceptance subsequently passed on iOS, as recorded above. Local orchestration follows the initialization/health dependency conditions in [Docker Compose startup order](https://docs.docker.com/compose/how-tos/startup-order/) (checked 2026-09-23); the lifecycle and single-worker scope are local MVP-02-T12 decisions.
 
-Verified locally on 2026-09-23 for T12: the full lifecycle harness passed, including preserved PostgreSQL/Redis values and actual managed-worker delivery after restart. The adapted API check passed 2 tests / 5 assertions, 5 integration tests / 19 assertions, PHPStan, Composer validation/platform checks, migration status and real HTTP. Compose configuration, repository/whitespace checks, Python compilation and workflow lint also passed. Mobile source was unchanged; native and updated hosted validation remain pending.
+Verified locally on 2026-09-23 for T12: the full lifecycle harness passed, including preserved PostgreSQL/Redis values and actual managed-worker delivery after restart. The adapted API check passed 2 tests / 5 assertions, 5 integration tests / 19 assertions, PHPStan, Composer validation/platform checks, migration status and real HTTP. Compose configuration, repository/whitespace checks, Python compilation and workflow lint also passed. Mobile source was unchanged; updated hosted validation remains pending; subsequent native iOS evidence is recorded above.
