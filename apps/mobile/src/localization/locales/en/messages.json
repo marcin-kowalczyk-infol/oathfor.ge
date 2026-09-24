@@ -47,5 +47,31 @@
       "heading": "Withdrawn",
       "description": "No XP and no miss. Resuming does not restore this commitment."
     }
+  },
+  "companion": {
+    "wanderer": {
+      "name": "Wanderer",
+      "description": "Zharomir, a wooden wanderer carrying an iron lantern."
+    },
+    "emberSash": {
+      "name": "Ember Sash",
+      "description": "Zharomir wearing a new ember-colored sash."
+    },
+    "guardianToken": {
+      "name": "Guardian’s Token",
+      "description": "Zharomir wearing the sash and a new guardian’s token."
+    },
+    "oathFittings": {
+      "name": "Oath Fittings",
+      "description": "Zharomir with the sash, token and new forearm fittings."
+    },
+    "sparkMantle": {
+      "name": "Spark Mantle",
+      "description": "Zharomir retains the sash, token and fittings and wears a new layered mantle."
+    },
+    "current": "Current appearance",
+    "locked": "Locked",
+    "complete": "Initial track complete",
+    "unavailable": "Artwork unavailable"
   }
 }

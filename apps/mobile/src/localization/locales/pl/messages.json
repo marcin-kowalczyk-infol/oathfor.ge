@@ -49,5 +49,31 @@
       "heading": "Wycofana",
       "description": "Bez XP i bez niewykonania. Wznowienie nie przywróci tego zobowiązania."
     }
+  },
+  "companion": {
+    "wanderer": {
+      "name": "Wędrowiec",
+      "description": "Żaromir, drewniany wędrowiec z żelazną latarnią."
+    },
+    "emberSash": {
+      "name": "Wstęga Żaru",
+      "description": "Żaromir z nową wstęgą w kolorze żaru."
+    },
+    "guardianToken": {
+      "name": "Znak Strażnika",
+      "description": "Żaromir ze wstęgą i nowym znakiem strażnika."
+    },
+    "oathFittings": {
+      "name": "Okucia Przysięgi",
+      "description": "Żaromir ze wstęgą, znakiem i nowymi okuciami przedramion."
+    },
+    "sparkMantle": {
+      "name": "Płaszcz Iskry",
+      "description": "Żaromir zachowuje wstęgę, znak i okucia; nosi nowy, warstwowy płaszcz."
+    },
+    "current": "Obecny wygląd",
+    "locked": "Jeszcze nieodblokowane",
+    "complete": "Początkowa ścieżka ukończona",
+    "unavailable": "Grafika niedostępna"
   }
 }

@@ -63,7 +63,7 @@ These are intentionally opaque panels after an attempted alpha export produced a
 | `zharomir-oath-fittings-v01` | `level-04-v01.png` | `62786e6985e66f2f9ccc4c215eb9eb68b760d6830349dbc18d8664346fbe3e1f` | 1921834 |
 | `zharomir-spark-mantle-v01` | `level-05-v01.png` | `fd9ae9a17a2c9520ea62a3dfcc33e8391874c49242579d4940d62b5ee1ab2ad1` | 1963866 |
 
-Each export is an unchanged copy of its named master. Provenance: `graphics/mvp-03/provenance.json`, entries keyed by selected ID, plus `levels/selected-metadata.json`. Base uses `level-01-v02.prompt.txt` and canonical reference v01. Levels 2–5 each use `level-0N-v01.prompt.txt` and that same corrected base image as input, avoiding serial identity drift. Tool/date/unknown model/seed and reviewed terms are as recorded above. Combined PNG size is 9,448,184 bytes; bundle/loading performance has not yet been checked.
+Each export is an unchanged copy of its named master. Provenance: `graphics/mvp-03/provenance.json`, entries keyed by selected ID, plus `levels/selected-metadata.json`. Base uses `level-01-v02.prompt.txt` and canonical reference v01. Levels 2–5 each use `level-0N-v01.prompt.txt` and that same corrected base image as input, avoiding serial identity drift. Tool/date/unknown model/seed and reviewed terms are as recorded above. Combined PNG size is 9,448,184 bytes; isolated iOS fixture bundling and loading are checked below; production performance remains unmeasured.
 
 ### Selection review and limitations
 
@@ -73,4 +73,12 @@ Minor accepted production variation: the token's engraved diamond and position, 
 
 ## Remaining handoff
 
-The reviewed [T04 UI handoff](ui-system.md) defines separate opaque art panels and PL/EN layout studies. Later mobile slices must bundle static sources from the tracked export paths, use product locale catalogs, render server-supplied current/next state and cap completion, handle load failure visibly, and verify iOS layout/accessibility. Do not load ignored masters or mixed-view reference sheets at runtime. S3 access/upload/restore remain deferred by the owner.
+The reviewed [T04 UI handoff](ui-system.md) defines separate opaque art panels and PL/EN layout studies. T07 now provides static sources, product locale copy, typed current/next presentation, cap completion and visible load-failure fallback. MVP-09 still must validate/map server state, and owning screens must complete native layout/accessibility acceptance. Do not load ignored masters or mixed-view reference sheets at runtime. S3 access/upload/restore remain deferred by the owner.
+
+### Native presentation evidence — MVP-03-T07
+
+`apps/mobile/src/companion/catalog.ts` references all five tracked exports through static `require` calls. `CompanionProgress` accepts only the five documented current/next pairs as local presentation props; it does not define the future API payload, grant an unlock or compute XP. MVP-09 must validate its wire contract and map authoritative state into those props, including defining unknown-ID handling. `CompanionArt` keeps names/descriptions when loading fails, uses localized unavailable text and resets failure for a changed appearance. Decorative placement is hidden from accessibility; informative images have localized descriptions. Source for static loading/error handling: [React Native0.86 Images](https://reactnative.dev/docs/0.86/images) and [Image](https://reactnative.dev/docs/0.86/image), checked2026-09-24.
+
+Actual review2026-09-24: all five PNGs loaded in an isolated Expo Go fixture on iPhone18 Pro/iOS27.0, at180×270 logical units. Inspected all five current appearances in PL/EN, the full locked first-upgrade panel, readable separate labels/descriptions and the level5 completion without a next preview. Boots/lantern remain inside each image. Fixture export reported five PNG assets and a1.6MB iOS code bundle; image payload remains the9,448,184bytes recorded above. No runtime reference uses ignored masters. Test fixtures verify image-error behavior; native inspection verifies actual successful loading, not an injected native failure.
+
+Fixture/source/export remain ignored under `graphics/mvp-03/ui/` (`native-companion-preview.tsx`, `companion-export/`). The temporary app entrypoint was restored after review, so the current diagnostic route does not include the companion. Feature-screen adoption, production bundle/performance, system DynamicType and VoiceOver speech/focus remain pending; this evidence does not close MVP-03.
