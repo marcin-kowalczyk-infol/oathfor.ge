@@ -16,7 +16,7 @@ Producer verification: `composer test -- --filter HealthEndpointTest` from `apps
 
 ## Planned authentication contract
 
-**Status: challenge issuance and transactional one-use storage implemented in MVP-04-T04; internal signature/claims and trusted-key verification implemented in T05. Exchange, identity read and session deletion remain planned. Local decisions, 2026-09-24, under [ADR 0003](../decisions/0003-apple-sign-in.md).** The anonymous challenge does not authenticate a user. Remaining sections fix the target contract and do not enable login.
+**Status: challenge issuance and transactional one-use storage implemented in MVP-04-T04; internal signature/claims and trusted-key verification implemented in T05. Internal code exchange implemented in T08; public exchange, identity read and session deletion remain planned. Local decisions, 2026-09-24, under [ADR 0003](../decisions/0003-apple-sign-in.md).** The anonymous challenge does not authenticate a user. Remaining sections fix the target contract and do not enable login.
 
 ### Transport and limits
 
@@ -78,6 +78,6 @@ Session deletion marks only the presented session revoked, idempotently. Syntact
 
 ### Configuration and test gates
 
-Planned backend configuration: `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY_PATH`, and a private versioned provider-encryption keyring/current key ID. The Apple client secret is an ES256 JWT signed with the private key, with team issuer, client-ID subject, Apple audience and a 5-minute lifetime. Obtain real values privately before enabling exchange; never put them in `EXPO_PUBLIC_*` or committed fixtures. Missing deployment values fail closed. T04 can issue anonymous challenges without Apple configuration; T05 can exercise a test-only audience and synthetic keys without enabling exchange.
+Implemented internal verifier/exchange configuration: `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY_PATH`, and a private versioned provider-encryption keyring/current key ID. The Apple client secret is an ES256 JWT signed with the private key, with team issuer, client-ID subject, Apple audience and a 5-minute lifetime. Obtain real values privately before enabling exchange; never put them in `EXPO_PUBLIC_*` or committed fixtures. Missing deployment values fail closed. T04 can issue anonymous challenges without Apple configuration; T05 can exercise a test-only audience and synthetic keys without enabling exchange.
 
 Runtime acceptance must include replay/concurrent consumption/rollback, exact expiry, token tampering and key outages, concurrent account reuse/deletion, provider-code ambiguity, restart/failed persistence/offline sign-out, and real signed-device Apple compatibility. DUMMY tests establish local behavior only. Live provider calls and external console changes require separate authorization.
