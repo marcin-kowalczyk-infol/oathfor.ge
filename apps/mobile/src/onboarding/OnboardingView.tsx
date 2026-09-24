@@ -1,6 +1,7 @@
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { isSupportedTimezone } from '../api/profile';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { CompanionArt } from '../companion/CompanionProgress';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import type { BasicsDraft, OnboardingState } from './controller';
@@ -9,22 +10,24 @@ export type OnboardingViewProps = {
   state: OnboardingState;
   onDraft: (patch: Partial<BasicsDraft>) => void;
   onSave: () => void;
+  onIntroduce: () => void;
   onRetry: () => void;
   onLogout: () => void;
 };
-export function OnboardingView({ state, onDraft, onSave, onRetry, onLogout }: OnboardingViewProps) {
+export function OnboardingView({ state, onDraft, onSave, onIntroduce, onRetry, onLogout }: OnboardingViewProps) {
   const { t } = useTranslation();
   const ready = state.kind === 'ready' ? state : undefined;
   const profile = ready?.value.profile;
   const complete = ready?.value.onboardingStatus === 'complete';
   const basics = ready && !complete && (!profile?.locale || !isSupportedTimezone(profile.timezone) || !profile.intention);
+  const introduction = ready && !complete && !basics && !profile?.companionIntroduced;
   let heading = t('onboarding.title');
   let description = t('onboarding.loading');
   if (state.kind === 'unavailable') description = t('onboarding.loadError');
   if (ready) {
     if (complete) { heading = t('auth.oathTitle'); description = t('auth.oathPending'); }
     else if (basics) description = t('onboarding.unconfirmed');
-    else if (!profile?.companionIntroduced) { heading = t('onboarding.companionTitle'); description = t('onboarding.companionPending'); }
+    else if (!profile?.companionIntroduced) { heading = t('onboarding.companionTitle'); description = t('onboarding.companionIntroduction'); }
     else if (profile.notificationPreference === null) { heading = t('onboarding.notificationsTitle'); description = t('onboarding.notificationsPending'); }
     else { heading = t('onboarding.reviewTitle'); description = t('onboarding.reviewPending'); }
   }
@@ -64,6 +67,12 @@ export function OnboardingView({ state, onDraft, onSave, onRetry, onLogout }: On
           ? <Action label={t('auth.retry')} onPress={onRetry} busy={ready.busy} />
           : <Action label={t('onboarding.confirm')} onPress={onSave} busy={ready.busy}
             {...(reason ? { disabled: true, unavailableReason: reason } : { disabled: false })} />}
+      </>}
+      {introduction && ready && <>
+        {ready.error && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('onboarding.introductionError')}</Text>}
+        <Action label={t(ready.error ? 'auth.retry' : 'onboarding.continue')}
+          onPress={ready.error === 'load' ? onRetry : onIntroduce} busy={ready.busy} />
+        <CompanionArt appearance="zharomir-wanderer-v01" decorative />
       </>}
       {state.kind === 'unavailable' && <Action label={t('auth.retry')} onPress={onRetry} />}
       <Action label={t('auth.signOut')} onPress={onLogout} variant="secondary" />

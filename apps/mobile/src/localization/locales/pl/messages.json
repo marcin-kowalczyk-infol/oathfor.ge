@@ -21,11 +21,13 @@
     "error_locale": "Ten język nie został przyjęty. Wybierz polski lub angielski i potwierdź ponownie.",
     "error_load": "Nie udało się sprawdzić, czy wybory zostały zapisane. Spróbuj sprawdzić ponownie przed potwierdzeniem kolejnej zmiany.",
     "companionTitle": "Poznaj Żaromira",
-    "companionPending": "Twoje pierwsze wybory są zapisane. Już wkrótce poznasz Żaromira.",
     "notificationsTitle": "Powiadomienia",
     "notificationsPending": "Twoje wcześniejsze wybory są zapisane. Ustawienia powiadomień pojawią się tutaj wkrótce.",
     "reviewTitle": "Twoje wybory są zapisane",
-    "reviewPending": "Końcowe podsumowanie pojawi się tutaj wkrótce. Żadna Przysięga jeszcze się nie rozpoczęła."
+    "reviewPending": "Końcowe podsumowanie pojawi się tutaj wkrótce. Żadna Przysięga jeszcze się nie rozpoczęła.",
+    "companionIntroduction": "Jestem Żaromir, strażnik związany z Welesem. Będę ci towarzyszył na drodze Przysięgi. Ty wybierasz zobowiązanie; ja pomagam pamiętać jego zasady i dostępne kroki.",
+    "continue": "Dalej",
+    "introductionError": "Nie udało się potwierdzić tego kroku. Spróbuj ponownie."
   },
   "auth": {
     "signInTitle": "Witaj w Oathforge",

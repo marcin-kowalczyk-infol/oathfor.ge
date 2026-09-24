@@ -1,6 +1,6 @@
 # Onboarding into the Trial of the Spark
 
-Status: accepted product intention and local implementation contract, 2026-09-24. Authentication is implemented through MVP-04-T14; T16 implements profile persistence and server completion; T17 implements mobile profile hydration and confirmed language/timezone/intention. Companion, notification and final completion screens remain pending. Real signed-device acceptance and the actual MVP-05 first-Oath flow remain separate gates.
+Status: accepted product intention and local implementation contract, 2026-09-24. Authentication is implemented through MVP-04-T14; T16 implements profile persistence and server completion; T17 implements mobile profile hydration and confirmed language/timezone/intention. T18 adds the accepted companion introduction with durable acknowledgment. Notification and final completion screens remain pending. Real signed-device acceptance and the actual MVP-05 first-Oath flow remain separate gates.
 
 ## Intention and boundaries
 

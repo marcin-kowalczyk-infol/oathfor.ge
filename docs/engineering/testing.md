@@ -59,3 +59,6 @@ Authentication-shell checks cover available/unavailable native Apple entry, canc
 
 
 The accepted [onboarding contract](../product/onboarding.md) is covered by API tests for account-owned partial profile writes, concurrent independent fields, completion guards/repetition, session expiry/deletion races and safe failures. Mobile tests cover confirmed-language hydration for returning accounts, explicit basic choices, restart, ambiguous-write reconciliation and stale account results. Notification interruption/denial and later steps remain upcoming checks. API/component tests do not establish completed native acceptance.
+
+
+Companion introduction component/integration checks cover accepted PL/EN copy, decorative image semantics, missing artwork, failed acknowledgment, recovery and restart before/after confirmation. The next step is reached only after the server confirms the profile change or reconciliation verifies it. These synthetic checks do not establish native VoiceOver reading order or artwork layout.

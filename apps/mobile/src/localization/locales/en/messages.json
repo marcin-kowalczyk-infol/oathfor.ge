@@ -21,11 +21,13 @@
     "error_locale": "This language was not accepted. Choose Polish or English and confirm again.",
     "error_load": "We could not check whether your choices were saved. Try again to check before confirming another change.",
     "companionTitle": "Meet Zharomir",
-    "companionPending": "Your first choices are saved. Your introduction to Zharomir is coming soon.",
     "notificationsTitle": "Notifications",
     "notificationsPending": "Your earlier choices are saved. Notification preferences will be available here soon.",
     "reviewTitle": "Your choices are saved",
-    "reviewPending": "Your final review will be available here soon. No Oath has started."
+    "reviewPending": "Your final review will be available here soon. No Oath has started.",
+    "companionIntroduction": "I am Zharomir, a guardian linked to Veles. I will accompany you on the path of your Oath. You choose the commitment; I help you remember its rules and the steps available to you.",
+    "continue": "Continue",
+    "introductionError": "We could not confirm this step. Please try again."
   },
   "auth": {
     "signInTitle": "Welcome to Oathforge",

@@ -137,3 +137,37 @@ test.each(['pending', 'complete'] as const)('saved timezone unavailable on this 
     expect(runtime.profileApi.patch).not.toHaveBeenCalled();
   }
 });
+
+test.each([
+  ['en', 'Meet Zharomir', 'Continue', 'Try again', 'Notifications', 'We could not confirm this step. Please try again.'],
+  ['pl', 'Poznaj Żaromira', 'Dalej', 'Spróbuj ponownie', 'Powiadomienia', 'Nie udało się potwierdzić tego kroku. Spróbuj ponownie.'],
+] as const)('%s companion acknowledgment advances only after saving and survives reload', async (locale, introduction, next, retry, notifications, failure) => {
+  const runtime = setup();
+  mockDeviceLanguage = locale;
+  let stored = { profile: { locale, timezone: 'Europe/Warsaw', intention: 'regular_activity', companionIntroduced: false, notificationPreference: null }, onboardingStatus: 'pending' };
+  runtime.profileApi.get.mockImplementation(async () => ({ kind: 'success', value: stored }));
+  runtime.profileApi.patch.mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' });
+  runtime.profileApi.patch.mockImplementationOnce(async () => {
+    stored = { ...stored, profile: { ...stored.profile, companionIntroduced: true } };
+    return { kind: 'success', value: stored };
+  });
+  const fixture = () => <LocalizationProvider initialLocale={locale}><AuthScreen {...runtime} /></LocalizationProvider>;
+  let view = await render(fixture());
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  expect(await screen.findByText(introduction)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: next }));
+  expect(await screen.findByText(failure)).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: retry })).toBeOnTheScreen();
+  expect(screen.queryByText(notifications)).toBeNull();
+  expect(runtime.profileApi.patch).toHaveBeenCalledWith(session.token, { companionIntroduced: true }, expect.any(AbortSignal));
+  await view.unmount();
+  view = await render(fixture());
+  expect(await screen.findByText(introduction)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: next }));
+  expect(await screen.findByText(notifications)).toBeOnTheScreen();
+  await view.unmount();
+  await render(fixture());
+  expect(await screen.findByText(notifications)).toBeOnTheScreen();
+  expect(screen.queryByText(introduction)).toBeNull();
+  expect(runtime.profileApi.patch).toHaveBeenCalledTimes(2);
+});

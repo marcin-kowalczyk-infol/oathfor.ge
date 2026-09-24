@@ -65,7 +65,7 @@ export function AuthScreen({ controller, authenticate, profileApi, apple = nativ
     };
   }, [controller, apple, checkAvailability]);
   if (state.kind === 'authenticated') return <><StatusBar style="light" /><OnboardingView state={profile}
-    onDraft={onboarding.setDraft} onSave={() => { void onboarding.saveBasics(); }}
+    onIntroduce={() => { void onboarding.save({ companionIntroduced: true }); }} onDraft={onboarding.setDraft} onSave={() => { void onboarding.saveBasics(); }}
     onRetry={() => { void onboarding.refresh(); }} onLogout={() => { void controller.logout(); }} /></>;
   return <><StatusBar style="light" /><AuthView state={state} availability={availability}
     onLogin={() => { if (availability === 'available') void controller.login(authenticate); }}
