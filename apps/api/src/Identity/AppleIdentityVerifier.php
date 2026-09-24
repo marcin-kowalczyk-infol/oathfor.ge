@@ -14,6 +14,32 @@ final class AppleIdentityVerifier
 
     public function verify(#[\SensitiveParameter] string $token, string $expectedNonceDigest): VerifiedAppleIdentity|IdentityVerificationFailure
     {
+        $claims = $this->verifiedClaims($token);
+        if ($claims instanceof IdentityVerificationFailure) {
+            return $claims;
+        }
+        if (!is_string($claims->nonce ?? null) || 1 !== preg_match('/^[A-Za-z0-9_-]{43}$/D', $claims->nonce)
+            || !hash_equals($expectedNonceDigest, hash('sha256', $claims->nonce))) {
+            return IdentityVerificationFailure::InvalidCredential;
+        }
+        return new VerifiedAppleIdentity($claims->iss, $claims->sub);
+    }
+
+    /** Refresh verifies the stored identity; it is not a login/challenge credential. */
+    public function verifyRefresh(#[\SensitiveParameter] string $token, VerifiedAppleIdentity $storedIdentity): VerifiedAppleIdentity|IdentityVerificationFailure
+    {
+        $claims = $this->verifiedClaims($token);
+        if ($claims instanceof IdentityVerificationFailure) {
+            return $claims;
+        }
+        if ($claims->iss !== $storedIdentity->issuer || $claims->sub !== $storedIdentity->subject) {
+            return IdentityVerificationFailure::InvalidCredential;
+        }
+        return new VerifiedAppleIdentity($claims->iss, $claims->sub);
+    }
+
+    private function verifiedClaims(#[\SensitiveParameter] string $token): \stdClass|IdentityVerificationFailure
+    {
         if ('' === trim($this->clientId) || str_contains(strtoupper($this->clientId), 'DUMMY') || str_contains($this->clientId, '*')) {
             return IdentityVerificationFailure::Unavailable;
         }
@@ -43,14 +69,12 @@ final class AppleIdentityVerifier
             $claims = JWT::decode($token, $key);
             if (($claims->iss ?? null) !== 'https://appleid.apple.com' || ($claims->aud ?? null) !== $this->clientId
                 || !is_string($claims->sub ?? null) || '' === trim($claims->sub) || strlen($claims->sub) > 255
-                || !is_string($claims->nonce ?? null) || 1 !== preg_match('/^[A-Za-z0-9_-]{43}$/D', $claims->nonce)
-                || !hash_equals($expectedNonceDigest, hash('sha256', $claims->nonce))
                 || !is_int($claims->iat ?? null) || !is_int($claims->exp ?? null)
                 || $claims->iat < 0 || $claims->iat > $now || $now >= $claims->exp || $claims->iat >= $claims->exp
                 || (property_exists($claims, 'nbf') && (!is_int($claims->nbf) || $claims->nbf < 0 || $claims->nbf > $now))) {
                 return IdentityVerificationFailure::InvalidCredential;
             }
-            return new VerifiedAppleIdentity($claims->iss, $claims->sub);
+            return $claims;
         } catch (\UnexpectedValueException | \InvalidArgumentException | \DomainException) {
             return IdentityVerificationFailure::InvalidCredential;
         } finally {

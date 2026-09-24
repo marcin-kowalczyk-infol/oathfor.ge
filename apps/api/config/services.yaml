@@ -64,3 +64,12 @@ services:
     App\Identity\AppleAuthorizationExchange:
         arguments:
             $httpClient: '@apple_exchange.http_client'
+
+    # Dedicated maintenance transport has no retry decorator or credential logger.
+    apple_maintenance.http_client:
+        class: Symfony\Component\HttpClient\NativeHttpClient
+        autoconfigure: false
+
+    App\Identity\AppleProviderMaintenanceClient:
+        arguments:
+            $httpClient: '@apple_maintenance.http_client'

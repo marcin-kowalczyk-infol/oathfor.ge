@@ -50,7 +50,7 @@ final class AccountSessionIssuer
         if ($envelope instanceof ProviderTokenFailure) {
             throw new SessionIssuanceException(SessionIssuanceFailure::Unavailable);
         }
-        $this->connection->executeStatement('UPDATE provider_identity SET refresh_envelope = ? WHERE id = ?', [json_encode($envelope, JSON_THROW_ON_ERROR), $identityId]);
+        $this->connection->executeStatement('UPDATE provider_identity SET refresh_envelope = ?, credential_generation = credential_generation + 1, validation_due_at = ?, maintenance_claim = NULL, maintenance_outcome = NULL WHERE id = ?', [json_encode($envelope, JSON_THROW_ON_ERROR), $this->clock->now() + 86400, $identityId]);
         $token = rtrim(strtr(base64_encode($this->random->bytes(32)), '+/', '-_'), '=');
         $now = $this->clock->now();
         if ($now >= $challengeExpiresAt) {
