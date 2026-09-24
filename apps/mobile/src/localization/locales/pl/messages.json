@@ -13,6 +13,41 @@
   },
   "common": {
     "greeting": "Witaj, {{name}}.",
-    "working": "Trwa przetwarzanie…"
+    "working": "Trwa przetwarzanie…",
+    "statusAnnouncement": "{{heading}}. {{description}}"
+  },
+  "status": {
+    "proof_pending": {
+      "heading": "Ocena trwa",
+      "description": "Dowód otrzymany; ocena jeszcze się nie zakończyła."
+    },
+    "needs_more_evidence": {
+      "heading": "Potrzebne uzupełnienie",
+      "description": "Sprawdź brakujące informacje, pozostałe próby i termin."
+    },
+    "review_pending": {
+      "heading": "W trakcie rozpatrywania",
+      "description": "Sprawa czeka na decyzję; to nie jest niewykonanie Przysięgi."
+    },
+    "fulfilled": {
+      "heading": "Spełniona",
+      "description": "Zobacz potwierdzony wynik i przyznane XP."
+    },
+    "missed": {
+      "heading": "Niewykonana",
+      "description": "Wcześniejsze XP zostaje. Zadanie Powrotu jest dostępne tylko przy spełnieniu warunków."
+    },
+    "recovered": {
+      "heading": "Nadrobiona",
+      "description": "Zadanie Powrotu ukończone; wcześniejsza niewykonana Przysięga pozostaje w historii."
+    },
+    "unresolved": {
+      "heading": "Nierozstrzygnięta",
+      "description": "Bez nowych XP i bez niewykonania. Rozpoczęte Zadanie Powrotu zachowuje swoje zasady."
+    },
+    "withdrawn": {
+      "heading": "Wycofana",
+      "description": "Bez XP i bez niewykonania. Wznowienie nie przywróci tego zobowiązania."
+    }
   }
 }
