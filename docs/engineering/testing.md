@@ -56,3 +56,6 @@ Mobile session tests cover restored-token validation before authentication, pers
 
 
 Authentication-shell checks cover available/unavailable native Apple entry, cancellation, safe retry, single in-flight attempts, logout and reauthentication states in both languages. Lifecycle integration must clean up subscriptions and ignore stale native/exchange results. The diagnostic screen retains its health checks behind an explicit development mode. Native fixture inspection establishes layout only; signed Apple authentication, device storage and system accessibility remain separate acceptance.
+
+
+The accepted [onboarding contract](../product/onboarding.md) requires upcoming tests for account-owned partial profile writes, concurrent independent fields, completion guards/repetition, session expiry/deletion races and safe failures. Mobile acceptance must cover confirmed-language hydration for returning accounts, restart at the first incomplete step, ambiguous-write reconciliation, stale account results and notification interruption/denial without blocking the Oath. These are planned checks, not evidence of implemented profile routes or completed native acceptance.

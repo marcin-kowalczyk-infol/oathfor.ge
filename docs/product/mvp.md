@@ -10,6 +10,10 @@ Status: draft for refinement; not a final release commitment. Product source: [A
 
 Polish and English are required across the MVP player experience. Copy may be adapted naturally in each language, but mechanics and acceptance conditions must remain equivalent. Slavic-inspired terminology follows the [language and naming rules](glossary.md#language-and-naming-rules). **Local decision: owner instruction, 2026-09-23.** The diagnostic shell uses the shared Polish/English localization runtime; product screens and their full bilingual acceptance remain pending. Follow the [translation storage contract](glossary.md#translation-storage-and-runtime-contract).
 
+## Accepted onboarding intention
+
+**Owner decision, 2026-09-24:** onboarding requires one intention, “Chcę regularnie podejmować aktywność” / “I want to be active regularly”, without a numerical goal. The [onboarding contract](onboarding.md) defines confirmed profile steps, companion introduction, optional notifications and recovery. Completion leads to the Trial of the Spark without committing an Oath or granting XP. Profile/onboarding implementation and native acceptance remain pending.
+
 ## Accepted first Oath evidence contract
 
 **Owner decision, 2026-09-24:** [Trial of the Spark / Próba Iskry](first-loop.md) is the initiation task. Completion is declared by the player and supported by contextual photo or activity record, selected at submission under precommitted alternatives. Images do not independently prove completion. Apple Fitness workout details are an evaluation candidate; real PL/EN layouts remain unverified. The [time policy](first-loop.md#time-policy) is accepted: finish by the committed deadline and complete first receipt within 15 minutes, with inclusive boundaries and immutable timezone rules. The [resolution policy](first-loop.md#resolution-table) is accepted, including two corrections in a single 24-hour window, bounded provider retries, review and neutral unresolved closure. The [progression and Recovery contract](first-loop.md#progression-and-recovery) specifies accepted initial rewards, bonus upgrades, activity reuse and five-level thresholds.

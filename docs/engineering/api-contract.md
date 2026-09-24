@@ -81,3 +81,35 @@ Session deletion marks only the presented session revoked, idempotently. Syntact
 Implemented internal verifier/exchange configuration: `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY_PATH`, and a private versioned provider-encryption keyring/current key ID. The Apple client secret is an ES256 JWT signed with the private key, with team issuer, client-ID subject, Apple audience and a 5-minute lifetime. Obtain real values privately before enabling exchange; never put them in `EXPO_PUBLIC_*` or committed fixtures. Missing deployment values fail closed. T04 can issue anonymous challenges without Apple configuration; T05 can exercise a test-only audience and synthetic keys without enabling exchange.
 
 Runtime acceptance must include replay/concurrent consumption/rollback, exact expiry, token tampering and key outages, concurrent account reuse/deletion, provider-code ambiguity, restart/failed persistence/offline sign-out, and real signed-device Apple compatibility. DUMMY tests establish local behavior only. Live provider calls and external console changes require separate authorization.
+
+
+## Onboarding profile contract
+
+Status: accepted local engineering contract for MVP-04-T16, 2026-09-24; endpoints are not yet implemented. Product meaning and recovery follow [onboarding](../product/onboarding.md).
+
+Local engineering choice: one account-owned profile row, defaults on account creation or deterministic absent-row defaults until first write. Account ID comes only from the authenticated session, never a request parameter. Reuse account lock when checking active state, mutating profile and completing onboarding; deletion cannot race past that check. Recheck session expiry/revocation after any account-lock wait before applying a mutation. No version/CAS subsystem. Partial updates merge only named fields under the row/account lock; different-field concurrent updates survive. For the same field the last serialized successful write wins, suitable for these preferences. Mobile serializes its own writes and refetches when resuming; no guarantee that another device cannot change the same preference.
+
+`GET /api/profile`, authenticated, returns 200, exactly:
+
+```json
+{
+  "profile": {
+    "locale": null,
+    "timezone": null,
+    "intention": null,
+    "companionIntroduced": false,
+    "notificationPreference": null
+  },
+  "onboardingStatus": "pending"
+}
+```
+
+Allowed values: locale `null | "pl" | "en"`; timezone `null | supported IANA identifier`; intention `null | "regular_activity"`; companionIntroduced boolean; notificationPreference `null | "enabled" | "disabled"`; onboardingStatus `pending | complete`. Null means no confirmed choice. Device suggestions never silently fill the persisted null values. No OS permission field, push token, nickname, health data, counters or numeric goal.
+
+`PATCH /api/profile` accepts a nonempty object containing any subset of `locale`, `timezone`, `intention`, `companionIntroduced`, `notificationPreference`; no wrapper/unknown keys. Each supplied value must be non-null and valid; companionIntroduced accepts only true (acknowledgment is monotonic), intention only regular_activity. Thus committed onboarding choices cannot be cleared through this endpoint. Locale/timezone/notificationPreference may subsequently change without reopening onboarding; no separate settings feature is added here. Apply all supplied fields atomically or none. Returns the same full 200 envelope as GET, including unchanged fields and current status.
+
+Timezone validation is a local interoperability choice based on [PHP timezone identifiers](https://www.php.net/manual/en/datetimezone.listidentifiers.php) (checked 2026-09-24): use membership in PHP's `DateTimeZone::listIdentifiers(DateTimeZone::ALL)` (including UTC) plus constructibility; reject arbitrary offsets/abbreviations not in that list. Bound to 128 ASCII bytes. Preserve accepted identifier; do not silently replace a rejected device alias with a guessed zone. Mobile also verifies its own Intl.DateTimeFormat accepts a zone before confirmation; unsupported suggestions require explicit correction. UI offers device suggestion and manual IANA entry with visible example `Europe/Warsaw`; null/unsupported device suggestion requires explicit input. This is bounded functional selection, not a world timezone-search product. DST gap/duplicate scheduling resolution remains MVP-05 because onboarding chooses no local deadline.
+
+`POST /api/onboarding/complete` accepts exactly `{}`. Under the same account/profile lock require non-null supported locale/timezone, regular_activity, companionIntroduced=true, and notificationPreference either enabled or disabled. OS permission is deliberately absent from the guard. If any requirement is missing: 409 `onboarding_incomplete`, no status mutation. Otherwise set account.onboarding_status to complete, keeping lifecycle account.status active, and return the full envelope, matching subsequent GET /api/me account status. Repeated completion returns 200 complete with no extra effects. Complete is monotonic and cannot activate an Oath or extend a session.
+
+All endpoints reuse HTTPS/Bearer/no-store and safe error envelope `{"error":{"code":"..."}}`. Protected endpoints return 401 unauthenticated for invalid sessions/inactive accounts, 503 temporarily_unavailable for infrastructure failure. PATCH/complete apply the existing 16 KiB bound (413 request_too_large), JSON media type (415 unsupported_media_type), malformed/nonobject/unknown/empty PATCH/wrong-type input (400 invalid_request). Typed unsupported values return 400 invalid_locale, invalid_timezone, invalid_intention or invalid_notification_preference; false companionIntroduced is invalid_request. Only complete has 409 onboarding_incomplete. Never include raw invalid input, provider text, bearer or account details in errors. GET has no request body. No new rate-limiter design is needed beyond existing infrastructure controls.
