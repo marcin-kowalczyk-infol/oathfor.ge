@@ -2,7 +2,7 @@
 
 A multiplayer accountability game where real-world commitments power a dark heroic Slavic fantasy world. Domain: [oathfor.ge](https://oathfor.ge).
 
-**Status: local Symfony API, PostgreSQL/Redis integration, Apple authentication/session backend and bilingual mobile authentication shell implemented. Onboarding profiles and mobile basic choices are implemented; remaining onboarding steps and real provider acceptance are pending. iOS simulator connectivity acceptance passed; earlier hosted CI checks passed, with the updated Docker lifecycle workflow awaiting a hosted run.**
+**Status: local Symfony API, PostgreSQL/Redis integration, Apple authentication/session backend and bilingual mobile account/onboarding flow implemented. The first-Oath entry is provisional; real provider and signed-device acceptance remain pending. iOS simulator connectivity acceptance passed; earlier hosted CI checks passed, with the updated Docker lifecycle workflow awaiting a hosted run.**
 
 ## Product
 
@@ -16,7 +16,7 @@ The intended first validation segment is people who repeatedly skip planned work
 
 | Location | Purpose |
 | --- | --- |
-| `apps/mobile/` | Expo + React Native + strict TypeScript authentication shell |
+| `apps/mobile/` | Expo + React Native + strict TypeScript account/onboarding app |
 | `apps/api/` | Symfony 7.4 LTS + PostgreSQL + Redis/Messenger local runtime |
 | `docs/` | Product, technical, art, delivery documentation and decisions |
 | `business-plans/` | Reserved for business plans and commercial projections |

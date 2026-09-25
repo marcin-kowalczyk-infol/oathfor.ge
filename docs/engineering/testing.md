@@ -58,10 +58,27 @@ Mobile session tests cover restored-token validation before authentication, pers
 Authentication-shell checks cover available/unavailable native Apple entry, cancellation, safe retry, single in-flight attempts, logout and reauthentication states in both languages. Lifecycle integration must clean up subscriptions and ignore stale native/exchange results. The diagnostic screen retains its health checks behind an explicit development mode. Native fixture inspection establishes layout only; signed Apple authentication, device storage and system accessibility remain separate acceptance.
 
 
-The accepted [onboarding contract](../product/onboarding.md) is covered by API tests for account-owned partial profile writes, concurrent independent fields, completion guards/repetition, session expiry/deletion races and safe failures. Mobile tests cover confirmed-language hydration for returning accounts, explicit basic choices, restart, ambiguous-write reconciliation and stale account results. Notification permission interruption/denial checks are covered below; final completion remains upcoming. API/component tests do not establish completed native acceptance.
+The accepted [onboarding contract](../product/onboarding.md) is covered by API tests for account-owned partial profile writes, concurrent independent fields, completion guards/repetition, session expiry/deletion races and safe failures. Mobile tests cover confirmed-language hydration for returning accounts, explicit basic choices, restart, ambiguous-write reconciliation and stale account results. Notification permission interruption/denial checks are covered below; final completion is covered below. API/component tests do not establish completed native acceptance.
 
 
 Companion introduction component/integration checks cover accepted PL/EN copy, decorative image semantics, missing artwork, failed acknowledgment, recovery and restart before/after confirmation. The next step is reached only after the server confirms the profile change or reconciliation verifies it. These synthetic checks do not establish native VoiceOver reading order or artwork layout.
 
 
 Notification tests inject the native permission/Settings boundary. They cover save-before-request, skip without prompting, failed saves, denial, unavailable/provisional/ephemeral status, Settings failure, restart after saved opt-in, foreground reads and stale callbacks after logout. A durable enabled preference survives device denial and permits continuation. Expo compatibility/configuration and iOS export verify packaging, not actual OS prompts, signing or delivery.
+
+
+## Account and onboarding acceptance
+
+MVP-04-T20 integrates the final review and server-completion handoff. Synthetic tests cover success, rejected guards, ambiguous-response reconciliation, completed-account routing and late results after logout. Component/API checks establish local behavior; the rows below distinguish it from release acceptance.
+
+| Area | Current evidence / remaining gate |
+| --- | --- |
+| Backend identity, sessions, profiles and completion | Isolated API checks passed through T16: 79 unit tests / 516 assertions and 151 integration tests / 1344 assertions, including real-process races; PHPStan, migrations, platform and HTTP checks passed |
+| Mobile PL/EN account and onboarding | Component/controller tests, TypeScript and iOS bundle export verify the implemented flow with injected native/provider boundaries |
+| Real Apple login, return, cancellation and provider revocation | Pending registered app ID, valid private provider configuration, matching signed physical iOS build and explicit live-provider test authorization |
+| Device session storage and interruption | Pending real Keychain accessibility, restart/reinstall and interrupted logout checks; SecureStore mocks do not establish these |
+| Notification permission and Settings | Pending physical-device enable/deny/skip, Settings return and app interruption after saved preference; no notification delivery is implemented |
+| Native language and accessibility | Pending rebuilt PL/EN metadata, full-screen layout, VoiceOver reading/focus/state and system Dynamic Type; T14 window inspection failed with `cgWindowNotFound` |
+| Actual solo first Oath | Blocked on implemented MVP-05 rule summary/commitment; provisional entry creates nothing, and T22 remains unchecked |
+
+Before closing native acceptance, record a nonsecret build identifier, device/OS, date and PL/EN result for each scenario. Include new and returning accounts, restart at each confirmed step, denied permission, expired session, native revocation and companion fallback. Never include tokens, Apple codes or private account material in artifacts. This is the local acceptance workflow under the [onboarding contract](../product/onboarding.md) and [security rules](../../.agents/rules/security.md). Deployment scheduling and complete account-deletion operations remain separate MVP-14 gates.

@@ -3,7 +3,7 @@ import type { SessionController } from '../auth/session';
 import type { Locale } from '../localization/locale';
 
 export type BasicsDraft = { locale: Locale; timezone: string; intention: boolean };
-type FormError = 'save' | 'timezone' | 'intention' | 'locale' | 'load';
+type FormError = 'save' | 'timezone' | 'intention' | 'locale' | 'load' | 'complete';
 export type OnboardingState = { kind: 'idle' | 'loading' | 'unavailable' }
   | { kind: 'ready'; value: ProfileEnvelope; draft: BasicsDraft; busy: boolean; error?: FormError };
 
@@ -16,6 +16,7 @@ export function createOnboardingController(options: {
   let value: ProfileEnvelope | undefined;
   let draft: BasicsDraft | undefined;
   let ambiguous: ProfilePatch | undefined;
+  let ambiguousCompletion = false;
   let generation = 0;
   let disposed = false;
   let unsubscribe: (() => void) | undefined;
@@ -82,7 +83,7 @@ export function createOnboardingController(options: {
     const epoch = invalidate();
     if (auth.kind === 'authenticated' && token) {
       const key = `${auth.account.id}:${token}`;
-      if (binding?.key !== key) { value = undefined; draft = undefined; ambiguous = undefined; }
+      if (binding?.key !== key) { value = undefined; draft = undefined; ambiguous = undefined; ambiguousCompletion = false; }
       binding = { key, token };
       publish({ kind: 'loading' });
       void load(epoch);
@@ -90,7 +91,7 @@ export function createOnboardingController(options: {
       publish({ kind: 'idle' });
       // A foreground identity check hides access but keeps this account's language.
       if (auth.kind !== 'validating' && auth.kind !== 'verification_unavailable') {
-        binding = undefined; value = undefined; draft = undefined; ambiguous = undefined;
+        binding = undefined; value = undefined; draft = undefined; ambiguous = undefined; ambiguousCompletion = false;
         void language(options.defaultLocale(), epoch);
       }
     }
@@ -147,6 +148,50 @@ export function createOnboardingController(options: {
     writes = job;
     return job;
   }
+  async function reconcileCompletion(epoch: number): Promise<'complete' | 'pending' | 'unavailable'> {
+    if (!current(epoch)) return 'unavailable';
+    const result = await request(signal => options.api.get(binding!.token, signal));
+    if (!current(epoch) || await denied(result, epoch)) return 'unavailable';
+    if (result.kind !== 'success' || !await accept(result.value, epoch)) {
+      if (current(epoch)) ready(false, 'load');
+      return 'unavailable';
+    }
+    ambiguousCompletion = false;
+    if (result.value.onboardingStatus === 'complete') return 'complete';
+    ready(false, 'complete');
+    return 'pending';
+  }
+  function complete(): Promise<boolean> {
+    const epoch = generation;
+    const job = writes.then(async () => {
+      if (!current(epoch) || !value || !draft) return false;
+      if (value.onboardingStatus === 'complete') return true;
+      ready(true);
+      if (ambiguous) {
+        if (await reconcile(ambiguous, epoch) === 'unavailable' || !current(epoch)) return false;
+      }
+      if (ambiguousCompletion) {
+        const outcome = await reconcileCompletion(epoch);
+        if (outcome !== 'pending') return outcome === 'complete';
+        if (!current(epoch)) return false;
+      }
+      ready(true);
+      // Mark before sending so foreground validation cannot erase an uncertain write.
+      ambiguousCompletion = true;
+      const result = await request(signal => options.api.complete(binding!.token, signal));
+      if (!current(epoch) || await denied(result, epoch)) return false;
+      if (result.kind === 'success') {
+        ambiguousCompletion = false;
+        if (!await accept(result.value, epoch)) { if (current(epoch)) ready(false, 'complete'); return false; }
+        if (result.value.onboardingStatus === 'complete') return true;
+        ready(false, 'complete'); return false;
+      }
+      // A rejected guard must reload authoritative missing fields before routing.
+      return await reconcileCompletion(epoch) === 'complete';
+    });
+    writes = job;
+    return job;
+  }
   function setDraft(patch: Partial<BasicsDraft>) {
     if (state.kind !== 'ready' || state.busy || !draft) return;
     draft = { ...draft, ...patch }; ready();
@@ -166,7 +211,7 @@ export function createOnboardingController(options: {
     return Object.keys(patch).length === 0 || save(patch);
   }
   return {
-    getState: () => state, refresh, save, saveBasics, setDraft,
+    getState: () => state, refresh, save, saveBasics, setDraft, complete,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     start() { if (!disposed && !unsubscribe) { unsubscribe = options.session.subscribe(onSession); onSession(); } },
     stop() { invalidate(); unsubscribe?.(); unsubscribe = undefined; publish({ kind: 'idle' }); },

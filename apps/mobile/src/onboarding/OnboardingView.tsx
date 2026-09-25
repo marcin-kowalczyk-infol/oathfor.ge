@@ -13,21 +13,23 @@ export type OnboardingViewProps = {
   onDraft: (patch: Partial<BasicsDraft>) => void;
   onSave: () => void;
   onIntroduce: () => void;
+  onComplete?: () => void;
   onRetry: () => void;
   onLogout: () => void;
 };
-export function OnboardingView({ state, onDraft, onSave, onIntroduce, onRetry, onLogout, notifications }: OnboardingViewProps) {
+export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete, onRetry, onLogout, notifications }: OnboardingViewProps) {
   const { t } = useTranslation();
   const ready = state.kind === 'ready' ? state : undefined;
   const profile = ready?.value.profile;
   const complete = ready?.value.onboardingStatus === 'complete';
   const basics = ready && !complete && (!profile?.locale || !isSupportedTimezone(profile.timezone) || !profile.intention);
   const introduction = ready && !complete && !basics && !profile?.companionIntroduced;
+  const review = ready && !complete && !basics && !introduction && profile?.notificationPreference !== null;
   let heading = t('onboarding.title');
   let description = t('onboarding.loading');
   if (state.kind === 'unavailable') description = t('onboarding.loadError');
   if (ready) {
-    if (complete) { heading = t('auth.oathTitle'); description = t('auth.oathPending'); }
+    if (complete) { heading = t('onboarding.trialTitle'); description = t('onboarding.trialPending'); }
     else if (basics) description = t('onboarding.unconfirmed');
     else if (!profile?.companionIntroduced) { heading = t('onboarding.companionTitle'); description = t('onboarding.companionIntroduction'); }
     else if (profile.notificationPreference === null) { heading = t('onboarding.notificationsTitle'); description = t('onboarding.notificationsPending'); }
@@ -76,7 +78,19 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onRetry, o
           onPress={ready.error === 'load' ? onRetry : onIntroduce} busy={ready.busy} />
         <CompanionArt appearance="zharomir-wanderer-v01" decorative />
       </>}
-      {ready && profile && !complete && !basics && !introduction && notifications && <NotificationView {...notifications} preference={profile.notificationPreference} />}
+      {review && profile && <View style={styles.group}>
+        <Text style={styles.body}>{t('onboarding.reviewLanguage', { language: t(`onboarding.language_${profile.locale}`) })}</Text>
+        <Text style={styles.body}>{t('onboarding.reviewTimezone', { timezone: profile.timezone })}</Text>
+        <Text style={styles.body}>{t('onboarding.reviewIntention')}</Text>
+        <Text style={styles.body}>{t('onboarding.reviewCompanion')}</Text>
+      </View>}
+      {ready && profile && !complete && !basics && !introduction && notifications && <NotificationView {...notifications}
+        state={{ ...notifications.state, busy: ready.busy || notifications.state.busy }} preference={profile.notificationPreference} />}
+      {review && ready && <>
+        {ready.error && <Text accessibilityLiveRegion="polite" style={styles.body}>{t(ready.error === 'load' ? 'onboarding.completionLoadError' : 'onboarding.error_complete')}</Text>}
+        {onComplete && <Action label={t(ready.error ? 'auth.retry' : 'onboarding.continue')}
+          onPress={ready.error === 'load' ? onRetry : onComplete} busy={ready.busy || notifications?.state.busy === true} />}
+      </>}
       {state.kind === 'unavailable' && <Action label={t('auth.retry')} onPress={onRetry} />}
       <Action label={t('auth.signOut')} onPress={onLogout} variant="secondary" />
     </ScrollView>

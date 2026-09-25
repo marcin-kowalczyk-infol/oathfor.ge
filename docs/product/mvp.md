@@ -8,11 +8,11 @@ Status: draft for refinement; not a final release commitment. Product source: [A
 
 ## Accepted language scope
 
-Polish and English are required across the MVP player experience. Copy may be adapted naturally in each language, but mechanics and acceptance conditions must remain equivalent. Slavic-inspired terminology follows the [language and naming rules](glossary.md#language-and-naming-rules). **Local decision: owner instruction, 2026-09-23.** The diagnostic shell uses the shared Polish/English localization runtime; product screens and their full bilingual acceptance remain pending. Follow the [translation storage contract](glossary.md#translation-storage-and-runtime-contract).
+Polish and English are required across the MVP player experience. Copy may be adapted naturally in each language, but mechanics and acceptance conditions must remain equivalent. Slavic-inspired terminology follows the [language and naming rules](glossary.md#language-and-naming-rules). **Local decision: owner instruction, 2026-09-23.** The account/onboarding app and diagnostic screen use the shared Polish/English localization runtime; full native bilingual acceptance and later Oath screens remain pending. Follow the [translation storage contract](glossary.md#translation-storage-and-runtime-contract).
 
 ## Accepted onboarding intention
 
-**Owner decision, 2026-09-24:** onboarding requires one intention, “Chcę regularnie podejmować aktywność” / “I want to be active regularly”, without a numerical goal. The [onboarding contract](onboarding.md) defines confirmed profile steps, companion introduction, optional notifications and recovery. Completion leads to the Trial of the Spark without committing an Oath or granting XP. Profile persistence, server completion, mobile basic choices and companion introduction are implemented; optional notification choices are integrated; the final completion screen and native acceptance remain pending.
+**Owner decision, 2026-09-24:** onboarding requires one intention, “Chcę regularnie podejmować aktywność” / “I want to be active regularly”, without a numerical goal. The [onboarding contract](onboarding.md) defines confirmed profile steps, companion introduction, optional notifications and recovery. Completion leads to the Trial of the Spark without committing an Oath or granting XP. The profile API and complete mobile onboarding flow are implemented, ending at an explicit provisional first-Oath entry. Native acceptance and actual Oath creation remain pending.
 
 ## Accepted first Oath evidence contract
 

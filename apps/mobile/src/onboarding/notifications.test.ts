@@ -42,8 +42,7 @@ test('explicit enable saves first and denial still permits continuation with ena
   write.resolve({ kind: 'success', value: saved }); await enable;
   expect(permissions.request).toHaveBeenCalledTimes(1);
   expect(notifications.getState()).toMatchObject({ permission: denied, busy: false });
-  notifications.continue();
-  expect(notifications.getState().continued).toBe(true);
+  expect(notifications.getState().busy).toBe(false);
 });
 
 test('restart reads saved preference without prompting; foreground refreshes device permission', async () => {
@@ -53,14 +52,14 @@ test('restart reads saved preference without prompting; foreground refreshes dev
   permissions.read.mockResolvedValue(denied);
   await notifications.refresh();
   expect(notifications.getState().permission).toEqual(denied);
-  notifications.continue(); expect(notifications.getState().continued).toBe(true);
+  expect(notifications.getState().busy).toBe(false);
 });
 test('skip durably saves disabled without requesting permission', async () => {
   const { notifications, permissions, stored } = await setup();
   await notifications.skip();
   expect(stored().profile.notificationPreference).toBe('disabled');
   expect(permissions.request).not.toHaveBeenCalled();
-  notifications.continue(); expect(notifications.getState().continued).toBe(true);
+  expect(notifications.getState().busy).toBe(false);
 });
 test('failed preference save never prompts and leaves retry or skip usable', async () => {
   const { notifications, permissions, api } = await setup();
@@ -68,8 +67,8 @@ test('failed preference save never prompts and leaves retry or skip usable', asy
   await notifications.enable();
   expect(notifications.getState()).toMatchObject({ busy: false, error: 'save' });
   expect(permissions.request).not.toHaveBeenCalled();
-  notifications.continue(); expect(notifications.getState().continued).toBe(false);
-  await notifications.skip(); notifications.continue(); expect(notifications.getState().continued).toBe(true);
+  expect(notifications.getState().error).toBe('save');
+  await notifications.skip(); expect(notifications.getState().busy).toBe(false);
 });
 test('late permission result after logout is ignored', async () => {
   const { notifications, permissions, auth } = await setup();
@@ -77,7 +76,7 @@ test('late permission result after logout is ignored', async () => {
   const action = notifications.enable(); await flush();
   await auth.logout();
   request.resolve(denied); await action;
-  expect(notifications.getState()).toMatchObject({ busy: false, continued: false, permission: { kind: 'checking' } });
+  expect(notifications.getState()).toMatchObject({ busy: false, permission: { kind: 'checking' } });
 });
 test('same-account foreground validation during OS prompt recovers without another prompt', async () => {
   const { notifications, permissions, auth } = await setup();
@@ -89,7 +88,7 @@ test('same-account foreground validation during OS prompt recovers without anoth
   expect(notifications.getState()).toMatchObject({ busy: false, permission: denied });
   expect(permissions.request).toHaveBeenCalledTimes(1);
   expect(permissions.read.mock.calls.length).toBeGreaterThan(1);
-  notifications.continue(); expect(notifications.getState().continued).toBe(true);
+  expect(notifications.getState().busy).toBe(false);
 });
 test('nonaskable denial uses Settings, whose failure leaves continuation usable', async () => {
   const { notifications, permissions } = await setup('enabled');
@@ -97,5 +96,5 @@ test('nonaskable denial uses Settings, whose failure leaves continuation usable'
   await notifications.retryPermission(); expect(permissions.request).not.toHaveBeenCalled();
   permissions.openSettings.mockResolvedValue(false); await notifications.settings();
   expect(notifications.getState()).toMatchObject({ error: 'settings', busy: false });
-  notifications.continue(); expect(notifications.getState().continued).toBe(true);
+  expect(notifications.getState().busy).toBe(false);
 });

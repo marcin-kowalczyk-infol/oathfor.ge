@@ -70,7 +70,8 @@ export function AuthScreen({ controller, authenticate, profileApi, apple = nativ
       appState.remove();
     };
   }, [controller, apple, checkAvailability, notifications]);
-  if (state.kind === 'authenticated') return <><StatusBar style="light" /><OnboardingView state={profile} notifications={{ state: notificationState, onEnable: () => { void notifications.enable(); }, onSkip: () => { void notifications.skip(); }, onRetryPermission: () => { void notifications.retryPermission(); }, onSettings: () => { void notifications.settings(); }, onContinue: notifications.continue }}
+  if (state.kind === 'authenticated') return <><StatusBar style="light" /><OnboardingView state={profile} notifications={{ state: notificationState, onEnable: () => { void notifications.enable(); }, onSkip: () => { void notifications.skip(); }, onRetryPermission: () => { void notifications.retryPermission(); }, onSettings: () => { void notifications.settings(); } }}
+    onComplete={() => { if (!notificationState.busy) void onboarding.complete(); }}
     onIntroduce={() => { void onboarding.save({ companionIntroduced: true }); }} onDraft={onboarding.setDraft} onSave={() => { void onboarding.saveBasics(); }}
     onRetry={() => { void onboarding.refresh(); }} onLogout={() => { void controller.logout(); }} /></>;
   return <><StatusBar style="light" /><AuthView state={state} availability={availability}

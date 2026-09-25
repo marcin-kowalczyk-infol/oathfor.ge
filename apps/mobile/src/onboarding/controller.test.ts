@@ -259,3 +259,69 @@ test('interrupted foreground PATCH is reconciled after settling before another w
   expect(await controller.saveBasics()).toBe(true);
   expect(api.patch).toHaveBeenCalledTimes(1);
 });
+
+
+const reviewed: ProfileEnvelope = { ...saved, profile: { ...saved.profile, companionIntroduced: true, notificationPreference: 'enabled' } };
+const completed: ProfileEnvelope = { ...reviewed, onboardingStatus: 'complete' };
+test('explicit completion accepts only authoritative complete and repeated actions are harmless', async () => {
+  const { controller, api } = await setup(reviewed); controller.start(); await flush();
+  api.complete.mockResolvedValue(success(completed));
+  expect(api.complete).not.toHaveBeenCalled();
+  expect(await controller.complete()).toBe(true);
+  expect(controller.getState()).toMatchObject({ value: completed, busy: false });
+  expect(await controller.complete()).toBe(true);
+  expect(api.complete).toHaveBeenCalledTimes(1);
+  expect(api.complete).toHaveBeenCalledWith(session.token, expect.any(AbortSignal));
+});
+test('completion rejection reloads missing steps and never claims completed', async () => {
+  const { controller, api } = await setup(reviewed); controller.start(); await flush();
+  api.complete.mockResolvedValue({ kind: 'onboarding_incomplete' });
+  api.get.mockResolvedValueOnce(success(saved));
+  expect(await controller.complete()).toBe(false);
+  expect(api.get).toHaveBeenCalledTimes(2);
+  expect(controller.getState()).toMatchObject({ value: saved, busy: false });
+});
+test('ambiguous completion reconciles its committed result without replay', async () => {
+  const { controller, api } = await setup(reviewed); controller.start(); await flush();
+  api.complete.mockResolvedValue({ kind: 'unavailable', retry: 'request' });
+  api.get.mockResolvedValueOnce(success(completed));
+  expect(await controller.complete()).toBe(true);
+  expect(controller.getState()).toMatchObject({ value: completed });
+  expect(api.complete).toHaveBeenCalledTimes(1);
+});
+test('failed reconciliation reads before retry and an uncommitted completion stays on review', async () => {
+  const { controller, api } = await setup(reviewed); controller.start(); await flush();
+  api.complete.mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' });
+  api.get.mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' });
+  expect(await controller.complete()).toBe(false);
+  expect(controller.getState()).toMatchObject({ value: reviewed, error: 'load', busy: false });
+  api.get.mockResolvedValueOnce(success(reviewed));
+  api.complete.mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' });
+  expect(await controller.complete()).toBe(false);
+  expect(controller.getState()).toMatchObject({ value: reviewed, error: 'complete', busy: false });
+  api.complete.mockResolvedValueOnce(success(completed));
+  expect(await controller.complete()).toBe(true);
+});
+test('completion serializes behind a pending profile write and ignores a late result after logout', async () => {
+  const { controller, api, auth } = await setup(reviewed); controller.start(); await flush();
+  const patch = deferred<ReturnType<typeof success>>(); api.patch.mockReturnValueOnce(patch.promise);
+  const completion = deferred<ReturnType<typeof success>>(); api.complete.mockReturnValueOnce(completion.promise);
+  const saving = controller.save({ notificationPreference: 'enabled' });
+  const finishing = controller.complete(); await flush();
+  expect(api.complete).not.toHaveBeenCalled();
+  patch.resolve(success(reviewed)); await saving; await flush();
+  expect(api.complete).toHaveBeenCalledTimes(1);
+  await auth.logout(); completion.resolve(success(completed));
+  expect(await finishing).toBe(false); expect(controller.getState().kind).toBe('idle');
+});
+
+test('interrupted completion reconciles after foreground validation before replay', async () => {
+  const { controller, api, auth } = await setup(reviewed); controller.start(); await flush();
+  const write = deferred<ReturnType<typeof success>>(); api.complete.mockReturnValueOnce(write.promise);
+  const finishing = controller.complete(); await flush();
+  await auth.foreground(); await flush();
+  write.resolve(success(completed)); expect(await finishing).toBe(false);
+  api.get.mockResolvedValueOnce(success(completed));
+  expect(await controller.complete()).toBe(true);
+  expect(api.complete).toHaveBeenCalledTimes(1);
+});

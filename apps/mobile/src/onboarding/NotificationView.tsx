@@ -11,10 +11,9 @@ export type NotificationViewProps = {
   onSkip: () => void;
   onRetryPermission: () => void;
   onSettings: () => void;
-  onContinue: () => void;
 };
 
-export function NotificationView({ state, preference, onEnable, onSkip, onRetryPermission, onSettings, onContinue }: NotificationViewProps) {
+export function NotificationView({ state, preference, onEnable, onSkip, onRetryPermission, onSettings }: NotificationViewProps) {
   const { t } = useTranslation();
   const { permission, busy, error } = state;
   const mayRequest = preference === 'enabled' && permission.canAskAgain
@@ -37,7 +36,6 @@ export function NotificationView({ state, preference, onEnable, onSkip, onRetryP
     </>}
     {mayRequest && <Action label={t('notifications.askPermission')} onPress={onRetryPermission} busy={busy} variant="secondary" />}
     {mayOpenSettings && <Action label={t('notifications.settings')} onPress={onSettings} busy={busy} variant="secondary" />}
-    {preference !== null && !state.continued && <Action label={t('onboarding.continue')} onPress={onContinue} busy={busy} />}
   </View>;
 }
 

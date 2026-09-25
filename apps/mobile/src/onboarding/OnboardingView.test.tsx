@@ -49,10 +49,47 @@ test('waits for profile hydration and exposes only the server-confirmed destinat
   expect(screen.getByText('Loading your confirmed choices…')).toBeOnTheScreen();
   expect(screen.queryByText('Your first Oath')).toBeNull();
   await view.rerender(fixture({ ...ready, value: { onboardingStatus: 'complete', profile: { locale: 'en', timezone: 'UTC', intention: 'regular_activity', companionIntroduced: true, notificationPreference: 'disabled' } } }));
-  expect(screen.getByText('Your first Oath will be available here. No Oath has started.')).toBeOnTheScreen();
+  expect(screen.getByText('Creating your first Oath is not available yet. No Oath has started.')).toBeOnTheScreen();
   expect(screen.queryByRole('checkbox')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
   expect(callbacks.onLogout).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+  ['en', 'Continue', 'Try again', 'Language: English', 'Timezone: Europe/Warsaw', 'Intention: I want to be active regularly', 'You have met Zharomir.', 'Trial of the Spark'],
+  ['pl', 'Dalej', 'Spróbuj ponownie', 'Język: Polski', 'Strefa czasowa: Europe/Warsaw', 'Intencja: Chcę regularnie podejmować aktywność', 'Żaromir już Ci się przedstawił.', 'Próba Iskry'],
+] as const)('%s reviews saved choices and completes only by explicit action, with safe retries', async (locale, next, retry, language, timezone, intention, companion, trial) => {
+  const callbacks = { onComplete: jest.fn(), onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
+  const notifications = {
+    state: { permission: { kind: 'denied' as const, canAskAgain: false }, busy: false },
+    onEnable: jest.fn(), onSkip: jest.fn(), onRetryPermission: jest.fn(), onSettings: jest.fn(),
+  };
+  const review: Extract<OnboardingState, { kind: 'ready' }> = {
+    ...ready, value: { onboardingStatus: 'pending', profile: { locale, timezone: 'Europe/Warsaw', intention: 'regular_activity', companionIntroduced: true, notificationPreference: 'enabled' } },
+  };
+  const fixture = (state = review, nativeBusy = false) => <LocalizationProvider initialLocale={locale}>
+    <OnboardingView state={state} {...callbacks} notifications={{ ...notifications, state: { ...notifications.state, busy: nativeBusy } }} />
+  </LocalizationProvider>;
+  const view = await render(fixture());
+  for (const text of [language, timezone, intention, companion]) expect(screen.getByText(text)).toBeOnTheScreen();
+  expect(callbacks.onComplete).not.toHaveBeenCalled();
+  expect(notifications.onRetryPermission).not.toHaveBeenCalled();
+  expect(screen.getAllByRole('button', { name: next })).toHaveLength(1);
+  await view.rerender(fixture(review, true));
+  await fireEvent.press(screen.getByRole('button', { name: next, disabled: true }));
+  expect(callbacks.onComplete).not.toHaveBeenCalled();
+  await view.rerender(fixture());
+  await fireEvent.press(screen.getByRole('button', { name: next, disabled: false }));
+  expect(callbacks.onComplete).toHaveBeenCalledTimes(1);
+  await view.rerender(fixture({ ...review, error: 'complete' }));
+  await fireEvent.press(screen.getByRole('button', { name: retry }));
+  expect(callbacks.onComplete).toHaveBeenCalledTimes(2);
+  await view.rerender(fixture({ ...review, error: 'load' }));
+  await fireEvent.press(screen.getByRole('button', { name: retry }));
+  expect(callbacks.onRetry).toHaveBeenCalledTimes(1);
+  await view.rerender(fixture({ ...review, value: { ...review.value, onboardingStatus: 'complete' } }));
+  expect(screen.getByRole('header', { name: trial })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: next })).toBeNull();
 });
 
 

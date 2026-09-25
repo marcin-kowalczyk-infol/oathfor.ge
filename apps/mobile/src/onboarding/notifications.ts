@@ -3,8 +3,8 @@ import { isSupportedTimezone } from '../api/profile';
 import type { OnboardingController } from './controller';
 import type { DevicePermission, NotificationPermissions } from './notificationPermissions';
 
-export type NotificationState = { permission: DevicePermission | { kind: 'checking'; canAskAgain: false }; busy: boolean; continued: boolean; error?: 'save' | 'settings' | undefined };
-const initial = (): NotificationState => ({ permission: { kind: 'checking', canAskAgain: false }, busy: false, continued: false });
+export type NotificationState = { permission: DevicePermission | { kind: 'checking'; canAskAgain: false }; busy: boolean; error?: 'save' | 'settings' | undefined };
+const initial = (): NotificationState => ({ permission: { kind: 'checking', canAskAgain: false }, busy: false });
 
 // Lives beside the profile owner: saving a preference must not unmount its OS action.
 export function createNotificationController({ session, onboarding, permissions }: { session: SessionController; onboarding: OnboardingController; permissions: NotificationPermissions }) {
@@ -82,6 +82,5 @@ export function createNotificationController({ session, onboarding, permissions 
     refresh, enable: () => save('enabled'), skip: () => save('disabled'),
     retryPermission: () => action(async owner => { if (preference() === 'enabled' && state.permission.canAskAgain && !['granted', 'provisional', 'ephemeral'].includes(state.permission.kind)) await request(owner); }),
     settings: () => action(async owner => { const opened = await permissions.openSettings(); if (current(owner) && !opened) publish({ error: 'settings' }); }),
-    continue: () => { if (eligible() && preference() !== null && !state.busy) publish({ continued: true }); },
   };
 }

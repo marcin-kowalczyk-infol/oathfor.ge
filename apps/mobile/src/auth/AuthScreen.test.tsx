@@ -94,9 +94,9 @@ test('completed accounts load profile and confirmed language before their destin
   runtime.profileApi.get.mockReturnValueOnce(new Promise(resolve => { resolveProfile = resolve; }));
   await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
-  expect(screen.queryByText('Your first Oath')).not.toBeOnTheScreen();
+  expect(screen.queryByText('Trial of the Spark')).not.toBeOnTheScreen();
   await act(async () => resolveProfile({ kind: 'success', value: { profile: { locale: 'pl', timezone: 'Europe/Warsaw', intention: 'regular_activity', companionIntroduced: true, notificationPreference: 'disabled' }, onboardingStatus: 'complete' } }));
-  expect(await screen.findByText('Twoja pierwsza Przysięga')).toBeOnTheScreen();
+  expect(await screen.findByText('Próba Iskry')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Wyloguj się' }));
   expect(await screen.findByText('Welcome to Oathforge')).toBeOnTheScreen();
 });
@@ -127,7 +127,7 @@ test.each(['pending', 'complete'] as const)('saved timezone unavailable on this 
   await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
   if (onboardingStatus === 'complete') {
-    expect(await screen.findByText('Twoja pierwsza Przysięga')).toBeOnTheScreen();
+    expect(await screen.findByText('Próba Iskry')).toBeOnTheScreen();
     expect(screen.queryByRole('checkbox')).toBeNull();
   } else {
     expect(await screen.findByLabelText('Strefa czasowa')).toBeOnTheScreen();
@@ -190,9 +190,33 @@ test('notification action survives saved-profile routing and native foreground v
   expect(permissions.request).toHaveBeenCalledTimes(1);
   expect(stored.profile.notificationPreference).toBe('enabled');
   await act(async () => { onChange('inactive'); onChange('active'); resolvePermission({ kind: 'denied', canAskAgain: false }); });
-  await fireEvent.press(await screen.findByRole('button', { name: 'Continue', disabled: false }));
   expect(await screen.findByText('Your choices are saved')).toBeOnTheScreen();
   expect(screen.getByText('This device does not allow notifications. You can continue without changing this.')).toBeOnTheScreen();
+  runtime.profileApi.complete.mockResolvedValue({ kind: 'success', value: { ...stored, onboardingStatus: 'complete' } });
+  await fireEvent.press(await screen.findByRole('button', { name: 'Continue', disabled: false }));
+  expect(await screen.findByText('Trial of the Spark')).toBeOnTheScreen();
   expect(permissions.request).toHaveBeenCalledTimes(1);
+  expect(runtime.profileApi.complete).toHaveBeenCalledTimes(1);
+});
+
+
+test.each(['denied', 'unavailable'] as const)('saved opt-in restart reviews without prompting; %s permission does not prevent explicit completion', async kind => {
+  const runtime = setup();
+  const saved = { profile: { locale: 'en', timezone: 'UTC', intention: 'regular_activity', companionIntroduced: true, notificationPreference: 'enabled' }, onboardingStatus: 'pending' };
+  runtime.profileApi.get.mockResolvedValue({ kind: 'success', value: saved });
+  runtime.profileApi.complete.mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' });
+  const permissions = { read: jest.fn().mockResolvedValue({ kind, canAskAgain: false }), request: jest.fn(), openSettings: jest.fn() };
+  await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} permissions={permissions} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  expect(await screen.findByText('Your choices are saved')).toBeOnTheScreen();
+  expect(screen.getByText('Timezone: UTC')).toBeOnTheScreen();
+  expect(permissions.read).toHaveBeenCalled(); expect(permissions.request).not.toHaveBeenCalled();
   expect(runtime.profileApi.complete).not.toHaveBeenCalled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  expect(screen.queryByText('Trial of the Spark')).toBeNull();
+  expect(runtime.profileApi.get).toHaveBeenCalledTimes(2);
+  runtime.profileApi.complete.mockResolvedValueOnce({ kind: 'success', value: { ...saved, onboardingStatus: 'complete' } });
+  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByText('Trial of the Spark')).toBeOnTheScreen();
+  expect(permissions.request).not.toHaveBeenCalled();
 });
