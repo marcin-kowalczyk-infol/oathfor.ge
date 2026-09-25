@@ -139,3 +139,14 @@ test('touching a station ends the introduction and arrival keeps its speaker', a
   expect(screen.getByText('Zharomir')).toBeOnTheScreen();
   expect(screen.getByText(en.scene.descriptions.chronicle)).toBeOnTheScreen();
 });
+
+test('station discovery requires its named action before opening the matching screen', async () => {
+  const open = jest.fn();
+  await render(<ForgeScene locale="en" onExit={jest.fn()} onOpenStation={open} />);
+  for (const [station, label] of [['hearth', 'Shape an Oath'], ['seals', 'View current Oaths'], ['chronicle', 'Read history']] as const) {
+    await fireEvent.press(screen.getByRole('button', { name: en.scene[station] }));
+    expect(open).toHaveBeenCalledTimes(['hearth', 'seals', 'chronicle'].indexOf(station));
+    await fireEvent.press(screen.getByRole('button', { name: label }));
+    expect(open).toHaveBeenLastCalledWith(station);
+  }
+});

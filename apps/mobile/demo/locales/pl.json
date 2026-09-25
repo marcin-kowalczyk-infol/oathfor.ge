@@ -35,6 +35,11 @@
       "next": "Następne miejsce",
       "done": "Zacznij odkrywać",
       "skip": "Pomiń wprowadzenie"
+    },
+    "actions": {
+      "hearth": "Ukształtuj Przysięgę",
+      "seals": "Zobacz obecne Przysięgi",
+      "chronicle": "Czytaj historię"
     }
   },
   "sceneOpen": "Odkryj Kuźnię · prototyp",

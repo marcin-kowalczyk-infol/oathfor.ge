@@ -18,7 +18,7 @@ export type OathCreationDraft = { activity: Activity; scheduled: boolean; activa
 function emptyDraft(timezone: string): OathCreationDraft {
   return { activity: 'running', scheduled: false, activation: { date: '', time: '', zone: timezone }, deadline: { date: '', time: '', zone: timezone } };
 }
-export function OathScreen({ controller, timezone, onLogout, onBack, initialDraft, onDraftChange }: { controller: OathController; timezone: string; onLogout(): void; onBack?(): void; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void }) {
+export function OathScreen({ controller, timezone, onLogout, onBack, backLabel, initialDraft, onDraftChange }: { controller: OathController; timezone: string; onLogout(): void; onBack?(): void; backLabel?: string; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void }) {
   const { t } = useTranslation();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const [draft, setDraft] = useState<OathCreationDraft>(() => initialDraft ?? emptyDraft(timezone));
@@ -74,7 +74,7 @@ export function OathScreen({ controller, timezone, onLogout, onBack, initialDraf
   }
   return <SceneSurface tone="hearth"><SafeAreaView style={styles.safeArea}>
     <Animated.ScrollView style={entrance} key={scene} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      {onBack && <SceneDoor label={t('oathHome.today')} onPress={onBack} />}
+      {onBack && <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />}
       {!review && !detail && <Text accessibilityRole="header" style={styles.title}>{t('oath.title')}</Text>}
       {!ready && <>
         <Text accessibilityLiveRegion="polite" style={styles.body}>{t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading')}</Text>
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   confirmed: { gap: 14, alignItems: 'center', paddingVertical: 24 },
   consent: { padding: 20, borderLeftWidth: 3, borderLeftColor: tokens.color.primary, backgroundColor: 'rgba(32, 25, 19, 0.94)', borderRadius: 12 },
   group: { gap: tokens.space.item },
-  title: { color: tokens.color.text, fontSize: tokens.title, lineHeight: tokens.title * 1.2, fontWeight: '600' },
+  title: { color: tokens.color.text, fontFamily: tokens.font.display, fontSize: tokens.title, lineHeight: tokens.title * 1.3, fontWeight: '400' },
   label: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5, fontWeight: '600' },
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
   choice: { minHeight: 64, padding: 18, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius },

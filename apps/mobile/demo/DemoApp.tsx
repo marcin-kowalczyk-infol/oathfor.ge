@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { StatusBar, Modal, SafeAreaView, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import type { ForgeNavigation } from '../src/oaths/OathHomeScreen';
 import { AuthScreen } from '../src/auth/AuthScreen';
 import { LocalizationProvider } from '../src/localization/LocalizationProvider';
 import type { Locale } from '../src/localization/locale';
@@ -9,22 +10,29 @@ import en from './locales/en.json';
 import pl from './locales/pl.json';
 
 type Dummy = ReturnType<typeof createDummy>;
-function Run({ dummy, locale }: { dummy: Dummy; locale: Locale }) {
+function Run({ dummy, locale, forgeNavigation }: { dummy: Dummy; locale: Locale; forgeNavigation: ForgeNavigation }) {
   const [runtime] = useState(() => dummy.runtime());
   useEffect(() => () => runtime.controller.dispose(), [runtime]);
-  return <LocalizationProvider initialLocale={locale}><AuthScreen {...runtime} /></LocalizationProvider>;
+  return <LocalizationProvider initialLocale={locale}><AuthScreen {...runtime} forgeNavigation={forgeNavigation} /></LocalizationProvider>;
 }
 export default function DemoApp() {
   const [locale, setLocale] = useState<Locale>('pl');
   const [dummy, setDummy] = useState(() => createDummy('pl', true, false));
   const [mount, setMount] = useState(0);
   const [controls, setControls] = useState(false);
+  // A remounted functional app starts at its own Today and must not replay an earlier room destination.
+  const requestSeq = useRef(0);
+  const [request, setRequest] = useState<ForgeNavigation['request']>(null);
+  function openStation(station: 'hearth' | 'seals' | 'chronicle') {
+    setRequest({ id: ++requestSeq.current, target: station === 'hearth' ? 'create' : station === 'seals' ? 'today' : 'history' });
+    setScene(false);
+  }
   const [scene, setScene] = useState(true);
   const [introSeen, setIntroSeen] = useState(false);
   const [guideRun, setGuideRun] = useState(0);
   const [, repaint] = useState(0);
   const copy = locale === 'pl' ? pl : en;
-  const restart = () => setMount(value => value + 1);
+  const restart = () => { setRequest(null); setMount(value => value + 1); };
   function reset(complete: boolean, populated = complete) { setDummy(createDummy(locale, complete, populated)); setIntroSeen(false); restart(); setScene(false); setControls(false); }
   function language(next: Locale) { dummy.state.profile.profile.locale = next; setLocale(next); restart(); }
   const buttons: [string, () => void][] = [
@@ -37,11 +45,13 @@ export default function DemoApp() {
     [copy.lose, () => { dummy.state.loseNext = true; repaint(value => value + 1); }],
     [copy.add, () => { dummy.add(); repaint(value => value + 1); setControls(false); }],
   ];
-  const Root = scene ? View : SafeAreaView;
+  const Root = View;
+  const BadgeFrame = scene ? Fragment : SafeAreaView;
   return <Root style={styles.root}>
     <StatusBar hidden={scene} />
-    <Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={[styles.badge, scene && styles.sceneBadge]}><Text allowFontScaling={!scene} style={styles.badgeText}>{scene ? 'DEMO' : copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable>
-    <View style={styles.product}>{scene ? <ForgeScene key={guideRun} locale={locale} showIntro={!introSeen} onIntroComplete={() => setIntroSeen(true)} onExit={() => setScene(false)} /> : <Run key={mount} dummy={dummy} locale={locale} />}</View>
+    {/* The room is fullscreen, while functional screens keep the badge below the status bar. */}
+    <BadgeFrame><Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={[styles.badge, scene && styles.sceneBadge]}><Text allowFontScaling={!scene} style={styles.badgeText}>{scene ? 'DEMO' : copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable></BadgeFrame>
+    <View style={styles.product}><View style={[styles.product, scene && styles.hidden]} accessibilityElementsHidden={scene} importantForAccessibility={scene ? 'no-hide-descendants' : 'auto'} pointerEvents={scene ? 'none' : 'auto'}><Run key={mount} dummy={dummy} locale={locale} forgeNavigation={{ request, onReturn: () => setScene(true) }} /></View>{scene && <ForgeScene key={guideRun} locale={locale} showIntro={!introSeen} onIntroComplete={() => setIntroSeen(true)} onExit={() => openStation('seals')} onOpenStation={openStation} />}</View>
     <Modal visible={controls} animationType="none" onRequestClose={() => setControls(false)}>
       <SafeAreaView style={styles.root}><ScrollView contentContainerStyle={styles.controls}>
         <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>
@@ -55,4 +65,4 @@ export default function DemoApp() {
     </Modal>
   </Root>;
 }
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#15191c' }, product: { flex: 1 }, sceneBadge: { position: 'absolute', top: 54, left: 12, zIndex: 10, backgroundColor: '#15191c88', borderRadius: 18 }, badge: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', paddingHorizontal: 16 }, badgeText: { color: '#ffd380', fontSize: 12 }, controls: { padding: 20, gap: 14 }, languages: { flexDirection: 'row', gap: 12 }, title: { color: '#ffd380', fontSize: 26, fontWeight: '700' }, text: { color: '#fff', fontSize: 16 }, button: { minHeight: 48, justifyContent: 'center', borderWidth: 1, borderColor: '#ffd380', borderRadius: 12, padding: 12 } });
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#15191c' }, product: { flex: 1 }, hidden: { display: 'none' }, sceneBadge: { position: 'absolute', top: 54, left: 12, zIndex: 10, backgroundColor: '#15191c88', borderRadius: 18 }, badge: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', paddingHorizontal: 16 }, badgeText: { color: '#ffd380', fontSize: 12 }, controls: { padding: 20, gap: 14 }, languages: { flexDirection: 'row', gap: 12 }, title: { color: '#ffd380', fontSize: 26, fontWeight: '700' }, text: { color: '#fff', fontSize: 16 }, button: { minHeight: 48, justifyContent: 'center', borderWidth: 1, borderColor: '#ffd380', borderRadius: 12, padding: 12 } });

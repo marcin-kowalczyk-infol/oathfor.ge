@@ -6,6 +6,8 @@ import { formatDeadline } from '../localization/format';
 import type { Oath, OathListEnvelope } from '../api/oathSchema';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
+import { SceneDoor } from '../ui/SceneDoor';
+import { compactStoredTime } from './compactStoredTime';
 import { SceneSurface } from '../ui/SceneSurface';
 import { CompanionBubble } from '../ui/CompanionBubble';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
@@ -16,7 +18,8 @@ import { OathScreen, type OathCreationDraft } from './OathScreen';
 import { loadPauseReview, type PauseReview } from './pauseReview';
 import type { OathController } from './controller';
 type ViewName = 'today' | 'history';
-export function OathHomeScreen({ controller, timezone, onLogout }: { controller: OathController; timezone: string; onLogout(): void }) {
+export type ForgeNavigation = { request: { id: number; target: 'create' | ViewName } | null; onReturn(): void };
+export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation }: { controller: OathController; timezone: string; onLogout(): void; forgeNavigation?: ForgeNavigation }) {
   const { t, i18n } = useTranslation(); const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
   const interactiveForge = width >= 350 && fontScale <= 1.3;
@@ -53,6 +56,7 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
     // Live pagination can repeat rows after server changes; keep the returned order of new rows.
     const existing = new Set(previous?.items.map(item => item.id));
     setList({ ...result.value, items: previous ? [...previous.items, ...result.value.items.filter(item => !existing.has(item.id))] : result.value.items });
+    return result.value;
   }
   useEffect(() => {
     mutation.current = undefined; setMutating(false);
@@ -99,14 +103,30 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
     if (!recover && !controller.resetCreation()) return;
     generation.current++; setRoute('create');
   }
+  const handledRequest = useRef<number | null>(null);
+  useEffect(() => {
+    const request = forgeNavigation?.request;
+    if (!available || mutating || !request || handledRequest.current === request.id) return;
+    handledRequest.current = request.id;
+    if (request.target === 'create') {
+      if (route === 'create') return;
+      if (account.pending) { create(true); return; }
+      void loadList('today').then(result => {
+        if (!result || result.paused || handledRequest.current !== request.id) return;
+        const latest = controller.getState();
+        if (latest.kind === 'ready') create(!!latest.pending);
+      });
+    } else void loadList(request.target);
+  }, [forgeNavigation?.request?.id, available, mutating]);
   function summary(item: Oath, actionable = false) { return t(actionable ? 'oathHome.open' : 'oathHome.summary', { activity: item.snapshot.copy[locale].activity, deadline: storedTime(item.snapshot.deadline, locale) }); }
   function category(item: Oath) { return item.state === 'scheduled' ? 'future' : item.state === 'active' ? 'current' : 'pending'; }
   function group(item: Oath) {
     const date = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.snapshot.deadline.local}Z`));
     return t('oathHome.group', { date, timezone: item.snapshot.deadline.timezone });
   }
-  if (available && route === 'create') return <OathScreen controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} onLogout={onLogout} onBack={() => { void loadList('today'); }} />;
+  if (available && route === 'create') return <OathScreen controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} onLogout={onLogout} backLabel={forgeNavigation ? t('forge.returnRoom') : undefined} onBack={forgeNavigation?.onReturn ?? (() => { void loadList('today'); })} />;
   return <SceneSurface tone={route === 'pause' ? 'quiet' : view === 'history' || route === 'detail' ? 'chronicle' : 'hearth'}><SafeAreaView style={styles.safeArea}><Animated.ScrollView style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content}>
+    {forgeNavigation && <SceneDoor label={t('forge.returnRoom')} onPress={forgeNavigation.onReturn} />}
     <Text accessibilityRole="header" style={styles.title}>{t(route === 'pause' ? 'oathHome.pauseTitle' : route === 'detail' ? 'forge.detail' : view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>
     {!available && <>
       <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
@@ -132,14 +152,14 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
         {view === 'today' && !!list?.items.length && <Text accessibilityRole="header" style={styles.label}>{t('forge.all')}</Text>}
         {list?.items.map((item, index) => <View key={item.id} style={styles.entry}>
           {view === 'today' && (index === 0 || category(item) !== category(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
-          {(index === 0 || group(item) !== group(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{group(item)}</Text>}
+          {view === 'today' && (index === 0 || group(item) !== group(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{group(item)}</Text>}
           <Pressable accessibilityRole="button" accessibilityLabel={summary(item, true)} accessibilityValue={{ text: t(`oath.states.${item.state}`) }} onPress={() => { void openDetail(item.id); }}
             style={({ pressed }) => [styles.journalEntry, !interactiveForge && styles.stackedEntry, pressed && styles.pressedEntry]}>
             <ActivityEmblem activity={item.snapshot.activity} size={76} />
             <View style={styles.entryCopy}>
               <Text style={styles.activity}>{item.snapshot.copy[locale].activity}</Text>
               <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>
-              <Text style={styles.deadline}>{storedTime(item.snapshot.deadline, locale)}</Text>
+              <Text style={styles.deadline}>{view === 'history' ? compactStoredTime(item.snapshot.deadline.local, locale) : storedTime(item.snapshot.deadline, locale)}</Text>
             </View>
           </Pressable>
         </View>)}
@@ -195,5 +215,5 @@ const styles = StyleSheet.create({
   tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#5d4e39' },
   selectedTab: { borderBottomColor: '#f3bc72', backgroundColor: 'rgba(127, 87, 41, 0.18)' },
   pauseControl: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingHorizontal: 12 }, pauseIcon: { color: tokens.color.primary, fontSize: 22 }, pauseText: { color: tokens.color.secondary, fontSize: 15 },
-  title: { color: '#f3dfbd', fontSize: 25, fontWeight: '600', textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 }, label: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '600' }, body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
+  title: { color: '#f3dfbd', fontSize: 28, fontFamily: tokens.font.display, fontWeight: '400', textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 }, label: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '600' }, body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
 });

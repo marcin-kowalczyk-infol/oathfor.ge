@@ -67,3 +67,7 @@ Library selection, local implementation decision 2026-09-24: i18next/react-i18ne
 ## Content punctuation
 
 Owner decision, 2026-09-26: authored prose and player-facing content must not contain em dashes (U+2014) or semicolons. Prefer short sentences or commas. The bundled PL and EN catalogs, including the demonstration, enforce this in catalog validation. Code syntax is excluded. Existing immutable Oath snapshots retain their original wording. Apply the rule to new policy versions without rewriting accepted records.
+
+## Proposed player terminology, 2026-09-26
+
+The [player-character note](player-character.md) retains the owner’s working name Oathtar and proposes Twoja postać / Your character as interface wording, with Przysiężnik / Oathbearer as a possible lore title. These remain exploration, not accepted replacements for existing terms. Żaromir / Zharomir remains the companion’s name.

@@ -6,7 +6,7 @@ import type { ProfileClient } from '../api/profile';
 import type { OathClient } from '../api/oaths';
 import type { PendingStorage } from '../oaths/pendingStorage';
 import { createOathController } from '../oaths/controller';
-import { OathHomeScreen } from '../oaths/OathHomeScreen';
+import { OathHomeScreen, type ForgeNavigation } from '../oaths/OathHomeScreen';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
 import { createOnboardingController } from '../onboarding/controller';
@@ -30,7 +30,7 @@ const nativeApple: AppleAvailability = {
 };
 
 // The app owns this controller for its lifetime; account subtrees must not replace it.
-export function AuthScreen({ controller, authenticate, profileApi, oathApi, acceptanceStorage, apple = nativeApple, permissions = nativeNotificationPermissions }: { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; oathApi: OathClient; acceptanceStorage: PendingStorage; apple?: AppleAvailability; permissions?: NotificationPermissions }) {
+export function AuthScreen({ controller, authenticate, profileApi, oathApi, acceptanceStorage, apple = nativeApple, permissions = nativeNotificationPermissions, forgeNavigation }: { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; oathApi: OathClient; acceptanceStorage: PendingStorage; apple?: AppleAvailability; permissions?: NotificationPermissions; forgeNavigation?: ForgeNavigation }) {
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const { i18n } = useTranslation();
   const languageOwner = useRef(i18n);
@@ -78,7 +78,7 @@ export function AuthScreen({ controller, authenticate, profileApi, oathApi, acce
       appState.remove();
     };
   }, [controller, apple, checkAvailability, notifications]);
-  if (state.kind === 'authenticated' && profileComplete && profile.kind === 'ready') return <><StatusBar style="light" /><OathHomeScreen key={state.account.id} controller={oaths} timezone={profile.value.profile.timezone!} onLogout={() => { void controller.logout(); }} /></>;
+  if (state.kind === 'authenticated' && profileComplete && profile.kind === 'ready') return <><StatusBar style="light" /><OathHomeScreen forgeNavigation={forgeNavigation} key={state.account.id} controller={oaths} timezone={profile.value.profile.timezone!} onLogout={() => { void controller.logout(); }} /></>;
   if (state.kind === 'authenticated') return <><StatusBar style="light" /><OnboardingView state={profile} notifications={{ state: notificationState, onEnable: () => { void notifications.enable(); }, onSkip: () => { void notifications.skip(); }, onRetryPermission: () => { void notifications.retryPermission(); }, onSettings: () => { void notifications.settings(); } }}
     onComplete={() => { if (!notificationState.busy) void onboarding.complete(); }}
     onIntroduce={() => { void onboarding.save({ companionIntroduced: true }); }} onDraft={onboarding.setDraft} onSave={() => { void onboarding.saveBasics(); }}

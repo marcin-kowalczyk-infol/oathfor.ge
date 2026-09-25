@@ -1,3 +1,4 @@
+import { tokens } from './tokens';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export function SceneDoor({ label, onPress, disabled = false }: { label: string; onPress(): void; disabled?: boolean }) {
@@ -8,4 +9,4 @@ export function SceneDoor({ label, onPress, disabled = false }: { label: string;
     <Text style={styles.label}>{label}</Text>
   </Pressable>;
 }
-const styles = StyleSheet.create({ door: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'flex-start', paddingRight: 12 }, picture: { width: 44, height: 60, borderRadius: 10, overflow: 'hidden' }, image: { position: 'absolute', width: 142, height: 284, left: -3, top: -68 }, label: { color: '#e5d4b2', fontSize: 17, flexShrink: 1 } });
+const styles = StyleSheet.create({ door: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'flex-start', paddingRight: 12 }, picture: { width: 44, height: 60, borderRadius: 10, overflow: 'hidden' }, image: { position: 'absolute', width: 142, height: 284, left: -3, top: -68 }, label: { color: '#e5d4b2', fontFamily: tokens.font.display, fontSize: 17, flexShrink: 1 } });

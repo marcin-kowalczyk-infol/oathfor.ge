@@ -65,16 +65,16 @@ export function SnapshotRules({ snapshot }: { snapshot: Snapshot }) {
   </View>;
 }
 const styles = StyleSheet.create({
-  rules: { gap: tokens.space.section, paddingHorizontal: 20, paddingVertical: 28, backgroundColor: '#e3d1ac', borderRadius: 8,
+  rules: { gap: tokens.space.section, paddingHorizontal: 16, paddingVertical: 24, backgroundColor: '#e3d1ac', borderRadius: 8,
     borderTopWidth: 5, borderBottomWidth: 5, borderColor: '#a7834c', shadowColor: '#050403', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 6 } },
   documentHead: { alignItems: 'center', gap: 12 }, group: { gap: tokens.space.small },
   promise: { paddingVertical: 20, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#a18455' },
-  promiseText: { color: '#352419', fontSize: 21, lineHeight: 31, fontWeight: '600' },
+  promiseText: { color: '#352419', fontFamily: tokens.font.display, fontSize: 20, lineHeight: 30, fontWeight: '400' },
   facts: { padding: 16, gap: 20, backgroundColor: '#d6be92', borderRadius: 8 },
   card: { gap: 10, paddingTop: 18, borderTopWidth: 1, borderTopColor: '#baa074' },
   evidence: { padding: 16, borderTopWidth: 0, borderLeftWidth: 3, borderLeftColor: '#906131', backgroundColor: '#dac39c', borderRadius: 4 },
-  title: { color: '#352419', fontSize: tokens.title, fontWeight: '700', textAlign: 'center' },
-  heading: { color: '#493322', fontSize: tokens.body, fontWeight: '700' },
+  title: { color: '#352419', fontFamily: tokens.font.display, fontSize: tokens.title, fontWeight: '400', textAlign: 'center' },
+  heading: { color: '#493322', fontFamily: tokens.font.display, fontSize: 19, lineHeight: 27, fontWeight: '400' },
   body: { color: '#35291f', fontSize: tokens.body, lineHeight: 26 },
   secondary: { color: '#64503c', fontSize: tokens.body, lineHeight: 26, textAlign: 'center' },
 });

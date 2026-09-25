@@ -35,6 +35,11 @@
       "next": "Next place",
       "done": "Start exploring",
       "skip": "Skip introduction"
+    },
+    "actions": {
+      "hearth": "Shape an Oath",
+      "seals": "View current Oaths",
+      "chronicle": "Read history"
     }
   },
   "sceneOpen": "Explore the Forge · prototype",

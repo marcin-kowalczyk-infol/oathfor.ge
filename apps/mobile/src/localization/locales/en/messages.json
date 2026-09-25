@@ -287,7 +287,8 @@
     "summary": "{{activity}} · {{deadline}}"
   },
   "forge": {
-    "title": "Your Forge",
+    "returnRoom": "Return to the Forge",
+    "title": "Your Oaths",
     "subtitle": "A promise takes shape through action.",
     "seals": "Oaths at the hearth",
     "seal": "Oath seal: {{activity}} · {{state}} · {{deadline}}",

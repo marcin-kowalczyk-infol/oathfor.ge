@@ -1,4 +1,5 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { tokens } from './tokens';
 import { useTranslation } from '../localization/LocalizationProvider';
 
 export function CompanionBubble({ message }: { message: string }) {
@@ -20,6 +21,6 @@ const styles = StyleSheet.create({
   speaker: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: '#44372c' },
   portrait: { position: 'absolute', width: 180.224, height: 270.336, left: -73.92, top: -3.52 },
-  name: { flexShrink: 1, fontSize: 15, color: '#513a24', fontWeight: '700' },
-  message: { flexShrink: 0, color: '#45311f', fontSize: 16, lineHeight: 24 },
+  name: { flexShrink: 1, fontFamily: tokens.font.body, fontSize: 14, color: '#6b4d30', fontWeight: '600', letterSpacing: 0.3 },
+  message: { flexShrink: 0, color: '#45311f', fontFamily: tokens.font.body, fontSize: 16, lineHeight: 25 },
 });

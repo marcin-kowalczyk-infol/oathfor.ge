@@ -251,3 +251,29 @@ test('paused Forge makes the paused state visible and offers review without a cr
   expect(screen.queryByRole('button', { name: 'Create an Oath' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Pause and resume' })).toBeOnTheScreen();
 });
+
+test('room navigation opens history and keeps full stored time in accessibility', async () => {
+  const f = setup();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'history' }, onReturn: jest.fn() }} /></LocalizationProvider>);
+  expect(await screen.findByText('Oct 25, 2026 at 2:30am')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: /Open Oath:.*Europe\/Warsaw/ })).toBeOnTheScreen();
+  expect(f.controller.list).toHaveBeenLastCalledWith({ view: 'history' });
+});
+test('room return preserves pending acceptance without resetting it', async () => {
+  const f = setup([]); const onReturn = jest.fn();
+  f.change({ kind: 'ready', busy: false, pending: { version: 1, accountId: id, previewId: id, requestId: id }, preview: null, oath: null, needsReview: false });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn }} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Return to the Forge' }));
+  expect(onReturn).toHaveBeenCalledTimes(1);
+  expect(f.controller.resetCreation).not.toHaveBeenCalled();
+  expect(screen.getByRole('button', { name: 'Check confirmation' })).toBeOnTheScreen();
+});
+
+test('hearth navigation on a paused account shows the pause notice instead of new creation', async () => {
+  const f = setup([]); jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
+  jest.mocked(f.controller.resetCreation).mockReturnValue(true);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
+  expect(await screen.findByText('Gameplay is paused. Existing reviews continue. Withdrawn Oaths will not return.')).toBeOnTheScreen();
+  expect(f.controller.resetCreation).not.toHaveBeenCalled();
+  expect(screen.queryByLabelText('Completion date')).toBeNull();
+});

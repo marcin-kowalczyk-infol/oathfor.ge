@@ -54,3 +54,7 @@ If Recovery is unavailable, omit its invitation and show the current mechanical 
 Owner selected **Żaromir** on 2026-09-24 and then accepted **Zharomir**, the wooden wanderer with the left-cheek ember seam and iron lantern, and the calm written persona as the starting brief. The owner explicitly allows refinement during artwork creation. Record resulting identity changes with the selected references; this decision is not approval of unseen artwork.
 
 T02 produces and visually reviews the canonical reference and four-stage concepts. Before production, review the selected generator's current terms. Under the owner's 2026-09-24 [storage decision](pipeline.md#files-and-continuity), masters may remain in ignored graphics temporarily; S3 backup is deferred. T02/T03 must inspect actual portrait/full-body readability and progression differences; this text cannot establish visual acceptance. Product catalogs, locale selection and iOS accessibility/layout checks remain later implementation work.
+
+## Player distinction exploration, 2026-09-26
+
+The owner requested a distinct main player and considers Żaromir a helper and guide. The current moving companion sprite remains a spatial prototype, not the player avatar. Proposed starter appearance, customization, naming and staging are recorded in [Player character and Forge roles](../product/player-character.md). No new player identity or character creator has been selected or implemented.

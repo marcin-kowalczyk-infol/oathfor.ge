@@ -291,7 +291,8 @@
     "summary": "{{activity}} · {{deadline}}"
   },
   "forge": {
-    "title": "Twoja Kuźnia",
+    "returnRoom": "Wróć do Kuźni",
+    "title": "Twoje Przysięgi",
     "subtitle": "Przysięga nabiera kształtu w działaniu.",
     "seals": "Przysięgi przy palenisku",
     "seal": "Pieczęć Przysięgi: {{activity}} · {{state}} · {{deadline}}",

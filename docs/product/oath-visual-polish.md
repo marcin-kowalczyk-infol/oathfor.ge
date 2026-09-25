@@ -127,3 +127,15 @@ On the first visit, Żaromir introduces the four clickable places in short, skip
 Implemented shared room backgrounds for creation, review, acceptance, Today, history, detail and pause. Activity choices use illustrated objects and a shape-changing selection marker. Companion dialogue includes the starting portrait and localized speaker name. Rules use parchment sections while retaining every immutable sentence and exact stored deadline. Existing screen entrances and touch springs respect reduced motion. The demonstration uses diffuse alpha haze in place of solid oval lights. See [selected assets](../art/forge-journey-assets.md).
 
 Native iPhone SE 3 / iOS 27 inspection covered PL creation artwork, selection and door navigation, plus EN Today, history, detail and pause. Review of the accessibility tree confirmed full rules and affected pause sets. Automated gestures did not establish scrolling reachability in this session, so the complete native acceptance journey, maximum Dynamic Type and VoiceOver remain pending. No device accessibility settings were changed. This is implementation progress, not final owner acceptance.
+
+## Room navigation continuation, 2026-09-26
+
+Owner feedback: the functional Forge could not be closed, typography felt weak and history dates were verbose. The owner also asked for a spatial entry and distinct place animations.
+
+Implemented in the development demo. Entering the room applies a short camera approach. Touching the hearth, seals or chronicle plays its own decorative response: an ember burst, turning runes or turning pages. Arrival shows a named action in the companion bubble. Only that action opens creation, the current Oaths or history. The door opens the current Oaths. A "Return to the Forge" door on every functional screen goes back to the room. The functional app stays mounted but hidden and excluded from accessibility, so form choices and an unresolved acceptance survive the round trip. When gameplay is paused, the hearth opens the current Oaths with the pause notice, never new creation. A remounted demo app starts at its own Today and does not replay an earlier room destination.
+
+History rows show a compact committed day and time. The accessible label keeps the full stored time and timezone. Titles, rule headings and door labels use the system serif display face. The Today title reads "Your Oaths" / "Twoje Przysięgi".
+
+Reduce Motion skips the camera approach and place responses. Responses stop when motion is disabled and never replay on return. They never create, change or confirm an Oath. The player-character idea is recorded as a [proposal](player-character.md) only.
+
+Native iPhone 18 Pro / iOS 27 check in PL: chronicle action opens history, the door returns to the room, and a creation choice survives leaving and reopening the hearth. The door opens current Oaths, with the demo badge below the status bar. Camera approach and place responses were seen only in still screenshots, not as frame-by-frame motion. EN, smaller screens, maximum text, Reduce Motion, VoiceOver and owner acceptance stay pending.
