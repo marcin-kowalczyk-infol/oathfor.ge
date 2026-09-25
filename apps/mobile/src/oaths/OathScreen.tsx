@@ -7,7 +7,7 @@ import { tokens } from '../ui/tokens';
 import { SnapshotRules } from './SnapshotRules';
 import type { OathController } from './controller';
 type TimeDraft = { date: string; time: string; zone: string; offset?: string };
-export function OathScreen({ controller, timezone, onLogout }: { controller: OathController; timezone: string; onLogout(): void }) {
+export function OathScreen({ controller, timezone, onLogout, onBack }: { controller: OathController; timezone: string; onLogout(): void; onBack?(): void }) {
   const { t } = useTranslation();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const [activity, setActivity] = useState<Activity>('running');
@@ -66,6 +66,7 @@ export function OathScreen({ controller, timezone, onLogout }: { controller: Oat
   }
   return <SafeAreaView style={styles.safeArea}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      {onBack && <Action label={t('oathHome.today')} variant="secondary" onPress={onBack} />}
       {!review && !detail && <Text accessibilityRole="header" style={styles.title}>{t('oath.title')}</Text>}
       {!ready && <>
         <Text accessibilityLiveRegion="polite" style={styles.body}>{t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading')}</Text>

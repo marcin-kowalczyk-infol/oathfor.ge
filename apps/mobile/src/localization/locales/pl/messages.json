@@ -255,5 +255,38 @@
       "review": "Poprawki i rozpatrywanie",
       "appeal": "Odwołania i usuwanie"
     }
+  },
+  "oathHome": {
+    "today": "Dzisiaj",
+    "history": "Historia",
+    "create": "Złóż Przysięgę",
+    "pause": "Pauza i wznowienie",
+    "loading": "Wczytywanie Przysiąg…",
+    "loadError": "Nie udało się wczytać Przysiąg. Spróbuj ponownie.",
+    "emptyToday": "Brak bieżących Przysiąg. Wybierz trening, gdy zechcesz zacząć.",
+    "emptyHistory": "Nie ma jeszcze zakończonych ani wycofanych Przysiąg.",
+    "refresh": "Odśwież",
+    "more": "Wczytaj więcej",
+    "open": "Otwórz Przysięgę: {{activity}}, {{deadline}}",
+    "group": "{{date}} · {{timezone}}",
+    "paused": "Rozgrywka jest wstrzymana. Sprawy w toku są nadal rozpatrywane; wycofane Przysięgi nie powrócą.",
+    "pauseTitle": "Sprawdź skutki pauzy",
+    "pauseIntro": "Przed potwierdzeniem sprawdź każdą Przysięgę poniżej. Pauza nie przedłuża terminów.",
+    "withdraw": "Zostaną wycofane",
+    "preserve": "Będą kontynuowane",
+    "none": "Brak",
+    "confirmPause": "Potwierdź pauzę",
+    "resume": "Wznów rozgrywkę",
+    "pauseChanged": "Twoje Przysięgi się zmieniły. Sprawdź zaktualizowaną listę przed potwierdzeniem pauzy.",
+    "pauseError": "Nie udało się potwierdzić zmiany pauzy. Przed kolejną próbą wczytaj jej bieżący stan.",
+    "reviewPause": "Wczytaj ponownie skutki pauzy",
+    "reviewDeadline": "Rozpatrywanie kończy się: {{deadline}}",
+    "unknownAvailability": "Dostępność usługi jest niepewna. Ta Przysięga jest rozpatrywana, a nie oznaczona jako niewykonana.",
+    "withdrawn": "Wycofana po włączeniu pauzy. Wznowienie nie przywróci tej Przysięgi.",
+    "detailError": "Nie udało się wczytać tej Przysięgi. Spróbuj ponownie.",
+    "future": "Zaplanowane",
+    "current": "Aktywne zobowiązania",
+    "pending": "Sprawy w toku",
+    "summary": "{{activity}} · {{deadline}}"
   }
 }

@@ -45,6 +45,7 @@ test('storage failure sends nothing; retry saves first and rapid presses send on
 });
 test('unknown prior acceptance blocks replacement by another preview', async () => {
   const f = setup(); const c = f.create(); c.start(); await flush(); await c.preview(input); await c.confirm();
+  expect(c.resetCreation()).toBe(false);
   await c.preview({ ...input, activity: 'mobility' });
   expect(f.api.preview).toHaveBeenCalledTimes(1);
   await c.confirm();
@@ -95,6 +96,7 @@ test('successful replay clears pending only after validated server success', asy
   const f = setup(); const c = f.create(); c.start(); await flush(); await c.preview(input); await c.confirm();
   jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'success', value: { oath: { id: previewId }, serverTime: '2026-10-24T00:00:00Z' } } as Awaited<ReturnType<OathClient['confirm']>>);
   await c.recover(); expect(f.saved.get(accountId)).toBeNull(); expect(c.getState()).toMatchObject({ kind: 'ready', pending: null, oath: { id: previewId } });
+  expect(c.resetCreation()).toBe(true); expect(c.getState()).toMatchObject({ kind: 'ready', preview: null, oath: null, pending: null });
 });
 test.each(['success', 'reauthenticate'] as const)('late old-account %s cannot affect replacement pending or session', async kind => {
   const f = setup(); const c = f.create(); c.start(); await flush(); await c.preview(input);

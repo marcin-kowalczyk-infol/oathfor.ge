@@ -1,0 +1,152 @@
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from '../localization/LocalizationProvider';
+import { resolveLocale } from '../localization/locale';
+import { formatDeadline } from '../localization/format';
+import type { Oath, OathListEnvelope } from '../api/oathSchema';
+import { Action } from '../ui/Action';
+import { tokens } from '../ui/tokens';
+import { SnapshotRules, storedTime } from './SnapshotRules';
+import { OathScreen } from './OathScreen';
+import { loadPauseReview, type PauseReview } from './pauseReview';
+import type { OathController } from './controller';
+type ViewName = 'today' | 'history';
+export function OathHomeScreen({ controller, timezone, onLogout }: { controller: OathController; timezone: string; onLogout(): void }) {
+  const { t, i18n } = useTranslation(); const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
+  const account = useSyncExternalStore(controller.subscribe, controller.getState);
+  const available = account.kind === 'ready';
+  const [route, setRoute] = useState<'list' | 'detail' | 'create' | 'pause'>('list');
+  const [view, setView] = useState<ViewName>('today');
+  const [list, setList] = useState<OathListEnvelope | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [detail, setDetail] = useState<Oath | null>(null);
+  const detailId = useRef('');
+  const [pause, setPause] = useState<PauseReview | null>(null);
+  const [pauseChanged, setPauseChanged] = useState(false);
+  const [pauseFailed, setPauseFailed] = useState(false);
+  const generation = useRef(0);
+  const mutation = useRef<symbol | undefined>(undefined);
+  const [mutating, setMutating] = useState(false);
+  const confirmedId = available ? account.oath?.id : undefined;
+  const current = (epoch: number) => epoch === generation.current;
+  async function loadList(nextView: ViewName, append = false) {
+    const epoch = ++generation.current;
+    const previous = append ? list : null;
+    const cursor = append ? list?.nextCursor : null;
+    setRoute('list'); setView(nextView); setFailed(false); setLoading(true);
+    if (!append) setList(null);
+    const result = await controller.list({ view: nextView, ...(cursor ? { cursor } : {}) });
+    if (!current(epoch)) return;
+    setLoading(false);
+    if (result.kind !== 'success') { setFailed(true); return; }
+    // Live pagination can repeat rows after server changes; keep the returned order of new rows.
+    const existing = new Set(previous?.items.map(item => item.id));
+    setList({ ...result.value, items: previous ? [...previous.items, ...result.value.items.filter(item => !existing.has(item.id))] : result.value.items });
+  }
+  useEffect(() => {
+    mutation.current = undefined; setMutating(false);
+    if (available) void loadList('today');
+    return () => { generation.current++; mutation.current = undefined; };
+  }, [available, controller]);
+  useEffect(() => { if (confirmedId && route === 'list') void loadList(view); }, [confirmedId]);
+  async function openDetail(id: string) {
+    const epoch = ++generation.current; detailId.current = id;
+    setRoute('detail'); setDetail(null); setLoading(true); setFailed(false);
+    const result = await controller.detail(id);
+    if (!current(epoch)) return;
+    setLoading(false);
+    if (result.kind === 'success' && result.value.oath.id === id) setDetail(result.value.oath);
+    else setFailed(true);
+  }
+  async function showPause(changed = false) {
+    const epoch = ++generation.current;
+    setRoute('pause'); setPause(null); setLoading(true); setFailed(false); setPauseFailed(false); setPauseChanged(changed);
+    const result = await loadPauseReview(controller);
+    if (!current(epoch)) return;
+    setLoading(false);
+    if (result.kind === 'success') setPause(result.value); else setFailed(true);
+  }
+  async function changePause() {
+    if (!pause || mutation.current) return;
+    const operation = Symbol('pause'); mutation.current = operation; setMutating(true);
+    const epoch = generation.current;
+    const result = await controller.pause(pause.summary.paused ? { paused: false } : { paused: true, revision: pause.summary.revision });
+    if (mutation.current !== operation) return;
+    mutation.current = undefined;
+    setMutating(false);
+    if (!current(epoch)) return;
+    if (result.kind === 'success') { await loadList('today'); return; }
+    if (result.kind === 'oath_error' && result.code === 'pause_preview_changed') { await showPause(true); return; }
+    setPause(null); setPauseFailed(true);
+  }
+  function create(recover = false) {
+    if (!recover && !controller.resetCreation()) return;
+    generation.current++; setRoute('create');
+  }
+  function summary(item: Oath, actionable = false) { return t(actionable ? 'oathHome.open' : 'oathHome.summary', { activity: item.snapshot.copy[locale].activity, deadline: storedTime(item.snapshot.deadline, locale) }); }
+  function category(item: Oath) { return item.state === 'scheduled' ? 'future' : item.state === 'active' ? 'current' : 'pending'; }
+  function group(item: Oath) {
+    const date = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.snapshot.deadline.local}Z`));
+    return t('oathHome.group', { date, timezone: item.snapshot.deadline.timezone });
+  }
+  if (available && route === 'create') return <OathScreen controller={controller} timezone={timezone} onLogout={onLogout} onBack={() => { void loadList('today'); }} />;
+  return <SafeAreaView style={styles.safeArea}><ScrollView contentContainerStyle={styles.content}>
+    <Text accessibilityRole="header" style={styles.title}>{t(route === 'pause' ? 'oathHome.pauseTitle' : route === 'detail' ? 'oath.confirmed' : `oathHome.${view}`)}</Text>
+    {!available && <>
+      <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
+      {account.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
+    </>}
+    {available && <>
+      <Action label={t('oathHome.today')} variant="secondary" busy={mutating} onPress={() => { void loadList('today'); }} />
+      <Action label={t('oathHome.history')} variant="secondary" busy={mutating} onPress={() => { void loadList('history'); }} />
+      {account.pending ? <>
+        <Text style={styles.body}>{t('oath.pending')}</Text>
+        <Action label={t('oath.recover')} busy={account.busy || mutating} onPress={() => create(true)} />
+      </> : <Action label={t('oathHome.create')} busy={account.busy || mutating} onPress={() => create()} />}
+      <Action label={t('oathHome.pause')} busy={mutating} variant="secondary" onPress={() => { void showPause(); }} />
+      {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
+      {route === 'list' && <>
+        {list?.paused && <Text style={styles.body}>{t('oathHome.paused')}</Text>}
+        {list?.items.map((item, index) => <View key={item.id} style={styles.card}>
+          {view === 'today' && (index === 0 || category(item) !== category(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
+          {(index === 0 || group(item) !== group(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{group(item)}</Text>}
+          <Text style={styles.body}>{t(`oath.states.${item.state}`)}</Text>
+          <Action label={summary(item, true)} variant="secondary" onPress={() => { void openDetail(item.id); }} />
+        </View>)}
+        {!loading && !failed && list?.items.length === 0 && <Text style={styles.body}>{t(view === 'today' ? 'oathHome.emptyToday' : 'oathHome.emptyHistory')}</Text>}
+        {failed && <><Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loadError')}</Text><Action label={t('oath.retry')} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
+        {list?.nextCursor && !failed && <Action label={t('oathHome.more')} busy={loading} onPress={() => { void loadList(view, true); }} />}
+        <Action label={t('oathHome.refresh')} busy={loading} variant="secondary" onPress={() => { void loadList(view); }} />
+      </>}
+      {route === 'detail' && <>
+        {failed && <><Text style={styles.body}>{t('oathHome.detailError')}</Text><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current); }} /></>}
+        {detail && <>
+          <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.state', { state: t(`oath.states.${detail.state}`) })}</Text>
+          {detail.reason === 'service_availability_unknown' && <Text style={styles.body}>{t('oathHome.unknownAvailability')}</Text>}
+          {detail.reason === 'account_paused' && <Text style={styles.body}>{t('oathHome.withdrawn')}</Text>}
+          {detail.review && <Text style={styles.body}>{t('oathHome.reviewDeadline', { deadline: formatDeadline(new Date(detail.review.closesAt), locale, 'UTC') })}</Text>}
+          <SnapshotRules snapshot={detail.snapshot} />
+        </>}
+      </>}
+      {route === 'pause' && <>
+        {pauseChanged && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.pauseChanged')}</Text>}
+        {(failed || pauseFailed) && <><Text style={styles.body}>{t(pauseFailed ? 'oathHome.pauseError' : 'oathHome.loadError')}</Text><Action label={t('oathHome.reviewPause')} onPress={() => { void showPause(); }} /></>}
+        {pause && <>
+          <Text style={styles.body}>{t(pause.summary.paused ? 'oathHome.paused' : 'oathHome.pauseIntro')}</Text>
+          {(['withdraw', 'preserve'] as const).map(key => <View key={key} style={styles.card}>
+            <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${key}`)}</Text>
+            {pause[key].length === 0 && <Text style={styles.body}>{t('oathHome.none')}</Text>}
+            {pause[key].map(item => <Text key={item.id} style={styles.body}>{summary(item)}</Text>)}
+          </View>)}
+          <Action label={t(pause.summary.paused ? 'oathHome.resume' : 'oathHome.confirmPause')} busy={mutating} onPress={() => { void changePause(); }} />
+        </>}
+      </>}
+    </>}
+    <Action label={t('auth.signOut')} variant="secondary" onPress={onLogout} />
+  </ScrollView></SafeAreaView>;
+}
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: tokens.color.canvas }, content: { flexGrow: 1, padding: tokens.space.card, gap: tokens.space.section }, card: { gap: tokens.space.item },
+  title: { color: tokens.color.text, fontSize: tokens.title, fontWeight: '600' }, label: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '600' }, body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
+});

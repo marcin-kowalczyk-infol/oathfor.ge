@@ -1,6 +1,6 @@
 # Onboarding into the Trial of the Spark
 
-Status: accepted product intention and local implementation contract, 2026-09-24. Authentication is implemented through MVP-04-T14; T16 implements profile persistence and server completion; T17 implements mobile profile hydration and confirmed language/timezone/intention. T18 adds the accepted companion introduction with durable acknowledgment. T19 adds the optional notification preference and device-permission step; T20 adds final review and server completion; MVP-05-T09 replaces the provisional entry with a bilingual Oath form, stored-rule review and explicit confirmation. Real signed-device/provider acceptance remains a separate gate.
+Status: accepted product intention and local implementation contract, 2026-09-24. Authentication is implemented through MVP-04-T14; T16 implements profile persistence and server completion; T17 implements mobile profile hydration and confirmed language/timezone/intention. T18 adds the accepted companion introduction with durable acknowledgment. T19 adds the optional notification preference and device-permission step; T20 adds final review and server completion; MVP-05-T09 replaces the provisional entry with a bilingual Oath form, stored-rule review and explicit confirmation; T10 makes Today the entry with creation, detail, history and pause navigation. Real signed-device/provider acceptance remains a separate gate.
 
 ## Intention and boundaries
 

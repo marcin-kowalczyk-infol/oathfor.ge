@@ -312,7 +312,7 @@ Rebuild the native app after installing the module. The standard Expo notificati
 
 T20 shows a final review for pending accounts with all fields confirmed, including returning accounts interrupted between saving notification opt-in and the OS prompt. It displays saved choices and freshly read device permission without automatically prompting. Denial or unavailable permission does not prevent completion. The explicit continuation calls `POST /api/onboarding/complete`; guard rejection refetches missing steps, and an ambiguous response is reconciled by a profile read before retry. Late results after logout cannot reopen the account.
 
-Only a server-complete profile reaches the first-Oath entry. Returning completed accounts first hydrate their saved language and then bypass onboarding. MVP-05-T09 replaces the provisional Trial entry with the actual form and stored-rule review described below. Entering it issues no commitment or XP; its separate explicit acceptance submits the saved preview. Real signed-device first-Oath acceptance remains the MVP-04-T22/MVP-05 native gate.
+Only a server-complete profile reaches the first-Oath entry. Returning completed accounts first hydrate their saved language and then bypass onboarding. MVP-05-T09 replaces the provisional Trial entry with the actual form and stored-rule review; T10 adds Today, history, detail and pause navigation around it. Entering it issues no commitment or XP; its separate explicit acceptance submits the saved preview. Real signed-device first-Oath acceptance remains the MVP-04-T22/MVP-05 native gate.
 
 Implementation is locally verified with synthetic backend/native adapters. Release acceptance remains open in the [account/onboarding matrix](testing.md#account-and-onboarding-acceptance). `apps/mobile/app.json` still omits `ios.bundleIdentifier`; Expo introspection uses `com.placeholder.appid`, which is not a registered project identifier. Before a signed build, set the registered identifier matching backend `APPLE_CLIENT_ID`, configure matching Apple Sign in/APNs signing capabilities, and provision the private backend keys described above. Do not place keys in mobile configuration or chat.
 
@@ -350,8 +350,14 @@ Pending acceptance stores account/preview/request identifiers only, with the ses
 
 ## Mobile original-Oath review
 
-The completed-profile destination uses the app-owned Oath client and a session-bound controller. Activity, activation choice and completion date/time are explicit choices. The form retains user-entered local values; nonexistent times require correction, and repeated times require a server-provided explicit UTC offset. A preview remains separate from acceptance.
+The creation flow uses the app-owned Oath client and a session-bound controller. Activity, activation choice and completion date/time are explicit choices. The form retains user-entered local values; nonexistent times require correction, and repeated times require a server-provided explicit UTC offset. A preview remains separate from acceptance.
 
 Before confirmation, the screen renders the complete stored bilingual rule copy, selected activity, activation choice, D and S, with the committed IANA zone and resolved offset. Changing display language selects the saved translation. Only the explicit acceptance action enters the durable confirmation flow. Lost responses expose recovery of the existing acceptance; superseded rules or elapsed timing require a new preview and review. The resulting detail uses the authoritative commitment response and does not imply proof submission or awarded XP.
 
 These screens use existing mobile controls/tokens and a scrolling column with growing text. Component tests and an iOS export establish local wiring/packaging; signed-device layout, Keychain, VoiceOver and system Dynamic Type remain the separate acceptance matrix above.
+
+## Mobile Today, history and pause
+
+The completed-profile destination exposes Today, creation, owner-only detail and terminal history. Lists retain the server's ordering and include future scheduled and overdue pending commitments. Date groups use each commitment's saved zone; changing the device locale or zone cannot hide pending work or move its deadline. Only server state determines the displayed outcome. History does not infer awarded XP or linked Recovery from policy text.
+
+Pause first loads the complete affected set and owner details for every listed commitment, so the confirmation identifies activity and deadline instead of opaque IDs. A changed revision requires a refreshed summary and renewed confirmation. Successful pause/resume refreshes lists from their first page; resume never restores withdrawn commitments. Pending acceptance recovery remains available alongside these views. Proof, outcome settlement, actual reward balances and Recovery actions remain downstream work.

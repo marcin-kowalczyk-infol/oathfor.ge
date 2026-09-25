@@ -31,7 +31,7 @@ function setup() {
   jest.mocked(Apple.isAvailableAsync).mockResolvedValue(true);
   jest.mocked(Apple.signInAsync).mockResolvedValue({ state: challenge.state, identityToken: 'DUMMY-token', authorizationCode: 'DUMMY-code' } as Apple.AppleAuthenticationCredential);
   const profileApi = { get: jest.fn().mockResolvedValue({ kind: 'success', value: { profile: { locale: null, timezone: null, intention: null, companionIntroduced: false, notificationPreference: null }, onboardingStatus: 'pending' } }), patch: jest.fn(), complete: jest.fn() };
-  const oathApi = {} as OathClient;
+  const oathApi = { list: jest.fn().mockResolvedValue({ kind: 'success', value: { items: [], nextCursor: null, serverTime: '2026-09-24T12:00:00Z', paused: false } }) } as unknown as OathClient;
   const acceptanceStorage = { read: jest.fn().mockResolvedValue({ kind: 'success', value: null }), write: jest.fn().mockResolvedValue({ kind: 'success' }) };
   return { api, profileApi, oathApi, acceptanceStorage, storage, controller, apple, remove, revoke: () => revoke(), authenticate: createAppleAuthentication(api) };
 }
@@ -97,9 +97,10 @@ test('completed accounts load profile and confirmed language before their destin
   runtime.profileApi.get.mockReturnValueOnce(new Promise(resolve => { resolveProfile = resolve; }));
   await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
-  expect(screen.queryByText('Trial of the Spark')).not.toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Today' })).not.toBeOnTheScreen();
   await act(async () => resolveProfile({ kind: 'success', value: { profile: { locale: 'pl', timezone: 'Europe/Warsaw', intention: 'regular_activity', companionIntroduced: true, notificationPreference: 'disabled' }, onboardingStatus: 'complete' } }));
-  expect(await screen.findByText('Próba Iskry')).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'Dzisiaj' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Złóż Przysięgę' }));
   expect(await screen.findByRole('button', { name: 'Zobacz zasady' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Wyloguj się' }));
   expect(await screen.findByText('Welcome to Oathforge')).toBeOnTheScreen();
@@ -131,7 +132,7 @@ test.each(['pending', 'complete'] as const)('saved timezone unavailable on this 
   await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
   if (onboardingStatus === 'complete') {
-    expect(await screen.findByText('Próba Iskry')).toBeOnTheScreen();
+    expect(await screen.findByRole('header', { name: 'Dzisiaj' })).toBeOnTheScreen();
     expect(screen.queryByRole('checkbox')).toBeNull();
   } else {
     expect(await screen.findByLabelText('Strefa czasowa')).toBeOnTheScreen();
@@ -198,7 +199,7 @@ test('notification action survives saved-profile routing and native foreground v
   expect(screen.getByText('This device does not allow notifications. You can continue without changing this.')).toBeOnTheScreen();
   runtime.profileApi.complete.mockResolvedValue({ kind: 'success', value: { ...stored, onboardingStatus: 'complete' } });
   await fireEvent.press(await screen.findByRole('button', { name: 'Continue', disabled: false }));
-  expect(await screen.findByText('Trial of the Spark')).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'Today' })).toBeOnTheScreen();
   expect(permissions.request).toHaveBeenCalledTimes(1);
   expect(runtime.profileApi.complete).toHaveBeenCalledTimes(1);
 });
@@ -217,11 +218,11 @@ test.each(['denied', 'unavailable'] as const)('saved opt-in restart reviews with
   expect(permissions.read).toHaveBeenCalled(); expect(permissions.request).not.toHaveBeenCalled();
   expect(runtime.profileApi.complete).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
-  expect(screen.queryByText('Trial of the Spark')).toBeNull();
+  expect(screen.queryByRole('header', { name: 'Today' })).toBeNull();
   expect(runtime.profileApi.get).toHaveBeenCalledTimes(2);
   runtime.profileApi.complete.mockResolvedValueOnce({ kind: 'success', value: { ...saved, onboardingStatus: 'complete' } });
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
-  expect(await screen.findByText('Trial of the Spark')).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'Today' })).toBeOnTheScreen();
   expect(permissions.request).not.toHaveBeenCalled();
 });
 

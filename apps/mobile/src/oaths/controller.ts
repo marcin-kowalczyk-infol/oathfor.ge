@@ -129,6 +129,10 @@ export function createOathController(options: { session: SessionController; api:
     stop() { invalidate(); unsubscribe?.(); unsubscribe = undefined; binding = undefined; selected = null; pending = null; oath = null; publish({ kind: 'idle' }); },
     dispose() { invalidate(); unsubscribe?.(); unsubscribe = undefined; disposed = true; listeners.clear(); },
     preview, confirm, recover, refresh,
+    resetCreation() {
+      if (state.kind !== 'ready' || state.busy || pending) return false;
+      selected = null; oath = null; needsReview = false; ready(); return true;
+    },
     detail: (id: string) => call((token, signal) => options.api.detail(token, id, signal)),
     list: (query: OathListQuery) => call((token, signal) => options.api.list(token, query, signal)),
     getPause: () => call((token, signal) => options.api.getPause(token, signal)),

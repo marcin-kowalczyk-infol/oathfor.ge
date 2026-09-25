@@ -7,7 +7,7 @@ import { tokens } from '../ui/tokens';
 const sections = ['activation', 'timing', 'evidence', 'photo', 'activityRecord', 'privacy', 'rewards', 'consequence', 'pause', 'recovery', 'review', 'appeal'] as const;
 const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' };
 
-function storedTime(value: ResolvedTime, locale: Locale): string {
+export function storedTime(value: ResolvedTime, locale: Locale): string {
   // Format the stored wall time without asking a device timezone database to reinterpret it.
   const display = new Intl.DateTimeFormat(locale, { ...options, timeZone: 'UTC' }).format(new Date(`${value.local}Z`));
   return `${display} · ${value.timezone} · UTC${value.offset}`;

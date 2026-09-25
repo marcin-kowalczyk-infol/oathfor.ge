@@ -251,5 +251,38 @@
       "review": "Corrections and review",
       "appeal": "Appeals and deletion"
     }
+  },
+  "oathHome": {
+    "today": "Today",
+    "history": "History",
+    "create": "Create an Oath",
+    "pause": "Pause and resume",
+    "loading": "Loading Oaths…",
+    "loadError": "We could not load your Oaths. Try again.",
+    "emptyToday": "No current Oaths. Choose a workout when you are ready.",
+    "emptyHistory": "No completed or withdrawn Oaths yet.",
+    "refresh": "Refresh",
+    "more": "Load more",
+    "open": "Open Oath: {{activity}}, {{deadline}}",
+    "group": "{{date}} · {{timezone}}",
+    "paused": "Gameplay is paused. Existing reviews continue; withdrawn Oaths will not return.",
+    "pauseTitle": "Review pause",
+    "pauseIntro": "Review every Oath below before confirming. Pause does not extend deadlines.",
+    "withdraw": "Will be withdrawn",
+    "preserve": "Will continue",
+    "none": "None",
+    "confirmPause": "Confirm pause",
+    "resume": "Resume gameplay",
+    "pauseChanged": "Your Oaths changed. Review this updated list before confirming pause.",
+    "pauseError": "We could not confirm the pause change. Reload its current status before trying again.",
+    "reviewPause": "Reload pause review",
+    "reviewDeadline": "Review closes at {{deadline}}",
+    "unknownAvailability": "Service availability is uncertain. This Oath is under review, not marked missed.",
+    "withdrawn": "Withdrawn when gameplay was paused. Resuming does not restore this Oath.",
+    "detailError": "We could not load this Oath. Try again.",
+    "future": "Scheduled",
+    "current": "Active commitments",
+    "pending": "Cases in progress",
+    "summary": "{{activity}} · {{deadline}}"
   }
 }
