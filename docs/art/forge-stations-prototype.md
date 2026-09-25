@@ -32,3 +32,7 @@ Runtime uses one centered cover transform for the backdrop, companion and object
 Local master and exact prompt: `graphics/mvp-05/stations/room-prototype-v03.png`, `room-v03.prompt.txt`; metadata: `provenance-v03.json` in that directory. Intermediate v02 prompt/metadata remain beside it. Same generation-day terms/provenance limitations apply as above. Native checks and final owner acceptance are recorded separately; this is a demo export, not final production art approval.
 
 Companion speech uses a runtime face crop of the existing canonical `zharomir-wanderer-v01` export. No new portrait or generated identity is introduced. The visible portrait and bilingual speaker name identify Żaromir in both the first-visit guide and destination bubbles; the walking sheet remains a separate provisional asset.
+
+## Diffuse illumination follow-up, 2026-09-26
+
+The object and door lights now use the feathered alpha sprite in the [journey manifest](forge-journey-assets.md). Solid oval glows and floor pools were removed. Pulse timing, first-visit guidance, contact feedback and stationary hit areas are preserved. The room still is also selected for functional screens under the current owner direction.

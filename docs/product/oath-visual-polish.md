@@ -121,3 +121,9 @@ The initial touch-affordance trial added a floating light and lower light arc. T
 ### Companion introduction — owner direction, 2026-09-25
 
 On the first visit, Żaromir introduces the four clickable places in short, skippable speech bubbles while highlighting the current destination. Touching a place remains available during the introduction. Every companion bubble carries his canonical portrait and localized name so its speaker is clear. In the isolated DUMMY demo, completion is remembered only for the current session; the demo controls allow replay. This is an interaction prototype, not persisted account onboarding or new Oath functionality.
+
+## Illustrated screen continuation, 2026-09-26
+
+Implemented shared room backgrounds for creation, review, acceptance, Today, history, detail and pause. Activity choices use illustrated objects and a shape-changing selection marker. Companion dialogue includes the starting portrait and localized speaker name. Rules use parchment sections while retaining every immutable sentence and exact stored deadline. Existing screen entrances and touch springs respect reduced motion. The demonstration uses diffuse alpha haze in place of solid oval lights. See [selected assets](../art/forge-journey-assets.md).
+
+Native iPhone SE 3 / iOS 27 inspection covered PL creation artwork, selection and door navigation, plus EN Today, history, detail and pause. Review of the accessibility tree confirmed full rules and affected pause sets. Automated gestures did not establish scrolling reachability in this session, so the complete native acceptance journey, maximum Dynamic Type and VoiceOver remain pending. No device accessibility settings were changed. This is implementation progress, not final owner acceptance.

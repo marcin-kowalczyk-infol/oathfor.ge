@@ -14,3 +14,5 @@ Apply to implementation tasks; API tooling is available in the [development guid
 | Record significant boundary/technology tradeoffs in a short ADR with status and consequences | [Nygard ADRs](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) |
 
 Follow the existing formatter once configured. Do not introduce a code-style toolchain merely to edit documentation. **Local scope convention.**
+
+Authored content follows the punctuation rule in the [glossary](../../docs/product/glossary.md#content-punctuation). No em dashes (U+2014) or semicolons in new prose or player-facing text. Code syntax and immutable historical records are excluded. **Local decision: owner instruction, 2026-09-26.**

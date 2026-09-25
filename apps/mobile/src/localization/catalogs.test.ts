@@ -1,5 +1,16 @@
 import { catalogs } from './createTranslation';
 import { validateCatalogs } from './validateCatalogs';
+import demoPl from '../../demo/locales/pl.json';
+import demoEn from '../../demo/locales/en.json';
+
+test('authored content rejects long dashes and semicolons', () => {
+  expect(validateCatalogs({ pl: { cue: 'Dotknij\u2014tutaj' }, en: { cue: 'Touch; here' } }))
+    .toEqual(expect.arrayContaining(['pl: forbidden punctuation cue', 'en: forbidden punctuation cue']));
+});
+
+test('demo catalogs follow the same content rules', () => {
+  expect(validateCatalogs({ pl: demoPl, en: demoEn })).toEqual([]);
+});
 
 test('both shipped catalogs are complete', () => {
   expect(validateCatalogs(catalogs)).toEqual([]);

@@ -94,8 +94,8 @@ test.each([
 
 
 test.each([
-  ['en', 'Continue', 'I am Zharomir, a guardian linked to Veles. I will accompany you on the path of your Oath. You choose the commitment; I help you remember its rules and the steps available to you.'],
-  ['pl', 'Dalej', 'Jestem Żaromir, strażnik związany z Welesem. Będę ci towarzyszył na drodze Przysięgi. Ty wybierasz zobowiązanie; ja pomagam pamiętać jego zasady i dostępne kroki.'],
+  ['en', 'Continue', 'I am Zharomir, a guardian linked to Veles. I will accompany you on the path of your Oath. You choose the commitment. I help you remember its rules and the steps available to you.'],
+  ['pl', 'Dalej', 'Jestem Żaromir, strażnik związany z Welesem. Będę ci towarzyszył na drodze Przysięgi. Ty wybierasz zobowiązanie. Ja pomagam pamiętać jego zasady i dostępne kroki.'],
 ] as const)('%s companion introduction retains copy and continuation when decorative art fails', async (locale, next, introduction) => {
   const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
   const state: OnboardingViewProps['state'] = { ...ready, value: { profile: { ...ready.value.profile, locale, timezone: 'Europe/Warsaw', intention: 'regular_activity' }, onboardingStatus: 'pending' } };

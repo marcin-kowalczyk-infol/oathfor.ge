@@ -43,7 +43,7 @@
     "error_load": "Nie udało się sprawdzić, czy wybory zostały zapisane. Spróbuj sprawdzić ponownie przed potwierdzeniem kolejnej zmiany.",
     "companionTitle": "Poznaj Żaromira",
     "notificationsTitle": "Powiadomienia",
-    "notificationsPending": "Powiadomienia są opcjonalne. Wybierz to, co Ci odpowiada — możesz przejść dalej bez nich.",
+    "notificationsPending": "Powiadomienia są opcjonalne. Wybierz to, co Ci odpowiada. Możesz przejść dalej bez nich.",
     "reviewTitle": "Twoje wybory są zapisane",
     "reviewPending": "Sprawdź zapisane wybory i przejdź dalej. Zgoda na powiadomienia jest opcjonalna. Przejście dalej nie tworzy Przysięgi.",
     "reviewLanguage": "Język: {{language}}",
@@ -54,7 +54,7 @@
     "completionLoadError": "Nie udało się sprawdzić, czy przygotowania są zakończone. Spróbuj ponownie sprawdzić zapisany postęp.",
     "trialTitle": "Próba Iskry",
     "trialPending": "Tworzenie pierwszej Przysięgi nie jest jeszcze dostępne. Żadna Przysięga się nie rozpoczęła.",
-    "companionIntroduction": "Jestem Żaromir, strażnik związany z Welesem. Będę ci towarzyszył na drodze Przysięgi. Ty wybierasz zobowiązanie; ja pomagam pamiętać jego zasady i dostępne kroki.",
+    "companionIntroduction": "Jestem Żaromir, strażnik związany z Welesem. Będę ci towarzyszył na drodze Przysięgi. Ty wybierasz zobowiązanie. Ja pomagam pamiętać jego zasady i dostępne kroki.",
     "continue": "Dalej",
     "introductionError": "Nie udało się potwierdzić tego kroku. Spróbuj ponownie."
   },
@@ -108,7 +108,7 @@
   "status": {
     "proof_pending": {
       "heading": "Ocena trwa",
-      "description": "Dowód otrzymany; ocena jeszcze się nie zakończyła."
+      "description": "Dowód otrzymany. Ocena jeszcze się nie zakończyła."
     },
     "needs_more_evidence": {
       "heading": "Potrzebne uzupełnienie",
@@ -116,7 +116,7 @@
     },
     "review_pending": {
       "heading": "W trakcie rozpatrywania",
-      "description": "Sprawa czeka na decyzję; to nie jest niewykonanie Przysięgi."
+      "description": "Sprawa czeka na decyzję. To nie jest niewykonanie Przysięgi."
     },
     "fulfilled": {
       "heading": "Spełniona",
@@ -128,7 +128,7 @@
     },
     "recovered": {
       "heading": "Nadrobiona",
-      "description": "Zadanie Powrotu ukończone; wcześniejsza niewykonana Przysięga pozostaje w historii."
+      "description": "Zadanie Powrotu ukończone. Wcześniejsza niewykonana Przysięga pozostaje w historii."
     },
     "unresolved": {
       "heading": "Nierozstrzygnięta",
@@ -140,6 +140,7 @@
     }
   },
   "companion": {
+    "speaker": "Żaromir",
     "wanderer": {
       "name": "Wędrowiec",
       "description": "Żaromir, drewniany wędrowiec z żelazną latarnią."
@@ -158,7 +159,7 @@
     },
     "sparkMantle": {
       "name": "Płaszcz Iskry",
-      "description": "Żaromir zachowuje wstęgę, znak i okucia; nosi nowy, warstwowy płaszcz."
+      "description": "Żaromir zachowuje wstęgę, znak i okucia. Nosi nowy, warstwowy płaszcz."
     },
     "current": "Obecny wygląd",
     "locked": "Jeszcze nieodblokowane",
@@ -239,7 +240,7 @@
       "deadline": "Ukończ do (D)",
       "cutoff": "Dowód musi dotrzeć do (S)",
       "declaration": "Wymagane potwierdzenie ukończenia",
-      "now": "Teraz — w chwili potwierdzenia na serwerze"
+      "now": "Teraz, w chwili potwierdzenia na serwerze"
     },
     "sections": {
       "activation": "Rozpoczęcie i zobowiązanie",
@@ -269,7 +270,7 @@
     "more": "Wczytaj więcej",
     "open": "Otwórz Przysięgę: {{activity}}, {{deadline}}",
     "group": "{{date}} · {{timezone}}",
-    "paused": "Rozgrywka jest wstrzymana. Sprawy w toku są nadal rozpatrywane; wycofane Przysięgi nie powrócą.",
+    "paused": "Rozgrywka jest wstrzymana. Sprawy w toku są nadal rozpatrywane. Wycofane Przysięgi nie powrócą.",
     "pauseTitle": "Sprawdź skutki pauzy",
     "pauseIntro": "Przed potwierdzeniem sprawdź każdą Przysięgę poniżej. Pauza nie przedłuża terminów.",
     "withdraw": "Zostaną wycofane",

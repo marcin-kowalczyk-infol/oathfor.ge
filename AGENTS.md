@@ -11,6 +11,8 @@ Build the accountability game described in [README](README.md). The Symfony API,
 - Write code identifiers and engineering documentation in English; communicate with the user in their language. MVP player-facing content must support Polish and English with natural, meaning-preserving localization and Slavic-inspired naming. Follow the [language and naming rules](docs/product/glossary.md#language-and-naming-rules). **Local decision: owner instruction, 2026-09-23; refines the English convention in [ADR 0001](docs/decisions/0001-project-foundation.md).**
 - Distinguish accepted decisions, proposals and verified implementation. Cite an authoritative source next to each new best-practice rule, including version/date where relevant; label our own choices as local decisions. **Local convention: [evidence policy](.agents/rules/evidence.md).**
 
+Authored content must not contain em dashes (U+2014) or semicolons. Use short sentences or commas. This covers player-facing copy and new documentation prose, with code syntax excluded. Preserve immutable historical Oath records. **Local decision: owner instruction, 2026-09-26.**
+
 ## Architecture and invariants
 
 - Mobile: React Native / Expo / TypeScript. API: Symfony 7.4 LTS / PostgreSQL / Redis / Messenger. Read [architecture](docs/engineering/architecture.md) before crossing boundaries. **Source: [ADR 0001](docs/decisions/0001-project-foundation.md).**

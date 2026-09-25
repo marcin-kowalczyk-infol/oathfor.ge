@@ -149,9 +149,8 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete 
   }}>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.scenery}>
       <Image source={room} resizeMode="stretch" style={{ position: 'absolute', left, top, width: sceneWidth, height: sceneHeight }} />
-      {stations.map(station => <Animated.View key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === station.id ? [0.45, 0.75] : target === station.id ? [0.30, 0.60] : [0.16, 0.48] }) }]} />)}
-      <Animated.View style={[styles.doorGlow, { ...point(0.17, 0.37), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === 'door' ? [0.45, 0.72] : [0.16, 0.48] }) }]} />
-      {stations.map(station => <View key={station.id} style={[styles.stationPool, { ...point(station.footX, station.footY), opacity: arrived === station.id ? 0.24 : target === station.id ? 0.1 : 0 }]} />)}
+      {stations.map(station => <Animated.Image source={require('../assets/forge/ember-haze-v01.png')} key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === station.id ? [0.45, 0.75] : target === station.id ? [0.30, 0.60] : [0.16, 0.48] }) }]} />)}
+      <Animated.Image source={require('../assets/forge/ember-haze-v01.png')} style={[styles.doorGlow, { ...point(0.17, 0.37), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === 'door' ? [0.45, 0.72] : [0.16, 0.48] }) }]} />
       {target && !arrived && [0, 1, 2].map(spark => <View key={spark} style={[styles.spark, { ...point(0.44 + spark * 0.055, 0.46 - ((frame + spark) % 4) * 0.025), opacity: 0.25 + ((frame + spark) % 4) * 0.18 }]} />)}
     </View>
     <SceneHotspot label={copy.exit} onPress={() => { finishIntro(); onExit(); }} anchor={hotspot(0.17, 0.37)} door allowed={allowed} glow={glow} />
@@ -188,9 +187,8 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete 
 const styles = StyleSheet.create({
   root: { flex: 1, overflow: 'hidden', backgroundColor: '#111719' },
   scenery: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden' },
-  objectGlow: { position: 'absolute', width: 72, height: 52, marginLeft: -36, marginTop: -26, borderRadius: 36, backgroundColor: '#edb65c', shadowColor: '#ffc36a', shadowOpacity: 1, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } },
-  doorGlow: { position: 'absolute', width: 44, height: 78, marginLeft: -22, marginTop: -39, borderRadius: 24, backgroundColor: '#a1d6e0', shadowColor: '#bfe8f0', shadowOpacity: 1, shadowRadius: 20, shadowOffset: { width: 0, height: 0 } },
-  stationPool: { position: 'absolute', width: 80, height: 20, marginLeft: -40, marginTop: -6, borderRadius: 40, backgroundColor: '#dca341' },
+  objectGlow: { position: 'absolute', width: 180, height: 160, marginLeft: -90, marginTop: -85 },
+  doorGlow: { position: 'absolute', width: 130, height: 180, marginLeft: -65, marginTop: -95, tintColor: '#bfe8f0' },
   spark: { position: 'absolute', width: 3, height: 5, backgroundColor: '#ffc775', borderRadius: 3 },
   station: { position: 'absolute', width: 76, height: 72, marginLeft: -38, marginTop: -36, borderRadius: 30, zIndex: 2 },
   cueLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },

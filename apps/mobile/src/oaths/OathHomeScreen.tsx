@@ -6,6 +6,9 @@ import { formatDeadline } from '../localization/format';
 import type { Oath, OathListEnvelope } from '../api/oathSchema';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
+import { SceneSurface } from '../ui/SceneSurface';
+import { CompanionBubble } from '../ui/CompanionBubble';
+import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { SnapshotRules, storedTime } from './SnapshotRules';
 import { useSceneEntrance } from '../ui/useSceneEntrance';
 import { ForgeHub } from './ForgeHub';
@@ -103,7 +106,7 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
     return t('oathHome.group', { date, timezone: item.snapshot.deadline.timezone });
   }
   if (available && route === 'create') return <OathScreen controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} onLogout={onLogout} onBack={() => { void loadList('today'); }} />;
-  return <SafeAreaView style={styles.safeArea}><Animated.ScrollView style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content}>
+  return <SceneSurface tone={route === 'pause' ? 'quiet' : view === 'history' || route === 'detail' ? 'chronicle' : 'hearth'}><SafeAreaView style={styles.safeArea}><Animated.ScrollView style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content}>
     <Text accessibilityRole="header" style={styles.title}>{t(route === 'pause' ? 'oathHome.pauseTitle' : route === 'detail' ? 'forge.detail' : view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>
     {!available && <>
       <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
@@ -115,59 +118,82 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
         onPress={() => { void loadList(destination); }} style={[styles.tab, !interactiveForge && styles.stackedTab, route === 'list' && view === destination && styles.selectedTab]}>
         <Text style={styles.label}>{t(`oathHome.${destination}`)}</Text>
       </Pressable>)}</View>
-      {route === 'list' && list?.paused && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.paused')}</Text>}
+      {route === 'list' && list?.paused && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.paused')} /></View>}
       {route === 'list' && view === 'today' && <>
-        <Text style={styles.subtitle}>{t('forge.subtitle')}</Text>
         <ForgeHub items={list?.items ?? []} onOpen={id => { void openDetail(id); }} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy || mutating} />
       </>}
       {route === 'list' && (account.pending ? <>
-        <Text style={styles.body}>{t('oath.pending')}</Text>
+        <CompanionBubble message={t('oath.pending')} />
         <Action label={t('oath.recover')} busy={account.busy || mutating} onPress={() => create(true)} />
       </> : !list?.paused && (view !== 'today' || !interactiveForge) && <Action label={t('oathHome.create')} busy={account.busy || mutating} onPress={() => create()} />)}
       {route === 'list' && <Pressable accessibilityRole="button" accessibilityLabel={t('oathHome.pause')} accessibilityState={{ disabled: mutating }} disabled={mutating} style={styles.pauseControl} onPress={() => { void showPause(); }}><Text accessible={false} style={styles.pauseIcon}>Ⅱ</Text><Text style={styles.pauseText}>{t('forge.pauseShort')}</Text></Pressable>}
       {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
       {route === 'list' && <>
         {view === 'today' && !!list?.items.length && <Text accessibilityRole="header" style={styles.label}>{t('forge.all')}</Text>}
-        {list?.items.map((item, index) => <View key={item.id} style={styles.card}>
+        {list?.items.map((item, index) => <View key={item.id} style={styles.entry}>
           {view === 'today' && (index === 0 || category(item) !== category(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
           {(index === 0 || group(item) !== group(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{group(item)}</Text>}
-          <Text style={styles.body}>{t(`oath.states.${item.state}`)}</Text>
-          <Action label={summary(item, true)} variant="secondary" onPress={() => { void openDetail(item.id); }} />
+          <Pressable accessibilityRole="button" accessibilityLabel={summary(item, true)} accessibilityValue={{ text: t(`oath.states.${item.state}`) }} onPress={() => { void openDetail(item.id); }}
+            style={({ pressed }) => [styles.journalEntry, !interactiveForge && styles.stackedEntry, pressed && styles.pressedEntry]}>
+            <ActivityEmblem activity={item.snapshot.activity} size={76} />
+            <View style={styles.entryCopy}>
+              <Text style={styles.activity}>{item.snapshot.copy[locale].activity}</Text>
+              <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>
+              <Text style={styles.deadline}>{storedTime(item.snapshot.deadline, locale)}</Text>
+            </View>
+          </Pressable>
         </View>)}
-        {!loading && !failed && list?.items.length === 0 && <Text style={styles.body}>{t(view === 'today' ? 'oathHome.emptyToday' : 'oathHome.emptyHistory')}</Text>}
-        {failed && <><Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loadError')}</Text><Action label={t('oath.retry')} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
+        {!loading && !failed && list?.items.length === 0 && <CompanionBubble message={t(view === 'today' ? 'oathHome.emptyToday' : 'oathHome.emptyHistory')} />}
+        {failed && <><View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.loadError')} /></View><Action label={t('oath.retry')} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
         {list?.nextCursor && !failed && <Action label={t('oathHome.more')} busy={loading} onPress={() => { void loadList(view, true); }} />}
         <Action label={t('oathHome.refresh')} busy={loading} variant="secondary" onPress={() => { void loadList(view); }} />
       </>}
       {route === 'detail' && <>
-        {failed && <><Text style={styles.body}>{t('oathHome.detailError')}</Text><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current); }} /></>}
+        {failed && <><CompanionBubble message={t('oathHome.detailError')} /><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current); }} /></>}
         {detail && <>
+          <View style={styles.detailSeal}><ActivityEmblem activity={detail.snapshot.activity} size={108} /><Text style={styles.activity}>{detail.snapshot.copy[locale].activity}</Text></View>
           <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.state', { state: t(`oath.states.${detail.state}`) })}</Text>
           {detail.reason === 'service_availability_unknown' && <Text style={styles.body}>{t('oathHome.unknownAvailability')}</Text>}
           {detail.reason === 'account_paused' && <Text style={styles.body}>{t('oathHome.withdrawn')}</Text>}
           {detail.review && <Text style={styles.body}>{t('oathHome.reviewDeadline', { deadline: formatDeadline(new Date(detail.review.closesAt), locale, 'UTC') })}</Text>}
-          <SnapshotRules snapshot={detail.snapshot} />
+          <View style={styles.parchment}><SnapshotRules snapshot={detail.snapshot} /></View>
         </>}
       </>}
       {route === 'pause' && <>
-        {pauseChanged && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.pauseChanged')}</Text>}
-        {(failed || pauseFailed) && <><Text style={styles.body}>{t(pauseFailed ? 'oathHome.pauseError' : 'oathHome.loadError')}</Text><Action label={t('oathHome.reviewPause')} onPress={() => { void showPause(); }} /></>}
+        {pauseChanged && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.pauseChanged')} /></View>}
+        {(failed || pauseFailed) && <><CompanionBubble message={t(pauseFailed ? 'oathHome.pauseError' : 'oathHome.loadError')} /><Action label={t('oathHome.reviewPause')} onPress={() => { void showPause(); }} /></>}
         {pause && <>
-          <Text style={styles.body}>{t(pause.summary.paused ? 'oathHome.paused' : 'oathHome.pauseIntro')}</Text>
+          <CompanionBubble message={t(pause.summary.paused ? 'oathHome.paused' : 'oathHome.pauseIntro')} />
           {(['withdraw', 'preserve'] as const).map(key => <View key={key} style={styles.card}>
             <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${key}`)}</Text>
             {pause[key].length === 0 && <Text style={styles.body}>{t('oathHome.none')}</Text>}
-            {pause[key].map(item => <Text key={item.id} style={styles.body}>{summary(item)}</Text>)}
+            {pause[key].map(item => <View key={item.id} style={[styles.pauseEntry, !interactiveForge && styles.stackedEntry]}><ActivityEmblem activity={item.snapshot.activity} size={52} /><Text style={[styles.body, styles.entryCopy]}>{summary(item)}</Text></View>)}
           </View>)}
           <Action label={t(pause.summary.paused ? 'oathHome.resume' : 'oathHome.confirmPause')} busy={mutating} onPress={() => { void changePause(); }} />
         </>}
       </>}
     </>}
     <Action label={t('auth.signOut')} variant="secondary" onPress={onLogout} />
-  </Animated.ScrollView></SafeAreaView>;
+  </Animated.ScrollView></SafeAreaView></SceneSurface>;
 }
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: tokens.color.canvas }, content: { flexGrow: 1, padding: tokens.space.card, gap: tokens.space.section }, card: { gap: tokens.space.item, backgroundColor: tokens.color.surface, padding: 16, borderRadius: 20 },
-  navigation: { flexDirection: 'row', gap: 24 }, stackedNavigation: { flexDirection: 'column', gap: 8 }, stackedTab: { flex: 0, alignItems: 'flex-start' }, tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' }, selectedTab: { borderBottomColor: tokens.color.primary }, pauseControl: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingHorizontal: 12 }, pauseIcon: { color: tokens.color.primary, fontSize: 22 }, pauseText: { color: tokens.color.secondary, fontSize: 15 }, subtitle: { color: tokens.color.secondary, fontSize: 17, lineHeight: 25 },
-  title: { color: tokens.color.text, fontSize: tokens.title, fontWeight: '600' }, label: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '600' }, body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
+  safeArea: { flex: 1 },
+  content: { flexGrow: 1, paddingHorizontal: tokens.space.card, paddingTop: 24, paddingBottom: 36, gap: tokens.space.section },
+  entry: { gap: 10 },
+  journalEntry: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, backgroundColor: 'rgba(32, 28, 23, 0.94)', borderRadius: 8, borderTopWidth: 1, borderTopColor: '#8d6941', borderBottomWidth: 3, borderBottomColor: '#080c0d', boxShadow: '0 6px 18px rgba(0,0,0,0.3)' },
+  stackedEntry: { flexDirection: 'column', alignItems: 'flex-start' },
+  pressedEntry: { backgroundColor: '#493721', borderTopColor: '#f0bd76', transform: [{ scale: 0.98 }] },
+  entryCopy: { flexShrink: 1, gap: 6 },
+  activity: { color: '#f4deb7', fontSize: 21, lineHeight: 29, fontWeight: '600' },
+  state: { color: '#edba78', fontSize: 15, lineHeight: 22 },
+  deadline: { color: '#ded1bd', fontSize: 14, lineHeight: 22 },
+  detailSeal: { alignItems: 'center', gap: 8, paddingVertical: 12 },
+  parchment: { backgroundColor: 'rgba(27, 24, 20, 0.95)', padding: 18, borderTopWidth: 2, borderTopColor: '#9d7b4d', borderBottomWidth: 2, borderBottomColor: '#5d452c', borderRadius: 5 },
+  card: { gap: tokens.space.item, backgroundColor: 'rgba(24, 27, 27, 0.94)', padding: 18, borderRadius: 8, borderLeftWidth: 2, borderLeftColor: '#9b7a4f' },
+  pauseEntry: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  navigation: { flexDirection: 'row', gap: 24 }, stackedNavigation: { flexDirection: 'column', gap: 8 }, stackedTab: { flex: 0, alignItems: 'flex-start' },
+  tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#5d4e39' },
+  selectedTab: { borderBottomColor: '#f3bc72', backgroundColor: 'rgba(127, 87, 41, 0.18)' },
+  pauseControl: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingHorizontal: 12 }, pauseIcon: { color: tokens.color.primary, fontSize: 22 }, pauseText: { color: tokens.color.secondary, fontSize: 15 },
+  title: { color: '#f3dfbd', fontSize: 25, fontWeight: '600', textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 }, label: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '600' }, body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
 });

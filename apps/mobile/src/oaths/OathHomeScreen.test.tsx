@@ -247,7 +247,7 @@ test('paused Forge makes the paused state visible and offers review without a cr
   const f = setup([]);
   jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  expect(await screen.findByText('Gameplay is paused. Existing reviews continue; withdrawn Oaths will not return.')).toBeOnTheScreen();
+  expect(await screen.findByText('Gameplay is paused. Existing reviews continue. Withdrawn Oaths will not return.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Create an Oath' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Pause and resume' })).toBeOnTheScreen();
 });

@@ -3,6 +3,7 @@ import type { ResolvedTime, Snapshot } from '../api/oathSchema';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale, type Locale } from '../localization/locale';
 import { tokens } from '../ui/tokens';
+import { ActivityEmblem } from '../ui/ActivityEmblem';
 
 const sections = ['activation', 'timing', 'evidence', 'photo', 'activityRecord', 'privacy', 'rewards', 'consequence', 'pause', 'recovery', 'review', 'appeal'] as const;
 const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' };
@@ -41,8 +42,13 @@ export function SnapshotRules({ snapshot }: { snapshot: Snapshot }) {
     [t('oath.rules.deadline'), deadline], [t('oath.rules.cutoff'), cutoffTime(snapshot, locale)],
   ];
   return <View style={styles.rules}>
-    <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>
-    <Text style={styles.secondary}>{copy.subtitle}</Text>
+    <View style={styles.documentHead}>
+      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <ActivityEmblem activity={snapshot.activity} size={112} />
+      </View>
+      <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>
+      <Text style={styles.secondary}>{copy.subtitle}</Text>
+    </View>
     <View style={styles.promise}><Text style={styles.promiseText}>{promise}</Text></View>
     <View style={styles.facts}>{facts.map(([label, value]) => <View key={label} style={styles.group}>
       <Text accessibilityRole="header" style={styles.heading}>{label}</Text>
@@ -59,14 +65,16 @@ export function SnapshotRules({ snapshot }: { snapshot: Snapshot }) {
   </View>;
 }
 const styles = StyleSheet.create({
-  rules: { gap: tokens.space.section }, group: { gap: tokens.space.small },
-  promise: { padding: 20, borderLeftWidth: 3, borderLeftColor: tokens.color.primary, backgroundColor: tokens.color.surface, borderRadius: tokens.radius },
-  promiseText: { color: tokens.color.text, fontSize: 21, lineHeight: 31, fontWeight: '600' },
-  facts: { padding: 20, gap: 20, borderRadius: tokens.radius, backgroundColor: tokens.color.surface },
-  card: { gap: 10, padding: 18, borderRadius: tokens.radius, backgroundColor: tokens.color.surface },
-  evidence: { borderWidth: 1, borderColor: tokens.color.primary },
-  title: { color: tokens.color.text, fontSize: tokens.title, fontWeight: '700' },
-  heading: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '700' },
-  body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: 26 },
-  secondary: { color: tokens.color.secondary, fontSize: tokens.body, lineHeight: 26 },
+  rules: { gap: tokens.space.section, paddingHorizontal: 20, paddingVertical: 28, backgroundColor: '#e3d1ac', borderRadius: 8,
+    borderTopWidth: 5, borderBottomWidth: 5, borderColor: '#a7834c', shadowColor: '#050403', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 6 } },
+  documentHead: { alignItems: 'center', gap: 12 }, group: { gap: tokens.space.small },
+  promise: { paddingVertical: 20, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#a18455' },
+  promiseText: { color: '#352419', fontSize: 21, lineHeight: 31, fontWeight: '600' },
+  facts: { padding: 16, gap: 20, backgroundColor: '#d6be92', borderRadius: 8 },
+  card: { gap: 10, paddingTop: 18, borderTopWidth: 1, borderTopColor: '#baa074' },
+  evidence: { padding: 16, borderTopWidth: 0, borderLeftWidth: 3, borderLeftColor: '#906131', backgroundColor: '#dac39c', borderRadius: 4 },
+  title: { color: '#352419', fontSize: tokens.title, fontWeight: '700', textAlign: 'center' },
+  heading: { color: '#493322', fontSize: tokens.body, fontWeight: '700' },
+  body: { color: '#35291f', fontSize: tokens.body, lineHeight: 26 },
+  secondary: { color: '#64503c', fontSize: tokens.body, lineHeight: 26, textAlign: 'center' },
 });

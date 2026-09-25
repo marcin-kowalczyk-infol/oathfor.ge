@@ -37,7 +37,7 @@ test('a miss or recovered presentation preserves the supplied earlier-XP context
   expect(screen.getByText('Previously earned: 100 XP.')).toBeOnTheScreen();
   await view.rerender(<LocalizationProvider initialLocale="en"><StatusCard status="recovered" detail="Previously earned: 100 XP." /></LocalizationProvider>);
   expect(screen.getByText('Previously earned: 100 XP.')).toBeOnTheScreen();
-  expect(screen.getByText('Recovery completed; the earlier missed Oath remains in history.')).toBeOnTheScreen();
+  expect(screen.getByText('Recovery completed. The earlier missed Oath remains in history.')).toBeOnTheScreen();
 });
 
 test('announces a changed status once, without repeating unchanged pending input', async () => {
@@ -48,7 +48,7 @@ test('announces a changed status once, without repeating unchanged pending input
     await view.rerender(<LocalizationProvider initialLocale="en"><StatusCard status="proof_pending" /></LocalizationProvider>);
     expect(announce).not.toHaveBeenCalled();
     await view.rerender(<LocalizationProvider initialLocale="en"><StatusCard status="review_pending" /></LocalizationProvider>);
-    expect(announce).toHaveBeenCalledWith('Under review. The case awaits a decision; this is not a miss.', { queue: true });
+    expect(announce).toHaveBeenCalledWith('Under review. The case awaits a decision. This is not a miss.', { queue: true });
     await view.rerender(<LocalizationProvider initialLocale="en"><StatusCard status="review_pending" /></LocalizationProvider>);
     expect(announce).toHaveBeenCalledTimes(1);
   } finally { announce.mockRestore(); }

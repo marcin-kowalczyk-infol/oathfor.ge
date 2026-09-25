@@ -43,7 +43,7 @@
     "error_load": "We could not check whether your choices were saved. Try again to check before confirming another change.",
     "companionTitle": "Meet Zharomir",
     "notificationsTitle": "Notifications",
-    "notificationsPending": "Notifications are optional. Choose what suits you; you can continue without them.",
+    "notificationsPending": "Notifications are optional. Choose what suits you. You can continue without them.",
     "reviewTitle": "Your choices are saved",
     "reviewPending": "Review your saved choices, then continue. Notification permission is optional. Continuing does not create an Oath.",
     "reviewLanguage": "Language: {{language}}",
@@ -54,7 +54,7 @@
     "completionLoadError": "We could not check whether your setup is complete. Try again to check your saved progress.",
     "trialTitle": "Trial of the Spark",
     "trialPending": "Creating your first Oath is not available yet. No Oath has started.",
-    "companionIntroduction": "I am Zharomir, a guardian linked to Veles. I will accompany you on the path of your Oath. You choose the commitment; I help you remember its rules and the steps available to you.",
+    "companionIntroduction": "I am Zharomir, a guardian linked to Veles. I will accompany you on the path of your Oath. You choose the commitment. I help you remember its rules and the steps available to you.",
     "continue": "Continue",
     "introductionError": "We could not confirm this step. Please try again."
   },
@@ -104,7 +104,7 @@
   "status": {
     "proof_pending": {
       "heading": "Assessment pending",
-      "description": "Evidence received; assessment has not finished."
+      "description": "Evidence received. Assessment has not finished."
     },
     "needs_more_evidence": {
       "heading": "More evidence needed",
@@ -112,7 +112,7 @@
     },
     "review_pending": {
       "heading": "Under review",
-      "description": "The case awaits a decision; this is not a miss."
+      "description": "The case awaits a decision. This is not a miss."
     },
     "fulfilled": {
       "heading": "Fulfilled",
@@ -124,7 +124,7 @@
     },
     "recovered": {
       "heading": "Recovered",
-      "description": "Recovery completed; the earlier missed Oath remains in history."
+      "description": "Recovery completed. The earlier missed Oath remains in history."
     },
     "unresolved": {
       "heading": "Unresolved",
@@ -136,6 +136,7 @@
     }
   },
   "companion": {
+    "speaker": "Zharomir",
     "wanderer": {
       "name": "Wanderer",
       "description": "Zharomir, a wooden wanderer carrying an iron lantern."
@@ -235,7 +236,7 @@
       "deadline": "Complete by (D)",
       "cutoff": "Evidence must arrive by (S)",
       "declaration": "Required completion declaration",
-      "now": "Now — at server confirmation"
+      "now": "Now, at server confirmation"
     },
     "sections": {
       "activation": "Activation and commitment",
@@ -265,7 +266,7 @@
     "more": "Load more",
     "open": "Open Oath: {{activity}}, {{deadline}}",
     "group": "{{date}} · {{timezone}}",
-    "paused": "Gameplay is paused. Existing reviews continue; withdrawn Oaths will not return.",
+    "paused": "Gameplay is paused. Existing reviews continue. Withdrawn Oaths will not return.",
     "pauseTitle": "Review pause",
     "pauseIntro": "Review every Oath below before confirming. Pause does not extend deadlines.",
     "withdraw": "Will be withdrawn",

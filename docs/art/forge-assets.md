@@ -32,3 +32,7 @@ The ignored master currently has only the temporary local storage arrangement ac
 ## Interaction refinement
 
 Owner feedback on2026-09-25 retained this original asset and requested game-like interaction. The hearth is now a labelled creation target, and round metal seals have native press springs and depth. Four code-rendered ember particles drift upward with the light; hit targets do not drift. Motion stops outside the foreground and when Reduce Motion is enabled. Labels remain outside the illustration and large system text retains the list/action equivalent. Acceptance uses a separate one-shot decorative stamp after server confirmation, with no XP implication. No new raster master or animation rig was generated.
+
+## Current journey selection, 2026-09-26
+
+The earlier orbit and standalone hearth composition above is historical. Current functional screens use the shared room, object emblems and diffuse alpha light described in the [journey manifest](forge-journey-assets.md). The opaque hearth square is no longer layered over the room.

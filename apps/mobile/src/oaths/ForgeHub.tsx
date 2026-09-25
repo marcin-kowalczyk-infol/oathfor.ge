@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { Oath } from '../api/oathSchema';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
 import { tokens } from '../ui/tokens';
+import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { useMotionAllowed } from '../ui/useMotion';
 import { storedTime } from './SnapshotRules';
 
-const symbols = { running: '↟', strength_training: '◆', mobility: '≈' };
 const embers = [{ x: -35, y: 5, size: 3 }, { x: 17, y: 22, size: 4 }, { x: -8, y: 40, size: 2 }, { x: 36, y: 57, size: 3 }];
 
 function Seal({ item, onOpen, motion }: { item: Oath; onOpen(id: string): void; motion: boolean }) {
@@ -25,13 +25,11 @@ function Seal({ item, onOpen, motion }: { item: Oath; onOpen(id: string): void; 
   const copy = item.snapshot.copy[locale];
   const deadline = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC' }).format(new Date(`${item.snapshot.deadline.local}Z`));
   return <View style={styles.branch}>
-    <View style={styles.connection} accessible={false} />
     <Pressable accessibilityRole="button" accessibilityLabel={t('forge.seal', { activity: copy.activity, state: t(`oath.states.${item.state}`), deadline: storedTime(item.snapshot.deadline, locale) })}
       onPress={() => onOpen(item.id)} onPressIn={() => press(true)} onPressOut={() => press(false)} style={styles.sealTarget}>
       {({ pressed }) => <>
-        <Animated.View style={[styles.medallion, pressed && styles.pressedMedallion, { transform: [{ scale }] }]} accessible={false}>
-          <View style={styles.innerRim}><Text style={styles.symbol}>{symbols[item.snapshot.activity]}</Text></View>
-          <View style={styles.rivetTop} /><View style={styles.rivetBottom} />
+        <Animated.View style={{ transform: [{ scale }], opacity: pressed ? 0.8 : 1 }} accessible={false}>
+          <ActivityEmblem activity={item.snapshot.activity} size={82} />
         </Animated.View>
         <Text style={[styles.name, pressed && styles.highlight]}>{copy.activity}</Text>
         <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>
@@ -69,10 +67,8 @@ export function ForgeHub({ items, onOpen, onCreate, createDisabled = false }: {
   // Parent supplies the full ordered list and creation action at large system text sizes.
   if (!visible) return null;
   const art = <View style={styles.art} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-    <View style={styles.orbit} /><View style={styles.innerOrbit} />
-    <Animated.View style={{ transform: [{ scale: hearthScale }] }}>
-      <Image source={require('../../assets/forge/hearth-v01.png')} style={styles.image} resizeMode="contain" />
-      <Animated.View style={[styles.glow, { opacity: glow }]} />
+    <Animated.View style={[styles.image, { transform: [{ scale: hearthScale }] }]}>
+      <Animated.Image source={require('../../assets/forge/ember-haze-v01.png')} resizeMode="contain" style={[styles.glow, { opacity: glow }]} />
     </Animated.View>
     {embers.map((ember, index) => <Animated.View key={index} style={[styles.ember, {
       width: ember.size, height: ember.size, marginLeft: ember.x, top: 150 - ember.y,
@@ -96,22 +92,15 @@ export function ForgeHub({ items, onOpen, onCreate, createDisabled = false }: {
 }
 const styles = StyleSheet.create({
   hub: { gap: 8 }, hearthTarget: { alignItems: 'center' }, art: { height: 250, alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch' },
-  image: { width: 250, height: 250, borderRadius: 100 },
-  orbit: { position: 'absolute', width: 286, height: 170, borderRadius: 145, borderWidth: 1, borderColor: '#5b452c', transform: [{ rotate: '-14deg' }] },
-  innerOrbit: { position: 'absolute', width: 264, height: 184, borderRadius: 140, borderWidth: 1, borderColor: '#332d27', transform: [{ rotate: '14deg' }] },
-  glow: { position: 'absolute', width: 42, height: 26, borderRadius: 22, backgroundColor: '#ffa334', top: 148, left: 104, pointerEvents: 'none' },
+  image: { width: 250, height: 250 },
+  glow: { position: 'absolute', width: 170, height: 170, top: 70, left: 40, pointerEvents: 'none' },
   ember: { position: 'absolute', borderRadius: 3, backgroundColor: '#ffd091', pointerEvents: 'none' },
   createLabel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 16, paddingBottom: 14 },
   createMark: { color: tokens.color.primary, fontSize: 30 }, createText: { color: tokens.color.primary, fontSize: 19, fontWeight: '700', flexShrink: 1, textAlign: 'center' },
   disabled: { opacity: 0.5 }, caption: { color: tokens.color.secondary, fontSize: 14, textAlign: 'center' },
   seals: { flexDirection: 'row', gap: 8, paddingBottom: 12 }, branch: { flex: 1, alignItems: 'center' },
-  connection: { height: 22, width: 1, backgroundColor: '#756044' }, sealTarget: { alignSelf: 'stretch', alignItems: 'center', gap: 5, paddingBottom: 8 },
-  medallion: { width: 76, height: 76, borderRadius: 38, borderWidth: 2, borderColor: '#927344', borderBottomWidth: 5, borderBottomColor: '#090b0c', backgroundColor: '#2b2c2b', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 10px rgba(0,0,0,0.45)' },
-  innerRim: { width: 60, height: 60, borderRadius: 30, borderWidth: 1, borderTopColor: '#aa8350', borderColor: '#514432', alignItems: 'center', justifyContent: 'center', backgroundColor: '#222423' },
-  pressedMedallion: { backgroundColor: '#604a2a', borderColor: '#edbf74', borderBottomWidth: 2 },
-  rivetTop: { position: 'absolute', top: 3, width: 3, height: 3, borderRadius: 2, backgroundColor: '#b69561' },
-  rivetBottom: { position: 'absolute', bottom: 3, width: 3, height: 3, borderRadius: 2, backgroundColor: '#b69561' },
-  symbol: { color: tokens.color.primary, fontSize: 29 }, highlight: { color: '#ffe1aa' },
+  sealTarget: { alignSelf: 'stretch', alignItems: 'center', gap: 5, paddingBottom: 8 },
+  highlight: { color: '#ffe1aa' },
   name: { color: tokens.color.text, fontSize: 14, lineHeight: 19, fontWeight: '600', textAlign: 'center', marginTop: 3 },
   state: { color: tokens.color.secondary, fontSize: 12, lineHeight: 17, textAlign: 'center' },
   deadline: { color: '#bfa987', fontSize: 12, lineHeight: 17, textAlign: 'center' },

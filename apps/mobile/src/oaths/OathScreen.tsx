@@ -7,6 +7,10 @@ import { useSceneEntrance } from '../ui/useSceneEntrance';
 import { CommitMark } from '../ui/CommitMark';
 import { GameChoice } from '../ui/GameChoice';
 import { tokens } from '../ui/tokens';
+import { SceneSurface } from '../ui/SceneSurface';
+import { CompanionBubble } from '../ui/CompanionBubble';
+import { SceneDoor } from '../ui/SceneDoor';
+import { ActivityOffering } from './ActivityOffering';
 import { SnapshotRules } from './SnapshotRules';
 import type { OathController } from './controller';
 import { WallTimePicker, type TimeDraft } from './WallTimePicker';
@@ -68,9 +72,9 @@ export function OathScreen({ controller, timezone, onLogout, onBack, initialDraf
     else if (error.kind === 'time_error' || error.kind === 'oath_error') errorText = t(`oath.error.${error.code}`, { defaultValue: t('oath.error.generic') });
     else errorText = t(error.kind === 'invalid_request' ? 'oath.error.invalid_request' : 'oath.error.generic');
   }
-  return <SafeAreaView style={styles.safeArea}>
+  return <SceneSurface tone="hearth"><SafeAreaView style={styles.safeArea}>
     <Animated.ScrollView style={entrance} key={scene} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      {onBack && <Action label={t('oathHome.today')} variant="secondary" onPress={onBack} />}
+      {onBack && <SceneDoor label={t('oathHome.today')} onPress={onBack} />}
       {!review && !detail && <Text accessibilityRole="header" style={styles.title}>{t('oath.title')}</Text>}
       {!ready && <>
         <Text accessibilityLiveRegion="polite" style={styles.body}>{t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading')}</Text>
@@ -83,47 +87,58 @@ export function OathScreen({ controller, timezone, onLogout, onBack, initialDraf
         <Action label={t('oath.recover')} busy={busy} onPress={() => { void controller.recover(); }} />
       </>}
       {detail && <>
-        <CommitMark />
-        <Text accessibilityRole="header" style={styles.title}>{t('oath.confirmed')}</Text>
-        <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.state', { state: t(`oath.states.${oath.state}`) })}</Text>
+        <View style={styles.confirmed}>
+          <CommitMark />
+          <Text accessibilityRole="header" style={styles.title}>{t('oath.confirmed')}</Text>
+          <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.state', { state: t(`oath.states.${oath.state}`) })}</Text>
+        </View>
         <SnapshotRules snapshot={oath.snapshot} />
         {!pending && <Action label={t('oath.newOath')} variant="secondary" onPress={() => { if (controller.resetCreation()) { const next = emptyDraft(timezone); setDraft(next); onDraftChange?.(null); setMode('form'); setSubmitted(false); } }} />}
       </>}
       {review && <>
-        <Text style={styles.body}>{t('oath.reviewIntro')}</Text>
+        <CompanionBubble message={t('oath.reviewIntro')} />
         <SnapshotRules snapshot={ready.preview!.snapshot} />
         {!pending && <>
-          <Text style={styles.body}>{t('oath.consent')}</Text>
+          <View style={styles.consent}><Text style={styles.body}>{t('oath.consent')}</Text></View>
           <Action label={t('oath.confirm')} busy={busy} onPress={() => { void controller.confirm(); }} />
           <Action label={t('oath.edit')} busy={busy} variant="secondary" onPress={() => { setMode('form'); setSubmitted(false); }} />
         </>}
       </>}
       {ready && !pending && !review && !detail && <>
-        <Text style={styles.body}>{t('oath.intro')}</Text>
-        <Text style={styles.label}>{t('oath.activity')}</Text>
-        {(['running', 'strength_training', 'mobility'] as const).map(value => <GameChoice key={value} label={t(`oath.activities.${value}`)}
-          symbol={{ running: '↟', strength_training: '◆', mobility: '≈' }[value]} selected={activity === value} disabled={busy} onPress={() => setActivity(value)} />)}
-        <Text style={styles.label}>{t('oath.startChoice')}</Text>
-        {[false, true].map(value => <GameChoice key={String(value)} label={t(value ? 'oath.scheduled' : 'oath.now')} symbol={value ? '◷' : 'ϟ'}
-          selected={scheduled === value} disabled={busy} onPress={() => { setScheduled(value); setSubmitted(false); }} />)}
-        {scheduled && timeFields('activation', activation, setActivation)}
-        {timeFields('deadline', deadline, setDeadline)}
+        <CompanionBubble message={t('oath.intro')} />
+        <View style={styles.workbench}>
+          <Text accessibilityRole="header" style={styles.label}>{t('oath.activity')}</Text>
+          <View style={styles.offerings}>
+            {(['running', 'strength_training', 'mobility'] as const).map(value => <ActivityOffering key={value} activity={value}
+              label={t(`oath.activities.${value}`)} selected={activity === value} disabled={busy} onPress={() => setActivity(value)} />)}
+          </View>
+        </View>
+        <View style={styles.timeWorkbench}>
+          <Text accessibilityRole="header" style={styles.label}>{t('oath.startChoice')}</Text>
+          {[false, true].map(value => <GameChoice key={String(value)} label={t(value ? 'oath.scheduled' : 'oath.now')} symbol={value ? '◷' : 'ϟ'}
+            selected={scheduled === value} disabled={busy} onPress={() => { setScheduled(value); setSubmitted(false); }} />)}
+          {scheduled && timeFields('activation', activation, setActivation)}
+          {timeFields('deadline', deadline, setDeadline)}
+        </View>
         <Action label={t('oath.viewRules')} busy={busy} onPress={() => { void preview(); }}
           {...(!valid || (!!choices && !(choices.field === 'activation' ? activation.offset : deadline.offset))
             ? { disabled: true, unavailableReason: !valid ? t('oath.formRequired') : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
       </>}
       <Action label={t('auth.signOut')} variant="secondary" onPress={onLogout} />
     </Animated.ScrollView>
-  </SafeAreaView>;
+  </SafeAreaView></SceneSurface>;
 }
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: tokens.color.canvas },
-  content: { flexGrow: 1, padding: tokens.space.card, gap: tokens.space.section },
-  group: { gap: tokens.space.item }, field: { gap: tokens.space.small },
+  safeArea: { flex: 1 },
+  content: { flexGrow: 1, width: '100%', maxWidth: 680, alignSelf: 'center', padding: tokens.space.card, paddingBottom: 36, gap: tokens.space.section },
+  workbench: { gap: 14 }, offerings: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'stretch' },
+  timeWorkbench: { padding: 18, gap: 18, backgroundColor: 'rgba(28, 24, 20, 0.92)', borderRadius: 24 },
+  confirmed: { gap: 14, alignItems: 'center', paddingVertical: 24 },
+  consent: { padding: 20, borderLeftWidth: 3, borderLeftColor: tokens.color.primary, backgroundColor: 'rgba(32, 25, 19, 0.94)', borderRadius: 12 },
+  group: { gap: tokens.space.item },
   title: { color: tokens.color.text, fontSize: tokens.title, lineHeight: tokens.title * 1.2, fontWeight: '600' },
   label: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5, fontWeight: '600' },
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
   choice: { minHeight: 64, padding: 18, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius },
   selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
-  input: { minHeight: tokens.controlHeight, padding: tokens.space.item, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius, color: tokens.color.text, fontSize: tokens.body },
 });

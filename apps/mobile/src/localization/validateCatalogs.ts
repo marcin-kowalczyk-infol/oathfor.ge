@@ -15,6 +15,11 @@ export function validateCatalogs(catalogs: Record<'pl' | 'en', object>): string[
   const flat = { pl: flatten(catalogs.pl), en: flatten(catalogs.en) };
   const keys = new Set(Object.values(flat).flatMap((catalog) => Object.keys(catalog).map((key) => key.replace(pluralSuffix, ''))));
   const errors: string[] = [];
+  for (const locale of ['pl', 'en'] as const) {
+    for (const [path, message] of Object.entries(flat[locale])) {
+      if (/[\u2014;]/.test(message)) errors.push(`${locale}: forbidden punctuation ${path}`);
+    }
+  }
   for (const key of keys) {
     const messages: string[] = [];
     const isPlural = Object.values(flat).some((catalog) => Object.keys(catalog).some((path) => path.replace(pluralSuffix, '') === key && pluralSuffix.test(path)));

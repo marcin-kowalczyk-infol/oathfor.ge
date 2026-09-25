@@ -63,3 +63,7 @@ Library selection, local implementation decision 2026-09-24: i18next/react-i18ne
 ## Onboarding intention
 
 **Owner decision, 2026-09-24:** “intention” / “intencja” in [onboarding](onboarding.md) means the explicitly confirmed `regular_activity` choice: “Chcę regularnie podejmować aktywność” / “I want to be active regularly”. It has no numerical target and is distinct from an Oath with committed rules and deadlines. Do not translate it as a measurable quota or imply that confirming it begins the Trial of the Spark.
+
+## Content punctuation
+
+Owner decision, 2026-09-26: authored prose and player-facing content must not contain em dashes (U+2014) or semicolons. Prefer short sentences or commas. The bundled PL and EN catalogs, including the demonstration, enforce this in catalog validation. Code syntax is excluded. Existing immutable Oath snapshots retain their original wording. Apply the rule to new policy versions without rewriting accepted records.
