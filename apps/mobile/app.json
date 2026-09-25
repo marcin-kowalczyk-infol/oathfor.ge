@@ -22,6 +22,12 @@
       ],
       "expo-apple-authentication",
       [
+        "expo-notifications",
+        {
+          "enableBackgroundRemoteNotifications": false
+        }
+      ],
+      [
         "expo-secure-store",
         {
           "faceIDPermission": false

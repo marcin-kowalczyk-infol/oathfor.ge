@@ -2,19 +2,21 @@ import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View 
 import { isSupportedTimezone } from '../api/profile';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { CompanionArt } from '../companion/CompanionProgress';
+import { NotificationView, type NotificationViewProps } from './NotificationView';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import type { BasicsDraft, OnboardingState } from './controller';
 
 export type OnboardingViewProps = {
   state: OnboardingState;
+  notifications?: Omit<NotificationViewProps, 'preference'>;
   onDraft: (patch: Partial<BasicsDraft>) => void;
   onSave: () => void;
   onIntroduce: () => void;
   onRetry: () => void;
   onLogout: () => void;
 };
-export function OnboardingView({ state, onDraft, onSave, onIntroduce, onRetry, onLogout }: OnboardingViewProps) {
+export function OnboardingView({ state, onDraft, onSave, onIntroduce, onRetry, onLogout, notifications }: OnboardingViewProps) {
   const { t } = useTranslation();
   const ready = state.kind === 'ready' ? state : undefined;
   const profile = ready?.value.profile;
@@ -74,6 +76,7 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onRetry, o
           onPress={ready.error === 'load' ? onRetry : onIntroduce} busy={ready.busy} />
         <CompanionArt appearance="zharomir-wanderer-v01" decorative />
       </>}
+      {ready && profile && !complete && !basics && !introduction && notifications && <NotificationView {...notifications} preference={profile.notificationPreference} />}
       {state.kind === 'unavailable' && <Action label={t('auth.retry')} onPress={onRetry} />}
       <Action label={t('auth.signOut')} onPress={onLogout} variant="secondary" />
     </ScrollView>

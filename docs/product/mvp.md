@@ -12,7 +12,7 @@ Polish and English are required across the MVP player experience. Copy may be ad
 
 ## Accepted onboarding intention
 
-**Owner decision, 2026-09-24:** onboarding requires one intention, “Chcę regularnie podejmować aktywność” / “I want to be active regularly”, without a numerical goal. The [onboarding contract](onboarding.md) defines confirmed profile steps, companion introduction, optional notifications and recovery. Completion leads to the Trial of the Spark without committing an Oath or granting XP. Profile persistence, server completion, mobile basic choices and companion introduction are implemented; notification/completion screens and native acceptance remain pending.
+**Owner decision, 2026-09-24:** onboarding requires one intention, “Chcę regularnie podejmować aktywność” / “I want to be active regularly”, without a numerical goal. The [onboarding contract](onboarding.md) defines confirmed profile steps, companion introduction, optional notifications and recovery. Completion leads to the Trial of the Spark without committing an Oath or granting XP. Profile persistence, server completion, mobile basic choices and companion introduction are implemented; optional notification choices are integrated; the final completion screen and native acceptance remain pending.
 
 ## Accepted first Oath evidence contract
 

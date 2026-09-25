@@ -8,6 +8,7 @@ import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { SessionStorage } from './sessionStorage';
 
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: mockDeviceLanguage }], getCalendars: () => [{ timeZone: 'Europe/Warsaw' }] }));
+jest.mock('../onboarding/notificationPermissions', () => ({ nativeNotificationPermissions: { read: jest.fn().mockResolvedValue({ kind: 'unavailable', canAskAgain: false }), request: jest.fn(), openSettings: jest.fn() } }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 jest.mock('expo-apple-authentication', () => {
   const { Pressable } = require('react-native');
@@ -170,4 +171,28 @@ test.each([
   expect(await screen.findByText(notifications)).toBeOnTheScreen();
   expect(screen.queryByText(introduction)).toBeNull();
   expect(runtime.profileApi.patch).toHaveBeenCalledTimes(2);
+});
+
+
+test('notification action survives saved-profile routing and native foreground validation', async () => {
+  const runtime = setup();
+  let stored = { profile: { locale: 'en', timezone: 'UTC', intention: 'regular_activity', companionIntroduced: true, notificationPreference: null as null | string }, onboardingStatus: 'pending' };
+  runtime.profileApi.get.mockImplementation(async () => ({ kind: 'success', value: stored }));
+  runtime.profileApi.patch.mockImplementation(async (_token, patch) => { stored = { ...stored, profile: { ...stored.profile, ...patch } }; return { kind: 'success', value: stored }; });
+  let onChange: (state: AppStateStatus) => void = () => {};
+  jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => { onChange = listener; return { remove: jest.fn() }; });
+  let resolvePermission!: (value: { kind: 'denied'; canAskAgain: false }) => void;
+  const permissions = { read: jest.fn().mockResolvedValue({ kind: 'denied', canAskAgain: false }), request: jest.fn().mockImplementation(() => new Promise(resolve => { resolvePermission = resolve; })), openSettings: jest.fn() };
+  permissions.read.mockResolvedValueOnce({ kind: 'not_determined', canAskAgain: true });
+  await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} permissions={permissions} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Enable notifications' }));
+  expect(permissions.request).toHaveBeenCalledTimes(1);
+  expect(stored.profile.notificationPreference).toBe('enabled');
+  await act(async () => { onChange('inactive'); onChange('active'); resolvePermission({ kind: 'denied', canAskAgain: false }); });
+  await fireEvent.press(await screen.findByRole('button', { name: 'Continue', disabled: false }));
+  expect(await screen.findByText('Your choices are saved')).toBeOnTheScreen();
+  expect(screen.getByText('This device does not allow notifications. You can continue without changing this.')).toBeOnTheScreen();
+  expect(permissions.request).toHaveBeenCalledTimes(1);
+  expect(runtime.profileApi.complete).not.toHaveBeenCalled();
 });

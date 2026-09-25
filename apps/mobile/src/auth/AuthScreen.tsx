@@ -7,6 +7,8 @@ import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
 import { createOnboardingController } from '../onboarding/controller';
 import { OnboardingView } from '../onboarding/OnboardingView';
+import { createNotificationController } from '../onboarding/notifications';
+import { nativeNotificationPermissions, type NotificationPermissions } from '../onboarding/notificationPermissions';
 import { StatusBar } from 'expo-status-bar';
 import type { Authentication, SessionController } from './session';
 import { AuthView } from './AuthView';
@@ -23,7 +25,7 @@ const nativeApple: AppleAvailability = {
 };
 
 // The app owns this controller for its lifetime; account subtrees must not replace it.
-export function AuthScreen({ controller, authenticate, profileApi, apple = nativeApple }: { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; apple?: AppleAvailability }) {
+export function AuthScreen({ controller, authenticate, profileApi, apple = nativeApple, permissions = nativeNotificationPermissions }: { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; apple?: AppleAvailability; permissions?: NotificationPermissions }) {
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const { i18n } = useTranslation();
   const languageOwner = useRef(i18n);
@@ -34,6 +36,9 @@ export function AuthScreen({ controller, authenticate, profileApi, apple = nativ
     defaultLocale: () => resolveLocale(getLocales()[0]?.languageTag),
     suggestedTimezone: () => getCalendars()[0]?.timeZone ?? null,
   }), [profileApi, controller]);
+  const notifications = useMemo(() => createNotificationController({ session: controller, onboarding, permissions }), [controller, onboarding, permissions]);
+  const notificationState = useSyncExternalStore(notifications.subscribe, notifications.getState);
+  useEffect(() => { notifications.start(); return () => notifications.stop(); }, [notifications]);
   const profile = useSyncExternalStore(onboarding.subscribe, onboarding.getState);
   useEffect(() => { onboarding.start(); return () => onboarding.stop(); }, [onboarding]);
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unavailable'>('checking');
@@ -54,6 +59,7 @@ export function AuthScreen({ controller, authenticate, profileApi, apple = nativ
     const appState = AppState.addEventListener('change', next => {
       if (next === 'active') {
         void controller.foreground();
+        void notifications.refresh();
         void checkAvailability();
       }
     });
@@ -63,8 +69,8 @@ export function AuthScreen({ controller, authenticate, profileApi, apple = nativ
       removeRevocation();
       appState.remove();
     };
-  }, [controller, apple, checkAvailability]);
-  if (state.kind === 'authenticated') return <><StatusBar style="light" /><OnboardingView state={profile}
+  }, [controller, apple, checkAvailability, notifications]);
+  if (state.kind === 'authenticated') return <><StatusBar style="light" /><OnboardingView state={profile} notifications={{ state: notificationState, onEnable: () => { void notifications.enable(); }, onSkip: () => { void notifications.skip(); }, onRetryPermission: () => { void notifications.retryPermission(); }, onSettings: () => { void notifications.settings(); }, onContinue: notifications.continue }}
     onIntroduce={() => { void onboarding.save({ companionIntroduced: true }); }} onDraft={onboarding.setDraft} onSave={() => { void onboarding.saveBasics(); }}
     onRetry={() => { void onboarding.refresh(); }} onLogout={() => { void controller.logout(); }} /></>;
   return <><StatusBar style="light" /><AuthView state={state} availability={availability}
