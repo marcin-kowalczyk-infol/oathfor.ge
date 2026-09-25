@@ -114,3 +114,28 @@ test('ambient glow starts only with motion allowed and stops when motion is disa
   await view.rerender(<ForgeScene locale="en" onExit={jest.fn()} />);
   expect(stop).toHaveBeenCalledTimes(1);
 });
+
+test('guide advances manually without walking or exiting', async () => {
+  const onExit = jest.fn(); const onIntroComplete = jest.fn();
+  await render(<ForgeScene locale="en" onExit={onExit} showIntro onIntroComplete={onIntroComplete} />);
+  expect(screen.getByText('Zharomir')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
+  expect(screen.getByText('These glowing seals hold your commitments.')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
+  expect(screen.getByText('The moonlit door takes you back. Explore whenever you wish.')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Start exploring' }));
+  expect(onIntroComplete).toHaveBeenCalledTimes(1);
+  expect(onExit).not.toHaveBeenCalled();
+  expect(walkTimers()).toHaveLength(0);
+});
+
+test('touching a station ends the introduction and arrival keeps its speaker', async () => {
+  const onIntroComplete = jest.fn();
+  await render(<ForgeScene locale="en" onExit={jest.fn()} showIntro onIntroComplete={onIntroComplete} />);
+  await fireEvent.press(screen.getByRole('button', { name: en.scene.chronicle }));
+  expect(onIntroComplete).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole('button', { name: 'Next place' })).toBeNull();
+  expect(screen.getByText('Zharomir')).toBeOnTheScreen();
+  expect(screen.getByText(en.scene.descriptions.chronicle)).toBeOnTheScreen();
+});

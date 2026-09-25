@@ -1,0 +1,23 @@
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import DemoApp from './DemoApp';
+import pl from './locales/pl.json';
+jest.mock('../src/ui/useMotion', () => ({ useMotionAllowed: () => false }));
+jest.mock('../src/auth/AuthScreen', () => ({ AuthScreen: () => null }));
+test('first visit guide stays dismissed on reopening and can be replayed', async () => {
+  await render(<DemoApp />);
+  expect(screen.getByText('Żaromir')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Pomiń wprowadzenie' }));
+  await fireEvent.press(screen.getByRole('button', { name: pl.scene.exit }));
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  await fireEvent.press(screen.getByText(pl.sceneOpen));
+  expect(screen.queryByText('Żaromir')).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  await fireEvent.press(screen.getByText('Żaromir · pokaż miejsca ponownie'));
+  expect(screen.getByText('Żaromir')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Pomiń wprowadzenie' }));
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  await fireEvent.press(screen.getByText(pl.empty));
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  await fireEvent.press(screen.getByText(pl.sceneOpen));
+  expect(screen.getByText('Żaromir')).toBeOnTheScreen();
+});

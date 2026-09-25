@@ -38,11 +38,8 @@ function SceneHotspot({ label, hint, selected, onPress, anchor, door = false, al
     }}
     style={[door ? styles.door : styles.station, anchor]}>
     {({ pressed }) => <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.cueLayer}>
-      <Animated.View style={[styles.cueHalo, door && styles.doorHalo, { borderColor: color, shadowColor: color,
-        opacity: pressed ? 1 : selected ? 0.85 : glow.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.7] }),
-        backgroundColor: pressed ? (door ? '#b5e8ff44' : '#ffd27c55') : 'transparent' }]} />
       <Animated.View style={[styles.cueMote, { backgroundColor: color, shadowColor: color,
-        opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] }),
+        opacity: pressed || selected ? 1 : glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
         transform: [{ translateY: glow.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }, { rotate: '45deg' }] }]} />
       <Animated.View style={[styles.touchRing, { left: touch.x - 22, top: touch.y - 22, borderColor: color, shadowColor: color,
         opacity: ripple.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.95, 0.75, 0] }),
@@ -52,7 +49,7 @@ function SceneHotspot({ label, hint, selected, onPress, anchor, door = false, al
 }
 
 /** An isolated spatial interaction study: visiting a station never mutates an Oath. */
-export function ForgeScene({ locale, onExit }: { locale: 'pl' | 'en'; onExit: () => void }) {
+export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete }: { locale: 'pl' | 'en'; onExit: () => void; showIntro?: boolean; onIntroComplete?: () => void }) {
   const copy = (locale === 'pl' ? pl : en).scene;
   const { width, height, fontScale } = useWindowDimensions();
   const largeText = fontScale > 1.3;
@@ -70,6 +67,13 @@ export function ForgeScene({ locale, onExit }: { locale: 'pl' | 'en'; onExit: ()
   const [arrived, setArrived] = useState<Station | null>(null);
   const [frame, setFrame] = useState(0);
   const [bubbleOpen, setBubbleOpen] = useState(false);
+  const [guideStep, setGuideStep] = useState<number | null>(() => showIntro ? 0 : null);
+  const guidePlace = guideStep === null ? null : (['hearth', 'seals', 'chronicle', 'door'] as const)[guideStep];
+  function finishIntro() {
+    if (guideStep === null) return;
+    setGuideStep(null);
+    onIntroComplete?.();
+  }
   const glow = useRef(new Animated.Value(0)).current;
   const bubble = useRef(new Animated.Value(1)).current;
   const position = useRef(new Animated.ValueXY({ x: 0.5, y: 0.82 })).current;
@@ -127,6 +131,7 @@ export function ForgeScene({ locale, onExit }: { locale: 'pl' | 'en'; onExit: ()
   }, [allowed, arrived, bubble, bubbleOpen]);
 
   function choose(id: Station) {
+    finishIntro();
     // Invalidate before React flushes effect cleanup, including a native completion in that gap.
     if (id !== target) generation.current++;
     setBubbleOpen(true);
@@ -136,7 +141,7 @@ export function ForgeScene({ locale, onExit }: { locale: 'pl' | 'en'; onExit: ()
   const active = stations.find(station => station.id === arrived);
   const bubbleLeft = active ? Math.max(16, Math.min(viewport.width - bubbleWidth - 16, left + active.footX * sceneWidth - bubbleWidth / 2)) : 16;
   // Large text gets a scrollable lower overlay, leaving all station targets available.
-  const bubbleTop = active ? Math.min(viewport.height - 130, Math.max(top + active.footY * sceneHeight + 18, viewport.height * 0.70)) : 0;
+  const bubbleTop = active ? Math.min(viewport.height - 130, Math.max(top + active.footY * sceneHeight + 18, viewport.height * 0.70)) : viewport.height * 0.70;
   const bubbleHeight = Math.max(100, viewport.height - bubbleTop - 20);
   return <View style={styles.root} onLayout={({ nativeEvent }) => {
     const { width: nextWidth, height: nextHeight } = nativeEvent.layout;
@@ -144,12 +149,12 @@ export function ForgeScene({ locale, onExit }: { locale: 'pl' | 'en'; onExit: ()
   }}>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.scenery}>
       <Image source={room} resizeMode="stretch" style={{ position: 'absolute', left, top, width: sceneWidth, height: sceneHeight }} />
-      {stations.map(station => <Animated.View key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: target === station.id ? [0.24, 0.42] : [0.12, 0.25] }) }]} />)}
-      <Animated.View style={[styles.doorGlow, { ...point(0.17, 0.37), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.14, 0.28] }) }]} />
+      {stations.map(station => <Animated.View key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === station.id ? [0.45, 0.75] : target === station.id ? [0.30, 0.60] : [0.16, 0.48] }) }]} />)}
+      <Animated.View style={[styles.doorGlow, { ...point(0.17, 0.37), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === 'door' ? [0.45, 0.72] : [0.16, 0.48] }) }]} />
       {stations.map(station => <View key={station.id} style={[styles.stationPool, { ...point(station.footX, station.footY), opacity: arrived === station.id ? 0.24 : target === station.id ? 0.1 : 0 }]} />)}
       {target && !arrived && [0, 1, 2].map(spark => <View key={spark} style={[styles.spark, { ...point(0.44 + spark * 0.055, 0.46 - ((frame + spark) % 4) * 0.025), opacity: 0.25 + ((frame + spark) % 4) * 0.18 }]} />)}
     </View>
-    <SceneHotspot label={copy.exit} onPress={onExit} anchor={hotspot(0.17, 0.37)} door allowed={allowed} glow={glow} />
+    <SceneHotspot label={copy.exit} onPress={() => { finishIntro(); onExit(); }} anchor={hotspot(0.17, 0.37)} door allowed={allowed} glow={glow} />
     {stations.map(station => <SceneHotspot key={station.id} label={copy[station.id]} hint={copy.inspect} selected={target === station.id} onPress={() => choose(station.id)} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} />)}
     <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.hero, { left, top, transform: [{ translateX: position.x.interpolate({ inputRange: [0, 1], outputRange: [-50, sceneWidth - 50] }) }, { translateY: position.y.interpolate({ inputRange: [0, 1], outputRange: [-98, sceneHeight - 98] }) }] }]}>
       <View style={styles.heroShadow} />
@@ -157,13 +162,25 @@ export function ForgeScene({ locale, onExit }: { locale: 'pl' | 'en'; onExit: ()
         <Image source={walkSheet} resizeMode="stretch" style={{ position: 'absolute', width: 200, height: 200, left: -(frame % 2) * 100, top: -Math.floor(frame / 2) * 100 }} />
       </View>
     </Animated.View>
-    {bubbleOpen && arrived && <Animated.View style={[styles.bubble, { left: bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText ? bubbleHeight : undefined, opacity: bubble, transform: [{ translateY: bubble.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
-      <View pointerEvents="none" accessible={false} style={[styles.bubbleTail, { left: Math.max(24, Math.min(bubbleWidth - 40, left + active!.footX * sceneWidth - bubbleLeft)) }]} />
-      <ScrollView key={`${arrived}-${locale}-${fontScale}`} style={largeText ? { flex: 1 } : { maxHeight: bubbleHeight }} contentContainerStyle={styles.bubbleContent} accessibilityLiveRegion="polite">
-        <Text accessibilityRole="header" style={styles.detailTitle}>{copy[arrived]}</Text>
-        <Text style={styles.description}>{copy.descriptions[arrived]}</Text>
+    {(guidePlace || (bubbleOpen && arrived)) && <Animated.View style={[styles.bubble, { left: guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText || guidePlace ? bubbleHeight : undefined, opacity: guidePlace ? 1 : bubble, transform: [{ translateY: guidePlace ? 0 : bubble.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
+      <View pointerEvents="none" accessible={false} style={[styles.bubbleTail, { left: guidePlace ? bubbleWidth / 2 : Math.max(24, Math.min(bubbleWidth - 40, left + active!.footX * sceneWidth - bubbleLeft)) }]} />
+      <ScrollView key={`${guidePlace ?? arrived}-${locale}-${fontScale}`} style={largeText || guidePlace ? { flex: 1 } : { maxHeight: bubbleHeight }} contentContainerStyle={styles.bubbleContent} accessibilityLiveRegion="polite">
+        <View style={styles.speakerRow}>
+          <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.avatar}>
+            <Image source={require('../assets/companion/zharomir-wanderer-v01.png')} resizeMode="stretch" style={styles.avatarImage} />
+          </View>
+          <Text style={styles.speaker}>{copy.speaker}</Text>
+        </View>
+        {!guidePlace && arrived && <Text accessibilityRole="header" style={styles.detailTitle}>{copy[arrived]}</Text>}
+        <Text style={styles.description}>{guidePlace ? copy.guide[guidePlace] : copy.descriptions[arrived!]}</Text>
       </ScrollView>
-      <Pressable accessibilityRole="button" accessibilityLabel={copy.dismiss} onPress={() => setBubbleOpen(false)} style={styles.dismiss}><Text accessible={false} allowFontScaling={false} style={styles.dismissMark}>×</Text></Pressable>
+      {guidePlace && <View style={styles.guideFooter}>
+        <Text accessible={false} allowFontScaling={false} style={styles.stepCount}>{guideStep! + 1} / 4</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={guideStep === 3 ? copy.guide.done : copy.guide.next} onPress={() => guideStep === 3 ? finishIntro() : setGuideStep(value => value! + 1)} style={styles.guideNext}>
+          <Text accessible={false} allowFontScaling={false} style={styles.nextMark}>{guideStep === 3 ? '✓' : '→'}</Text>
+        </Pressable>
+      </View>}
+      <Pressable accessibilityRole="button" accessibilityLabel={guidePlace ? copy.guide.skip : copy.dismiss} onPress={() => guidePlace ? finishIntro() : setBubbleOpen(false)} style={styles.dismiss}><Text accessible={false} allowFontScaling={false} style={styles.dismissMark}>×</Text></Pressable>
     </Animated.View>}
   </View>;
 }
@@ -177,8 +194,6 @@ const styles = StyleSheet.create({
   spark: { position: 'absolute', width: 3, height: 5, backgroundColor: '#ffc775', borderRadius: 3 },
   station: { position: 'absolute', width: 76, height: 72, marginLeft: -38, marginTop: -36, borderRadius: 30, zIndex: 2 },
   cueLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
-  cueHalo: { position: 'absolute', left: 10, right: 10, bottom: 6, height: 18, borderBottomWidth: 1.5, borderLeftWidth: 1, borderRightWidth: 1, borderRadius: 30, shadowOpacity: 0.9, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
-  doorHalo: { left: 8, right: 8, bottom: 2 },
   cueMote: { position: 'absolute', width: 5, height: 5, top: 4, alignSelf: 'center', shadowOpacity: 1, shadowRadius: 7, shadowOffset: { width: 0, height: 0 } },
   touchRing: { position: 'absolute', width: 44, height: 44, borderRadius: 22, borderWidth: 2, shadowOpacity: 1, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
   door: { position: 'absolute', width: 60, height: 96, marginLeft: -30, marginTop: -48, zIndex: 2 },
@@ -187,7 +202,15 @@ const styles = StyleSheet.create({
   spriteCell: { width: 100, height: 100, overflow: 'hidden' },
   bubble: { position: 'absolute', zIndex: 4, backgroundColor: '#f0dfb9', borderColor: '#6c4c2f', borderWidth: 2, borderRadius: 22, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
   bubbleTail: { position: 'absolute', width: 18, height: 18, top: -10, backgroundColor: '#f0dfb9', borderLeftWidth: 2, borderTopWidth: 2, borderColor: '#6c4c2f', transform: [{ rotate: '45deg' }] },
-  bubbleContent: { padding: 16, paddingRight: 48 },
+  bubbleContent: { padding: 12, paddingRight: 40 },
+  speakerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  avatar: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: '#44372c', flexShrink: 0 },
+  avatarImage: { position: 'absolute', width: 180.224, height: 270.336, left: -73.92, top: -3.52 },
+  speaker: { color: '#47311e', fontSize: 15, fontWeight: '700', flexShrink: 1 },
+  guideFooter: { height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 16, paddingRight: 6 },
+  guideNext: { width: 52, height: 44, alignItems: 'center', justifyContent: 'center' },
+  nextMark: { color: '#69431e', fontSize: 30 },
+  stepCount: { color: '#725339', fontSize: 12 },
   detailTitle: { flexShrink: 0, color: '#47311e', fontSize: 17, fontWeight: '700' },
   description: { flexShrink: 0, color: '#523c29', fontSize: 16, marginTop: 5 },
   dismiss: { position: 'absolute', right: 0, top: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

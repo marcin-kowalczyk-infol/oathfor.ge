@@ -20,13 +20,16 @@ export default function DemoApp() {
   const [mount, setMount] = useState(0);
   const [controls, setControls] = useState(false);
   const [scene, setScene] = useState(true);
+  const [introSeen, setIntroSeen] = useState(false);
+  const [guideRun, setGuideRun] = useState(0);
   const [, repaint] = useState(0);
   const copy = locale === 'pl' ? pl : en;
   const restart = () => setMount(value => value + 1);
-  function reset(complete: boolean, populated = complete) { setDummy(createDummy(locale, complete, populated)); restart(); setScene(false); setControls(false); }
+  function reset(complete: boolean, populated = complete) { setDummy(createDummy(locale, complete, populated)); setIntroSeen(false); restart(); setScene(false); setControls(false); }
   function language(next: Locale) { dummy.state.profile.profile.locale = next; setLocale(next); restart(); }
   const buttons: [string, () => void][] = [
     [copy.sceneOpen, () => { setScene(true); setControls(false); }],
+    [copy.sceneGuide, () => { setIntroSeen(false); setGuideRun(value => value + 1); setScene(true); setControls(false); }],
     [copy.new, () => reset(false)], [copy.empty, () => reset(true, false)], [copy.returning, () => reset(true)],
     [copy.restart, () => { restart(); setControls(false); }],
     [copy.expire, () => { dummy.state.expired = true; restart(); setControls(false); }],
@@ -38,7 +41,7 @@ export default function DemoApp() {
   return <Root style={styles.root}>
     <StatusBar hidden={scene} />
     <Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={[styles.badge, scene && styles.sceneBadge]}><Text allowFontScaling={!scene} style={styles.badgeText}>{scene ? 'DEMO' : copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable>
-    <View style={styles.product}>{scene ? <ForgeScene locale={locale} onExit={() => setScene(false)} /> : <Run key={mount} dummy={dummy} locale={locale} />}</View>
+    <View style={styles.product}>{scene ? <ForgeScene key={guideRun} locale={locale} showIntro={!introSeen} onIntroComplete={() => setIntroSeen(true)} onExit={() => setScene(false)} /> : <Run key={mount} dummy={dummy} locale={locale} />}</View>
     <Modal visible={controls} animationType="none" onRequestClose={() => setControls(false)}>
       <SafeAreaView style={styles.root}><ScrollView contentContainerStyle={styles.controls}>
         <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>

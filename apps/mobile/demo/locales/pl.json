@@ -25,7 +25,18 @@
       "chronicle": "Tutaj zostają ślady Twojej drogi."
     },
     "exit": "Wyjdź z Kuźni",
-    "dismiss": "Zamknij dymek"
+    "dismiss": "Zamknij dymek",
+    "speaker": "Żaromir",
+    "guide": {
+      "hearth": "Jestem Żaromir. Dotknij rozświetlonego paleniska — tu rodzą się Przysięgi.",
+      "seals": "Te świetliste pieczęcie skrywają Twoje zobowiązania.",
+      "chronicle": "W kronice zostają ślady Twojej drogi. Dotknij księgi.",
+      "door": "Drzwi w blasku księżyca prowadzą z powrotem. Rozejrzyj się śmiało.",
+      "next": "Następne miejsce",
+      "done": "Zacznij odkrywać",
+      "skip": "Pomiń wprowadzenie"
+    }
   },
-  "sceneOpen": "Odkryj Kuźnię · prototyp"
+  "sceneOpen": "Odkryj Kuźnię · prototyp",
+  "sceneGuide": "Żaromir · pokaż miejsca ponownie"
 }

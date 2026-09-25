@@ -25,7 +25,18 @@
       "chronicle": "Your journey leaves its mark here."
     },
     "exit": "Leave the Forge",
-    "dismiss": "Close the speech bubble"
+    "dismiss": "Close the speech bubble",
+    "speaker": "Zharomir",
+    "guide": {
+      "hearth": "I’m Zharomir. Touch the glowing hearth — Oaths take shape here.",
+      "seals": "These glowing seals hold your commitments.",
+      "chronicle": "The chronicle holds the traces of your journey. Touch the book.",
+      "door": "The moonlit door takes you back. Explore whenever you wish.",
+      "next": "Next place",
+      "done": "Start exploring",
+      "skip": "Skip introduction"
+    }
   },
-  "sceneOpen": "Explore the Forge · prototype"
+  "sceneOpen": "Explore the Forge · prototype",
+  "sceneGuide": "Zharomir · show the places again"
 }
