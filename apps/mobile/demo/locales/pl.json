@@ -13,5 +13,22 @@
   "lose": "Zgub odpowiedź na przyjęcie",
   "armed": "Następna odpowiedź na przyjęcie zostanie zgubiona",
   "add": "Dodaj demonstracyjną Przysięgę",
-  "resetHint": "Scenariusze usuwają wszystkie dane demonstracyjne."
+  "resetHint": "Scenariusze usuwają wszystkie dane demonstracyjne.",
+  "scene": {
+    "title": "Kuźnia Żaromira",
+    "hint": "Dotknij runy. Wybierz miejsce.",
+    "hearth": "Palenisko",
+    "seals": "Pieczęcie",
+    "chronicle": "Kronika",
+    "arriving": "Żaromir podchodzi…",
+    "inspect": "Odkryj",
+    "back": "Wróć",
+    "prototype": "PROTOTYP · ruch i miejsca",
+    "descriptions": {
+      "hearth": "Tutaj nabierają kształtu nowe Przysięgi.",
+      "seals": "Tutaj czekają Twoje zobowiązania.",
+      "chronicle": "Tutaj zostają ślady Twojej drogi."
+    }
+  },
+  "sceneOpen": "Odkryj Kuźnię · prototyp"
 }

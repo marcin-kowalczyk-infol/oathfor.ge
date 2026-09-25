@@ -4,6 +4,7 @@ import { AuthScreen } from '../src/auth/AuthScreen';
 import { LocalizationProvider } from '../src/localization/LocalizationProvider';
 import type { Locale } from '../src/localization/locale';
 import { createDummy } from './runtime';
+import { ForgeScene } from './ForgeScene';
 import en from './locales/en.json';
 import pl from './locales/pl.json';
 
@@ -18,12 +19,14 @@ export default function DemoApp() {
   const [dummy, setDummy] = useState(() => createDummy('pl', true, false));
   const [mount, setMount] = useState(0);
   const [controls, setControls] = useState(false);
+  const [scene, setScene] = useState(true);
   const [, repaint] = useState(0);
   const copy = locale === 'pl' ? pl : en;
   const restart = () => setMount(value => value + 1);
-  function reset(complete: boolean, populated = complete) { setDummy(createDummy(locale, complete, populated)); restart(); setControls(false); }
+  function reset(complete: boolean, populated = complete) { setDummy(createDummy(locale, complete, populated)); restart(); setScene(false); setControls(false); }
   function language(next: Locale) { dummy.state.profile.profile.locale = next; setLocale(next); restart(); }
   const buttons: [string, () => void][] = [
+    [copy.sceneOpen, () => { setScene(true); setControls(false); }],
     [copy.new, () => reset(false)], [copy.empty, () => reset(true, false)], [copy.returning, () => reset(true)],
     [copy.restart, () => { restart(); setControls(false); }],
     [copy.expire, () => { dummy.state.expired = true; restart(); setControls(false); }],
@@ -33,7 +36,7 @@ export default function DemoApp() {
   ];
   return <SafeAreaView style={styles.root}>
     <Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={styles.badge}><Text style={styles.badgeText}>{copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable>
-    <View style={styles.product}><Run key={mount} dummy={dummy} locale={locale} /></View>
+    <View style={styles.product}>{scene ? <ForgeScene locale={locale} onExit={() => setScene(false)} /> : <Run key={mount} dummy={dummy} locale={locale} />}</View>
     <Modal visible={controls} animationType="none" onRequestClose={() => setControls(false)}>
       <SafeAreaView style={styles.root}><ScrollView contentContainerStyle={styles.controls}>
         <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>
