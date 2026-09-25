@@ -1,6 +1,6 @@
 # ADR 0004: Immutable Oath acceptance and durable reconciliation
 
-Status: accepted local engineering decision, 2026-09-25; preview/acceptance/read reconciliation implemented; pause and downstream receipt/settlement integration and operational scheduling pending.
+Status: accepted local engineering decision, 2026-09-25; preview/acceptance/read/pause reconciliation implemented; downstream receipt/settlement integration and operational scheduling pending.
 
 ## Context
 
