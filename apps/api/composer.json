@@ -75,7 +75,7 @@
             "@auto-scripts"
         ],
         "test": "phpunit --testsuite \"Project Test Suite\" --fail-on-empty-test-suite",
-        "analyse": "phpstan analyse --no-progress",
+        "analyse": "phpstan analyse --no-progress --memory-limit=512M",
         "test:integration": "phpunit --testsuite Integration --fail-on-empty-test-suite"
     },
     "conflict": {

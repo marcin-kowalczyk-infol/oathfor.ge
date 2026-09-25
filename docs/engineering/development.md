@@ -47,7 +47,7 @@ composer analyse
 
 The copy step is for a new checkout; preserve an existing `.env`. The example contains an explicitly `DUMMY` local secret, not production credentials. Tests use a separate inert test secret. No database, queue or provider credentials are needed. Real environment files stay ignored. Sources: [Symfony setup](https://symfony.com/doc/7.4/setup.html), [security rules](../../.agents/rules/security.md).
 
-`composer test` runs PHPUnit with nonempty test discovery and a kernel boot check. `composer analyse` runs PHPStan level 8 over `src/` and `tests/`; generated caches stay ignored. The kernel harness follows [Symfony testing](https://symfony.com/doc/7.4/testing.html). The functional test verifies the public [liveness contract](api-contract.md), including its exact JSON body. Database/queue integrations and mobile checks are described below.
+`composer test` runs PHPUnit with nonempty test discovery and a kernel boot check. `composer analyse` runs PHPStan level 8 over `src/` and `tests/` with an explicit 512 MiB process limit; generated caches stay ignored. The kernel harness follows [Symfony testing](https://symfony.com/doc/7.4/testing.html). The functional test verifies the public [liveness contract](api-contract.md), including its exact JSON body. Database/queue integrations and mobile checks are described below.
 
 ## Run the API locally
 
@@ -318,6 +318,10 @@ Implementation is locally verified with synthetic backend/native adapters. Relea
 
 ## Oath previews
 
-MVP-05 adds strict local deadline resolution and protected immutable rule previews. Apply reviewed migrations in the intended runtime before using `POST /api/oath-previews` and owner-only `GET /api/oath-previews/{id}`. The account must have server-complete onboarding and unpaused gameplay to create a preview; reads remain available while paused. No Oath or XP is created by a preview. The [contract](api-contract.md#original-oath-contract) distinguishes implemented previews from planned confirmation, reads and pause endpoints.
+MVP-05 adds strict local deadline resolution and protected immutable rule previews. Apply reviewed migrations in the intended runtime before using `POST /api/oath-previews` and owner-only `GET /api/oath-previews/{id}`. The account must have server-complete onboarding and unpaused gameplay to create a preview; reads remain available while paused. No Oath or XP is created by a preview. The [contract](api-contract.md#original-oath-contract) distinguishes implemented previews/confirmation from planned commitment reads and pause endpoints.
 
 The committed policy source is the versioned JSON catalog in `apps/api/resources/oath/`; changing it affects newly generated previews only. Existing preview JSON is read from PostgreSQL. Real receipt processing, AI review, rewards, Recovery and native first-Oath acceptance remain pending. Ordinary tests use synthetic clocks/sessions; no live provider request is part of preview testing.
+
+`POST /api/oaths` explicitly accepts a saved preview with an account-scoped request UUID and `accepted=true`. The transaction creates one active-now or future-scheduled commitment, copies immutable rules, and binds retries to the same Oath. Repeating the same accepted preview under another request UUID also returns that Oath. Fresh acceptance rejects expired scheduling choices and superseded template/reward versions; successful replay still requires current authentication. T04 persists state only: due-state reconciliation, protected commitment reads, pause, proof and rewards remain subsequent work.
+
+Local tooling adjustment, 2026-09-25: the fresh T04 isolated analysis exceeded PHP’s 128 MiB default. The Composer analysis script now uses PHPStan’s [memory-limit option](https://phpstan.org/user-guide/command-line-usage#--memory-limit) at 512 MiB; no application runtime or host permission setting changes.
