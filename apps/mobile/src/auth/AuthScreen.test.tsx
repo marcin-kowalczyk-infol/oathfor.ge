@@ -220,3 +220,24 @@ test.each(['denied', 'unavailable'] as const)('saved opt-in restart reviews with
   expect(await screen.findByText('Trial of the Spark')).toBeOnTheScreen();
   expect(permissions.request).not.toHaveBeenCalled();
 });
+
+test('default native adapter unmounts safely when the unavailable Expo module returns no subscription', async () => {
+  const runtime = setup();
+  jest.mocked(Apple.isAvailableAsync).mockResolvedValue(false);
+  // SDK57's unavailable-module fallback returns undefined despite its public type.
+  jest.mocked(Apple.addRevokeListener).mockReturnValueOnce(undefined as unknown as ReturnType<typeof Apple.addRevokeListener>);
+  const view = await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} apple={undefined} /></LocalizationProvider>);
+  expect(await screen.findByText('Sign in with Apple is unavailable on this device right now.')).toBeOnTheScreen();
+  await expect(view.unmount()).resolves.toBeUndefined();
+});
+
+test('default native adapter removes a valid revocation subscription exactly once', async () => {
+  const runtime = setup();
+  const remove = jest.fn();
+  jest.mocked(Apple.addRevokeListener).mockReturnValueOnce({ remove });
+  const view = await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} apple={undefined} /></LocalizationProvider>);
+  await screen.findByTestId('native-apple-button');
+  expect(remove).not.toHaveBeenCalled();
+  await view.unmount();
+  expect(remove).toHaveBeenCalledTimes(1);
+});

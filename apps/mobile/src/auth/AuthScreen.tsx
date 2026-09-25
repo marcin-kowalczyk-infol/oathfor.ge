@@ -19,7 +19,8 @@ const nativeApple: AppleAvailability = {
   onRevoked(listener) {
     try {
       const subscription = Apple.addRevokeListener(listener);
-      return () => subscription.remove();
+      // The SDK fallback returns undefined when its native module is unavailable.
+      return () => subscription?.remove();
     } catch { return () => {}; }
   },
 };
