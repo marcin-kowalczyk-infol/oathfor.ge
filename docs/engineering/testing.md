@@ -110,3 +110,21 @@ MVP-05-T08 mobile tests use the canonical API catalog to detect schema drift, re
 MVP-05-T09 component tests exercise completed-profile routing, chosen activity/start/deadline, no confirmation before explicit acceptance, editable choices with renewed review, DST gap/overlap recovery and pending acceptance. Stored-rule rendering covers PL/EN sections, seconds and zones, the two overlap occurrences, cutoff offset changes and unsupported-device-zone fallback. Existing account/onboarding tests remain regressions; native layout and signed-provider acceptance remain pending.
 
 MVP-05-T10 checks cover server-ordered Today with future and overdue pending items, stored-rule detail, terminal history pagination, complete pause summaries and changed-revision review. Separate detail-loading tests cover sets larger than a list page, bounded concurrency and failure without partial confirmation. Session/navigation regressions require late responses to remain invisible and old pause completions never to leave the screen busy or unlock a newer mutation. Synthetic terminal/pending records test display only; they do not establish downstream outcomes or rewards.
+
+## MVP-05 local verification and release gates
+
+T11 verification on 2026-09-25, against integrated T01–T10 (`c5b438c`): the isolated API checker passed 101 unit tests / 587 assertions and 257 integration tests / 2,287 assertions, PHPStan, migrations, service checks and real HTTP. Mobile passed 313 tests in 30 suites, TypeScript and an iOS export (718 modules, approximately 1.9 MB Hermes bundle) under Node 24.21.0. Repository/whitespace checks and independent task reviews passed. An initial final Jest process exited 139 without a failing-test summary; the separate full retry passed. No application defect or root cause is inferred from that process failure.
+
+| Acceptance area | Verified evidence and remaining limit |
+| --- | --- |
+| Immutable creation and tracking | API and mobile tests cover explicit acceptance, retry identity, strict DST/time resolution, owner-only reads, Today/detail/history and confirmed pause/resume |
+| Activation and unknown availability | Persisted reconciliation and fixed review clocks pass boundary/race/rollback tests; no healthy-service miss, receipt processing, review closure or XP is inferred |
+| Native presentation fixture | A clearly labeled DUMMY fixture uses real screens/controllers with fake API, memory storage and denied-permission adapters; typecheck and Metro compilation passed (860 modules), not visual acceptance |
+| Native PL/EN walkthrough | Not verified: Device Hub / booted iPhone 18 Pro / iOS 27.0 repeatedly returned `cgWindowNotFound`, including after reconnection and a fresh Expo launch; no new visual, scrolling, reading-order, VoiceOver or Dynamic Type pass |
+| New/returning, restart and expired session | Synthetic component/controller coverage and DUMMY scenarios exist; memory remount is not process restart or Keychain durability |
+| Real provider/device | Still requires registered bundle ID, matching private Apple configuration, signed physical iOS build and explicit live-provider authorization; real permissions, Keychain and accessibility remain pending |
+| Operational/downstream integration | Deployment timer/monitoring for `app:oath:reconcile`, finalized receipts, availability evidence, review/outcome settlement, rewards and linked Recovery remain assigned to MVP-06–10/14 |
+
+The ignored fixture is `graphics/mvp-05/ui/native-oath-preview.tsx`. Its controls select PL/EN, new/returning setup, memory remount, expiry, offline responses, lost confirmation response and changed pause revision. It is never the production entrypoint. T11 restored `apps/mobile/index.ts` byte-for-byte and removed the temporary `.expo` copy after the attempt; no live provider, SecureStore, proof or reward adapter was used by the fixture. Resume the native matrix with an accessible simulator window, then the matching signed physical build. MVP-04-T22's implementation dependency is supplied; its signed-device acceptance remains open.
+
+MVP-05 local implementation is complete with the explicit DUMMY native handoff; release acceptance remains pending. Passing mocks, command checks or exports cannot close the native and downstream rows above.
