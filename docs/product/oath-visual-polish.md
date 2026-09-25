@@ -111,3 +111,7 @@ VoiceOver was enabled on the main simulator (first-run gesture notice and focus 
 ### Spatial-navigation exploration — 2026-09-25
 
 Owner authorized a separate prototype in which rune selection sends Żaromir to a place in the Forge. Explore three destinations (hearth, seals, chronicle) with interruptible movement and local light/arrival feedback. This is an interaction proposal, not approved functional navigation. The existing Oath journey remains available separately in the development demo; no domain operation is triggered by walking. Provisional room and four-frame companion assets are documented in the [station handoff](../art/forge-stations-prototype.md). Final directional animation, occlusion and owner acceptance remain open.
+
+### Immersive scene refinement — 2026-09-25
+
+Owner requested the room to fill the screen, removing the permanent title/instructions and oversized rune medallions. The demo now uses a portrait room with gently glowing hearth, seals and chronicle as touch targets. Żaromir approaches a selected place; a short dismissible speech bubble appears on arrival. The moonlit door returns to the existing functional journey. The small DEMO control overlays the scene. Bubbles support scalable, scrollable text; Reduce Motion supplies a static equivalent. This remains an isolated interaction prototype with no commitment or reward operation. Full directional character animation and final owner acceptance remain pending.

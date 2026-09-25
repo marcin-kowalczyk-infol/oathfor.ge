@@ -1,4 +1,4 @@
-# Forge stations — movement prototype v01
+# Forge stations — movement prototype
 
 Status: owner authorized a simulator prototype on 2026-09-25. This is a separate development-only scene, not an accepted replacement for Oath navigation or a production animation rig. It explores rune selection → companion movement → station response. It creates no commitment, XP or unlock.
 
@@ -22,3 +22,11 @@ Terms checked before generation: [OpenAI Europe Terms of Use](https://openai.com
 Independent art review found no blocking identity/composition issue for this labelled prototype. Runtime frame translation compensates measured cell-center and foot-baseline drift; native inspection on iPhoneSE3/iOS27.0 verified room framing, movement to the chronicle, retargeting to seals and the static reduced-motion equivalent at a100×100 cell display size. Final movement quality remains for owner review. Review the running movement, scale and station response in the simulator. Evaluate whether spatial navigation is understandable before adding full directional animation or replacing the functional Oath screens. Production artwork needs aligned cycles, directional poses, foreground masks and edge/size review. No external subscription or credentials are required for this prototype.
 
 Exact generation prompts: `graphics/mvp-05/stations/room-v01.prompt.txt` and `graphics/mvp-05/stations/walk-v01.prompt.txt`; machine-readable metadata: `graphics/mvp-05/stations/provenance.json`. These are local ignored masters, intentionally not runtime dependencies.
+
+## Immersive room v03 — 2026-09-25
+
+Owner requested a full-screen room, subtle object highlights, contextual speech bubbles and a door exit. Selected `room-prototype-v03.png` is an887×1774 opaque RGB portrait,2872061 bytes, SHA-256 `a8994b16f6968caf15727f49f3ca5f6b62fe420f548fece17df5199dfd555ce3`. Built-in `image_gen` adapted v01 into v02, then recomposed it into this taller image after native iPhone18Pro inspection showed excessive side cropping. Exact model/seed were not exposed. It preserves stone, carved timber, amber fire and moonlight, adding an open wooden door. It introduces no new character art or external reference. The unmodified v03 export is intentionally stored in `apps/mobile/assets/forge/`; v02 remains only an ignored intermediate and v01 remains historical.
+
+Runtime uses one centered cover transform for the backdrop, companion and object highlights; touch areas are kept inside the viewport. Observed image anchors: hearth(0.515,0.45), seals(0.22,0.52), chronicle(0.82,0.51), door(0.17,0.37). Cover framing crops peripheral architecture according to the viewport. The walking sheet remains provisional v01. The room remains a flat backdrop with runtime glow, not separately animated fire or foreground occlusion.
+
+Local master and exact prompt: `graphics/mvp-05/stations/room-prototype-v03.png`, `room-v03.prompt.txt`; metadata: `provenance-v03.json` in that directory. Intermediate v02 prompt/metadata remain beside it. Same generation-day terms/provenance limitations apply as above. Native checks and final owner acceptance are recorded separately; this is a demo export, not final production art approval.

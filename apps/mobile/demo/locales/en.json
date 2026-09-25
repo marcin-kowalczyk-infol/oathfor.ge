@@ -15,20 +15,17 @@
   "add": "Add demo Oath",
   "resetHint": "Scenarios reset all synthetic data.",
   "scene": {
-    "title": "Zharomir’s Forge",
-    "hint": "Touch a rune. Choose a place.",
     "hearth": "Hearth",
     "seals": "Seals",
     "chronicle": "Chronicle",
-    "arriving": "Zharomir approaches…",
     "inspect": "Discover",
-    "back": "Back",
-    "prototype": "PROTOTYPE · movement and places",
     "descriptions": {
       "hearth": "New Oaths take shape here.",
       "seals": "Your commitments await here.",
       "chronicle": "Your journey leaves its mark here."
-    }
+    },
+    "exit": "Leave the Forge",
+    "dismiss": "Close the speech bubble"
   },
   "sceneOpen": "Explore the Forge · prototype"
 }

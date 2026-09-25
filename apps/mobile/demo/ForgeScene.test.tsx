@@ -12,6 +12,7 @@ const walkTimers = () => intervals.mock.calls.flatMap((args, index) => args[1] =
 
 beforeEach(() => {
   jest.useFakeTimers(); motion.mockReturnValue(false);
+  jest.spyOn(Animated, 'spring').mockImplementation(() => ({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() }));
   intervals = jest.spyOn(globalThis, 'setInterval'); clear = jest.spyOn(globalThis, 'clearInterval');
   Dimensions.set({ window: { width: 390, height: 844, scale: 3, fontScale: 1 }, screen: { width: 390, height: 844, scale: 3, fontScale: 1 } });
 });
@@ -25,7 +26,7 @@ test('reduced motion immediately reveals the selected station and exit is the on
   expect(screen.getByText(en.scene.descriptions.seals)).toBeOnTheScreen();
   expect(onExit).not.toHaveBeenCalled();
   expect(walkTimers()).toHaveLength(0);
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.back }));
+  await fireEvent.press(screen.getByRole('button', { name: en.scene.exit }));
   expect(onExit).toHaveBeenCalledTimes(1);
 });
 
@@ -33,8 +34,10 @@ test('a late interrupted walk cannot reveal the old station; leaving cancels mot
   motion.mockReturnValue(true);
   const finishes: ((result: { finished: boolean }) => void)[] = [];
   const stops: jest.Mock[] = [];
-  jest.spyOn(Animated, 'timing').mockImplementation(() => {
-    const stop = jest.fn(); stops.push(stop);
+  jest.spyOn(Animated, 'timing').mockImplementation((value) => {
+    const stop = jest.fn();
+    if (!(value instanceof Animated.ValueXY)) return { start: jest.fn(), stop, reset: jest.fn() };
+    stops.push(stop);
     return { start: done => { if (done) finishes.push(done); }, stop, reset: jest.fn() };
   });
   const view = await render(<ForgeScene locale="en" onExit={jest.fn()} />);
@@ -66,7 +69,7 @@ test('turning motion off during a walk finishes at the requested station and cle
 });
 
 
-test('large text exposes one labelled control per station in a scrollable flow', async () => {
+test('large text exposes one labelled control per station with a scrollable bubble', async () => {
   Dimensions.set({ window: { width: 320, height: 568, scale: 2, fontScale: 3 }, screen: { width: 320, height: 568, scale: 2, fontScale: 3 } });
   await render(<ForgeScene locale="en" onExit={jest.fn()} />);
   expect(screen.getAllByRole('button', { name: en.scene.chronicle })).toHaveLength(1);
@@ -82,4 +85,32 @@ test('restoring motion after arrival does not replay the walk or hide the statio
   await view.rerender(<ForgeScene locale="en" onExit={jest.fn()} />);
   expect(screen.getByText(en.scene.descriptions.hearth)).toBeOnTheScreen();
   expect(walkTimers()).toHaveLength(0);
+});
+
+
+test('a dismissed bubble stays closed across motion changes and the station can reopen it', async () => {
+  const view = await render(<ForgeScene locale="en" onExit={jest.fn()} />);
+  await fireEvent.press(screen.getByRole('button', { name: en.scene.seals }));
+  await fireEvent.press(screen.getByRole('button', { name: en.scene.dismiss }));
+  expect(screen.queryByText(en.scene.descriptions.seals)).toBeNull();
+  motion.mockReturnValue(true);
+  await view.rerender(<ForgeScene locale="en" onExit={jest.fn()} />);
+  expect(screen.queryByText(en.scene.descriptions.seals)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: en.scene.seals }));
+  expect(screen.getByText(en.scene.descriptions.seals)).toBeOnTheScreen();
+  expect(walkTimers()).toHaveLength(0);
+});
+
+
+test('ambient glow starts only with motion allowed and stops when motion is disabled', async () => {
+  const stop = jest.fn();
+  const loop = jest.spyOn(Animated, 'loop').mockReturnValue({ start: jest.fn(), stop, reset: jest.fn() });
+  const view = await render(<ForgeScene locale="en" onExit={jest.fn()} />);
+  expect(loop).not.toHaveBeenCalled();
+  motion.mockReturnValue(true);
+  await view.rerender(<ForgeScene locale="en" onExit={jest.fn()} />);
+  expect(loop).toHaveBeenCalledTimes(1);
+  motion.mockReturnValue(false);
+  await view.rerender(<ForgeScene locale="en" onExit={jest.fn()} />);
+  expect(stop).toHaveBeenCalledTimes(1);
 });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, SafeAreaView, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { StatusBar, Modal, SafeAreaView, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { AuthScreen } from '../src/auth/AuthScreen';
 import { LocalizationProvider } from '../src/localization/LocalizationProvider';
 import type { Locale } from '../src/localization/locale';
@@ -34,8 +34,10 @@ export default function DemoApp() {
     [copy.lose, () => { dummy.state.loseNext = true; repaint(value => value + 1); }],
     [copy.add, () => { dummy.add(); repaint(value => value + 1); setControls(false); }],
   ];
-  return <SafeAreaView style={styles.root}>
-    <Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={styles.badge}><Text style={styles.badgeText}>{copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable>
+  const Root = scene ? View : SafeAreaView;
+  return <Root style={styles.root}>
+    <StatusBar hidden={scene} />
+    <Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={[styles.badge, scene && styles.sceneBadge]}><Text allowFontScaling={!scene} style={styles.badgeText}>{scene ? 'DEMO' : copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable>
     <View style={styles.product}>{scene ? <ForgeScene locale={locale} onExit={() => setScene(false)} /> : <Run key={mount} dummy={dummy} locale={locale} />}</View>
     <Modal visible={controls} animationType="none" onRequestClose={() => setControls(false)}>
       <SafeAreaView style={styles.root}><ScrollView contentContainerStyle={styles.controls}>
@@ -48,6 +50,6 @@ export default function DemoApp() {
         <Pressable accessibilityRole="button" style={styles.button} onPress={() => setControls(false)}><Text style={styles.text}>{copy.close}</Text></Pressable>
       </ScrollView></SafeAreaView>
     </Modal>
-  </SafeAreaView>;
+  </Root>;
 }
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#15191c' }, product: { flex: 1 }, badge: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', paddingHorizontal: 16 }, badgeText: { color: '#ffd380', fontSize: 12 }, controls: { padding: 20, gap: 14 }, languages: { flexDirection: 'row', gap: 12 }, title: { color: '#ffd380', fontSize: 26, fontWeight: '700' }, text: { color: '#fff', fontSize: 16 }, button: { minHeight: 48, justifyContent: 'center', borderWidth: 1, borderColor: '#ffd380', borderRadius: 12, padding: 12 } });
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#15191c' }, product: { flex: 1 }, sceneBadge: { position: 'absolute', top: 54, left: 12, zIndex: 10, backgroundColor: '#15191c88', borderRadius: 18 }, badge: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', paddingHorizontal: 16 }, badgeText: { color: '#ffd380', fontSize: 12 }, controls: { padding: 20, gap: 14 }, languages: { flexDirection: 'row', gap: 12 }, title: { color: '#ffd380', fontSize: 26, fontWeight: '700' }, text: { color: '#fff', fontSize: 16 }, button: { minHeight: 48, justifyContent: 'center', borderWidth: 1, borderColor: '#ffd380', borderRadius: 12, padding: 12 } });
