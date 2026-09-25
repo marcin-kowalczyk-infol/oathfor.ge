@@ -22,6 +22,8 @@ Accepted basis: completion declared by the player, supported by either a photo o
 
 The owner selected “Próba Iskry / Trial of the Spark” as the initiation title. It names the introductory task; the commitment remains an Oath. The spark motif is invented setting terminology, not a claimed traditional Slavic ritual. The accepted bilingual title and commitment term are recorded in the glossary. `{activity}` is the chosen workout type; `{deadline}` must show the committed date, time and timezone under the T02 policy. No exercise duration or intensity target is selected here. These sentences are the completion promise, not a complete activation screen: the submission cutoff is defined in T02; rewards and Recovery follow T04, while pause handling follows T05.
 
+Original creation choices were accepted on 2026-09-25: activation now or at an explicitly selected future date/time, a separately chosen later completion deadline, and the fixed running/strength training/mobility catalog. See [creation and tracking](oaths.md) for stable bilingual labels and the implementation contract. These choices add no recurrence, quota or duration/intensity minimum.
+
 ### Shared evidence rules
 
 The player sees both evidence contracts before committing and chooses either mode at submission. The rule snapshot preserves both alternatives; switching between them does not change the workout promise. Completion declaration is required for either route. A missing declaration blocks submission with a request to confirm it; the model cannot supply it for the player.

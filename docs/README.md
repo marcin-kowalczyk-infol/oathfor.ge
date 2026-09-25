@@ -6,6 +6,7 @@ All product and delivery documents live here except business plans, which belong
 | --- | --- |
 | [Product brief](product/brief.md) | Purpose, accepted direction, unresolved choices |
 | [First-loop contract](product/first-loop.md) | Accepted first-loop rules, scenario/localization handoff and pending real-validation gates |
+| [Original Oaths](product/oaths.md) | Accepted creation choices and planned immutable acceptance, reads and reconciliation |
 | [Onboarding](product/onboarding.md) | Accepted intention, confirmed profile steps, recovery and optional notifications |
 | [MVP](product/mvp.md) | Draft loop, boundaries and acceptance scenarios |
 | [Product glossary](product/glossary.md) | Terminology, Polish/English localization and Slavic-inspired naming |
