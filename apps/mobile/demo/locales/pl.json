@@ -1,0 +1,17 @@
+{
+  "badge": "DEMO · sterowanie",
+  "title": "Sterowanie symulatorem",
+  "notice": "DUMMY: API, logowanie i pamięć sesji. Bez prawdziwych dowodów, nagród i dostawców. Reset usuwa dane demonstracyjne.",
+  "close": "Wróć do Kuźni",
+  "new": "Nowy gracz · wprowadzenie",
+  "empty": "Nowa Kuźnia · pusta",
+  "returning": "Powracający gracz",
+  "restart": "Uruchom interfejs ponownie",
+  "expire": "Wygaś sesję",
+  "online": "Przejdź online",
+  "offline": "Przejdź offline",
+  "lose": "Zgub odpowiedź na przyjęcie",
+  "armed": "Następna odpowiedź na przyjęcie zostanie zgubiona",
+  "add": "Dodaj demonstracyjną Przysięgę",
+  "resetHint": "Scenariusze usuwają wszystkie dane demonstracyjne."
+}

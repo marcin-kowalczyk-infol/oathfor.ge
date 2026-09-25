@@ -1,3 +1,4 @@
+import { Dimensions } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
@@ -177,4 +178,66 @@ test('late list and detail responses cannot replace the newly selected screen', 
   await fireEvent.press(screen.getByRole('button', { name: 'History' }));
   await act(async () => detail.resolve({ kind: 'success', value: { oath: oath(), serverTime } }));
   expect(screen.queryByText('Status: Under review')).toBeNull(); expect(screen.getByRole('header', { name: 'History' })).toBeOnTheScreen();
+});
+
+test('Forge features at most three server-ordered seals while every Oath stays reachable in the full list', async () => {
+  Dimensions.set({ window: { width: 390, height: 844, scale: 3, fontScale: 1 }, screen: { width: 390, height: 844, scale: 3, fontScale: 1 } });
+  const items = [1, 2, 3, 4].map(n => oath({ id: `20000000-0000-4000-8000-${String(n).padStart(12, '0')}` }));
+  const f = setup(items);
+  jest.mocked(f.controller.detail).mockImplementation(async selectedId => ({ kind: 'success', value: { oath: items.find(item => item.id === selectedId)!, serverTime } }));
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  const seals = await screen.findAllByRole('button', { name: /Oath seal:/ });
+  expect(seals).toHaveLength(3);
+  expect(screen.getAllByRole('button', { name: /Open Oath:/ })).toHaveLength(4);
+  await fireEvent.press(seals[1]);
+  expect(f.controller.detail).toHaveBeenCalledWith(items[1].id);
+  expect(await screen.findByText('Status: Under review')).toBeOnTheScreen();
+});
+
+
+test('large system text retains every Oath action through the ordered list', async () => {
+  Dimensions.set({ window: { width: 390, height: 844, scale: 3, fontScale: 2 }, screen: { width: 390, height: 844, scale: 3, fontScale: 2 } });
+  const f = setup();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  expect(await screen.findByRole('button', { name: /Open Oath:/ })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: /Oath seal:/ })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: /Open Oath:/ }));
+  expect(f.controller.detail).toHaveBeenCalledWith(id);
+});
+
+test('returning through Today preserves uncommitted workout and deadline choices', async () => {
+  const f = setup([]); jest.mocked(f.controller.resetCreation).mockReturnValue(true);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Create an Oath' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Mobility' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'At a future time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Hour 21' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Minute 45' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Use this time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Today' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Create an Oath' }));
+  expect(screen.getByRole('radio', { name: 'Mobility', selected: true })).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: 'At a future time', selected: true })).toBeOnTheScreen();
+  expect(screen.getByText('21:45')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Commit to the Oath' })).toBeNull();
+});
+
+test('confirmation arriving after returning to Today clears the committed draft', async () => {
+  const f = setup([]);
+  jest.mocked(f.controller.resetCreation).mockImplementation(() => { f.change({ ...f.state, kind: 'ready', oath: null }); return true; });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Create an Oath' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Mobility' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Hour 21' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Use this time' }));
+  await act(async () => f.change({ kind: 'ready', busy: true, preview: null, oath: null, needsReview: false, pending: { version: 1, accountId: id, previewId: id, requestId: id } }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Today' }));
+  expect(await screen.findByRole('button', { name: 'Check confirmation' })).toBeOnTheScreen();
+  await act(async () => f.change({ kind: 'ready', busy: false, preview: null, oath: oath({ state: 'active', reason: null, review: null }), needsReview: false, pending: null }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Create an Oath' }));
+  expect(screen.getByRole('radio', { name: 'Running', selected: true })).toBeOnTheScreen();
+  expect(screen.getByText('Choose a time')).toBeOnTheScreen();
+  expect(screen.queryByText('21:00')).toBeNull();
 });

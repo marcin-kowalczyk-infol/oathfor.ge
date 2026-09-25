@@ -1,26 +1,35 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { isPreviewInput, type Activity, type LocalTimeInput, type PreviewInput } from '../api/oathSchema';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import { SnapshotRules } from './SnapshotRules';
 import type { OathController } from './controller';
-type TimeDraft = { date: string; time: string; zone: string; offset?: string };
-export function OathScreen({ controller, timezone, onLogout, onBack }: { controller: OathController; timezone: string; onLogout(): void; onBack?(): void }) {
+import { WallTimePicker, type TimeDraft } from './WallTimePicker';
+export type OathCreationDraft = { activity: Activity; scheduled: boolean; activation: TimeDraft; deadline: TimeDraft };
+function emptyDraft(timezone: string): OathCreationDraft {
+  return { activity: 'running', scheduled: false, activation: { date: '', time: '', zone: timezone }, deadline: { date: '', time: '', zone: timezone } };
+}
+export function OathScreen({ controller, timezone, onLogout, onBack, initialDraft, onDraftChange }: { controller: OathController; timezone: string; onLogout(): void; onBack?(): void; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void }) {
   const { t } = useTranslation();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
-  const [activity, setActivity] = useState<Activity>('running');
-  const [scheduled, setScheduled] = useState(false);
-  const [activation, setActivation] = useState<TimeDraft>({ date: '', time: '', zone: timezone });
-  const [deadline, setDeadline] = useState<TimeDraft>({ date: '', time: '', zone: timezone });
+  const [draft, setDraft] = useState<OathCreationDraft>(() => initialDraft ?? emptyDraft(timezone));
+  const { activity, scheduled, activation, deadline } = draft;
+  function changeDraft(patch: Partial<OathCreationDraft>) {
+    const next = { ...draft, ...patch }; setDraft(next); onDraftChange?.(next);
+  }
+  const setActivity = (activity: Activity) => changeDraft({ activity });
+  const setScheduled = (scheduled: boolean) => changeDraft({ scheduled });
+  const setActivation = (activation: TimeDraft) => changeDraft({ activation });
+  const setDeadline = (deadline: TimeDraft) => changeDraft({ deadline });
   const [mode, setMode] = useState<'form' | 'review' | 'detail'>('form');
   const [submitted, setSubmitted] = useState(false);
   const ready = state.kind === 'ready' ? state : undefined;
   const busy = ready?.busy ?? true;
   const pending = ready?.pending;
   const oath = ready?.oath;
-  useEffect(() => { if (oath) setMode('detail'); }, [oath]);
+  useEffect(() => { if (oath) { setMode('detail'); onDraftChange?.(null); } }, [oath, onDraftChange]);
   const local = (draft: TimeDraft): LocalTimeInput => ({ local: `${draft.date}T${draft.time}`, timezone: draft.zone, ...(draft.offset ? { offset: draft.offset } : {}) });
   const input: PreviewInput = { activity, activation: scheduled ? { mode: 'scheduled', time: local(activation) } : { mode: 'now' }, deadline: local(deadline) };
   const valid = isPreviewInput(input);
@@ -37,17 +46,7 @@ export function OathScreen({ controller, timezone, onLogout, onBack }: { control
   function timeFields(field: 'activation' | 'deadline', draft: TimeDraft, setDraft: (value: TimeDraft) => void) {
     const occurrence = choices?.field === field ? choices : undefined;
     return <View style={styles.group}>
-      {(['date', 'time', 'zone'] as const).map(part => {
-        const label = t(`oath.${field}${part[0].toUpperCase()}${part.slice(1)}`);
-        const hint = t(`oath.${part}Hint`);
-        return <View key={part} style={styles.field}>
-          <Text style={styles.label} nativeID={`oath-${field}-${part}`}>{label}</Text>
-          <TextInput accessibilityLabel={label} accessibilityLabelledBy={`oath-${field}-${part}`} accessibilityHint={hint}
-            value={draft[part]} editable={!busy} autoCapitalize="none" autoCorrect={false} maxLength={part === 'zone' ? 128 : part === 'date' ? 10 : 8}
-            style={styles.input} onChangeText={value => { if (!busy) { setDraft({ ...draft, [part]: value, offset: undefined }); setSubmitted(false); } }} />
-          <Text style={styles.body}>{hint}</Text>
-        </View>;
-      })}
+      <WallTimePicker field={field} value={draft} disabled={busy} onChange={value => { if (!busy) { setDraft(value); setSubmitted(false); } }} />
       {occurrence && <View style={styles.group}>
         <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.offsetChoice', { field: t(`oath.${field}Time`) })}</Text>
         {occurrence.validOffsets?.map(offset => <Pressable key={offset} accessibilityRole="radio"
@@ -82,7 +81,7 @@ export function OathScreen({ controller, timezone, onLogout, onBack }: { control
         <Text accessibilityRole="header" style={styles.title}>{t('oath.confirmed')}</Text>
         <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.state', { state: t(`oath.states.${oath.state}`) })}</Text>
         <SnapshotRules snapshot={oath.snapshot} />
-        {!pending && <Action label={t('oath.newOath')} variant="secondary" onPress={() => { setMode('form'); setSubmitted(false); }} />}
+        {!pending && <Action label={t('oath.newOath')} variant="secondary" onPress={() => { if (controller.resetCreation()) { const next = emptyDraft(timezone); setDraft(next); onDraftChange?.(null); setMode('form'); setSubmitted(false); } }} />}
       </>}
       {review && <>
         <Text style={styles.body}>{t('oath.reviewIntro')}</Text>
@@ -120,7 +119,7 @@ const styles = StyleSheet.create({
   title: { color: tokens.color.text, fontSize: tokens.title, lineHeight: tokens.title * 1.2, fontWeight: '600' },
   label: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5, fontWeight: '600' },
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
-  choice: { minHeight: tokens.controlHeight, padding: tokens.space.item, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius },
-  selected: { backgroundColor: tokens.color.surface, borderColor: tokens.color.primary },
+  choice: { minHeight: 64, padding: 18, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius },
+  selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
   input: { minHeight: tokens.controlHeight, padding: tokens.space.item, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius, color: tokens.color.text, fontSize: tokens.body },
 });

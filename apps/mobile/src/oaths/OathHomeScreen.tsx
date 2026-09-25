@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
 import { formatDeadline } from '../localization/format';
@@ -7,7 +7,8 @@ import type { Oath, OathListEnvelope } from '../api/oathSchema';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import { SnapshotRules, storedTime } from './SnapshotRules';
-import { OathScreen } from './OathScreen';
+import { ForgeHub } from './ForgeHub';
+import { OathScreen, type OathCreationDraft } from './OathScreen';
 import { loadPauseReview, type PauseReview } from './pauseReview';
 import type { OathController } from './controller';
 type ViewName = 'today' | 'history';
@@ -16,6 +17,8 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
   const account = useSyncExternalStore(controller.subscribe, controller.getState);
   const available = account.kind === 'ready';
   const [route, setRoute] = useState<'list' | 'detail' | 'create' | 'pause'>('list');
+  const [creationDraft, setCreationDraft] = useState<OathCreationDraft | null>(null);
+  useEffect(() => { setCreationDraft(null); }, [controller]);
   const [view, setView] = useState<ViewName>('today');
   const [list, setList] = useState<OathListEnvelope | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,7 +52,12 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
     if (available) void loadList('today');
     return () => { generation.current++; mutation.current = undefined; };
   }, [available, controller]);
-  useEffect(() => { if (confirmedId && route === 'list') void loadList(view); }, [confirmedId]);
+  useEffect(() => {
+    if (confirmedId) {
+      setCreationDraft(null);
+      if (route === 'list') void loadList(view);
+    }
+  }, [confirmedId]);
   async function openDetail(id: string) {
     const epoch = ++generation.current; detailId.current = id;
     setRoute('detail'); setDetail(null); setLoading(true); setFailed(false);
@@ -90,24 +98,32 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
     const date = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.snapshot.deadline.local}Z`));
     return t('oathHome.group', { date, timezone: item.snapshot.deadline.timezone });
   }
-  if (available && route === 'create') return <OathScreen controller={controller} timezone={timezone} onLogout={onLogout} onBack={() => { void loadList('today'); }} />;
+  if (available && route === 'create') return <OathScreen controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} onLogout={onLogout} onBack={() => { void loadList('today'); }} />;
   return <SafeAreaView style={styles.safeArea}><ScrollView contentContainerStyle={styles.content}>
-    <Text accessibilityRole="header" style={styles.title}>{t(route === 'pause' ? 'oathHome.pauseTitle' : route === 'detail' ? 'oath.confirmed' : `oathHome.${view}`)}</Text>
+    <Text accessibilityRole="header" style={styles.title}>{t(route === 'pause' ? 'oathHome.pauseTitle' : route === 'detail' ? 'forge.detail' : view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>
     {!available && <>
       <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
       {account.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
     </>}
     {available && <>
-      <Action label={t('oathHome.today')} variant="secondary" busy={mutating} onPress={() => { void loadList('today'); }} />
-      <Action label={t('oathHome.history')} variant="secondary" busy={mutating} onPress={() => { void loadList('history'); }} />
-      {account.pending ? <>
+      <View style={styles.navigation}>{(['today', 'history'] as const).map(destination => <Pressable key={destination}
+        accessibilityRole="button" accessibilityLabel={t(`oathHome.${destination}`)} accessibilityState={{ selected: route === 'list' && view === destination, disabled: mutating }} disabled={mutating}
+        onPress={() => { void loadList(destination); }} style={[styles.tab, route === 'list' && view === destination && styles.selectedTab]}>
+        <Text style={styles.label}>{t(`oathHome.${destination}`)}</Text>
+      </Pressable>)}</View>
+      {route === 'list' && view === 'today' && <>
+        <Text style={styles.subtitle}>{t('forge.subtitle')}</Text>
+        <ForgeHub items={list?.items ?? []} onOpen={id => { void openDetail(id); }} />
+      </>}
+      {route === 'list' && (account.pending ? <>
         <Text style={styles.body}>{t('oath.pending')}</Text>
         <Action label={t('oath.recover')} busy={account.busy || mutating} onPress={() => create(true)} />
-      </> : <Action label={t('oathHome.create')} busy={account.busy || mutating} onPress={() => create()} />}
+      </> : <Action label={t('oathHome.create')} busy={account.busy || mutating} onPress={() => create()} />)}
       <Action label={t('oathHome.pause')} busy={mutating} variant="secondary" onPress={() => { void showPause(); }} />
       {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
       {route === 'list' && <>
         {list?.paused && <Text style={styles.body}>{t('oathHome.paused')}</Text>}
+        {view === 'today' && !!list?.items.length && <Text accessibilityRole="header" style={styles.label}>{t('forge.all')}</Text>}
         {list?.items.map((item, index) => <View key={item.id} style={styles.card}>
           {view === 'today' && (index === 0 || category(item) !== category(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
           {(index === 0 || group(item) !== group(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{group(item)}</Text>}
@@ -147,6 +163,7 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
   </ScrollView></SafeAreaView>;
 }
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: tokens.color.canvas }, content: { flexGrow: 1, padding: tokens.space.card, gap: tokens.space.section }, card: { gap: tokens.space.item },
+  safeArea: { flex: 1, backgroundColor: tokens.color.canvas }, content: { flexGrow: 1, padding: tokens.space.card, gap: tokens.space.section }, card: { gap: tokens.space.item, backgroundColor: tokens.color.surface, padding: 16, borderRadius: 20 },
+  navigation: { flexDirection: 'row', gap: 8, padding: 4, backgroundColor: tokens.color.surface, borderRadius: 18 }, tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderRadius: 14 }, selectedTab: { backgroundColor: '#3d3930' }, subtitle: { color: tokens.color.secondary, fontSize: 17, lineHeight: 25 },
   title: { color: tokens.color.text, fontSize: tokens.title, fontWeight: '600' }, label: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '600' }, body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
 });

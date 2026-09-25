@@ -98,3 +98,9 @@ MVP-03-T06 implements `StatusCard` for eight explicit presentation variants, wit
 All eight cards were visually inspected in PL/EN on the same iPhone18 Pro/iOS27.0 simulator, with separate native heading/text elements and readable wrapped copy. An Expo Go hot-reload native-module error cleared on explicit reload; no production fix was inferred. The ignored fixture is `graphics/mvp-03/ui/native-status-preview.tsx`; the temporary app entrypoint was restored. Owning screens still supply authoritative deadlines/reasons/actions and require full native accessibility review.
 
 MVP-03-T07 adds selected companion rendering and localized current/locked-next/cap presentation; actual five-asset fixture loading and limitations are recorded in the [asset handoff](companion-assets.md#native-presentation-evidence--mvp-03-t07). Functional screens and server mapping remain later work.
+
+## First-Oath visual implementation — MVP-05-T12
+
+The mobile Forge hub now uses the [original hearth export](forge-assets.md), three labelled detail shortcuts and the complete ordered Today list. Large system text uses the list equivalent. Today/history navigation is compact; list and pause sections use distinct cards. Creation uses a calendar, explicit hour/minute selection and searchable timezone choices, preserving wall-time strings for server DST validation. Review separates the promise, exact time facts and every immutable rule section; both evidence alternatives remain visible. These are implemented local design choices, not owner approval of unseen screens.
+
+A separate [development-only demo](../../apps/mobile/demo/README.md) exposes empty/returning PL/EN flows without changing production `index.ts`. It uses synthetic API/authentication and memory storage. Native accessibility and owner acceptance are recorded separately from automated checks in the T12 handoff; this implementation does not establish physical-device/provider acceptance.

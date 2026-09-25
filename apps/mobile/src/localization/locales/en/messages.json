@@ -284,5 +284,16 @@
     "current": "Active commitments",
     "pending": "Cases in progress",
     "summary": "{{activity}} · {{deadline}}"
+  },
+  "forge": {
+    "title": "Your Forge",
+    "subtitle": "A promise takes shape through action.",
+    "seals": "Oaths at the hearth",
+    "seal": "Oath seal: {{activity}} · {{state}} · {{deadline}}",
+    "all": "All your Oaths",
+    "guide": "Zharomir keeps the hearth. Your next step begins outside it.",
+    "detail": "Oath details",
+    "empty": "Every Oath begins with a spark.",
+    "emptyHint": "Choose one workout and give it a time. Review the promise before you commit."
   }
 }

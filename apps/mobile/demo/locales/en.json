@@ -1,0 +1,17 @@
+{
+  "badge": "DEMO · controls",
+  "title": "Simulator controls",
+  "notice": "DUMMY API, authentication and memory storage. No real proof, rewards or providers. Reset clears this demo session.",
+  "close": "Back to the Forge",
+  "new": "New player · onboarding",
+  "empty": "New Forge · empty",
+  "returning": "Returning player",
+  "restart": "Restart interface",
+  "expire": "Expire session",
+  "online": "Go online",
+  "offline": "Go offline",
+  "lose": "Lose next acceptance reply",
+  "armed": "Next acceptance reply will be lost",
+  "add": "Add demo Oath",
+  "resetHint": "Scenarios reset all synthetic data."
+}

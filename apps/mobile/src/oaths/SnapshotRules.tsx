@@ -43,16 +43,16 @@ export function SnapshotRules({ snapshot }: { snapshot: Snapshot }) {
   return <View style={styles.rules}>
     <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>
     <Text style={styles.secondary}>{copy.subtitle}</Text>
-    <Text style={styles.body}>{promise}</Text>
-    {facts.map(([label, value]) => <View key={label} style={styles.group}>
+    <View style={styles.promise}><Text style={styles.promiseText}>{promise}</Text></View>
+    <View style={styles.facts}>{facts.map(([label, value]) => <View key={label} style={styles.group}>
       <Text accessibilityRole="header" style={styles.heading}>{label}</Text>
       <Text style={styles.body}>{value}</Text>
-    </View>)}
-    <View style={styles.group}>
+    </View>)}</View>
+    <View style={styles.card}>
       <Text accessibilityRole="header" style={styles.heading}>{t('oath.rules.declaration')}</Text>
       <Text style={styles.body}>{copy.declaration}</Text>
     </View>
-    {sections.map(section => <View key={section} style={styles.group}>
+    {sections.map(section => <View key={section} style={[styles.card, (section === 'evidence' || section === 'photo' || section === 'activityRecord') && styles.evidence]}>
       <Text accessibilityRole="header" style={styles.heading}>{t(`oath.sections.${section}`)}</Text>
       <Text style={styles.body}>{copy.sections[section]}</Text>
     </View>)}
@@ -60,6 +60,11 @@ export function SnapshotRules({ snapshot }: { snapshot: Snapshot }) {
 }
 const styles = StyleSheet.create({
   rules: { gap: tokens.space.section }, group: { gap: tokens.space.small },
+  promise: { padding: 20, borderLeftWidth: 3, borderLeftColor: tokens.color.primary, backgroundColor: tokens.color.surface, borderRadius: tokens.radius },
+  promiseText: { color: tokens.color.text, fontSize: 21, lineHeight: 31, fontWeight: '600' },
+  facts: { padding: 20, gap: 20, borderRadius: tokens.radius, backgroundColor: tokens.color.surface },
+  card: { gap: 10, padding: 18, borderRadius: tokens.radius, backgroundColor: tokens.color.surface },
+  evidence: { borderWidth: 1, borderColor: tokens.color.primary },
   title: { color: tokens.color.text, fontSize: tokens.title, fontWeight: '700' },
   heading: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '700' },
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: 26 },

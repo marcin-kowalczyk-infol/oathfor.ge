@@ -369,3 +369,7 @@ The creation/tracking implementation has passed the final local checks recorded 
 The final native attempt also observed Metro binding `::1` while Expo opened `127.0.0.1`. A process-only `NODE_OPTIONS=--dns-result-order=ipv4first` retry bound the expected IPv4 loopback address, but did not resolve window access. This is recorded environment evidence, not an application networking change. Temporary servers and the isolated `oathforge-mvp05-tests` project were removed after verification; the developer's existing runtime was preserved.
 
 Before release, complete the signed-device/provider and native accessibility matrix, deploy scheduling/monitoring for the reconciler, and integrate the downstream receipt/review/outcome/reward/Recovery owners. The current unknown-availability review path remains conservative until real availability evidence exists.
+
+### First-Oath simulator demo
+
+From `apps/mobile`, run `npm run demo -- --ios --localhost` using the repository Node version. The isolated development project on port 8082 starts at an empty Polish Forge; the small DEMO control opens PL/EN and synthetic returning/offline/lost-response scenarios. Production `index.ts` stays unchanged. See [demo instructions and limits](../../apps/mobile/demo/README.md). Production export of the demo is rejected; the ordinary application export remains separate. No Apple membership or live credentials are required for this UI-only simulator flow.
