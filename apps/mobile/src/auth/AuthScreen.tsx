@@ -3,6 +3,10 @@ import { AppState } from 'react-native';
 import * as Apple from 'expo-apple-authentication';
 import { getCalendars, getLocales } from 'expo-localization';
 import type { ProfileClient } from '../api/profile';
+import type { OathClient } from '../api/oaths';
+import type { PendingStorage } from '../oaths/pendingStorage';
+import { createOathController } from '../oaths/controller';
+import { OathScreen } from '../oaths/OathScreen';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
 import { createOnboardingController } from '../onboarding/controller';
@@ -26,7 +30,7 @@ const nativeApple: AppleAvailability = {
 };
 
 // The app owns this controller for its lifetime; account subtrees must not replace it.
-export function AuthScreen({ controller, authenticate, profileApi, apple = nativeApple, permissions = nativeNotificationPermissions }: { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; apple?: AppleAvailability; permissions?: NotificationPermissions }) {
+export function AuthScreen({ controller, authenticate, profileApi, oathApi, acceptanceStorage, apple = nativeApple, permissions = nativeNotificationPermissions }: { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; oathApi: OathClient; acceptanceStorage: PendingStorage; apple?: AppleAvailability; permissions?: NotificationPermissions }) {
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const { i18n } = useTranslation();
   const languageOwner = useRef(i18n);
@@ -41,6 +45,9 @@ export function AuthScreen({ controller, authenticate, profileApi, apple = nativ
   const notificationState = useSyncExternalStore(notifications.subscribe, notifications.getState);
   useEffect(() => { notifications.start(); return () => notifications.stop(); }, [notifications]);
   const profile = useSyncExternalStore(onboarding.subscribe, onboarding.getState);
+  const oaths = useMemo(() => createOathController({ session: controller, api: oathApi, storage: acceptanceStorage }), [controller, oathApi, acceptanceStorage]);
+  const profileComplete = state.kind === 'authenticated' && profile.kind === 'ready' && profile.value.onboardingStatus === 'complete';
+  useEffect(() => { if (profileComplete) oaths.start(); return () => oaths.stop(); }, [oaths, profileComplete]);
   useEffect(() => { onboarding.start(); return () => onboarding.stop(); }, [onboarding]);
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unavailable'>('checking');
   const mounted = useRef(false);
@@ -71,6 +78,7 @@ export function AuthScreen({ controller, authenticate, profileApi, apple = nativ
       appState.remove();
     };
   }, [controller, apple, checkAvailability, notifications]);
+  if (state.kind === 'authenticated' && profileComplete && profile.kind === 'ready') return <><StatusBar style="light" /><OathScreen key={state.account.id} controller={oaths} timezone={profile.value.profile.timezone!} onLogout={() => { void controller.logout(); }} /></>;
   if (state.kind === 'authenticated') return <><StatusBar style="light" /><OnboardingView state={profile} notifications={{ state: notificationState, onEnable: () => { void notifications.enable(); }, onSkip: () => { void notifications.skip(); }, onRetryPermission: () => { void notifications.retryPermission(); }, onSettings: () => { void notifications.settings(); } }}
     onComplete={() => { if (!notificationState.busy) void onboarding.complete(); }}
     onIntroduce={() => { void onboarding.save({ companionIntroduced: true }); }} onDraft={onboarding.setDraft} onSave={() => { void onboarding.saveBasics(); }}

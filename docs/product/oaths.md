@@ -1,6 +1,6 @@
 # Creating and tracking original Oaths
 
-Status: accepted creation choices; implementation contract recorded 2026-09-25, strict deadline resolution and immutable preview endpoints are implemented; atomic explicit commitment creation is implemented; owner-only detail/Today/history queries are implemented; durable activation and unknown-availability cutoff transitions are implemented. Revision-confirmed global pause/resume is implemented; mobile commitment screens remain pending. Sources: owner decisions D05-01/D05-02 (2026-09-25), [first-loop rules](first-loop.md), [onboarding handoff](onboarding.md). API representation and serialization below are local engineering decisions for MVP-05, not additional workout requirements.
+Status: accepted creation choices; implementation contract recorded 2026-09-25, strict deadline resolution and immutable preview endpoints are implemented; atomic explicit commitment creation is implemented; owner-only detail/Today/history queries are implemented; durable activation and unknown-availability cutoff transitions are implemented. Revision-confirmed global pause/resume is implemented; mobile creation, stored-rule review and explicit confirmation are implemented; Today/history/pause screens remain pending. Sources: owner decisions D05-01/D05-02 (2026-09-25), [first-loop rules](first-loop.md), [onboarding handoff](onboarding.md). API representation and serialization below are local engineering decisions for MVP-05, not additional workout requirements.
 
 ## Choices and explicit acceptance
 

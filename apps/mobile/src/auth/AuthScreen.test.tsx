@@ -6,6 +6,7 @@ import { createAppleAuthentication } from './appleLogin';
 import { createSessionController, type SessionController } from './session';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { SessionStorage } from './sessionStorage';
+import type { OathClient } from '../api/oaths';
 
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: mockDeviceLanguage }], getCalendars: () => [{ timeZone: 'Europe/Warsaw' }] }));
 jest.mock('../onboarding/notificationPermissions', () => ({ nativeNotificationPermissions: { read: jest.fn().mockResolvedValue({ kind: 'unavailable', canAskAgain: false }), request: jest.fn(), openSettings: jest.fn() } }));
@@ -30,7 +31,9 @@ function setup() {
   jest.mocked(Apple.isAvailableAsync).mockResolvedValue(true);
   jest.mocked(Apple.signInAsync).mockResolvedValue({ state: challenge.state, identityToken: 'DUMMY-token', authorizationCode: 'DUMMY-code' } as Apple.AppleAuthenticationCredential);
   const profileApi = { get: jest.fn().mockResolvedValue({ kind: 'success', value: { profile: { locale: null, timezone: null, intention: null, companionIntroduced: false, notificationPreference: null }, onboardingStatus: 'pending' } }), patch: jest.fn(), complete: jest.fn() };
-  return { api, profileApi, storage, controller, apple, remove, revoke: () => revoke(), authenticate: createAppleAuthentication(api) };
+  const oathApi = {} as OathClient;
+  const acceptanceStorage = { read: jest.fn().mockResolvedValue({ kind: 'success', value: null }), write: jest.fn().mockResolvedValue({ kind: 'success' }) };
+  return { api, profileApi, oathApi, acceptanceStorage, storage, controller, apple, remove, revoke: () => revoke(), authenticate: createAppleAuthentication(api) };
 }
 afterEach(() => { controllers.splice(0).forEach(controller => controller.dispose()); jest.restoreAllMocks(); });
 
@@ -97,6 +100,7 @@ test('completed accounts load profile and confirmed language before their destin
   expect(screen.queryByText('Trial of the Spark')).not.toBeOnTheScreen();
   await act(async () => resolveProfile({ kind: 'success', value: { profile: { locale: 'pl', timezone: 'Europe/Warsaw', intention: 'regular_activity', companionIntroduced: true, notificationPreference: 'disabled' }, onboardingStatus: 'complete' } }));
   expect(await screen.findByText('Próba Iskry')).toBeOnTheScreen();
+  expect(await screen.findByRole('button', { name: 'Zobacz zasady' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Wyloguj się' }));
   expect(await screen.findByText('Welcome to Oathforge')).toBeOnTheScreen();
 });

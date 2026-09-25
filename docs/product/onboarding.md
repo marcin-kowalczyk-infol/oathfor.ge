@@ -1,6 +1,6 @@
 # Onboarding into the Trial of the Spark
 
-Status: accepted product intention and local implementation contract, 2026-09-24. Authentication is implemented through MVP-04-T14; T16 implements profile persistence and server completion; T17 implements mobile profile hydration and confirmed language/timezone/intention. T18 adds the accepted companion introduction with durable acknowledgment. T19 adds the optional notification preference and device-permission step; T20 adds final review, server completion and a provisional first-Oath entry. Real signed-device acceptance and the actual MVP-05 first-Oath flow remain separate gates.
+Status: accepted product intention and local implementation contract, 2026-09-24. Authentication is implemented through MVP-04-T14; T16 implements profile persistence and server completion; T17 implements mobile profile hydration and confirmed language/timezone/intention. T18 adds the accepted companion introduction with durable acknowledgment. T19 adds the optional notification preference and device-permission step; T20 adds final review and server completion; MVP-05-T09 replaces the provisional entry with a bilingual Oath form, stored-rule review and explicit confirmation. Real signed-device/provider acceptance remains a separate gate.
 
 ## Intention and boundaries
 
@@ -54,4 +54,4 @@ These local labels preserve the accepted meaning; implementation can adjust surr
 | Device settings | Otwórz ustawienia | Open Settings |
 | Final handoff | Przejdź do pierwszej Przysięgi | Continue to your first Oath |
 
-The final handoff is not “Złóż Przysięgę” / “Commit to the Oath”. That action belongs to the actual MVP-05 rule summary and explicit commitment. Until that flow exists, the entry clearly says it is unavailable and creates nothing. Full PL/EN signed-iOS restart, interruption, denial, accessibility and first-Oath acceptance remains required; mocks and exports establish only the local implementation behavior.
+The final handoff is not “Złóż Przysięgę” / “Commit to the Oath”. That action belongs to the actual MVP-05 rule summary and explicit commitment. MVP-05-T09 now provides that separate form and rule review after server completion. Entering it still creates nothing; only its explicit acceptance action submits a commitment. Full PL/EN signed-iOS restart, interruption, denial, accessibility and first-Oath acceptance remains required; mocks and exports establish only the local implementation behavior.
