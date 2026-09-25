@@ -339,3 +339,11 @@ No deployment timer is installed. Schedule and monitor the command in the eventu
 The implemented pause flow starts with `GET /api/oath-pause`, which reconciles elapsed deadlines and returns the complete affected set plus its revision. The client resolves each affected ID to an owner-only detail to present its activity and committed deadline; a paginated Today screen is not the confirmation list. Send `POST /api/oath-pause` with `paused=true` and that revision only after confirmation. A `pause_preview_changed` conflict requires a fresh summary and confirmation. Resume sends only `paused=false`; it restores no withdrawn commitment. Endpoint implementation status is tracked in the [API contract](api-contract.md#original-oath-contract).
 
 Future receipt finalization and settlement must preserve the same account-first serialization. Pending proof/correction/terminal test fixtures establish pause preservation only; they do not establish real evidence or reward processing.
+
+## Mobile Oath transport boundary
+
+Local implementation choices for MVP-05-T08, 2026-09-25: validate the known catalog/policy version and policy values, dynamic deadline relationships and complete bilingual copy shape before rendering server data. Display stored server copy; a bundled validator must not replace an accepted snapshot with newer text. Unknown or malformed payloads are recoverable transport failures, never gameplay outcomes.
+
+Complete rule snapshots make commitment lists larger than authentication responses. The Oath client uses a bounded 4 MiB list budget; ordinary single responses retain 64 KiB. Streamed byte counting remains authoritative even without Content-Length. These are response safety bounds, not product quotas. Pause summaries describe the full affected set and are not capped to a list page. Authentication and profile endpoints retain their strict existing response defaults.
+
+Pending acceptance stores account/preview/request identifiers only, with the session store's device-only Keychain accessibility. It does not store tokens, proof or rule snapshots. Network acceptance waits for a successful durable write; ambiguous delivery reuses the saved identity after restart. Real iOS Keychain persistence and signed-provider reauthentication remain separate native acceptance gates.

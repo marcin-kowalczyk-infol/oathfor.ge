@@ -19,12 +19,18 @@ function baseOrigin(value: string, development: boolean): string | undefined {
   } catch { return undefined; }
 }
 export type ClientOptions = { baseUrl: string; development?: boolean; transport?: AuthTransport };
+export type RequestPolicy<F> = {
+  maxResponseBytes?: number;
+  mapStructuredError?: (status: number, error: unknown) => F | undefined;
+};
 
 export function createBoundedRequest<F = never>(options: ClientOptions, mapError?: (path: string, status: number, code: unknown) => F | undefined) {
   const transport: AuthTransport = options.transport ?? expoFetch;
   const origin = baseOrigin(options.baseUrl, options.development === true);
-  async function request<T>(path: string, method: string, status: number, validate: (value: unknown) => value is T,
-    body?: string, token?: string, signal?: AbortSignal): Promise<AuthResult<T> | F> {
+  async function request<T>(path: string, method: string, status: number | readonly number[], validate: (value: unknown) => value is T,
+    body?: string, token?: string, signal?: AbortSignal, policy: RequestPolicy<F> = {}): Promise<AuthResult<T> | F> {
+    const accepts = (candidate: number) => typeof status === 'number' ? candidate === status : status.includes(candidate);
+    const maxBytes = policy.maxResponseBytes ?? MAX_RESPONSE_BYTES;
     const retry: Retry = path.endsWith('/exchange') ? 'fresh_login' : 'request';
     const unavailable: AuthFailure = { kind: 'unavailable', retry };
     if (!origin) return { kind: 'configuration' };
@@ -58,10 +64,10 @@ export function createBoundedRequest<F = never>(options: ClientOptions, mapError
         const response = await transport(`${origin}${path}`, { method, headers, body, signal: controller.signal, redirect: 'error', credentials: 'omit' });
         if (controller.signal.aborted) return unavailable;
         if (response.redirected || (response.url && new URL(response.url).origin !== origin)) return unavailable;
-        if (response.status === 204 && status === 204) return { kind: 'success', value: undefined as T };
+        if (response.status === 204 && accepts(204)) return { kind: 'success', value: undefined as T };
         const contentType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
         const length = response.headers.get('content-length');
-        if (contentType !== 'application/json' || (length !== null && (!/^\d+$/.test(length) || Number(length) > MAX_RESPONSE_BYTES)) || !response.body) return unavailable;
+        if (contentType !== 'application/json' || (length !== null && (!/^\d+$/.test(length) || Number(length) > maxBytes)) || !response.body) return unavailable;
         reader = response.body.getReader();
         const activeReader = reader;
         const decoder = new TextDecoder();
@@ -73,12 +79,15 @@ export function createBoundedRequest<F = never>(options: ClientOptions, mapError
           if (chunk.done) break;
           if (!chunk.value) return unavailable;
           bytes += chunk.value.byteLength;
-          if (bytes > MAX_RESPONSE_BYTES) return unavailable;
+          if (bytes > maxBytes) return unavailable;
           text += decoder.decode(chunk.value, { stream: true });
         }
         const value: unknown = JSON.parse(text + decoder.decode());
-        if (response.status === status && validate(value)) return { kind: 'success', value };
-        if (!exact(value, ['error']) || !exact(value.error, ['code'])) return unavailable;
+        if (accepts(response.status) && validate(value)) return { kind: 'success', value };
+        if (!exact(value, ['error'])) return unavailable;
+        const structured = policy.mapStructuredError?.(response.status, value.error);
+        if (structured !== undefined) return structured;
+        if (!exact(value.error, ['code'])) return unavailable;
         const code = value.error.code;
         const mapped = mapError?.(path, response.status, code);
         if (mapped !== undefined) return mapped;
