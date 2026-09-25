@@ -1,6 +1,6 @@
 # Forge hub — MVP-05-T12
 
-Status: original concept selected for implementation by the agent on 2026-09-25; **owner visual acceptance pending**. Local design choices under the [visual task](../product/oath-visual-polish.md) and [art direction](art-bible.md).
+Status: original concept selected for implementation by the agent on 2026-09-25; **owner accepted the stone/amber art direction; final interaction acceptance pending**. Local design choices under the [visual task](../product/oath-visual-polish.md) and [art direction](art-bible.md).
 
 ## Composition and interaction brief
 
@@ -27,3 +27,8 @@ For any future layered export: keep the complete hearth silhouette centered, piv
 Tool terms source checked 2026-09-25: [OpenAI Europe Terms of Use](https://openai.com/policies/terms-of-use/), updated 2026-01-16, Content section. Output rights are subject to applicable law and output need not be unique; no exclusivity claim is made. The source review is provenance, not a separate legal opinion.
 
 The ignored master currently has only the temporary local storage arrangement accepted in the [pipeline](pipeline.md). No S3 backup or restore verification is claimed.
+
+
+## Interaction refinement
+
+Owner feedback on2026-09-25 retained this original asset and requested game-like interaction. The hearth is now a labelled creation target, and round metal seals have native press springs and depth. Four code-rendered ember particles drift upward with the light; hit targets do not drift. Motion stops outside the foreground and when Reduce Motion is enabled. Labels remain outside the illustration and large system text retains the list/action equivalent. Acceptance uses a separate one-shot decorative stamp after server confirmation, with no XP implication. No new raster master or animation rig was generated.

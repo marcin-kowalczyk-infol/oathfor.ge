@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
 import { formatDeadline } from '../localization/format';
@@ -7,6 +7,7 @@ import type { Oath, OathListEnvelope } from '../api/oathSchema';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import { SnapshotRules, storedTime } from './SnapshotRules';
+import { useSceneEntrance } from '../ui/useSceneEntrance';
 import { ForgeHub } from './ForgeHub';
 import { OathScreen, type OathCreationDraft } from './OathScreen';
 import { loadPauseReview, type PauseReview } from './pauseReview';
@@ -14,12 +15,15 @@ import type { OathController } from './controller';
 type ViewName = 'today' | 'history';
 export function OathHomeScreen({ controller, timezone, onLogout }: { controller: OathController; timezone: string; onLogout(): void }) {
   const { t, i18n } = useTranslation(); const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
+  const { width, fontScale } = useWindowDimensions();
+  const interactiveForge = width >= 350 && fontScale <= 1.3;
   const account = useSyncExternalStore(controller.subscribe, controller.getState);
   const available = account.kind === 'ready';
   const [route, setRoute] = useState<'list' | 'detail' | 'create' | 'pause'>('list');
   const [creationDraft, setCreationDraft] = useState<OathCreationDraft | null>(null);
   useEffect(() => { setCreationDraft(null); }, [controller]);
   const [view, setView] = useState<ViewName>('today');
+  const entrance = useSceneEntrance(`${route}-${view}`);
   const [list, setList] = useState<OathListEnvelope | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -99,7 +103,7 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
     return t('oathHome.group', { date, timezone: item.snapshot.deadline.timezone });
   }
   if (available && route === 'create') return <OathScreen controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} onLogout={onLogout} onBack={() => { void loadList('today'); }} />;
-  return <SafeAreaView style={styles.safeArea}><ScrollView contentContainerStyle={styles.content}>
+  return <SafeAreaView style={styles.safeArea}><Animated.ScrollView style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content}>
     <Text accessibilityRole="header" style={styles.title}>{t(route === 'pause' ? 'oathHome.pauseTitle' : route === 'detail' ? 'forge.detail' : view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>
     {!available && <>
       <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
@@ -111,18 +115,18 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
         onPress={() => { void loadList(destination); }} style={[styles.tab, route === 'list' && view === destination && styles.selectedTab]}>
         <Text style={styles.label}>{t(`oathHome.${destination}`)}</Text>
       </Pressable>)}</View>
+      {route === 'list' && list?.paused && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.paused')}</Text>}
       {route === 'list' && view === 'today' && <>
         <Text style={styles.subtitle}>{t('forge.subtitle')}</Text>
-        <ForgeHub items={list?.items ?? []} onOpen={id => { void openDetail(id); }} />
+        <ForgeHub items={list?.items ?? []} onOpen={id => { void openDetail(id); }} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy || mutating} />
       </>}
       {route === 'list' && (account.pending ? <>
         <Text style={styles.body}>{t('oath.pending')}</Text>
         <Action label={t('oath.recover')} busy={account.busy || mutating} onPress={() => create(true)} />
-      </> : <Action label={t('oathHome.create')} busy={account.busy || mutating} onPress={() => create()} />)}
-      <Action label={t('oathHome.pause')} busy={mutating} variant="secondary" onPress={() => { void showPause(); }} />
+      </> : !list?.paused && (view !== 'today' || !interactiveForge) && <Action label={t('oathHome.create')} busy={account.busy || mutating} onPress={() => create()} />)}
+      {route === 'list' && <Pressable accessibilityRole="button" accessibilityLabel={t('oathHome.pause')} accessibilityState={{ disabled: mutating }} disabled={mutating} style={styles.pauseControl} onPress={() => { void showPause(); }}><Text accessible={false} style={styles.pauseIcon}>Ⅱ</Text><Text style={styles.pauseText}>{t('forge.pauseShort')}</Text></Pressable>}
       {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
       {route === 'list' && <>
-        {list?.paused && <Text style={styles.body}>{t('oathHome.paused')}</Text>}
         {view === 'today' && !!list?.items.length && <Text accessibilityRole="header" style={styles.label}>{t('forge.all')}</Text>}
         {list?.items.map((item, index) => <View key={item.id} style={styles.card}>
           {view === 'today' && (index === 0 || category(item) !== category(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
@@ -160,10 +164,10 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
       </>}
     </>}
     <Action label={t('auth.signOut')} variant="secondary" onPress={onLogout} />
-  </ScrollView></SafeAreaView>;
+  </Animated.ScrollView></SafeAreaView>;
 }
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: tokens.color.canvas }, content: { flexGrow: 1, padding: tokens.space.card, gap: tokens.space.section }, card: { gap: tokens.space.item, backgroundColor: tokens.color.surface, padding: 16, borderRadius: 20 },
-  navigation: { flexDirection: 'row', gap: 8, padding: 4, backgroundColor: tokens.color.surface, borderRadius: 18 }, tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderRadius: 14 }, selectedTab: { backgroundColor: '#3d3930' }, subtitle: { color: tokens.color.secondary, fontSize: 17, lineHeight: 25 },
+  navigation: { flexDirection: 'row', gap: 24 }, tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' }, selectedTab: { borderBottomColor: tokens.color.primary }, pauseControl: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingHorizontal: 12 }, pauseIcon: { color: tokens.color.primary, fontSize: 22 }, pauseText: { color: tokens.color.secondary, fontSize: 15 }, subtitle: { color: tokens.color.secondary, fontSize: 17, lineHeight: 25 },
   title: { color: tokens.color.text, fontSize: tokens.title, fontWeight: '600' }, label: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '600' }, body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
 });

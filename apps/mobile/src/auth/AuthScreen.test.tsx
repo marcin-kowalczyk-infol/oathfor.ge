@@ -59,9 +59,9 @@ test('provider availability failure is recoverable without exposing the native b
 
 test('native revocation hides access, foreground retries pending logout, and subscriptions are removed', async () => {
   const runtime = setup();
-  let onChange: (state: AppStateStatus) => void = () => {};
-  const removeAppState = jest.fn();
-  jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => { onChange = listener; return { remove: removeAppState }; });
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  const onChange = (state: AppStateStatus) => [...listeners].forEach(listener => listener(state));
+  jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => { listeners.add(listener); return { remove: () => { listeners.delete(listener); } }; });
   const view = await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
   await screen.findByText('Your first steps');
@@ -72,7 +72,7 @@ test('native revocation hides access, foreground retries pending logout, and sub
   await act(async () => { onChange('background'); onChange('active'); });
   expect(runtime.controller.getState().kind).toBe('signed_out');
   await view.unmount();
-  expect(runtime.remove).toHaveBeenCalledTimes(1); expect(removeAppState).toHaveBeenCalledTimes(1);
+  expect(runtime.remove).toHaveBeenCalledTimes(1); expect(listeners.size).toBe(0);
 });
 
 test('one pending native login is cancelled without exchanging a late credential', async () => {

@@ -81,11 +81,11 @@ export function WallTimePicker({ field, value, disabled, onChange }: { field: 'a
   </View>;
 }
 const styles = StyleSheet.create({
-  group: { gap: 12 }, field: { padding: 16, gap: 4, minHeight: 64, backgroundColor: tokens.color.surface, borderRadius: 16, borderWidth: 1, borderColor: tokens.color.neutral },
+  group: { gap: 12 }, field: { padding: 16, gap: 4, minHeight: 64, backgroundColor: tokens.color.surface, borderRadius: 20, borderBottomWidth: 3, borderBottomColor: '#101416' },
   caption: { color: tokens.color.secondary, fontSize: 14, lineHeight: 21 }, value: { color: tokens.color.text, fontSize: 17, fontWeight: '600' },
   modal: { flex: 1, backgroundColor: tokens.color.canvas }, header: { padding: 16, gap: 12 }, title: { color: tokens.color.text, fontSize: 24, fontWeight: '700' },
   content: { padding: 16, gap: 16 }, row: { flexDirection: 'row', gap: 12 }, flex: { flex: 1 }, grid: { flexDirection: 'row', flexWrap: 'wrap' },
   wideDay: { width: '100%', minHeight: 52 },
   day: { width: '14.2857%', minHeight: 52 }, number: { minWidth: 52, minHeight: 52, flexGrow: 1, margin: 3 }, cell: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12 }, selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
-  pressed: { opacity: 0.75 }, clock: { color: tokens.color.primary, fontSize: 36, fontWeight: '700' }, footer: { padding: 16 }, search: { color: tokens.color.text, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: 12, padding: 14, fontSize: 17, minHeight: 48 },
+  pressed: { opacity: 0.75 }, clock: { color: tokens.color.primary, fontSize: 36, fontWeight: '700' }, footer: { padding: 16 }, search: { color: tokens.color.text, backgroundColor: tokens.color.surface, borderRadius: 18, padding: 14, fontSize: 17, minHeight: 48 },
 });

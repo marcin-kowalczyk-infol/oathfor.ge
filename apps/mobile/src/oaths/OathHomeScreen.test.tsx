@@ -241,3 +241,13 @@ test('confirmation arriving after returning to Today clears the committed draft'
   expect(screen.getByText('Choose a time')).toBeOnTheScreen();
   expect(screen.queryByText('21:00')).toBeNull();
 });
+
+test('paused Forge makes the paused state visible and offers review without a creation affordance', async () => {
+  Dimensions.set({ window: { width: 390, height: 844, scale: 3, fontScale: 1 }, screen: { width: 390, height: 844, scale: 3, fontScale: 1 } });
+  const f = setup([]);
+  jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  expect(await screen.findByText('Gameplay is paused. Existing reviews continue; withdrawn Oaths will not return.')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Create an Oath' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Pause and resume' })).toBeOnTheScreen();
+});

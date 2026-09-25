@@ -1,8 +1,11 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { isPreviewInput, type Activity, type LocalTimeInput, type PreviewInput } from '../api/oathSchema';
 import { Action } from '../ui/Action';
+import { useSceneEntrance } from '../ui/useSceneEntrance';
+import { CommitMark } from '../ui/CommitMark';
+import { GameChoice } from '../ui/GameChoice';
 import { tokens } from '../ui/tokens';
 import { SnapshotRules } from './SnapshotRules';
 import type { OathController } from './controller';
@@ -37,6 +40,8 @@ export function OathScreen({ controller, timezone, onLogout, onBack, initialDraf
   const choices = submitted && error?.kind === 'time_error' && error.code === 'ambiguous_local_time' ? error : undefined;
   const detail = oath && mode === 'detail';
   const review = !detail && ready?.preview && (mode === 'review' || !!pending);
+  const scene = `${detail ? 'detail' : pending ? 'pending' : review ? 'review' : 'form'}-${error?.kind ?? ''}-${error && 'code' in error ? error.code : ''}`;
+  const entrance = useSceneEntrance(scene);
   async function preview() {
     if (!valid || busy || pending) return;
     setSubmitted(true); await controller.preview(input);
@@ -64,7 +69,7 @@ export function OathScreen({ controller, timezone, onLogout, onBack, initialDraf
     else errorText = t(error.kind === 'invalid_request' ? 'oath.error.invalid_request' : 'oath.error.generic');
   }
   return <SafeAreaView style={styles.safeArea}>
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <Animated.ScrollView style={entrance} key={scene} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       {onBack && <Action label={t('oathHome.today')} variant="secondary" onPress={onBack} />}
       {!review && !detail && <Text accessibilityRole="header" style={styles.title}>{t('oath.title')}</Text>}
       {!ready && <>
@@ -78,6 +83,7 @@ export function OathScreen({ controller, timezone, onLogout, onBack, initialDraf
         <Action label={t('oath.recover')} busy={busy} onPress={() => { void controller.recover(); }} />
       </>}
       {detail && <>
+        <CommitMark />
         <Text accessibilityRole="header" style={styles.title}>{t('oath.confirmed')}</Text>
         <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.state', { state: t(`oath.states.${oath.state}`) })}</Text>
         <SnapshotRules snapshot={oath.snapshot} />
@@ -95,13 +101,11 @@ export function OathScreen({ controller, timezone, onLogout, onBack, initialDraf
       {ready && !pending && !review && !detail && <>
         <Text style={styles.body}>{t('oath.intro')}</Text>
         <Text style={styles.label}>{t('oath.activity')}</Text>
-        {(['running', 'strength_training', 'mobility'] as const).map(value => <Pressable key={value} accessibilityRole="radio" accessibilityLabel={t(`oath.activities.${value}`)}
-          accessibilityState={{ selected: activity === value, disabled: busy }} disabled={busy} style={[styles.choice, activity === value && styles.selected]}
-          onPress={() => { if (!busy) setActivity(value); }}><Text style={styles.body}>{t(`oath.activities.${value}`)}</Text></Pressable>)}
+        {(['running', 'strength_training', 'mobility'] as const).map(value => <GameChoice key={value} label={t(`oath.activities.${value}`)}
+          symbol={{ running: '↟', strength_training: '◆', mobility: '≈' }[value]} selected={activity === value} disabled={busy} onPress={() => setActivity(value)} />)}
         <Text style={styles.label}>{t('oath.startChoice')}</Text>
-        {[false, true].map(value => <Pressable key={String(value)} accessibilityRole="radio" accessibilityLabel={t(value ? 'oath.scheduled' : 'oath.now')}
-          accessibilityState={{ selected: scheduled === value, disabled: busy }} disabled={busy} style={[styles.choice, scheduled === value && styles.selected]}
-          onPress={() => { if (!busy) { setScheduled(value); setSubmitted(false); } }}><Text style={styles.body}>{t(value ? 'oath.scheduled' : 'oath.now')}</Text></Pressable>)}
+        {[false, true].map(value => <GameChoice key={String(value)} label={t(value ? 'oath.scheduled' : 'oath.now')} symbol={value ? '◷' : 'ϟ'}
+          selected={scheduled === value} disabled={busy} onPress={() => { setScheduled(value); setSubmitted(false); }} />)}
         {scheduled && timeFields('activation', activation, setActivation)}
         {timeFields('deadline', deadline, setDeadline)}
         <Action label={t('oath.viewRules')} busy={busy} onPress={() => { void preview(); }}
@@ -109,7 +113,7 @@ export function OathScreen({ controller, timezone, onLogout, onBack, initialDraf
             ? { disabled: true, unavailableReason: !valid ? t('oath.formRequired') : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
       </>}
       <Action label={t('auth.signOut')} variant="secondary" onPress={onLogout} />
-    </ScrollView>
+    </Animated.ScrollView>
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
