@@ -110,9 +110,9 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
       {account.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
     </>}
     {available && <>
-      <View style={styles.navigation}>{(['today', 'history'] as const).map(destination => <Pressable key={destination}
+      <View style={[styles.navigation, !interactiveForge && styles.stackedNavigation]}>{(['today', 'history'] as const).map(destination => <Pressable key={destination}
         accessibilityRole="button" accessibilityLabel={t(`oathHome.${destination}`)} accessibilityState={{ selected: route === 'list' && view === destination, disabled: mutating }} disabled={mutating}
-        onPress={() => { void loadList(destination); }} style={[styles.tab, route === 'list' && view === destination && styles.selectedTab]}>
+        onPress={() => { void loadList(destination); }} style={[styles.tab, !interactiveForge && styles.stackedTab, route === 'list' && view === destination && styles.selectedTab]}>
         <Text style={styles.label}>{t(`oathHome.${destination}`)}</Text>
       </Pressable>)}</View>
       {route === 'list' && list?.paused && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.paused')}</Text>}
@@ -168,6 +168,6 @@ export function OathHomeScreen({ controller, timezone, onLogout }: { controller:
 }
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: tokens.color.canvas }, content: { flexGrow: 1, padding: tokens.space.card, gap: tokens.space.section }, card: { gap: tokens.space.item, backgroundColor: tokens.color.surface, padding: 16, borderRadius: 20 },
-  navigation: { flexDirection: 'row', gap: 24 }, tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' }, selectedTab: { borderBottomColor: tokens.color.primary }, pauseControl: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingHorizontal: 12 }, pauseIcon: { color: tokens.color.primary, fontSize: 22 }, pauseText: { color: tokens.color.secondary, fontSize: 15 }, subtitle: { color: tokens.color.secondary, fontSize: 17, lineHeight: 25 },
+  navigation: { flexDirection: 'row', gap: 24 }, stackedNavigation: { flexDirection: 'column', gap: 8 }, stackedTab: { flex: 0, alignItems: 'flex-start' }, tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' }, selectedTab: { borderBottomColor: tokens.color.primary }, pauseControl: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingHorizontal: 12 }, pauseIcon: { color: tokens.color.primary, fontSize: 22 }, pauseText: { color: tokens.color.secondary, fontSize: 15 }, subtitle: { color: tokens.color.secondary, fontSize: 17, lineHeight: 25 },
   title: { color: tokens.color.text, fontSize: tokens.title, fontWeight: '600' }, label: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '600' }, body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
 });
