@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 
 final class OathReadService
 {
-    public function __construct(private Connection $connection, private AppSessionRepository $sessions, private Clock $clock) {}
+    public function __construct(private Connection $connection, private AppSessionRepository $sessions, private Clock $clock, private OathReconciler $reconciler) {}
     /** @return array<string, mixed>|OathFailure */
     public function detail(#[\SensitiveParameter] string $bearer, string $id): array|OathFailure
     {
@@ -55,8 +55,10 @@ final class OathReadService
             return $this->connection->transactional(function () use ($account, $bearer, $read): array|OathFailure {
                 $row = $this->connection->fetchAssociative('SELECT status, gameplay_paused FROM account WHERE id = ? FOR UPDATE', [$account->id]);
                 $session = $this->connection->fetchAssociative('SELECT expires_at, revoked_at FROM app_session WHERE token_digest = ? AND account_id = ? FOR UPDATE', [hash('sha256', $bearer), $account->id]);
+                $locked = $this->reconciler->lockOwned($account->id);
                 $now = $this->clock->now();
                 if (false === $row || 'active' !== $row['status'] || false === $session || null !== $session['revoked_at'] || $now >= $session['expires_at']) { return new OathFailure('unauthenticated', 401); }
+                $this->reconciler->reconcileLocked($locked, $now);
                 return $read($account->id, $now, $row['gameplay_paused']);
             });
         } catch (\Doctrine\DBAL\Exception) { return new OathFailure('temporarily_unavailable', 503); }

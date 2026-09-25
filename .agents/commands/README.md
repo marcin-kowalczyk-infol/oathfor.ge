@@ -16,3 +16,5 @@ API commands from `apps/api`: `composer install --no-interaction`, `composer val
 Skills supply reusable prompts: `$oathforge-spec` in Codex or `/oathforge-spec` in Claude Code. See [agent catalog](../README.md). No legacy `.claude/commands` copy is necessary.
 
 The owner keeps `docs/delivery/mvp-backlog.md` local (decision, 2026-09-23). The checker permits that exact link destination to be absent in a fresh checkout; all other local destinations remain required. Epic planning/execution still needs the owner-provided backlog and local plan.
+
+In the migrated API runtime, `php bin/console app:oath:reconcile --limit=100` reconciles a bounded selection of due commitments. It activates scheduled Oaths and sends overdue missing-evidence cases to unknown-availability review. Scheduling/monitoring this command is a separate deployment gate; it does not deliver reminders, close reviews or settle rewards. See [development](../../docs/engineering/development.md).

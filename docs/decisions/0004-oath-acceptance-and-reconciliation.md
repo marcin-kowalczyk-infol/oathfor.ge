@@ -1,6 +1,6 @@
 # ADR 0004: Immutable Oath acceptance and durable reconciliation
 
-Status: accepted local engineering decision, 2026-09-25; implementation pending.
+Status: accepted local engineering decision, 2026-09-25; preview/acceptance/read reconciliation implemented; pause and downstream receipt/settlement integration and operational scheduling pending.
 
 ## Context
 
@@ -18,4 +18,4 @@ Until real availability evidence exists, missing-receipt cutoffs use unknown ava
 
 Lost responses are recoverable without duplicate commitments. Stored previews and bilingual snapshots require storage and account-deletion cleanup. Account serialization simplifies cross-Oath pause and receipt ordering at the cost of per-account concurrency. Read reconciliation can write due state and must use the same transaction tests as the command. An operational timer and downstream review/receipt integration remain acceptance gates.
 
-The [API contract](../engineering/api-contract.md#original-oath-contract) defines endpoint behavior. These are local design choices under the existing product rules, not claims of shipped endpoints or operational scheduling.
+The [API contract](../engineering/api-contract.md#original-oath-contract) defines endpoint behavior. These are local design choices under the existing product rules, the API contract records implemented endpoints separately from pending integrations and operational scheduling.

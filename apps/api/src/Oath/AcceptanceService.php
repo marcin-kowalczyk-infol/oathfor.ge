@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 
 final class AcceptanceService
 {
-    public function __construct(private Connection $connection, private AppSessionRepository $sessions, private Clock $clock) {}
+    public function __construct(private Connection $connection, private AppSessionRepository $sessions, private Clock $clock, private OathReconciler $reconciler) {}
     public function accept(#[\SensitiveParameter] string $bearer, AcceptanceInput $input): AcceptanceResult|OathFailure
     {
         try {
@@ -17,16 +17,19 @@ final class AcceptanceService
             return $this->connection->transactional(function () use ($account, $bearer, $input): AcceptanceResult|OathFailure {
                 $row = $this->connection->fetchAssociative('SELECT status, onboarding_status, gameplay_paused FROM account WHERE id = ? FOR UPDATE', [$account->id]);
                 $session = $this->connection->fetchAssociative('SELECT expires_at, revoked_at FROM app_session WHERE token_digest = ? AND account_id = ? FOR UPDATE', [hash('sha256', $bearer), $account->id]);
+                $locked = $this->reconciler->lockOwned($account->id);
                 $now = $this->clock->now();
                 if (false === $row || 'active' !== $row['status'] || false === $session || null !== $session['revoked_at'] || $now >= $session['expires_at']) { return new OathFailure('unauthenticated', 401); }
                 $request = $this->connection->fetchAssociative('SELECT preview_id, oath_id FROM oath_acceptance_request WHERE account_id = ? AND request_id = ?', [$account->id, $input->requestId]);
                 if (false !== $request) {
                     if ($request['preview_id'] !== $input->previewId) { return new OathFailure('idempotency_conflict', 409); }
+                    $this->reconciler->reconcileLocked($locked, $now);
                     return $this->result($account->id, $request['oath_id'], $now, false);
                 }
                 $preview = $this->connection->fetchAssociative('SELECT snapshot, oath_id FROM oath_preview WHERE account_id = ? AND id = ?', [$account->id, $input->previewId]);
                 if (false === $preview) { return new OathFailure('not_found', 404); }
                 if (null !== $preview['oath_id']) {
+                    $this->reconciler->reconcileLocked($locked, $now);
                     $this->bind($account->id, $input, $preview['oath_id']);
                     return $this->result($account->id, $preview['oath_id'], $now, false);
                 }
@@ -43,6 +46,7 @@ final class AcceptanceService
                     $local = (new \DateTimeImmutable('@'.$now))->setTimezone(new \DateTimeZone($snapshot['deadline']['timezone']));
                     $snapshot['activation']['time'] = ['local' => $local->format('Y-m-d\TH:i:s'), 'timezone' => $snapshot['deadline']['timezone'], 'offset' => $local->format('P'), 'explicitOffset' => false, 'utc' => gmdate('Y-m-d\TH:i:s\Z', $now)];
                 }
+                $this->reconciler->reconcileLocked($locked, $now);
                 $id = $this->connection->fetchOne('INSERT INTO oath (account_id, preview_id, snapshot, state, activation_at, deadline, receipt_cutoff, created_at, activated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id', [$account->id, $input->previewId, $scheduled ? $preview['snapshot'] : json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), $scheduled ? 'scheduled' : 'active', $activation, $deadline, (new \DateTimeImmutable($snapshot['deadline']['receiptCutoff']))->getTimestamp(), $now, $scheduled ? null : $now]);
                 $this->bind($account->id, $input, $id);
                 $this->connection->executeStatement('UPDATE oath_preview SET oath_id = ? WHERE account_id = ? AND id = ?', [$id, $account->id, $input->previewId]);

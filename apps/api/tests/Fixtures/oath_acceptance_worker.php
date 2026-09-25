@@ -23,7 +23,7 @@ $clock = new class($path) implements Clock {
     public function __construct(private string $path) {}
     public function now(): int { return json_decode((string) file_get_contents($this->path), true, flags: JSON_THROW_ON_ERROR)['time']; }
 };
-$service = new AcceptanceService($connection, new AppSessionRepository($connection, $clock), $clock);
+$service = new AcceptanceService($connection, new AppSessionRepository($connection, $clock), $clock, new \App\Oath\OathReconciler($connection, $clock));
 $input = AcceptanceInput::parse($data['input']);
 assert($input instanceof AcceptanceInput);
 echo $connection->fetchOne('SELECT pg_backend_pid()')."\n";
