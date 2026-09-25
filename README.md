@@ -2,7 +2,7 @@
 
 A multiplayer accountability game where real-world commitments power a dark heroic Slavic fantasy world. Domain: [oathfor.ge](https://oathfor.ge).
 
-**Status: local Symfony API, PostgreSQL/Redis integration, Apple authentication/session backend and bilingual mobile account/onboarding flow implemented. The first-Oath entry is provisional; real provider and signed-device acceptance remain pending. iOS simulator connectivity acceptance passed; earlier hosted CI checks passed, with the updated Docker lifecycle workflow awaiting a hosted run.**
+**Status: local Symfony API, PostgreSQL/Redis integration, Apple authentication/session backend and bilingual mobile account/onboarding flow implemented. Protected immutable Oath rule previews exist; commitment and the mobile first-Oath entry remain provisional; real provider and signed-device acceptance remain pending. iOS simulator connectivity acceptance passed; earlier hosted CI checks passed, with the updated Docker lifecycle workflow awaiting a hosted run.**
 
 ## Product
 

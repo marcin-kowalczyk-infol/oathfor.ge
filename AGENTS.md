@@ -2,7 +2,7 @@
 
 ## Purpose and current state
 
-Build the accountability game described in [README](README.md). The Symfony API, local PostgreSQL/Redis runtime, Apple authentication/session backend, provider-maintenance command and bilingual mobile account/onboarding flow are implemented. Profile persistence and completion are server-owned; the first-Oath destination remains provisional until MVP-05. Real signed-device/provider acceptance and deployment scheduling remain pending. Earlier iOS connectivity and hosted CI checks passed; the updated Docker lifecycle workflow awaits a hosted run. No product Oath/proof/reward loop exists. Do not report planned behavior as implemented. **Sources: [development guide](docs/engineering/development.md), [foundation decision](docs/decisions/0001-project-foundation.md).**
+Build the accountability game described in [README](README.md). The Symfony API, local PostgreSQL/Redis runtime, Apple authentication/session backend, provider-maintenance command and bilingual mobile account/onboarding flow are implemented. Profile persistence and completion are server-owned; the first-Oath destination remains provisional until MVP-05. Real signed-device/provider acceptance and deployment scheduling remain pending. Earlier iOS connectivity and hosted CI checks passed; the updated Docker lifecycle workflow awaits a hosted run. Strict local-time resolution and protected immutable rule previews exist; previews create no Oath. Commitment, proof and reward runtime remain pending. Do not report planned behavior as implemented. **Sources: [development guide](docs/engineering/development.md), [foundation decision](docs/decisions/0001-project-foundation.md).**
 
 ## Working agreement
 

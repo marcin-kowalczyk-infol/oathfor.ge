@@ -315,3 +315,9 @@ T20 shows a final review for pending accounts with all fields confirmed, includi
 Only a server-complete profile reaches the first-Oath entry. Returning completed accounts first hydrate their saved language and then bypass onboarding. The Trial of the Spark entry states that Oath creation is not available yet; it issues no commitment, deadline or XP. Actual solo commitment and its accepted rule summary remain MVP-05/T22 work.
 
 Implementation is locally verified with synthetic backend/native adapters. Release acceptance remains open in the [account/onboarding matrix](testing.md#account-and-onboarding-acceptance). `apps/mobile/app.json` still omits `ios.bundleIdentifier`; Expo introspection uses `com.placeholder.appid`, which is not a registered project identifier. Before a signed build, set the registered identifier matching backend `APPLE_CLIENT_ID`, configure matching Apple Sign in/APNs signing capabilities, and provision the private backend keys described above. Do not place keys in mobile configuration or chat.
+
+## Oath previews
+
+MVP-05 adds strict local deadline resolution and protected immutable rule previews. Apply reviewed migrations in the intended runtime before using `POST /api/oath-previews` and owner-only `GET /api/oath-previews/{id}`. The account must have server-complete onboarding and unpaused gameplay to create a preview; reads remain available while paused. No Oath or XP is created by a preview. The [contract](api-contract.md#original-oath-contract) distinguishes implemented previews from planned confirmation, reads and pause endpoints.
+
+The committed policy source is the versioned JSON catalog in `apps/api/resources/oath/`; changing it affects newly generated previews only. Existing preview JSON is read from PostgreSQL. Real receipt processing, AI review, rewards, Recovery and native first-Oath acceptance remain pending. Ordinary tests use synthetic clocks/sessions; no live provider request is part of preview testing.

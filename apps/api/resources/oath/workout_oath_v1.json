@@ -1,0 +1,161 @@
+{
+  "templateVersion": "workout_oath_v1",
+  "policyVersion": "workout_rewards_v1",
+  "evidence": {
+    "alternatives": [
+      "photo",
+      "activity_record"
+    ],
+    "declarationRequired": true,
+    "routeChosenAtSubmission": true,
+    "photo": "recognizable_activity_context",
+    "recordRequiredFields": [
+      "source",
+      "activity",
+      "date",
+      "start_time",
+      "positive_duration_with_units"
+    ],
+    "supportedRecordLayouts": [],
+    "privacyCroppingAllowed": true,
+    "requiresFace": false,
+    "requiresGps": false,
+    "requiresExif": false,
+    "imageVerifiesCompletion": false,
+    "workoutReuseAllowed": false
+  },
+  "rewards": {
+    "base": 30,
+    "photoBonus": 10,
+    "recordBonus": 20,
+    "photoTotal": 40,
+    "recordTotal": 50,
+    "highestTierOnly": true,
+    "metricRewards": false,
+    "upgradeAttempts": 1,
+    "upgradeWindowSeconds": 86400,
+    "upgradeDelta": 10,
+    "upgradeRequiresSameWorkout": true
+  },
+  "consequences": {
+    "missedXp": 0,
+    "unresolvedXp": 0,
+    "withdrawnXp": 0,
+    "existingXpLoss": 0,
+    "unlocksRemoved": false,
+    "minimumQuestAvailable": false
+  },
+  "pause": {
+    "global": true,
+    "reasonRequired": false,
+    "withdrawWithoutFinalizedProofThroughCutoff": true,
+    "reconcileOverdueBeforeWithdrawal": true,
+    "pendingClocksContinue": true,
+    "resumeRestoresCommitments": false,
+    "suppressesGameplayReminders": true
+  },
+  "recovery": {
+    "eligibleOriginalState": "missed",
+    "attempts": 1,
+    "sameActivity": true,
+    "newWorkoutAfterActivation": true,
+    "completionWindowFromMissSeconds": 86400,
+    "receiptGraceSeconds": 900,
+    "activationStrictlyBeforeDeadline": true,
+    "totalXp": 15,
+    "evidenceBonus": false,
+    "upgrade": false,
+    "chaining": false,
+    "preservesOriginalMiss": true,
+    "pauseDoesNotRefundAttempt": true,
+    "activatedRecoverySurvivesOriginalAmendment": true
+  },
+  "review": {
+    "completionInclusive": true,
+    "receiptInclusive": true,
+    "receiptGraceSeconds": 900,
+    "durableFinalizedReceiptRequired": true,
+    "offlineBackdating": false,
+    "unknownAvailability": "review_pending",
+    "correctionAttempts": 2,
+    "correctionWindowSeconds": 86400,
+    "correctionClockStarts": "first_actionable_result_in_detail",
+    "correctionsRequireSameWorkout": true,
+    "providerAttempts": 3,
+    "providerRetryAfterSeconds": [
+      60,
+      300
+    ],
+    "providerEscalationSeconds": 900,
+    "reviewWindowSeconds": 259200,
+    "incidentAttachmentWindowAfterCutoffSeconds": 86400,
+    "incidentCannotCloseBeforeAttachmentWindow": true,
+    "unresolvedIsNeutral": true,
+    "appealAttempts": 1,
+    "appealWindowSeconds": 604800,
+    "appealDecisionWindowSeconds": 259200,
+    "appealCannotReduceXp": true,
+    "proofDeletionClosesPendingNeutrally": true,
+    "providerRetryClockStarts": "initial_attempt_start",
+    "providerEscalationClockStarts": "revision_receipt",
+    "assessmentMustApplyStrictlyBeforeEscalation": true,
+    "reviewClockStarts": "review_entry",
+    "reviewDecisionStrictlyBeforeClosure": true,
+    "incidentAttachmentAvailableWhileAvailabilityUnknown": true,
+    "incidentFulfillmentRequiresConfirmedServiceIncident": true,
+    "appealClockStarts": "terminal_result_available_in_detail",
+    "appealDecisionStrictlyBeforeClosure": true
+  },
+  "copy": {
+    "pl": {
+      "title": "Próba Iskry",
+      "subtitle": "Ukończ zaplanowany trening",
+      "promise": "Ukończę trening: {activity}, do {deadline}. Potwierdzę jego ukończenie i prześlę zdjęcie lub zrzut ekranu zgodnie z zasadami dowodu tej Przysięgi.",
+      "declaration": "Potwierdzam ukończenie treningu wskazanego w tej Przysiędze. Przesłany dowód dotyczy tego treningu.",
+      "sections": {
+        "activation": "Wybierz rozpoczęcie teraz albo w przyszłym terminie oraz osobny, późniejszy termin ukończenia. „Teraz” oznacza czas serwera podczas potwierdzenia. Jeśli wybrany przyszły początek minie przed potwierdzeniem, ponownie wybierzesz i zaakceptujesz termin. Zasady złożonej Przysięgi pozostają niezmienne.",
+        "timing": "Ukończ trening najpóźniej w podanym terminie D. Kompletny dowód z potwierdzeniem ukończenia musi dotrzeć do serwera najpóźniej w terminie S, czyli 15 minut po D. Te dodatkowe minuty służą przesłaniu dowodu, nie ćwiczeniom. Rozpoczęcie wysyłania ani zapis na urządzeniu nie oznaczają przyjęcia dowodu. Brak sieci nie przesuwa terminów. Zmiana języka lub strefy urządzenia nie zmieni zaakceptowanych chwil.",
+        "evidence": "Przy składaniu dowodu wybierzesz zdjęcie kontekstu albo zapis aktywności i potwierdzisz ukończenie treningu. AI ocenia widoczne elementy dowodu. Sam obraz nie potwierdza ukończenia treningu, jego czasu trwania ani tego, kto go wykonał. Jeden trening może należeć tylko do jednej Przysięgi albo jednego Zadania Powrotu.",
+        "photo": "Zdjęcie musi przedstawiać rozpoznawalne miejsce lub sprzęt pasujący do wybranego treningu, np. ścieżkę biegową, sprzęt siłowy albo matę. Osoba nie musi być widoczna. Nieczytelny lub niejednoznaczny kontekst wymaga wyjaśnienia; wyraźnie niepowiązany obraz nie spełnia zasad. Zdjęcie wyniku na zegarku lub w aplikacji jest oceniane jako zapis aktywności.",
+        "activityRecord": "Zapis musi przedstawiać jedno ukończone ćwiczenie: rozpoznawalne źródło (aplikację lub urządzenie), zgodny rodzaj aktywności, datę i godzinę rozpoczęcia oraz dodatni czas trwania z jednostką. Nie jest to minimalny czas treningu. Trwający licznik nie jest ukończonym zapisem. Brakujące lub nieczytelne pola i nieobsługiwany układ wymagają wyjaśnienia. Żaden rzeczywisty układ aplikacji, w tym Apple Fitness, nie ma jeszcze potwierdzonej obsługi.",
+        "privacy": "Możesz przyciąć lub zasłonić prywatne informacje, zachowując wymagane pola. Twarz, imię, sylwetka, mapa, GPS, EXIF, kalorie, dystans i tętno nie są wymagane. Gdy zapis nie pokazuje strefy czasu, potwierdzisz ją osobno. AI nie odgadnie jej z metadanych. Niejednoznaczny czas lub sprzeczność z deklaracją wymaga wyjaśnienia, nie automatycznej porażki.",
+        "rewards": "Spełniona Przysięga daje łącznie 40 XP przy zdjęciu albo 50 XP przy zapisie aktywności: 30 XP podstawy i tylko najwyższy pasujący bonus 10 lub 20 XP. Sama deklaracja nie wystarcza. Liczba obrazów i wskaźniki treningu nie zwiększają nagrody. Po spełnieniu ze zdjęciem masz jedną próbę przesłania zapisu tego samego treningu w ciągu 24 godzin od spełnienia, aby otrzymać dodatkowe 10 XP. Nieudane lub nierozstrzygnięte ulepszenie zachowuje pierwotną nagrodę.",
+        "consequence": "Niewykonana Przysięga daje 0 XP, ale nie odbiera istniejących XP ani odblokowań. Nierozstrzygnięta Przysięga jest neutralna: bez nagrody, porażki i możliwości rozpoczęcia nowego Zadania Powrotu. Wycofana Przysięga również nie daje nagrody ani możliwości rozpoczęcia nowego Zadania Powrotu. Zadanie Powrotu rozpoczęte przed zmianą pierwotnego wyniku w odwołaniu zachowuje swoje zasady i nagrodę. Nie ma mniejszego treningu zastępującego zaakceptowaną Przysięgę.",
+        "pause": "Możesz włączyć pauzę bez podawania powodu. Przed potwierdzeniem zobaczysz, co zostanie wycofane, a co będzie nadal rozpatrywane. Pauza wycofuje zaplanowane i aktywne zobowiązania bez przyjętego dowodu do terminu S włącznie. Po S najpierw rozpatrywany jest brak dowodu; pauza nie cofa upływu terminu. Przyjęte dowody i sprawy w toku zachowują swoje terminy. Pauza wycisza przyszłe przypomnienia, lecz wysłane powiadomienie może jeszcze dotrzeć. Wznowienie nie przywraca wycofanych Przysiąg ani wykorzystanych prób.",
+        "recovery": "Po oznaczeniu oryginalnej Przysięgi jako niewykonanej możesz raz rozpocząć Zadanie Powrotu: nowy trening tego samego rodzaju, rozpoczęty po aktywacji Zadania Powrotu i ukończony w ciągu 24 godzin od oznaczenia Przysięgi jako niewykonanej. Aktywuj je przed tym terminem; na przyjęcie dowodu jest jeszcze 15 minut. Sukces daje 15 XP, bez bonusów i kolejnego Zadania Powrotu. Historia zachowuje pierwotny wynik niewykonanej Przysięgi. Pauza nie przedłuża okna i nie oddaje wykorzystanej próby.",
+        "review": "Niejasny lub odrzucony dowód nie oznacza automatycznie niewykonania. Masz do dwóch poprawek dowodu tego samego treningu w jednym oknie 24 godzin od pierwszej dostępnej prośby o poprawkę. Opóźnienie AI nie unieważnia terminowo przyjętego dowodu. Po błędach dostawcy (najwyżej 3 próby, ponowienia po co najmniej 1 i 5 minutach od rozpoczęcia pierwszej próby) sprawa trafia do weryfikacji. Trafia tam również dokładnie 15 minut po przyjęciu danej wersji dowodu, jeśli wynik nie został wcześniej zastosowany — nawet gdy przetwarzanie się nie rozpoczęło. Weryfikacja trwa do 72 godzin, po czym niepewna sprawa kończy się neutralnie. Nieznana dostępność usługi nie jest dowodem niewykonania. W sprawie dotyczącej awarii lub nieznanej dostępności usługi możesz dołączyć dowód pierwotnego treningu do S+24 godziny. Dopiero potwierdzona awaria w oknie D–S może uzasadnić uznanie takiego dowodu w drodze wyjątku. Nie przesuwa to terminu ćwiczeń ani nie cofa daty przyjęcia. Sprawa zachowuje pełne okno dołączenia dowodu; nie kończy się neutralnie przed jego upływem.",
+        "appeal": "Możesz raz odwołać się od wyniku Przysięgi, Zadania Powrotu lub zamkniętej prośby o bonus, w ciągu 7 dni od udostępnienia wyniku. Decyzja wymaga istniejących zasad i dowodów; nie pozwala na inny trening ani zmianę terminu. Brak decyzji przez 72 godziny pozostawia dotychczasowy wynik. Odwołanie nie obniża zdobytych XP. Usunięcie dowodu uniemożliwia dalszą ocenę tego dowodu; otwarte sprawy zamykają się neutralnie, a rozstrzygnięte nagrody pozostają."
+      },
+      "activities": {
+        "running": "Bieganie",
+        "strength_training": "Trening siłowy",
+        "mobility": "Mobilność"
+      }
+    },
+    "en": {
+      "title": "Trial of the Spark",
+      "subtitle": "Complete your planned workout",
+      "promise": "I will complete my workout: {activity}, by {deadline}. I will confirm completion and submit a photo or screenshot under this Oath’s evidence rules.",
+      "declaration": "I confirm that I completed the workout named in this Oath. The evidence I submit relates to that workout.",
+      "sections": {
+        "activation": "Choose activation now or at a future time, and a separate, later completion deadline. “Now” means server time during confirmation. If a selected future start passes before confirmation, you will choose and accept a time again. A committed Oath’s rules remain unchanged.",
+        "timing": "Complete your workout by the displayed deadline D, inclusive. Complete evidence with your declaration must reach the server by S, inclusive, 15 minutes after D. These extra minutes are for submission, not exercise. Starting an upload or saving on your device does not establish receipt. Being offline does not move the deadlines. Changing your language or device timezone does not change the accepted instants.",
+        "evidence": "At submission, choose a context photo or an activity record and confirm workout completion. AI assesses visible evidence. The image alone does not verify workout completion, duration or who performed it. One workout can belong to only one Oath or one Recovery.",
+        "photo": "The photo must show a recognizable setting or equipment consistent with your workout, such as a running path, strength equipment or a mat. A person need not appear. Unreadable or ambiguous context needs clarification; a clearly unrelated image does not meet the rules. A photo of a watch or app result is assessed as an activity record.",
+        "activityRecord": "The record must show one completed activity: an identifiable source app or device, matching activity type, date and start time, and a positive duration with units. This is not a minimum workout duration. A running timer is not a completed record. Missing or unreadable fields and unsupported layouts need clarification. No real app layout, including Apple Fitness, has confirmed support yet.",
+        "privacy": "You may crop or redact private details while retaining required fields. Face, name, body, map, GPS, EXIF, calories, distance and heart rate are not required. If a record does not show its timezone, you will confirm it separately. AI will not guess it from metadata. Ambiguous timing or a conflict with your declaration needs clarification, not automatic failure.",
+        "rewards": "A fulfilled Oath gives 40 XP total with a photo or 50 XP with an activity record: 30 base XP and only the highest qualifying bonus of 10 or 20 XP. A declaration alone is insufficient. Image count and workout metrics do not increase the reward. After photo fulfillment, you have one attempt to submit a record of that same workout within 24 hours of fulfillment for another 10 XP. An unsuccessful or unresolved upgrade preserves the original reward.",
+        "consequence": "A missed Oath gives 0 XP but removes no existing XP or unlocks. An unresolved Oath is neutral: no reward, miss or eligibility to start a new Recovery. A withdrawn Oath also gives no reward or eligibility to start a new Recovery. Recovery activated before an appeal amends the original outcome keeps its rules and reward. No smaller workout replaces an accepted Oath.",
+        "pause": "You can pause without giving a reason. Before confirmation, you will see which commitments will be withdrawn and which cases continue. Pause withdraws scheduled and active commitments without finalized evidence through S, inclusive. After S, missing evidence is reconciled first; pause does not undo elapsed time. Received evidence and pending cases keep their clocks. Pause suppresses future reminders, but a notification already sent may still arrive. Resume restores neither withdrawn Oaths nor spent attempts.",
+        "recovery": "After an original Oath is missed, you may activate one Recovery: a new workout of the same type, begun after Recovery activation and completed within 24 hours of the miss. Activate before that deadline; evidence receipt has another 15 minutes. Success gives 15 XP, without bonuses or another Recovery. History retains the original miss. Pause neither extends the window nor refunds a spent attempt.",
+        "review": "Unclear or rejected evidence does not automatically mean a miss. You have up to two corrections for the same workout within one 24-hour window from the first available correction request. AI delay does not invalidate timely evidence. Provider errors (at most 3 attempts, retries after at least 1 and 5 minutes from the initial attempt start) lead to review. Review also begins exactly 15 minutes after that evidence revision was received if no result was applied earlier, even if processing never started. Review lasts up to 72 hours, after which an uncertain case closes neutrally. Unknown service availability is not proof of a miss. In an incident or unknown-availability review, you may attach evidence of the original workout through S+24 hours. Only a confirmed outage during D–S can justify accepting that evidence under the exception. This neither moves the workout deadline nor backdates receipt. The case preserves the full attachment window and cannot close neutrally before it ends.",
+        "appeal": "You may appeal an Oath, Recovery or closed bonus-request result once, within 7 days of its availability. A decision must follow the existing rules and evidence; it cannot permit a different workout or change the deadline. No decision within 72 hours leaves the existing result unchanged. An appeal cannot reduce earned XP. Deleting evidence prevents further assessment of that evidence; open cases close neutrally and settled rewards remain."
+      },
+      "activities": {
+        "running": "Running",
+        "strength_training": "Strength training",
+        "mobility": "Mobility"
+      }
+    }
+  }
+}
