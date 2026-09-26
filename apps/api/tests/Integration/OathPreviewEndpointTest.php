@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Identity\Clock;
-use App\Tests\Fixtures\{CharacterFixture, FixedClock};
+use App\Tests\Fixtures\{CharacterFixture, FixedClock, LockWait};
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -188,18 +188,10 @@ final class OathPreviewEndpointTest extends WebTestCase
         chmod($path, 0600);
         file_put_contents($path, json_encode($input, JSON_THROW_ON_ERROR));
         $worker = new \Symfony\Component\Process\Process([PHP_BINARY, 'tests/Fixtures/oath_preview_worker.php', $path], dirname(__DIR__, 2));
-        $worker->setTimeout(12);
+        $worker->setTimeout(LockWait::WORKER_TIMEOUT);
         $worker->start();
         try {
-            $limit = microtime(true) + 5;
-            $waiting = false;
-            do {
-                $pid = (int) $worker->getOutput();
-                $this->connection->executeQuery('SELECT pg_stat_clear_snapshot()');
-                if ($pid > 0 && 'Lock' === $this->connection->fetchOne('SELECT wait_event_type FROM pg_stat_activity WHERE pid = ?', [$pid])) { $waiting = true; break; }
-                usleep(10000);
-            } while ($worker->isRunning() && microtime(true) < $limit);
-            self::assertTrue($waiting, 'Preview worker did not reach lock: '.$worker->getErrorOutput());
+            LockWait::assertWorkerWaiting($this->connection, $worker, 'Preview worker');
             $code = 'unauthenticated';
             if (str_contains($change, 'expiry')) { $input['time'] += 2592000; }
             elseif ('revocation' === $change) { $this->connection->executeStatement('UPDATE app_session SET revoked_at = ?', [$input['time']]); }

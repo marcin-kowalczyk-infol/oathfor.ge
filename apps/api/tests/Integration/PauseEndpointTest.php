@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Identity\Clock;
-use App\Tests\Fixtures\{CharacterFixture, FixedClock};
+use App\Tests\Fixtures\{CharacterFixture, FixedClock, LockWait};
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -345,17 +345,11 @@ final class PauseEndpointTest extends WebTestCase
         $path = tempnam(sys_get_temp_dir(), 'oathforge-DUMMY-reconcile-'); self::assertIsString($path); chmod($path, 0600);
         file_put_contents($path, json_encode($data, JSON_THROW_ON_ERROR));
         $worker = new \Symfony\Component\Process\Process([PHP_BINARY, 'tests/Fixtures/'.$fixture, $path], dirname(__DIR__, 2));
-        $worker->setTimeout(12); $worker->start(); return [$worker, $path];
+        $worker->setTimeout(LockWait::WORKER_TIMEOUT); $worker->start(); return [$worker, $path];
     }
     private function assertWaiting(\Symfony\Component\Process\Process $worker): void
     {
-        $limit = microtime(true) + 5;
-        do {
-            $pid = (int) $worker->getOutput(); $this->connection->executeQuery('SELECT pg_stat_clear_snapshot()');
-            if ($pid > 0 && 'Lock' === $this->connection->fetchOne('SELECT wait_event_type FROM pg_stat_activity WHERE pid = ?', [$pid])) { self::assertTrue($worker->isRunning()); return; }
-            usleep(10000);
-        } while ($worker->isRunning() && microtime(true) < $limit);
-        self::fail('Reconciliation worker did not reach lock: '.$worker->getErrorOutput());
+        LockWait::assertWorkerWaiting($this->connection, $worker, 'Pause worker');
     }
     /** @return array<string, mixed> */
     private function workerResult(\Symfony\Component\Process\Process $worker): array
