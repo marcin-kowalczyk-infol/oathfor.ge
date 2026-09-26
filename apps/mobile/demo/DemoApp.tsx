@@ -1,22 +1,30 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { StatusBar, Modal, SafeAreaView, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { StatusBar, Modal, SafeAreaView, ScrollView, View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import type { ForgeNavigation } from '../src/oaths/OathHomeScreen';
 import { AuthScreen } from '../src/auth/AuthScreen';
 import { LocalizationProvider } from '../src/localization/LocalizationProvider';
 import type { Locale } from '../src/localization/locale';
 import { createDummy } from './runtime';
 import { ForgeScene } from './ForgeScene';
+import { MotionSuspended } from '../src/ui/useMotion';
 import en from './locales/en.json';
 import pl from './locales/pl.json';
 
 type Dummy = ReturnType<typeof createDummy>;
 function Run({ dummy, locale, forgeNavigation }: { dummy: Dummy; locale: Locale; forgeNavigation: ForgeNavigation }) {
-  const [runtime] = useState(() => dummy.runtime());
-  useEffect(() => () => runtime.controller.dispose(), [runtime]);
+  // Creation and disposal share one effect. Re-run effects (Fast Refresh, StrictMode) get a live runtime.
+  const [runtime, setRuntime] = useState<ReturnType<Dummy['runtime']> | null>(null);
+  useEffect(() => {
+    const next = dummy.runtime();
+    setRuntime(next);
+    return () => next.controller.dispose();
+  }, [dummy]);
+  if (!runtime) return null;
   return <LocalizationProvider initialLocale={locale}><AuthScreen {...runtime} forgeNavigation={forgeNavigation} /></LocalizationProvider>;
 }
 export default function DemoApp() {
   const [locale, setLocale] = useState<Locale>('pl');
+  const { fontScale } = useWindowDimensions();
   const [dummy, setDummy] = useState(() => createDummy('pl', true, false));
   const [mount, setMount] = useState(0);
   const [controls, setControls] = useState(false);
@@ -50,8 +58,8 @@ export default function DemoApp() {
   return <Root style={styles.root}>
     <StatusBar hidden={scene} />
     {/* The room is fullscreen, while functional screens keep the badge below the status bar. */}
-    <BadgeFrame><Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={[styles.badge, scene && styles.sceneBadge]}><Text allowFontScaling={!scene} style={styles.badgeText}>{scene ? 'DEMO' : copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable></BadgeFrame>
-    <View style={styles.product}><View style={[styles.product, scene && styles.hidden]} accessibilityElementsHidden={scene} importantForAccessibility={scene ? 'no-hide-descendants' : 'auto'} pointerEvents={scene ? 'none' : 'auto'}><Run key={mount} dummy={dummy} locale={locale} forgeNavigation={{ request, onReturn: () => setScene(true) }} /></View>{scene && <ForgeScene key={guideRun} locale={locale} showIntro={!introSeen} onIntroComplete={() => setIntroSeen(true)} onExit={() => openStation('seals')} onOpenStation={openStation} />}</View>
+    <BadgeFrame><Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={[styles.badge, scene && styles.sceneBadge]}><Text key={fontScale} allowFontScaling={!scene} maxFontSizeMultiplier={1.4} style={styles.badgeText}>{scene ? 'DEMO' : copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable></BadgeFrame>
+    <View style={styles.product}><View style={[styles.product, scene && styles.hidden]} accessibilityElementsHidden={scene} importantForAccessibility={scene ? 'no-hide-descendants' : 'auto'} pointerEvents={scene ? 'none' : 'auto'}><MotionSuspended suspended={scene}><Run key={mount} dummy={dummy} locale={locale} forgeNavigation={{ request, onReturn: () => setScene(true) }} /></MotionSuspended></View>{scene && <ForgeScene key={guideRun} locale={locale} showIntro={!introSeen} onIntroComplete={() => setIntroSeen(true)} onExit={() => openStation('seals')} onOpenStation={openStation} />}</View>
     <Modal visible={controls} animationType="none" onRequestClose={() => setControls(false)}>
       <SafeAreaView style={styles.root}><ScrollView contentContainerStyle={styles.controls}>
         <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>

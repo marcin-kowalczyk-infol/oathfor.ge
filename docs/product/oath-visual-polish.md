@@ -139,3 +139,19 @@ History rows show a compact committed day and time. The accessible label keeps t
 Reduce Motion skips the camera approach and place responses. Responses stop when motion is disabled and never replay on return. They never create, change or confirm an Oath. The player-character idea is recorded as a [proposal](player-character.md) only.
 
 Native iPhone 18 Pro / iOS 27 check in PL: chronicle action opens history, the door returns to the room, and a creation choice survives leaving and reopening the hearth. The door opens current Oaths, with the demo badge below the status bar. Camera approach and place responses were seen only in still screenshots, not as frame-by-frame motion. EN, smaller screens, maximum text, Reduce Motion, VoiceOver and owner acceptance stay pending.
+
+## Forge places continuation, 2026-09-26
+
+Implemented in the development demo with owner-generated artwork from the [places manifest](../art/forge-places-assets.md).
+
+Each functional screen now stands in its own place. Creation and rule review use the hearth close-up. Today and Oath detail use the seal wall. History uses the chronicle. The pause review keeps the dimmed room. Close-ups fill the screen width from the top and fade into a dark floor under the text. Opening a place from the room zooms from the room artwork into that close-up. Reduce Motion shows the close-up at once.
+
+Every Oath row, featured seal and detail shows a shape-coded state seal next to its short state label. The detail replaces the status sentence with the seal and label, and keeps "Status: …" as the accessible label. State never depends on colour alone. Each seal has its own motif.
+
+A looping flame burns in the room hearth and in the hearth close-up. Loops stop in the background, under Reduce Motion and while the functional app is hidden under the room. The demo marks the hidden subtree as motion-suspended, so its Forge hub, flame and entrance animations stay idle.
+
+Żaromir walks with a sheet facing the travel direction: side views for diagonal paths, back view toward the hearth, front view when returning. He breathes slowly while standing and takes a station pose on arrival. Sheets are pre-aligned in export and never mirrored. Reduce Motion places him at once with the same pose.
+
+The companion bubble now projects its position through the room camera zoom, so its tail points at Żaromir's feet. A hearth request that meets a busy controller without a pending acceptance shows a notice asking the player to return in a moment. It does not open creation.
+
+Known limits: a live Dynamic Type change remounts the screen content so iOS measures text again. An open time picker closes then, while the form draft survives. VoiceOver focus order was not checked because the iOS Simulator has no VoiceOver. Native evidence covers iPhone 18 Pro and iPhone SE 3 in PL and EN, maximum text and Reduce Motion.

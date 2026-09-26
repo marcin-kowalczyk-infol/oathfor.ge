@@ -287,10 +287,11 @@
     "summary": "{{activity}} · {{deadline}}"
   },
   "forge": {
+    "busy": "The Forge is still finishing your last step. Return to the hearth in a moment.",
     "returnRoom": "Return to the Forge",
     "title": "Your Oaths",
     "subtitle": "A promise takes shape through action.",
-    "seals": "Oaths at the hearth",
+    "seals": "Oaths on the seal wall",
     "seal": "Oath seal: {{activity}} · {{state}} · {{deadline}}",
     "all": "All your Oaths",
     "guide": "Zharomir keeps the hearth. Your next step begins outside it.",

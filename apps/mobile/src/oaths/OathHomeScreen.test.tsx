@@ -30,7 +30,7 @@ test('Today retains overdue review-pending Oaths and opens their authoritative s
   expect(await screen.findByText('Under review')).toBeOnTheScreen();
   expect(screen.queryByText('Missed')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: /Open Oath: Running/ }));
-  expect(await screen.findByText('Status: Under review')).toBeOnTheScreen();
+  expect(await screen.findByLabelText('Status: Under review')).toBeOnTheScreen();
   expect(await screen.findByText(oath().snapshot.copy.en.sections.appeal)).toBeOnTheScreen();
 });
 test('empty Today has loading, failed retry and explicit creation states', async () => {
@@ -103,7 +103,7 @@ test('session invalidation hides detail content and ignores pending read complet
   await fireEvent.press(await screen.findByRole('button', { name: /Open Oath:/ }));
   await act(async () => f.change({ kind: 'idle' }));
   await act(async () => incoming.resolve({ kind: 'success', value: { oath: oath(), serverTime } }));
-  expect(screen.queryByText('Status: Under review')).toBeNull(); expect(screen.queryByText(oath().snapshot.copy.en.sections.appeal)).toBeNull();
+  expect(screen.queryByLabelText('Status: Under review')).toBeNull(); expect(screen.queryByText(oath().snapshot.copy.en.sections.appeal)).toBeNull();
 });
 test('Polish history and pause controls use localized copy without exposing IDs', async () => {
   const f = setup([]);
@@ -177,7 +177,7 @@ test('late list and detail responses cannot replace the newly selected screen', 
   await fireEvent.press(screen.getByRole('button', { name: /Open Oath:/ }));
   await fireEvent.press(screen.getByRole('button', { name: 'History' }));
   await act(async () => detail.resolve({ kind: 'success', value: { oath: oath(), serverTime } }));
-  expect(screen.queryByText('Status: Under review')).toBeNull(); expect(screen.getByRole('header', { name: 'History' })).toBeOnTheScreen();
+  expect(screen.queryByLabelText('Status: Under review')).toBeNull(); expect(screen.getByRole('header', { name: 'History' })).toBeOnTheScreen();
 });
 
 test('Forge features at most three server-ordered seals while every Oath stays reachable in the full list', async () => {
@@ -191,7 +191,7 @@ test('Forge features at most three server-ordered seals while every Oath stays r
   expect(screen.getAllByRole('button', { name: /Open Oath:/ })).toHaveLength(4);
   await fireEvent.press(seals[1]);
   expect(f.controller.detail).toHaveBeenCalledWith(items[1].id);
-  expect(await screen.findByText('Status: Under review')).toBeOnTheScreen();
+  expect(await screen.findByLabelText('Status: Under review')).toBeOnTheScreen();
 });
 
 
@@ -276,4 +276,55 @@ test('hearth navigation on a paused account shows the pause notice instead of ne
   expect(await screen.findByText('Gameplay is paused. Existing reviews continue. Withdrawn Oaths will not return.')).toBeOnTheScreen();
   expect(f.controller.resetCreation).not.toHaveBeenCalled();
   expect(screen.queryByLabelText('Completion date')).toBeNull();
+});
+
+test('each Oath carries a state seal beside its short label in the list and in detail', async () => {
+  const f = setup([oath(), oath({ id: '20000000-0000-4000-8000-000000000002', state: 'active', reason: null, review: null })]);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  await screen.findAllByText('Under review');
+  expect(screen.getAllByTestId('state-seal-review_pending', { includeHiddenElements: true }).length).toBeGreaterThan(0);
+  expect(screen.getAllByTestId('state-seal-active', { includeHiddenElements: true }).length).toBeGreaterThan(0);
+  expect(screen.queryByTestId('state-seal-review_pending')).toBeNull();
+  await fireEvent.press(screen.getAllByRole('button', { name: /Open Oath: Running/ })[0]);
+  expect(await screen.findByLabelText('Status: Under review')).toBeOnTheScreen();
+  expect(screen.getByTestId('state-seal-review_pending', { includeHiddenElements: true })).toBeTruthy();
+});
+
+test('each functional screen stands in its own Forge place', async () => {
+  const f = setup(); jest.mocked(f.controller.resetCreation).mockReturnValue(true);
+  const place = (name: string) => screen.queryByTestId(`forge-place-${name}`, { includeHiddenElements: true });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  await screen.findAllByText('Under review');
+  expect(place('seals')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'History' }));
+  await screen.findAllByText('Under review');
+  expect(place('chronicle')).toBeTruthy();
+  await fireEvent.press(screen.getAllByRole('button', { name: /Open Oath: Running/ })[0]);
+  await screen.findByLabelText('Status: Under review');
+  expect(place('seals')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Today' }));
+  await screen.findAllByText('Under review');
+  await fireEvent.press(screen.getAllByRole('button', { name: 'Create an Oath' })[0]);
+  expect(await screen.findByLabelText('Completion date')).toBeOnTheScreen();
+  expect(place('hearth')).toBeTruthy();
+});
+
+test('hearth navigation during a busy operation explains that creation must wait', async () => {
+  const f = setup([]);
+  f.change({ kind: 'ready', busy: true, pending: null, preview: null, oath: null, needsReview: false });
+  jest.mocked(f.controller.resetCreation).mockReturnValue(false);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
+  expect(await screen.findByText('The Forge is still finishing your last step. Return to the hearth in a moment.')).toBeOnTheScreen();
+  expect(screen.queryByLabelText('Completion date')).toBeNull();
+});
+
+test('a newer room request replaces an unfinished hearth request and its place', async () => {
+  const f = setup(); const first = deferred<Awaited<ReturnType<OathController['list']>>>();
+  // The mount loads Today first, then the hearth request waits on its own Today load.
+  jest.mocked(f.controller.list).mockResolvedValueOnce(page([oath()])).mockReturnValueOnce(first.promise);
+  const view = await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await view.rerender(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 2, target: 'history' }, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await act(async () => first.resolve(page([oath()])));
+  await screen.findAllByText('Under review');
+  expect(screen.getByTestId('forge-place-chronicle', { includeHiddenElements: true })).toBeTruthy();
 });

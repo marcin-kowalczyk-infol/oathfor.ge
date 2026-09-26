@@ -4,6 +4,10 @@ Status: selected local design handoff for MVP-03-T04, 2026-09-24; static layout 
 
 Scope: onboarding, Today/Oath detail, capture, pending/result, Recovery, squad/progress and settings. Accepted mechanics come from the [first-loop contract](../product/first-loop.md); screen ownership stays with MVP-04–12. This document specifies presentation, not new navigation, squad rewards or authentication choices.
 
+## Visual quality bar
+
+We aim for pixel-perfect presentation. A screen is not done while it has crooked, misaligned, inconsistent or visually unattractive elements. Examples: uneven baselines or spacing, sprites that jump between frames, clipped or blurred artwork, visible seams in gradients, text colliding with busy artwork, mismatched radii or tints, and stray glows or shapes that look broken. Visual defects found during native testing are fixed and re-checked in the same iteration, not deferred as notes. Judge on real devices or simulators at target sizes, including the small screen and maximum text. **Local decision: owner instruction, 2026-09-26.**
+
 ## Tokens and layout
 
 The following are **local design choices**, dated 2026-09-24, building on the [art direction](art-bible.md) and inspected [opaque asset panels](companion-assets.md#export-metadata). Values are logical layout units; desktop studies use CSS px and are not native measurements.

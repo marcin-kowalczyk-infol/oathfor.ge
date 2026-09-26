@@ -1,10 +1,12 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Animated, Dimensions } from 'react-native';
-import { ForgeScene } from './ForgeScene';
+import { ForgeScene, walkDirection } from './ForgeScene';
 import { useMotionAllowed } from '../src/ui/useMotion';
 import en from './locales/en.json';
 
 jest.mock('../src/ui/useMotion', () => ({ useMotionAllowed: jest.fn() }));
+// The decorative flame owns its own loop and is not part of scene navigation.
+jest.mock('../src/ui/HearthFire', () => ({ HearthFire: () => null }));
 const motion = jest.mocked(useMotionAllowed);
 let intervals: jest.SpyInstance;
 let clear: jest.SpyInstance;
@@ -149,4 +151,18 @@ test('station discovery requires its named action before opening the matching sc
     await fireEvent.press(screen.getByRole('button', { name: label }));
     expect(open).toHaveBeenLastCalledWith(station);
   }
+});
+
+test('walking picks the sheet that faces the travel direction and never mirrors', () => {
+  expect(walkDirection({ x: 0.5, y: 0.82 }, { x: 0.72, y: 0.65 })).toBe('right');
+  expect(walkDirection({ x: 0.5, y: 0.82 }, { x: 0.30, y: 0.635 })).toBe('left');
+  expect(walkDirection({ x: 0.5, y: 0.82 }, { x: 0.515, y: 0.565 })).toBe('back');
+  expect(walkDirection({ x: 0.515, y: 0.565 }, { x: 0.5, y: 0.82 })).toBe('forward');
+});
+
+test('arrival shows the station pose, including the static reduced-motion equivalent', async () => {
+  await render(<ForgeScene locale="en" onExit={jest.fn()} />);
+  expect(screen.getByTestId('hero-idle', { includeHiddenElements: true })).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: en.scene.chronicle }));
+  expect(screen.getByTestId('hero-pose-chronicle', { includeHiddenElements: true })).toBeTruthy();
 });

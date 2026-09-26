@@ -5,6 +5,7 @@ import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
 import { tokens } from '../ui/tokens';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
+import { StateSeal } from '../ui/StateSeal';
 import { useMotionAllowed } from '../ui/useMotion';
 import { storedTime } from './SnapshotRules';
 
@@ -30,6 +31,7 @@ function Seal({ item, onOpen, motion }: { item: Oath; onOpen(id: string): void; 
       {({ pressed }) => <>
         <Animated.View style={{ transform: [{ scale }], opacity: pressed ? 0.8 : 1 }} accessible={false}>
           <ActivityEmblem activity={item.snapshot.activity} size={82} />
+          <View style={styles.stateBadge}><StateSeal state={item.state} size={34} /></View>
         </Animated.View>
         <Text style={[styles.name, pressed && styles.highlight]}>{copy.activity}</Text>
         <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>
@@ -101,6 +103,7 @@ const styles = StyleSheet.create({
   seals: { flexDirection: 'row', gap: 8, paddingBottom: 12 }, branch: { flex: 1, alignItems: 'center' },
   sealTarget: { alignSelf: 'stretch', alignItems: 'center', gap: 5, paddingBottom: 8 },
   highlight: { color: '#ffe1aa' },
+  stateBadge: { position: 'absolute', right: -8, bottom: -6 },
   name: { color: tokens.color.text, fontSize: 14, lineHeight: 19, fontWeight: '600', textAlign: 'center', marginTop: 3 },
   state: { color: tokens.color.secondary, fontSize: 12, lineHeight: 17, textAlign: 'center' },
   deadline: { color: '#bfa987', fontSize: 12, lineHeight: 17, textAlign: 'center' },

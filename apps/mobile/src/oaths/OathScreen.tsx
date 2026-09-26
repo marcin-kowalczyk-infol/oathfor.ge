@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Animated, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { isPreviewInput, type Activity, type LocalTimeInput, type PreviewInput } from '../api/oathSchema';
@@ -18,7 +18,7 @@ export type OathCreationDraft = { activity: Activity; scheduled: boolean; activa
 function emptyDraft(timezone: string): OathCreationDraft {
   return { activity: 'running', scheduled: false, activation: { date: '', time: '', zone: timezone }, deadline: { date: '', time: '', zone: timezone } };
 }
-export function OathScreen({ controller, timezone, onLogout, onBack, backLabel, initialDraft, onDraftChange }: { controller: OathController; timezone: string; onLogout(): void; onBack?(): void; backLabel?: string; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void }) {
+export function OathScreen({ controller, timezone, onLogout, onBack, backLabel, initialDraft, onDraftChange, approach = null }: { controller: OathController; timezone: string; onLogout(): void; onBack?(): void; backLabel?: string; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void; approach?: number | null }) {
   const { t } = useTranslation();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const [draft, setDraft] = useState<OathCreationDraft>(() => initialDraft ?? emptyDraft(timezone));
@@ -46,6 +46,8 @@ export function OathScreen({ controller, timezone, onLogout, onBack, backLabel, 
   const review = !detail && ready?.preview && (mode === 'review' || !!pending);
   const scene = `${detail ? 'detail' : pending ? 'pending' : review ? 'review' : 'form'}-${error?.kind ?? ''}-${error && 'code' in error ? error.code : ''}`;
   const entrance = useSceneEntrance(scene);
+  const scroll = useRef(new Animated.Value(0)).current;
+  useEffect(() => { scroll.setValue(0); }, [scene, scroll]);
   async function preview() {
     if (!valid || busy || pending) return;
     setSubmitted(true); await controller.preview(input);
@@ -72,8 +74,8 @@ export function OathScreen({ controller, timezone, onLogout, onBack, backLabel, 
     else if (error.kind === 'time_error' || error.kind === 'oath_error') errorText = t(`oath.error.${error.code}`, { defaultValue: t('oath.error.generic') });
     else errorText = t(error.kind === 'invalid_request' ? 'oath.error.invalid_request' : 'oath.error.generic');
   }
-  return <SceneSurface tone="hearth"><SafeAreaView style={styles.safeArea}>
-    <Animated.ScrollView style={entrance} key={scene} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+  return <SceneSurface place="hearth" approach={approach} scroll={scroll}><SafeAreaView style={styles.safeArea}>
+    <Animated.ScrollView style={entrance} key={scene} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
       {onBack && <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />}
       {!review && !detail && <Text accessibilityRole="header" style={styles.title}>{t('oath.title')}</Text>}
       {!ready && <>

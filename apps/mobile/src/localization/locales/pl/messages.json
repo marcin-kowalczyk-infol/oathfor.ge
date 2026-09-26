@@ -291,10 +291,11 @@
     "summary": "{{activity}} · {{deadline}}"
   },
   "forge": {
+    "busy": "Kuźnia kończy jeszcze Twój poprzedni krok. Wróć do paleniska za chwilę.",
     "returnRoom": "Wróć do Kuźni",
     "title": "Twoje Przysięgi",
     "subtitle": "Przysięga nabiera kształtu w działaniu.",
-    "seals": "Przysięgi przy palenisku",
+    "seals": "Przysięgi na ścianie pieczęci",
     "seal": "Pieczęć Przysięgi: {{activity}} · {{state}} · {{deadline}}",
     "all": "Wszystkie Twoje Przysięgi",
     "guide": "Żaromir strzeże paleniska. Twój kolejny krok zaczyna się poza nim.",

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import DemoApp from './DemoApp';
 import pl from './locales/pl.json';
-jest.mock('../src/ui/useMotion', () => ({ useMotionAllowed: () => false }));
+jest.mock('../src/ui/useMotion', () => ({ useMotionAllowed: () => false, MotionSuspended: ({ children }: { children: unknown }) => children }));
 jest.mock('../src/auth/AuthScreen', () => ({ AuthScreen: ({ forgeNavigation }: any) => {
   const React = require('react'); const { TextInput, Button, Text } = require('react-native');
   const [draft, setDraft] = React.useState('');

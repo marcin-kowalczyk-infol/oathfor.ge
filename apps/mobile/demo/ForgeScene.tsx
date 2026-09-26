@@ -3,6 +3,7 @@ import { Animated, Easing, Image, Pressable, ScrollView, StyleSheet, Text, useWi
 import { useMotionAllowed } from '../src/ui/useMotion';
 import { tokens } from '../src/ui/tokens';
 import { StationEffect } from './StationEffect';
+import { HearthFire } from '../src/ui/HearthFire';
 import en from './locales/en.json';
 import pl from './locales/pl.json';
 
@@ -12,8 +13,29 @@ const stations: { id: Station; x: number; y: number; footX: number; footY: numbe
   { id: 'seals', x: 0.22, y: 0.52, footX: 0.30, footY: 0.635 },
   { id: 'chronicle', x: 0.82, y: 0.51, footX: 0.72, footY: 0.65 },
 ];
-const walkSheet = require('../assets/forge/zharomir-walk-prototype-v01.png');
 const room = require('../assets/forge/room-prototype-v03.png');
+// Cells are pre-aligned in export: feet at 95% of the cell, head centred, one shared scale.
+const sheets = {
+  forward: require('../assets/forge/zharomir-walk-forward-v01.png'),
+  back: require('../assets/forge/zharomir-walk-back-v01.png'),
+  left: require('../assets/forge/zharomir-walk-left-v01.png'),
+  right: require('../assets/forge/zharomir-walk-right-v01.png'),
+  idle: require('../assets/forge/zharomir-idle-v01.png'),
+  actions: require('../assets/forge/zharomir-station-actions-v01.png'),
+};
+// Station poses: embers, open-hand presentation, reading. The raised-palm seal pose reads as "stop" and is unused.
+const stationPose: Record<Station, number> = { hearth: 0, seals: 3, chronicle: 2 };
+const cell = 116;
+const start = { x: 0.5, y: 0.82 };
+type Direction = 'forward' | 'back' | 'left' | 'right';
+
+/** Travel direction in artwork pixels. Diagonals favour the side view so the lantern hand stays readable. */
+export function walkDirection(from: { x: number; y: number }, to: { x: number; y: number }): Direction {
+  const dx = (to.x - from.x) * 887;
+  const dy = (to.y - from.y) * 1774;
+  if (Math.abs(dx) >= Math.abs(dy) * 0.5) return dx >= 0 ? 'right' : 'left';
+  return dy < 0 ? 'back' : 'forward';
+}
 
 /** Light belongs to the scene; the stationary touch area never scales with it. */
 function SceneHotspot({ label, hint, selected, onPress, anchor, door = false, allowed, glow }: {
@@ -68,6 +90,10 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
   const [target, setTarget] = useState<Station | null>(null);
   const [arrived, setArrived] = useState<Station | null>(null);
   const [frame, setFrame] = useState(0);
+  const [direction, setDirection] = useState<Direction>('back');
+  const [idleFrame, setIdleFrame] = useState(0);
+  const [zoomed, setZoomed] = useState(false);
+  const lastDestination = useRef(start);
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [guideStep, setGuideStep] = useState<number | null>(() => showIntro ? 0 : null);
   const guidePlace = guideStep === null ? null : (['hearth', 'seals', 'chronicle', 'door'] as const)[guideStep];
@@ -81,7 +107,7 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
   const [touchRequest, setTouchRequest] = useState(0);
   const glow = useRef(new Animated.Value(0)).current;
   const bubble = useRef(new Animated.Value(1)).current;
-  const position = useRef(new Animated.ValueXY({ x: 0.5, y: 0.82 })).current;
+  const position = useRef(new Animated.ValueXY(start)).current;
   const generation = useRef(0);
   const settled = useRef<Station | null>(null);
 
@@ -89,6 +115,7 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
     if (!allowed) { camera.setValue(entered.current ? 1 : 0); return; }
     if (entered.current) { camera.setValue(1); return; }
     entered.current = true;
+    setZoomed(true);
     const approach = Animated.timing(camera, { toValue: 1, duration: 1100, easing: Easing.out(Easing.cubic), isInteraction: false, useNativeDriver: true });
     approach.start();
     return () => approach.stop();
@@ -99,6 +126,8 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
     if (!target || settled.current === target) return;
     const station = stations.find(item => item.id === target)!;
     const destination = { x: station.footX, y: station.footY };
+    setDirection(walkDirection(lastDestination.current, destination));
+    lastDestination.current = destination;
     setFrame(0);
     if (!allowed) {
       position.setValue(destination);
@@ -125,6 +154,14 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
       movement.stop();
     };
   }, [allowed, position, target]);
+
+  const walking = !!target && !arrived;
+  useEffect(() => {
+    // A slow breathing loop only while standing without a station pose.
+    if (!allowed || target) { setIdleFrame(0); return; }
+    const breath = setInterval(() => setIdleFrame(value => (value + 1) % 4), 650);
+    return () => clearInterval(breath);
+  }, [allowed, target]);
 
   useEffect(() => {
     if (!allowed) { glow.setValue(0.35); return; }
@@ -154,9 +191,22 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
   }
   const bubbleWidth = Math.min(viewport.width - 32, 340);
   const active = stations.find(station => station.id === arrived);
-  const bubbleLeft = active ? Math.max(16, Math.min(viewport.width - bubbleWidth - 16, left + active.footX * sceneWidth - bubbleWidth / 2)) : 16;
+  // The bubble sits outside the camera layer, so project scene points through the camera zoom.
+  const zoom = zoomed ? 1.08 : 1;
+  const onScreen = (x: number, y: number) => ({ x: viewport.width * 0.515 + (left + x * sceneWidth - viewport.width * 0.515) * zoom, y: viewport.height * 0.45 + (top + y * sceneHeight - viewport.height * 0.45) * zoom });
+  const foot = active ? onScreen(active.footX, active.footY) : null;
+  // The guide tail points toward the place it describes.
+  const guideAnchor = guidePlace === 'door' ? { x: 0.17, y: 0.37 } : stations.find(station => station.id === guidePlace);
+  const guideX = guideAnchor ? onScreen(guideAnchor.x, guideAnchor.y).x : viewport.width / 2;
+  const bubbleLeft = foot ? Math.max(16, Math.min(viewport.width - bubbleWidth - 16, foot.x - bubbleWidth / 2)) : 16;
   // Large text gets a scrollable lower overlay, leaving all station targets available.
-  const bubbleTop = active ? Math.min(viewport.height - 130, Math.max(top + active.footY * sceneHeight + 18, viewport.height * 0.70)) : viewport.height * 0.70;
+  // Large text raises the overlay floor, still below the station touch areas.
+  const floor = viewport.height * (largeText ? 0.58 : 0.70);
+  const bubbleTop = foot && !largeText ? Math.min(viewport.height - 130, Math.max(foot.y + 18, floor)) : floor;
+  const sprite = walking
+    ? { sheet: sheets[direction], index: frame, id: `hero-walk-${direction}` }
+    : arrived ? { sheet: sheets.actions, index: stationPose[arrived], id: `hero-pose-${arrived}` }
+    : { sheet: sheets.idle, index: idleFrame, id: 'hero-idle' };
   const bubbleHeight = Math.max(100, viewport.height - bubbleTop - 20);
   return <View style={styles.root} onLayout={({ nativeEvent }) => {
     const { width: nextWidth, height: nextHeight } = nativeEvent.layout;
@@ -165,6 +215,7 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
     <Animated.View style={[StyleSheet.absoluteFill, { transformOrigin: [viewport.width * 0.515, viewport.height * 0.45, 0], transform: [{ scale: camera.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }]}>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.scenery}>
       <Image source={room} resizeMode="stretch" style={{ position: 'absolute', left, top, width: sceneWidth, height: sceneHeight }} />
+      <HearthFire anchor={point(0.515, 0.463)} size={sceneWidth * 0.17} opacity={0.8} />
       {stations.map(station => <Animated.Image source={require('../assets/forge/ember-haze-v01.png')} key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === station.id ? [0.45, 0.75] : target === station.id ? [0.30, 0.60] : [0.16, 0.48] }) }]} />)}
       <Animated.Image source={require('../assets/forge/ember-haze-v01.png')} style={[styles.doorGlow, { ...point(0.17, 0.37), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === 'door' ? [0.45, 0.72] : [0.16, 0.48] }) }]} />
       {target && <StationEffect station={target} request={touchRequest} allowed={allowed} anchor={point(stations.find(item => item.id === target)!.x, stations.find(item => item.id === target)!.y)} />}
@@ -172,26 +223,26 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
     </View>
     <SceneHotspot label={copy.exit} onPress={() => { finishIntro(); onExit(); }} anchor={hotspot(0.17, 0.37)} door allowed={allowed} glow={glow} />
     {stations.map(station => <SceneHotspot key={station.id} label={copy[station.id]} hint={copy.inspect} selected={target === station.id} onPress={() => choose(station.id)} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} />)}
-    <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.hero, { left, top, transform: [{ translateX: position.x.interpolate({ inputRange: [0, 1], outputRange: [-50, sceneWidth - 50] }) }, { translateY: position.y.interpolate({ inputRange: [0, 1], outputRange: [-98, sceneHeight - 98] }) }] }]}>
+    <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.hero, { left, top, transform: [{ translateX: position.x.interpolate({ inputRange: [0, 1], outputRange: [-cell / 2, sceneWidth - cell / 2] }) }, { translateY: position.y.interpolate({ inputRange: [0, 1], outputRange: [-cell * 0.95, sceneHeight - cell * 0.95] }) }] }]}>
       <View style={styles.heroShadow} />
-      <View style={[styles.spriteCell, { transform: [{ translateX: [-16.5, 18, -21, 4][frame] * 100 / 627 }, { translateY: [0, 4, 19, 22][frame] * 100 / 627 + (target && !arrived && allowed ? [0, -3, 0, -2][frame] : 0) }] }]}>
-        <Image source={walkSheet} resizeMode="stretch" style={{ position: 'absolute', width: 200, height: 200, left: -(frame % 2) * 100, top: -Math.floor(frame / 2) * 100 }} />
+      <View testID={sprite.id} style={[styles.spriteCell, { transform: [{ translateY: walking && allowed ? [0, -2, 0, -2][frame] : 0 }] }]}>
+        <Image source={sprite.sheet} resizeMode="stretch" style={{ position: 'absolute', width: cell * 2, height: cell * 2, left: -(sprite.index % 2) * cell, top: -Math.floor(sprite.index / 2) * cell }} />
       </View>
     </Animated.View>
     </Animated.View>
-    {(guidePlace || (bubbleOpen && arrived)) && <Animated.View style={[styles.bubble, { left: guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText || guidePlace ? bubbleHeight : undefined, opacity: guidePlace ? 1 : bubble, transform: [{ translateY: guidePlace ? 0 : bubble.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
-      <View pointerEvents="none" accessible={false} style={[styles.bubbleTail, { left: guidePlace ? bubbleWidth / 2 : Math.max(24, Math.min(bubbleWidth - 40, left + active!.footX * sceneWidth - bubbleLeft)) }]} />
-      <ScrollView key={`${guidePlace ?? arrived}-${locale}-${fontScale}`} style={largeText || guidePlace ? { flex: 1 } : { maxHeight: bubbleHeight }} contentContainerStyle={styles.bubbleContent} accessibilityLiveRegion="polite">
+    {(guidePlace || (bubbleOpen && arrived)) && <Animated.View style={[styles.bubble, { left: guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText ? bubbleHeight : undefined, opacity: guidePlace ? 1 : bubble, transform: [{ translateY: guidePlace ? 0 : bubble.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
+      <View pointerEvents="none" accessible={false} style={[styles.bubbleTail, { left: Math.max(24, Math.min(bubbleWidth - 40, (guidePlace ? guideX : foot!.x) - (guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft) - 9)) }]} />
+      <ScrollView key={`${guidePlace ?? arrived}-${locale}-${fontScale}`} style={largeText ? { flex: 1 } : { flexGrow: 0, flexShrink: 1 }} contentContainerStyle={styles.bubbleContent} accessibilityLiveRegion="polite">
         <View style={styles.speakerRow}>
           <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.avatar}>
             <Image source={require('../assets/companion/zharomir-wanderer-v01.png')} resizeMode="stretch" style={styles.avatarImage} />
           </View>
-          <Text style={styles.speaker}>{copy.speaker}</Text>
+          <Text maxFontSizeMultiplier={2} style={styles.speaker}>{copy.speaker}</Text>
         </View>
-        {!guidePlace && arrived && <Text accessibilityRole="header" style={styles.detailTitle}>{copy[arrived]}</Text>}
-        <Text style={styles.description}>{guidePlace ? copy.guide[guidePlace] : copy.descriptions[arrived!]}</Text>
+        {!guidePlace && arrived && <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.detailTitle}>{copy[arrived]}</Text>}
+        <Text maxFontSizeMultiplier={2} style={styles.description}>{guidePlace ? copy.guide[guidePlace] : copy.descriptions[arrived!]}</Text>
         {!guidePlace && arrived && onOpenStation && <Pressable accessibilityRole="button" accessibilityLabel={copy.actions[arrived]} onPress={() => onOpenStation(arrived)} style={({ pressed }) => [styles.stationAction, { opacity: pressed ? 0.6 : 1 }]}>
-          <Text style={styles.actionLabel}>{copy.actions[arrived]} <Text accessibilityElementsHidden>→</Text></Text>
+          <Text maxFontSizeMultiplier={2} style={styles.actionLabel}>{copy.actions[arrived]} <Text accessibilityElementsHidden>→</Text></Text>
         </Pressable>}
       </ScrollView>
       {guidePlace && <View style={styles.guideFooter}>
@@ -218,9 +269,9 @@ const styles = StyleSheet.create({
   cueMote: { position: 'absolute', width: 5, height: 5, top: 4, alignSelf: 'center', shadowOpacity: 1, shadowRadius: 7, shadowOffset: { width: 0, height: 0 } },
   touchRing: { position: 'absolute', width: 44, height: 44, borderRadius: 22, borderWidth: 2, shadowOpacity: 1, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
   door: { position: 'absolute', width: 60, height: 96, marginLeft: -30, marginTop: -48, zIndex: 2 },
-  hero: { position: 'absolute', width: 100, height: 105, zIndex: 3 },
-  heroShadow: { position: 'absolute', width: 60, height: 15, borderRadius: 40, backgroundColor: '#070b0b', opacity: 0.7, bottom: 1, left: 20 },
-  spriteCell: { width: 100, height: 100, overflow: 'hidden' },
+  hero: { position: 'absolute', width: cell, height: cell, zIndex: 3 },
+  heroShadow: { position: 'absolute', width: 76, height: 18, top: cell * 0.95 - 10, left: cell / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
+  spriteCell: { width: cell, height: cell, overflow: 'hidden' },
   bubble: { position: 'absolute', zIndex: 4, backgroundColor: '#f0dfb9', borderColor: '#6c4c2f', borderWidth: 2, borderRadius: 22, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
   bubbleTail: { position: 'absolute', width: 18, height: 18, top: -10, backgroundColor: '#f0dfb9', borderLeftWidth: 2, borderTopWidth: 2, borderColor: '#6c4c2f', transform: [{ rotate: '45deg' }] },
   bubbleContent: { padding: 12, paddingRight: 40 },

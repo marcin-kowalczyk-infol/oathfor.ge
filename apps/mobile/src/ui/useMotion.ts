@@ -1,8 +1,17 @@
-import { useEffect, useState } from 'react';
+import { createContext, createElement, useContext, useEffect, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, AppState } from 'react-native';
 
-/** Animation stays off until the system preference is known, and while backgrounded. */
+const Suspended = createContext(false);
+
+/** A mounted but hidden subtree keeps its state while its loops stay stopped. */
+export function MotionSuspended({ suspended, children }: { suspended: boolean; children: ReactNode }) {
+  const outer = useContext(Suspended);
+  return createElement(Suspended.Provider, { value: outer || suspended }, children);
+}
+
+/** Animation stays off until the system preference is known, and while backgrounded or hidden. */
 export function useMotionAllowed(): boolean {
+  const suspended = useContext(Suspended);
   const [allowed, setAllowed] = useState(false);
   useEffect(() => {
     let mounted = true;
@@ -24,5 +33,5 @@ export function useMotionAllowed(): boolean {
     }).catch(() => { /* Keep motion disabled if the preference is unavailable. */ });
     return () => { mounted = false; motion.remove(); app.remove(); };
   }, []);
-  return allowed;
+  return allowed && !suspended;
 }

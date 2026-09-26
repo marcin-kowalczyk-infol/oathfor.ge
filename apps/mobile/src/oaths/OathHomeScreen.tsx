@@ -8,7 +8,8 @@ import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import { SceneDoor } from '../ui/SceneDoor';
 import { compactStoredTime } from './compactStoredTime';
-import { SceneSurface } from '../ui/SceneSurface';
+import { SceneSurface, type ForgePlace } from '../ui/SceneSurface';
+import { StateSeal } from '../ui/StateSeal';
 import { CompanionBubble } from '../ui/CompanionBubble';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { SnapshotRules, storedTime } from './SnapshotRules';
@@ -30,6 +31,8 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
   useEffect(() => { setCreationDraft(null); }, [controller]);
   const [view, setView] = useState<ViewName>('today');
   const entrance = useSceneEntrance(`${route}-${view}`);
+  const scroll = useRef(new Animated.Value(0)).current;
+  useEffect(() => { scroll.setValue(0); }, [route, view, scroll]);
   const [list, setList] = useState<OathListEnvelope | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -41,13 +44,17 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
   const generation = useRef(0);
   const mutation = useRef<symbol | undefined>(undefined);
   const [mutating, setMutating] = useState(false);
+  // Room arrival drives only the backdrop approach and the busy notice, never Oath state.
+  const [arrival, setArrival] = useState<{ id: number; place: ForgePlace } | null>(null);
+  const [hearthRequest, setHearthRequest] = useState(false);
+  const [busyNotice, setBusyNotice] = useState(false);
   const confirmedId = available ? account.oath?.id : undefined;
   const current = (epoch: number) => epoch === generation.current;
   async function loadList(nextView: ViewName, append = false) {
     const epoch = ++generation.current;
     const previous = append ? list : null;
     const cursor = append ? list?.nextCursor : null;
-    setRoute('list'); setView(nextView); setFailed(false); setLoading(true);
+    setRoute('list'); setView(nextView); setFailed(false); setLoading(true); setBusyNotice(false);
     if (!append) setList(null);
     const result = await controller.list({ view: nextView, ...(cursor ? { cursor } : {}) });
     if (!current(epoch)) return;
@@ -100,21 +107,27 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
     setPause(null); setPauseFailed(true);
   }
   function create(recover = false) {
-    if (!recover && !controller.resetCreation()) return;
-    generation.current++; setRoute('create');
+    if (!recover && !controller.resetCreation()) return false;
+    generation.current++; setRoute('create'); return true;
   }
   const handledRequest = useRef<number | null>(null);
   useEffect(() => {
     const request = forgeNavigation?.request;
     if (!available || mutating || !request || handledRequest.current === request.id) return;
     handledRequest.current = request.id;
+    // A newer room request supersedes an unfinished hearth request and its backdrop.
+    setHearthRequest(false);
+    setArrival({ id: request.id, place: request.target === 'create' ? 'hearth' : request.target === 'today' ? 'seals' : 'chronicle' });
     if (request.target === 'create') {
       if (route === 'create') return;
       if (account.pending) { create(true); return; }
+      setHearthRequest(true);
       void loadList('today').then(result => {
-        if (!result || result.paused || handledRequest.current !== request.id) return;
+        if (handledRequest.current !== request.id) return;
+        setHearthRequest(false);
+        if (!result || result.paused) return;
         const latest = controller.getState();
-        if (latest.kind === 'ready') create(!!latest.pending);
+        if (latest.kind === 'ready' && !create(!!latest.pending)) setBusyNotice(true);
       });
     } else void loadList(request.target);
   }, [forgeNavigation?.request?.id, available, mutating]);
@@ -124,8 +137,10 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
     const date = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.snapshot.deadline.local}Z`));
     return t('oathHome.group', { date, timezone: item.snapshot.deadline.timezone });
   }
-  if (available && route === 'create') return <OathScreen controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} onLogout={onLogout} backLabel={forgeNavigation ? t('forge.returnRoom') : undefined} onBack={forgeNavigation?.onReturn ?? (() => { void loadList('today'); })} />;
-  return <SceneSurface tone={route === 'pause' ? 'quiet' : view === 'history' || route === 'detail' ? 'chronicle' : 'hearth'}><SafeAreaView style={styles.safeArea}><Animated.ScrollView style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content}>
+  const place: ForgePlace = route === 'pause' ? 'room' : hearthRequest ? 'hearth' : route === 'detail' ? 'seals' : view === 'history' ? 'chronicle' : 'seals';
+  if (available && route === 'create') return <OathScreen approach={arrival?.place === 'hearth' ? arrival.id : null} controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} onLogout={onLogout} backLabel={forgeNavigation ? t('forge.returnRoom') : undefined} onBack={forgeNavigation?.onReturn ?? (() => { void loadList('today'); })} />;
+  // Today's hub leaves an empty band under the tabs. The seal wall is lowered into it.
+  return <SceneSurface place={place} drop={route === 'list' && view === 'today' && interactiveForge ? 0.3 : 0} scroll={scroll} approach={arrival && arrival.place === place && place !== 'hearth' ? arrival.id : null}><SafeAreaView style={styles.safeArea}><Animated.ScrollView style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
     {forgeNavigation && <SceneDoor label={t('forge.returnRoom')} onPress={forgeNavigation.onReturn} />}
     <Text accessibilityRole="header" style={styles.title}>{t(route === 'pause' ? 'oathHome.pauseTitle' : route === 'detail' ? 'forge.detail' : view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>
     {!available && <>
@@ -139,6 +154,7 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
         <Text style={styles.label}>{t(`oathHome.${destination}`)}</Text>
       </Pressable>)}</View>
       {route === 'list' && list?.paused && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.paused')} /></View>}
+      {route === 'list' && busyNotice && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('forge.busy')} /></View>}
       {route === 'list' && view === 'today' && <>
         <ForgeHub items={list?.items ?? []} onOpen={id => { void openDetail(id); }} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy || mutating} />
       </>}
@@ -155,7 +171,10 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
           {view === 'today' && (index === 0 || group(item) !== group(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{group(item)}</Text>}
           <Pressable accessibilityRole="button" accessibilityLabel={summary(item, true)} accessibilityValue={{ text: t(`oath.states.${item.state}`) }} onPress={() => { void openDetail(item.id); }}
             style={({ pressed }) => [styles.journalEntry, !interactiveForge && styles.stackedEntry, pressed && styles.pressedEntry]}>
-            <ActivityEmblem activity={item.snapshot.activity} size={76} />
+            <View style={styles.emblems}>
+              <ActivityEmblem activity={item.snapshot.activity} size={76} />
+              <View style={styles.stateBadge}><StateSeal state={item.state} size={36} /></View>
+            </View>
             <View style={styles.entryCopy}>
               <Text style={styles.activity}>{item.snapshot.copy[locale].activity}</Text>
               <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>
@@ -172,7 +191,10 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
         {failed && <><CompanionBubble message={t('oathHome.detailError')} /><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current); }} /></>}
         {detail && <>
           <View style={styles.detailSeal}><ActivityEmblem activity={detail.snapshot.activity} size={108} /><Text style={styles.activity}>{detail.snapshot.copy[locale].activity}</Text></View>
-          <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.state', { state: t(`oath.states.${detail.state}`) })}</Text>
+          <View accessible accessibilityLabel={t('oath.state', { state: t(`oath.states.${detail.state}`) })} accessibilityLiveRegion="polite" style={styles.detailState}>
+            <StateSeal state={detail.state} size={56} />
+            <Text style={styles.detailStateLabel}>{t(`oath.states.${detail.state}`)}</Text>
+          </View>
           {detail.reason === 'service_availability_unknown' && <Text style={styles.body}>{t('oathHome.unknownAvailability')}</Text>}
           {detail.reason === 'account_paused' && <Text style={styles.body}>{t('oathHome.withdrawn')}</Text>}
           {detail.review && <Text style={styles.body}>{t('oathHome.reviewDeadline', { deadline: formatDeadline(new Date(detail.review.closesAt), locale, 'UTC') })}</Text>}
@@ -208,12 +230,16 @@ const styles = StyleSheet.create({
   state: { color: '#edba78', fontSize: 15, lineHeight: 22 },
   deadline: { color: '#ded1bd', fontSize: 14, lineHeight: 22 },
   detailSeal: { alignItems: 'center', gap: 8, paddingVertical: 12 },
+  detailState: { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 12 },
+  detailStateLabel: { color: '#edba78', fontFamily: tokens.font.display, fontSize: 20, lineHeight: 28, flexShrink: 1 },
+  emblems: { width: 84, height: 84 },
+  stateBadge: { position: 'absolute', right: -6, bottom: -6 },
   parchment: { backgroundColor: 'rgba(27, 24, 20, 0.95)', padding: 18, borderTopWidth: 2, borderTopColor: '#9d7b4d', borderBottomWidth: 2, borderBottomColor: '#5d452c', borderRadius: 5 },
   card: { gap: tokens.space.item, backgroundColor: 'rgba(24, 27, 27, 0.94)', padding: 18, borderRadius: 8, borderLeftWidth: 2, borderLeftColor: '#9b7a4f' },
   pauseEntry: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  navigation: { flexDirection: 'row', gap: 24 }, stackedNavigation: { flexDirection: 'column', gap: 8 }, stackedTab: { flex: 0, alignItems: 'flex-start' },
+  navigation: { flexDirection: 'row', gap: 24, backgroundColor: 'rgba(17, 19, 21, 0.5)', borderRadius: 8 }, stackedNavigation: { flexDirection: 'column', gap: 8 }, stackedTab: { flex: 0, alignItems: 'flex-start' },
   tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#5d4e39' },
   selectedTab: { borderBottomColor: '#f3bc72', backgroundColor: 'rgba(127, 87, 41, 0.18)' },
   pauseControl: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingHorizontal: 12 }, pauseIcon: { color: tokens.color.primary, fontSize: 22 }, pauseText: { color: tokens.color.secondary, fontSize: 15 },
-  title: { color: '#f3dfbd', fontSize: 28, fontFamily: tokens.font.display, fontWeight: '400', textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 }, label: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '600' }, body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
+  title: { color: '#f3dfbd', fontSize: 28, fontFamily: tokens.font.display, fontWeight: '400', textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 }, label: { color: tokens.color.text, fontSize: tokens.body, fontWeight: '600', textShadowColor: '#000', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }, body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
 });
