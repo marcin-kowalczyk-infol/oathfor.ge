@@ -178,11 +178,11 @@ Creating or switching characters grants no XP, reward or unlock and writes nothi
 
 ### Character-owned Oaths
 
-Status: planned in MVP-17, not implemented. When implemented, these rules replace the account-scoped wording in the [original Oath contract](#original-oath-contract).
+Status: ownership, `character_required`, character-scoped reads, cursors and envelopes implemented in MVP-17-T04, 2026-09-26. Pause per character is planned for MVP-17-T05. These rules replace the account-scoped wording in the [original Oath contract](#original-oath-contract).
 
 - `oath_preview` and `oath` carry a required `character_id` of the same account. An Oath also references its preview together with that preview's character, so it cannot move to another character. Local test Oaths, previews and acceptance requests are deleted by the migration because no production data exists.
 - Without an active character, `POST /api/oath-previews`, `GET /api/oaths`, `GET /api/oaths/{id}`, `GET /api/oath-pause` and `POST /api/oath-pause` return 409 `character_required` after authentication. Preview creation checks onboarding first.
-- A new preview belongs to the active character. Preview envelopes and the Oath representation gain `"characterId":"<UUID>"`.
+- A new preview belongs to the active character. Preview envelopes carry the preview's character at the top level, for example `{"preview":{...},"characterId":"<UUID>","serverTime":"<UTC>"}` on create and `{"preview":{...},"characterId":"<UUID>","oathId":null}` on read. The Oath representation gains `"characterId":"<UUID>"`.
 - `POST /api/oaths` creates the Oath for the preview's character, even if the active character changed after the preview. The preview character's pause state gates a new commitment. Replay rules are unchanged.
 - `GET /api/oath-previews/{id}` stays account-scoped, so a pending acceptance can be recovered after a switch.
 - The list envelope and the pause envelope gain `"characterId":"<UUID>"` of the active character, so a device with a stale active character can notice the difference.

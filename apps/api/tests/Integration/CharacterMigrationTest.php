@@ -48,13 +48,41 @@ final class CharacterMigrationTest extends KernelTestCase
     public function testMigrationIsReversible(): void
     {
         $this->connection->executeStatement('TRUNCATE account CASCADE');
-        $this->migration('--down');
+        $this->migration('Version20260926110000', '--down');
+        $this->migration('Version20260926100000', '--down');
         try {
             self::assertFalse($this->connection->fetchOne("SELECT to_regclass('player_character') IS NOT NULL"));
             self::assertSame(0, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'active_character_id'"));
-        } finally { $this->migration('--up'); }
+        } finally { $this->migration('Version20260926100000', '--up'); $this->migration('Version20260926110000', '--up'); }
         self::assertTrue($this->connection->fetchOne("SELECT to_regclass('player_character') IS NOT NULL"));
         self::assertSame(1, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'active_character_id'"));
+    }
+    public function testOathOwnershipMigrationEmptiesLocalOathDataAndBindsCharacters(): void
+    {
+        $a = $this->character(self::ACCOUNT, 1);
+        $b = $this->character(self::ACCOUNT, 2);
+        $this->migration('Version20260926110000', '--down');
+        $restored = false;
+        try {
+            $preview = $this->connection->fetchOne("INSERT INTO oath_preview (account_id, snapshot, created_at) VALUES (?, '{}', 1800000000) RETURNING id", [self::ACCOUNT]);
+            $oath = $this->connection->fetchOne("INSERT INTO oath (account_id, preview_id, snapshot, state, activation_at, deadline, receipt_cutoff, created_at, activated_at) VALUES (?, ?, '{}', 'active', 1800000000, 1800007200, 1800008100, 1800000000, 1800000000) RETURNING id", [self::ACCOUNT, $preview]);
+            $this->connection->executeStatement('UPDATE oath_preview SET oath_id = ? WHERE id = ?', [$oath, $preview]);
+            $this->connection->executeStatement('INSERT INTO oath_acceptance_request (account_id, request_id, preview_id, oath_id) VALUES (?, ?, ?, ?)', [self::ACCOUNT, $preview, $preview, $oath]);
+            $this->migration('Version20260926110000', '--up');
+            $restored = true;
+        } finally { if (!$restored) { $this->migration('Version20260926110000', '--up'); } }
+        foreach (['oath_acceptance_request', 'oath', 'oath_preview'] as $table) { self::assertSame(0, $this->connection->fetchOne('SELECT COUNT(*) FROM '.$table)); }
+        self::assertSame(['character_id'], $this->connection->fetchFirstColumn("SELECT column_name FROM information_schema.columns WHERE table_name = 'oath' AND column_name = 'character_id' AND is_nullable = 'NO'"));
+        self::assertSame(['oath_character', 'oath_preview_character', 'oath_preview_character_binding', 'oath_preview_owner_character'], $this->connection->fetchFirstColumn("SELECT conname FROM pg_constraint WHERE conname IN ('oath_character', 'oath_preview_character', 'oath_preview_character_binding', 'oath_preview_owner_character') ORDER BY conname"));
+        self::assertSame(['CREATE INDEX oath_history_order ON public.oath USING btree (character_id, terminal_at DESC, id DESC)', 'CREATE INDEX oath_today_order ON public.oath USING btree (character_id, deadline, id)'], $this->connection->fetchFirstColumn("SELECT indexdef FROM pg_indexes WHERE indexname IN ('oath_today_order', 'oath_history_order') ORDER BY indexname"));
+        $preview = $this->connection->fetchOne("INSERT INTO oath_preview (account_id, character_id, snapshot, created_at) VALUES (?, ?, '{}', 1800000000) RETURNING id", [self::ACCOUNT, $a]);
+        $insert = "INSERT INTO oath (account_id, character_id, preview_id, snapshot, state, activation_at, deadline, receipt_cutoff, created_at, activated_at) VALUES (?, ?, ?, '{}', 'active', 1800000000, 1800007200, 1800008100, 1800000000, 1800000000)";
+        $this->expectFailure('23503', fn () => $this->connection->executeStatement($insert, [self::ACCOUNT, $b, $preview]));
+        $foreign = $this->character(self::OTHER, 1);
+        $this->expectFailure('23503', fn () => $this->connection->executeStatement("INSERT INTO oath_preview (account_id, character_id, snapshot, created_at) VALUES (?, ?, '{}', 1800000000)", [self::ACCOUNT, $foreign]));
+        $this->connection->executeStatement($insert, [self::ACCOUNT, $a, $preview]);
+        $this->connection->executeStatement('DELETE FROM player_character WHERE id = ?', [$b]);
+        self::assertSame(1, $this->connection->fetchOne('SELECT COUNT(*) FROM oath'));
     }
     private function character(string $account, int $slot, ?string $request = null, string $name = 'Mira', string $form = 'feminine'): string
     {
@@ -67,9 +95,9 @@ final class CharacterMigrationTest extends KernelTestCase
         catch (DriverException $error) { self::assertSame($sqlState, $error->getSQLState()); }
         finally { $this->connection->rollBack(); }
     }
-    private function migration(string $direction): void
+    private function migration(string $version, string $direction): void
     {
-        $process = new Process([PHP_BINARY, 'bin/console', 'doctrine:migrations:execute', 'DoctrineMigrations\\Version20260926100000', $direction, '--env=test', '--no-interaction'], dirname(__DIR__, 2));
+        $process = new Process([PHP_BINARY, 'bin/console', 'doctrine:migrations:execute', 'DoctrineMigrations\\'.$version, $direction, '--env=test', '--no-interaction'], dirname(__DIR__, 2));
         $process->setTimeout(30);
         $process->run();
         self::assertSame(0, $process->getExitCode(), $process->getOutput().$process->getErrorOutput());

@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Identity\Clock;
-use App\Tests\Fixtures\FixedClock;
+use App\Tests\Fixtures\{CharacterFixture, FixedClock};
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -29,6 +29,7 @@ final class OathPreviewEndpointTest extends WebTestCase
         self::getContainer()->set(Clock::class, $this->clock);
         $this->connection->insert('account', ['id' => self::ACCOUNT, 'created_at' => $this->clock->time, 'onboarding_status' => 'complete']);
         $this->connection->insert('app_session', ['token_digest' => hash('sha256', self::TOKEN), 'account_id' => self::ACCOUNT, 'issued_at' => $this->clock->time, 'expires_at' => $this->clock->time + 2592000]);
+        CharacterFixture::activate($this->connection, self::ACCOUNT);
     }
     public function testCompletedAccountCanCreateAnImmutablePreview(): void
     {
@@ -137,7 +138,7 @@ final class OathPreviewEndpointTest extends WebTestCase
         $id = $this->body()['preview']['id'];
         $other = '00000000-0000-4000-8000-000000000002';
         $this->connection->insert('account', ['id' => $other, 'created_at' => $this->clock->time]);
-        $this->connection->executeStatement('UPDATE oath_preview SET account_id = ?', [$other]);
+        $this->connection->executeStatement('UPDATE oath_preview SET account_id = ?, character_id = ?', [$other, CharacterFixture::activate($this->connection, $other)]);
         foreach ([$id, self::ACCOUNT, 'malformed'] as $target) {
             $this->request('GET', '/api/oath-previews/'.$target);
             $this->assertError(404, 'not_found');

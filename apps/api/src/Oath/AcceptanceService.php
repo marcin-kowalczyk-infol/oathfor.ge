@@ -26,7 +26,7 @@ final class AcceptanceService
                     $this->reconciler->reconcileLocked($locked, $now);
                     return $this->result($account->id, $request['oath_id'], $now, false);
                 }
-                $preview = $this->connection->fetchAssociative('SELECT snapshot, oath_id FROM oath_preview WHERE account_id = ? AND id = ?', [$account->id, $input->previewId]);
+                $preview = $this->connection->fetchAssociative('SELECT snapshot, character_id, oath_id FROM oath_preview WHERE account_id = ? AND id = ?', [$account->id, $input->previewId]);
                 if (false === $preview) { return new OathFailure('not_found', 404); }
                 if (null !== $preview['oath_id']) {
                     $this->reconciler->reconcileLocked($locked, $now);
@@ -47,7 +47,7 @@ final class AcceptanceService
                     $snapshot['activation']['time'] = ['local' => $local->format('Y-m-d\TH:i:s'), 'timezone' => $snapshot['deadline']['timezone'], 'offset' => $local->format('P'), 'explicitOffset' => false, 'utc' => gmdate('Y-m-d\TH:i:s\Z', $now)];
                 }
                 $this->reconciler->reconcileLocked($locked, $now);
-                $id = $this->connection->fetchOne('INSERT INTO oath (account_id, preview_id, snapshot, state, activation_at, deadline, receipt_cutoff, created_at, activated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id', [$account->id, $input->previewId, $scheduled ? $preview['snapshot'] : json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), $scheduled ? 'scheduled' : 'active', $activation, $deadline, (new \DateTimeImmutable($snapshot['deadline']['receiptCutoff']))->getTimestamp(), $now, $scheduled ? null : $now]);
+                $id = $this->connection->fetchOne('INSERT INTO oath (account_id, character_id, preview_id, snapshot, state, activation_at, deadline, receipt_cutoff, created_at, activated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id', [$account->id, $preview['character_id'], $input->previewId, $scheduled ? $preview['snapshot'] : json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), $scheduled ? 'scheduled' : 'active', $activation, $deadline, (new \DateTimeImmutable($snapshot['deadline']['receiptCutoff']))->getTimestamp(), $now, $scheduled ? null : $now]);
                 $this->bind($account->id, $input, $id);
                 $this->connection->executeStatement('UPDATE oath_preview SET oath_id = ? WHERE account_id = ? AND id = ?', [$id, $account->id, $input->previewId]);
                 return $this->result($account->id, $id, $now, true);

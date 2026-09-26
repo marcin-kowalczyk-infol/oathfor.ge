@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Identity\Clock;
-use App\Tests\Fixtures\FixedClock;
+use App\Tests\Fixtures\{CharacterFixture, FixedClock};
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -29,6 +29,7 @@ final class OathReadEndpointTest extends WebTestCase
         self::getContainer()->set(Clock::class, $this->clock);
         $this->connection->insert('account', ['id' => self::ACCOUNT, 'created_at' => $this->clock->time, 'onboarding_status' => 'complete']);
         $this->connection->insert('app_session', ['token_digest' => hash('sha256', self::TOKEN), 'account_id' => self::ACCOUNT, 'issued_at' => $this->clock->time, 'expires_at' => $this->clock->time + 2592000]);
+        CharacterFixture::activate($this->connection, self::ACCOUNT);
     }
     public function testOwnerCanReadExactPersistedCommitment(): void
     {
@@ -83,6 +84,7 @@ final class OathReadEndpointTest extends WebTestCase
         self::assertSame([$oath], $this->body()['items']);
         $other = '00000000-0000-4000-8000-000000000002';
         $this->connection->insert('account', ['id' => $other, 'created_at' => $this->clock->time]);
+        CharacterFixture::activate($this->connection, $other);
         $this->connection->executeStatement('UPDATE app_session SET account_id = ?', [$other]);
         foreach ([$oath['id'], self::ACCOUNT, 'malformed'] as $id) { $this->request('GET', '/api/oaths/'.$id); $this->assertError(404, 'not_found'); }
         $this->request('GET', '/api/oaths');
@@ -92,9 +94,11 @@ final class OathReadEndpointTest extends WebTestCase
     public function testCursorsRejectForeignOwnerWrongViewMalformedAndChangedAnchor(): void
     {
         $first = $this->createOath()['id']; $this->createOath();
+        $character = $this->connection->fetchOne('SELECT active_character_id FROM account WHERE id = ?', [self::ACCOUNT]);
+        self::assertIsString($character);
         $this->request('GET', '/api/oaths?limit=1');
         $cursor = $this->body()['nextCursor'];
-        foreach (['view=history&cursor='.$cursor, 'cursor=garbage', 'cursor='.$cursor.'=', 'cursor='.\App\Oath\OathCursor::encode('00000000-0000-4000-8000-000000000002', 'today', $this->clock->time + 7200, $first), 'cursor='.\App\Oath\OathCursor::encode(self::ACCOUNT, 'today', $this->clock->time, $first)] as $query) {
+        foreach (['view=history&cursor='.$cursor, 'cursor=garbage', 'cursor='.$cursor.'=', 'cursor='.\App\Oath\OathCursor::encode('00000000-0000-4000-8000-000000000002', $character, 'today', $this->clock->time + 7200, $first), 'cursor='.\App\Oath\OathCursor::encode(self::ACCOUNT, $character, 'today', $this->clock->time, $first)] as $query) {
             $this->request('GET', '/api/oaths?'.$query); $this->assertError(400, 'invalid_request');
         }
         $this->connection->executeStatement("UPDATE oath SET terminal_at = ?, state = 'withdrawn'", [$this->clock->time]);

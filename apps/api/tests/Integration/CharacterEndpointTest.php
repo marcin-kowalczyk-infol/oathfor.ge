@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Identity\Clock;
-use App\Tests\Fixtures\FixedClock;
+use App\Tests\Fixtures\{CharacterFixture, FixedClock};
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -230,20 +230,21 @@ final class CharacterEndpointTest extends WebTestCase
         $this->connection->insert('account', ['id' => self::OTHER, 'created_at' => $this->clock->time, 'onboarding_status' => 'complete']);
         $this->connection->insert('player_character', ['account_id' => self::OTHER, 'slot' => 1, 'creation_request_id' => self::rid(1), 'name' => 'Obca', 'preset_id' => 'dummy_tied', 'form' => 'feminine', 'created_at' => $this->clock->time]);
         $this->connection->insert('account_profile', ['account_id' => self::ACCOUNT, 'locale' => 'pl', 'timezone' => 'Europe/Warsaw']);
+        $seeded = CharacterFixture::activate($this->connection, self::ACCOUNT);
         $this->request('POST', '/api/oath-previews', json_encode(['activity' => 'running', 'activation' => ['mode' => 'now'], 'deadline' => ['local' => gmdate('Y-m-d\TH:i:s', $this->clock->time + 7200), 'timezone' => 'UTC']], JSON_THROW_ON_ERROR));
         $preview = $this->body()['preview']['id'];
         $this->request('POST', '/api/oaths', json_encode(['previewId' => $preview, 'requestId' => self::rid(7), 'accepted' => true], JSON_THROW_ON_ERROR));
         self::assertSame(201, $this->client->getResponse()->getStatusCode());
         $before = $this->snapshot();
         $this->request('GET', '/api/characters');
-        self::assertSame([], $this->body()['characters']);
+        self::assertSame([$seeded], array_column($this->body()['characters'], 'id'));
         $this->create(self::rid(1));
         self::assertSame(201, $this->client->getResponse()->getStatusCode());
         $id = $this->body()['character']['id'];
         $this->request('GET', '/api/characters');
-        self::assertSame([$id], array_column($this->body()['characters'], 'id'));
+        self::assertSame([$seeded, $id], array_column($this->body()['characters'], 'id'));
         self::assertSame($before, $this->snapshot());
-        self::assertSame(2, $this->connection->fetchOne('SELECT COUNT(*) FROM player_character'));
+        self::assertSame(3, $this->connection->fetchOne('SELECT COUNT(*) FROM player_character'));
         self::assertNull($this->connection->fetchOne('SELECT active_character_id FROM account WHERE id = ?', [self::OTHER]));
     }
     public function testConcurrentCreationsForLastSlotAllowExactlyOne(): void

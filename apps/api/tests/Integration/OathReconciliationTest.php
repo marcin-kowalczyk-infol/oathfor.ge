@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Identity\Clock;
-use App\Tests\Fixtures\FixedClock;
+use App\Tests\Fixtures\{CharacterFixture, FixedClock};
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -29,6 +29,7 @@ final class OathReconciliationTest extends WebTestCase
         self::getContainer()->set(Clock::class, $this->clock);
         $this->connection->insert('account', ['id' => self::ACCOUNT, 'created_at' => $this->clock->time, 'onboarding_status' => 'complete']);
         $this->connection->insert('app_session', ['token_digest' => hash('sha256', self::TOKEN), 'account_id' => self::ACCOUNT, 'issued_at' => $this->clock->time, 'expires_at' => $this->clock->time + 2592000]);
+        CharacterFixture::activate($this->connection, self::ACCOUNT);
     }
     public function testScheduledActivationUsesExactCommittedBoundary(): void
     {
@@ -98,6 +99,7 @@ final class OathReconciliationTest extends WebTestCase
         $this->createOath(); $this->createOath(); $this->createOath();
         $other = '00000000-0000-4000-8000-000000000002';
         $this->connection->insert('account', ['id' => $other, 'created_at' => $this->clock->time, 'onboarding_status' => 'complete']);
+        CharacterFixture::activate($this->connection, $other);
         $this->connection->executeStatement('UPDATE app_session SET account_id = ?', [$other]);
         $inactive = $this->createOath()['id'];
         $this->connection->executeStatement("UPDATE account SET status = 'deleting' WHERE id = ?", [$other]);
