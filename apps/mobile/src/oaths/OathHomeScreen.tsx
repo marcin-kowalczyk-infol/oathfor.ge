@@ -17,19 +17,16 @@ import { useSceneEntrance } from '../ui/useSceneEntrance';
 import { ForgeHub } from './ForgeHub';
 import { OathScreen, type OathCreationDraft } from './OathScreen';
 import type { OathController } from './controller';
-import type { Character } from '../api/characters';
-import { BADGE_MIN_WIDTH, CharacterBadge } from '../characters/CharacterBadge';
+import { layoutMode } from '../ui/layoutMode';
 type ViewName = 'today' | 'history';
 export type ForgeNavigation = { request: { id: number; target: 'create' | ViewName } | null; onReturn(): void };
-export function OathHomeScreen({ controller, timezone, forgeNavigation, character, onChangeCharacter }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; character?: Character; onChangeCharacter?(): void }) {
+/** reload: a new value reloads the visible list, for example after a pause change made in Settings. */
+export function OathHomeScreen({ controller, timezone, forgeNavigation, reload = 0 }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; reload?: number }) {
   const { t, i18n } = useTranslation(); const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
-  const interactiveForge = width >= 350 && fontScale <= 1.3;
-  // At normal text the badge shares the door's row, larger text stacks it as a full-width row below.
-  // The door label shrinks to two lines first. When the door still leaves less than the badge minimum, the header stacks too.
-  const [header, setHeader] = useState({ row: 0, door: 0 });
-  const crowded = header.row > 0 && header.door > 0 && header.door + 12 + BADGE_MIN_WIDTH > header.row;
-  const compactHeader = fontScale <= 1.3 && !crowded;
+  const interactiveForge = layoutMode(width, fontScale) === 'room';
+  // The room is the way back in room layout. Without the room the header returns to the menu.
+  const returnLabel = t(interactiveForge ? 'forge.returnRoom' : 'forge.returnMenu');
   const account = useSyncExternalStore(controller.subscribe, controller.getState);
   const available = account.kind === 'ready';
   const [route, setRoute] = useState<'list' | 'detail' | 'create'>('list');
@@ -76,6 +73,13 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, characte
       if (route === 'list') void loadList(view);
     }
   }, [confirmedId]);
+  const reloaded = useRef(reload);
+  useEffect(() => {
+    if (reloaded.current === reload) return;
+    reloaded.current = reload;
+    // A detail or an unfinished creation stays open. The list loads again when the player returns to it.
+    if (available && route === 'list') void loadList(view);
+  }, [reload]);
   async function openDetail(id: string) {
     const epoch = ++generation.current; detailId.current = id;
     setRoute('detail'); setDetail(null); setLoading(true); setFailed(false);
@@ -117,16 +121,15 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, characte
     return t('oathHome.group', { date, timezone: item.snapshot.deadline.timezone });
   }
   const place: ForgePlace = hearthRequest ? 'hearth' : route === 'detail' ? 'seals' : view === 'history' ? 'chronicle' : 'seals';
-  if (available && route === 'create') return <OathScreen approach={arrival?.place === 'hearth' ? arrival.id : null} controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? t('forge.returnRoom') : undefined} onBack={forgeNavigation?.onReturn ?? (() => { void loadList('today'); })} />;
+  if (available && route === 'create') return <OathScreen approach={arrival?.place === 'hearth' ? arrival.id : null} controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? returnLabel : undefined} onBack={forgeNavigation?.onReturn ?? (() => { void loadList('today'); })} />;
   // Today's hub leaves an empty band under the tabs. The seal wall is lowered into it.
   return <SceneSurface place={place} drop={route === 'list' && view === 'today' && interactiveForge ? 0.3 : 0} scroll={scroll} approach={arrival && arrival.place === place && place !== 'hearth' ? arrival.id : null}><SafeAreaView style={styles.safeArea}><Animated.ScrollView style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
-    {(forgeNavigation || (character && onChangeCharacter && route === 'list')) && <View testID="oath-header" onLayout={({ nativeEvent }) => { const row = nativeEvent.layout.width; setHeader(current => current.row === row ? current : { ...current, row }); }} style={compactHeader ? styles.headerRow : styles.headerStack}>
-      {forgeNavigation && <View testID="oath-door" style={compactHeader ? styles.headerDoor : styles.stackedDoor} onLayout={({ nativeEvent }) => { const door = nativeEvent.layout.width; setHeader(current => current.door === door ? current : { ...current, door }); }}>
-        <SceneDoor label={t('forge.returnRoom')} onPress={forgeNavigation.onReturn} maxLines={compactHeader ? 2 : undefined} />
-      </View>}
-      {/* Switching mid-flow would abandon a detail, so the badge lives on the lists only. */}
-      {character && onChangeCharacter && route === 'list' && <CharacterBadge character={character} compact={compactHeader} onPress={onChangeCharacter} />}
-    </View>}
+    {forgeNavigation && (interactiveForge
+      ? <SceneDoor label={returnLabel} onPress={forgeNavigation.onReturn} />
+      : <Pressable accessibilityRole="button" accessibilityLabel={returnLabel} onPress={forgeNavigation.onReturn} style={({ pressed }) => [styles.menuButton, pressed && styles.pressedMenu]}>
+        <Text allowFontScaling={false} style={styles.menuArrow}>‹</Text>
+        <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.menuLabel}>{returnLabel}</Text>
+      </Pressable>)}
     <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t(route === 'detail' ? 'forge.detail' : view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>
     {!available && <>
       <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
@@ -191,11 +194,11 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, characte
 }
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  headerRow: { flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: 12 },
-  headerStack: { flexDirection: 'column', alignItems: 'stretch', gap: 12 },
-  headerDoor: { flexShrink: 1, alignItems: 'flex-start' },
-  // Content width when stacked, so the measurement can return to one row when it fits again.
-  stackedDoor: { alignSelf: 'flex-start' },
+  // Matches the back button of Settings, which also returns to the menu.
+  menuButton: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, alignSelf: 'flex-start', paddingRight: 12 },
+  pressedMenu: { opacity: 0.85 },
+  menuArrow: { color: tokens.color.primary, fontSize: 30, lineHeight: 32 },
+  menuLabel: { color: '#e5d4b2', fontFamily: tokens.font.display, fontSize: 17, lineHeight: 24, flexShrink: 1 },
   content: { flexGrow: 1, paddingHorizontal: tokens.space.card, paddingTop: 24, paddingBottom: 36, gap: tokens.space.section },
   entry: { gap: 10 },
   journalEntry: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, backgroundColor: 'rgba(32, 28, 23, 0.94)', borderRadius: 8, borderTopWidth: 1, borderTopColor: '#8d6941', borderBottomWidth: 3, borderBottomColor: '#080c0d', boxShadow: '0 6px 18px rgba(0,0,0,0.3)' },

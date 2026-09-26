@@ -290,6 +290,7 @@
   "forge": {
     "busy": "The Forge is still finishing your last step. Return to the hearth in a moment.",
     "returnRoom": "Return to the Forge",
+    "returnMenu": "Back to menu",
     "title": "Your Oaths",
     "subtitle": "A promise takes shape through action.",
     "seals": "Oaths on the seal wall",
@@ -353,11 +354,10 @@
       "storage": "This device could not save your choices. Try again."
     },
     "cancel": "Back to characters",
-    "badge": "Change character, current: {{name}}, {{title}}",
     "change": {
       "title": "Change character",
       "intro": "Choose who carries your Oaths. Each character keeps their own.",
-      "back": "Back to Oaths",
+      "back": "Back to menu",
       "active": "Active",
       "card": "{{name}}, {{title}}",
       "cardActive": "{{name}}, {{title}}, active character",

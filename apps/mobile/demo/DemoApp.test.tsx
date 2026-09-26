@@ -3,62 +3,37 @@ import DemoApp from './DemoApp';
 import pl from './locales/pl.json';
 import en from './locales/en.json';
 import messages from '../src/localization/locales/pl/messages.json';
-import enMessages from '../src/localization/locales/en/messages.json';
-jest.mock('../src/ui/useMotion', () => ({ useMotionAllowed: () => false, MotionSuspended: ({ children }: { children: unknown }) => children }));
-jest.mock('../src/auth/AuthScreen', () => ({ AuthScreen: ({ forgeNavigation }: any) => {
-  const React = require('react'); const { TextInput, Button, Text } = require('react-native');
+jest.mock('../src/auth/AuthScreen', () => ({ AuthScreen: ({ guideStorage, profileApi }: any) => {
+  const React = require('react'); const { TextInput, Text } = require('react-native');
   const [draft, setDraft] = React.useState('');
-  return <><TextInput accessibilityLabel="Preserved draft" value={draft} onChangeText={setDraft} /><Button title="Return to room" onPress={forgeNavigation.onReturn} /><Text>{`Request: ${forgeNavigation.request?.target ?? 'none'}`}</Text></>;
+  const [locale, setLocale] = React.useState('');
+  React.useEffect(() => { void profileApi.get('A'.repeat(43)).then((result: any) => setLocale(result.value.profile.locale)); }, [profileApi]);
+  return <><TextInput accessibilityLabel="Preserved draft" value={draft} onChangeText={setDraft} /><Text>{`Guide storage: ${typeof guideStorage?.read}`}</Text><Text>{`Profile locale: ${locale}`}</Text></>;
 } }));
-test('first visit guide stays dismissed on reopening and can be replayed', async () => {
+
+test('the app owns the room, so the demo shows no room of its own and passes a guide storage', async () => {
   await render(<DemoApp />);
-  expect(screen.getByText('Żaromir')).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Pomiń wprowadzenie' }));
-  await fireEvent.press(screen.getByRole('button', { name: messages.room.exit }));
+  expect(screen.queryByRole('button', { name: messages.room.exit })).toBeNull();
+  expect(screen.getByText('Guide storage: function')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
-  await fireEvent.press(screen.getByText(pl.sceneOpen));
-  expect(screen.queryByText('Żaromir')).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
-  await fireEvent.press(screen.getByText('Żaromir · pokaż miejsca ponownie'));
-  expect(screen.getByText('Żaromir')).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Pomiń wprowadzenie' }));
-  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
-  await fireEvent.press(screen.getByText(pl.empty));
-  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
-  await fireEvent.press(screen.getByText(pl.sceneOpen));
-  expect(screen.getByText('Żaromir')).toBeOnTheScreen();
+  expect(screen.getByText(pl.empty)).toBeOnTheScreen();
+  expect(screen.queryByText(/prototyp/)).toBeNull();
 });
 
-test('return to the spatial room keeps the functional app mounted and hidden from accessibility', async () => {
+test('restarting the interface remounts the app', async () => {
   await render(<DemoApp />);
-  expect(screen.queryByLabelText('Preserved draft')).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: 'Pomiń wprowadzenie' }));
-  await fireEvent.press(screen.getByRole('button', { name: messages.room.exit }));
   await fireEvent.changeText(screen.getByLabelText('Preserved draft'), 'Uncommitted workout');
-  await fireEvent.press(screen.getByRole('button', { name: 'Return to room' }));
-  expect(screen.queryByLabelText('Preserved draft')).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: messages.room.exit }));
-  expect(screen.getByLabelText('Preserved draft').props.value).toBe('Uncommitted workout');
-});
-
-test('a remounted functional app does not replay the last room destination', async () => {
-  await render(<DemoApp />);
-  expect(screen.getByText('Request: none', { includeHiddenElements: true })).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Pomiń wprowadzenie' }));
-  await fireEvent.press(screen.getByRole('button', { name: messages.room.chronicle }));
-  await fireEvent.press(screen.getByRole('button', { name: messages.room.actions.chronicle }));
-  expect(screen.getByText('Request: history')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
   await fireEvent.press(screen.getByText(pl.restart));
-  expect(screen.getByText('Request: none')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Preserved draft').props.value).toBe('');
 });
 
-test('switching language relabels the open room without restarting its guide', async () => {
+test('the language control relabels the controls and restarts the app with that profile language', async () => {
   await render(<DemoApp />);
-  await fireEvent.press(screen.getByRole('button', { name: messages.room.guide.next }));
+  expect(await screen.findByText('Profile locale: pl')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
   await fireEvent.press(screen.getByRole('button', { name: 'English' }));
   await fireEvent.press(screen.getByText(en.close));
-  expect(screen.getByText(enMessages.room.guide.seals)).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: enMessages.room.exit })).toBeOnTheScreen();
+  expect(await screen.findByText('Profile locale: en')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: en.badge })).toBeOnTheScreen();
 });

@@ -85,3 +85,12 @@ test('the returning fixture already has an active character owning its Oaths', a
   const created = await api.characterApi.create(token, { requestId: '40000000-0000-4000-8000-000000000003', name: 'Wit', presetId: 'dummy_tied', form: 'neutral' });
   expect(created).toMatchObject({ kind: 'success', value: { character: { id: '30000000-0000-4000-8000-000000000003' } } });
 });
+
+test('each scenario starts without the room guide flag, while an interface restart keeps it', async () => {
+  const dummy = createDummy('pl', true, false);
+  const account = '10000000-0000-4000-8000-000000000001';
+  expect(await dummy.runtime().guideStorage.read(account)).toBe(false);
+  await dummy.runtime().guideStorage.markSeen(account);
+  expect(await dummy.runtime().guideStorage.read(account)).toBe(true);
+  expect(await createDummy('pl', true, false).runtime().guideStorage.read(account)).toBe(false);
+});

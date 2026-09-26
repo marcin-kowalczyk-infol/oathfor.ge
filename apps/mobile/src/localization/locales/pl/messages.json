@@ -294,6 +294,7 @@
   "forge": {
     "busy": "Kuźnia kończy jeszcze Twój poprzedni krok. Wróć do paleniska za chwilę.",
     "returnRoom": "Wróć do Kuźni",
+    "returnMenu": "Wróć do menu",
     "title": "Twoje Przysięgi",
     "subtitle": "Przysięga nabiera kształtu w działaniu.",
     "seals": "Przysięgi na ścianie pieczęci",
@@ -359,11 +360,10 @@
       "storage": "To urządzenie nie zapisało Twoich wyborów. Spróbuj ponownie."
     },
     "cancel": "Wróć do postaci",
-    "badge": "Zmień postać, obecnie: {{name}}, {{title}}",
     "change": {
       "title": "Zmień postać",
       "intro": "Wybierz, kto niesie Twoje Przysięgi. Każda postać ma własne.",
-      "back": "Wróć do Przysiąg",
+      "back": "Wróć do menu",
       "active": "Aktywna postać",
       "card": "{{name}}, {{title}}",
       "cardActive": "{{name}}, {{title}}, aktywna postać",

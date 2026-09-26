@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { AppState } from 'react-native';
 import * as Apple from 'expo-apple-authentication';
 import { getCalendars, getLocales } from 'expo-localization';
 import type { ProfileClient } from '../api/profile';
@@ -10,10 +10,11 @@ import type { CreationStorage } from '../characters/creationStorage';
 import { createCharacterController } from '../characters/controller';
 import { CharacterCreationScreen, emptyCreationDraft, type CharacterCreationDraft } from '../characters/CharacterCreationScreen';
 import { CharacterStatusView } from '../characters/CharacterStatusView';
-import { ChangeCharacterScreen } from '../characters/ChangeCharacterScreen';
-import { MotionSuspended } from '../ui/useMotion';
 import { createOathController } from '../oaths/controller';
-import { OathHomeScreen, type ForgeNavigation } from '../oaths/OathHomeScreen';
+import type { GuideStorage } from '../forge/guideStorage';
+import { HomeRoutes } from '../home/HomeRoutes';
+import type { HomeState } from '../home/homeRoute';
+import type { Locale } from '../localization/locale';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
 import { createOnboardingController } from '../onboarding/controller';
@@ -37,7 +38,7 @@ const nativeApple: AppleAvailability = {
 };
 
 // The app owns this controller for its lifetime; account subtrees must not replace it.
-export function AuthScreen({ controller, authenticate, profileApi, oathApi, acceptanceStorage, characterApi, creationStorage, apple = nativeApple, permissions = nativeNotificationPermissions, forgeNavigation }: { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; oathApi: OathClient; acceptanceStorage: PendingStorage; characterApi: CharacterClient; creationStorage: CreationStorage; apple?: AppleAvailability; permissions?: NotificationPermissions; forgeNavigation?: ForgeNavigation }) {
+export function AuthScreen({ controller, authenticate, profileApi, oathApi, acceptanceStorage, characterApi, creationStorage, guideStorage, apple = nativeApple, permissions = nativeNotificationPermissions }: { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; oathApi: OathClient; acceptanceStorage: PendingStorage; characterApi: CharacterClient; creationStorage: CreationStorage; guideStorage: GuideStorage; apple?: AppleAvailability; permissions?: NotificationPermissions }) {
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const { i18n } = useTranslation();
   const languageOwner = useRef(i18n);
@@ -72,12 +73,19 @@ export function AuthScreen({ controller, authenticate, profileApi, oathApi, acce
   const onCharacterDraft = useCallback((patch: Partial<CharacterCreationDraft>) => setCreationDraft(current => ({ accountId, draft: { ...(current.accountId === accountId ? current.draft : emptyCreationDraft), ...patch } })), [accountId]);
   // A new active character starts the next creation from an empty draft.
   useEffect(() => { setCreationDraft({ accountId, draft: emptyCreationDraft }); }, [accountId, activeCharacterId]);
-  // Change and new-character screens belong to one account and to the character active when they opened.
-  // A switch or a created character changes the active one, which returns to that character's Oaths.
-  const [characterRoute, setCharacterRoute] = useState<{ accountId: string | null; kind: 'oaths' | 'change' | 'create'; from: string | null }>({ accountId: null, kind: 'oaths', from: null });
-  const routeKind = characterRoute.accountId === accountId && characterRoute.from === activeCharacterId ? characterRoute.kind : 'oaths';
-  // An error belongs to the screen that caused it, for example a failed switch never shows up in creation.
-  const openCharacters = (kind: 'oaths' | 'change' | 'create') => { characters.clearError(); setCharacterRoute({ accountId, kind, from: activeCharacterId }); };
+  // Home routes and the Settings language attempt belong to the account. A session check keeps them, so the player returns to the same screen.
+  // Leaving the account, for example a sign-out, starts the next sign-in at the menu.
+  const [home, setHome] = useState<HomeState | null>(null);
+  const [language, setLanguage] = useState<{ accountId: string | null; saving: boolean; error: boolean }>({ accountId: null, saving: false, error: false });
+  const accountKept = state.kind === 'authenticated' || state.kind === 'validating' || state.kind === 'verification_unavailable';
+  useEffect(() => { if (!accountKept) { setHome(null); setLanguage({ accountId: null, saving: false, error: false }); } }, [accountKept]);
+  const languageState = language.accountId === accountId ? { saving: language.saving, error: language.error } : { saving: false, error: false };
+  function saveLocale(locale: Locale) {
+    const owner = accountId;
+    setLanguage({ accountId: owner, saving: true, error: false });
+    const settle = (saved: boolean) => setLanguage(current => current.accountId === owner ? { accountId: owner, saving: false, error: !saved } : current);
+    onboarding.save({ locale }).then(settle, () => settle(false));
+  }
   useEffect(() => { onboarding.start(); return () => onboarding.stop(); }, [onboarding]);
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unavailable'>('checking');
   const mounted = useRef(false);
@@ -94,8 +102,12 @@ export function AuthScreen({ controller, authenticate, profileApi, oathApi, acce
     void controller.start();
     void checkAvailability();
     const removeRevocation = apple.onRevoked(() => { void controller.nativeRevoked(); });
+    // Only a return from the background checks the session again. An alert, such as the notification permission prompt, only makes the app inactive.
+    let backgrounded = false;
     const appState = AppState.addEventListener('change', next => {
-      if (next === 'active') {
+      if (next === 'background') backgrounded = true;
+      if (next === 'active' && backgrounded) {
+        backgrounded = false;
         void controller.foreground();
         void notifications.refresh();
         void checkAvailability();
@@ -111,21 +123,20 @@ export function AuthScreen({ controller, authenticate, profileApi, oathApi, acce
   if (state.kind === 'authenticated' && profileComplete && profile.kind === 'ready') {
     if (characterState.kind !== 'ready') return <><StatusBar style="light" /><CharacterStatusView state={characterState} onRetry={() => { void characters.refresh(); }} onLogout={() => { void controller.logout(); }} /></>;
     const active = characterState.characters.find(item => item.id === characterState.activeCharacterId);
-    const creation = (first: boolean) => <CharacterCreationScreen state={characterState} draft={draft} onDraft={onCharacterDraft}
+    // First creation offers sign-out, a later one returns to the character screens.
+    const creation = (onCancel?: () => void) => <CharacterCreationScreen state={characterState} draft={draft} onDraft={onCharacterDraft}
       onCreate={value => { void characters.create(value); }} onRetry={() => { void characters.retryCreation(); }} onReload={() => { void characters.refresh(); }}
-      {...(first ? { onSignOut: () => { void controller.logout(); } } : { onCancel: () => openCharacters('change') })} />;
-    if (!active) return <><StatusBar style="light" />{creation(true)}</>;
-    const overlay = routeKind === 'change' ? <ChangeCharacterScreen state={characterState} onChoose={id => { void characters.switch(id); }}
-      onNew={() => openCharacters('create')} onBack={() => openCharacters('oaths')} /> : routeKind === 'create' ? creation(false) : null;
-    if (!oathsBound) return <><StatusBar style="light" />{overlay ?? <CharacterStatusView state={{ kind: 'loading' }} onRetry={() => { void characters.refresh(); }} onLogout={() => { void controller.logout(); }} />}</>;
-    // The Oath screens stay mounted under the change and creation screens, so their tab, drafts and handled room requests survive.
-    // Keyed by character, so lists reload and Oath drafts start fresh after a switch.
+      {...(onCancel ? { onCancel } : { onSignOut: () => { void controller.logout(); } })} />;
+    if (!active) return <><StatusBar style="light" />{creation()}</>;
+    if (!oathsBound) return <><StatusBar style="light" /><CharacterStatusView state={{ kind: 'loading' }} onRetry={() => { void characters.refresh(); }} onLogout={() => { void controller.logout(); }} /></>;
+    // Routes belong to this account and character. A switch or a created character resets them to the menu.
     return <><StatusBar style="light" />
-      {overlay && <View style={styles.fill}>{overlay}</View>}
-      <View style={overlay ? styles.hidden : styles.fill} accessibilityElementsHidden={!!overlay} importantForAccessibility={overlay ? 'no-hide-descendants' : 'auto'}>
-        <MotionSuspended suspended={!!overlay}><OathHomeScreen forgeNavigation={forgeNavigation} key={`${state.account.id}.${characterState.activeCharacterId}`} controller={oaths} timezone={profile.value.profile.timezone!}
-          character={active} onChangeCharacter={() => openCharacters('change')} /></MotionSuspended>
-      </View>
+      <HomeRoutes key={state.account.id} accountId={state.account.id} character={active} characterState={characterState} characters={characters} oaths={oaths}
+        profile={profile.value.profile} timezone={profile.value.profile.timezone!} guideStorage={guideStorage}
+        home={home} onHome={setHome} language={languageState} onLocale={saveLocale}
+        onSettingsOpened={() => setLanguage(current => current.saving ? current : { ...current, error: false })}
+        notifications={{ state: notificationState, enable: () => { void notifications.enable(); }, skip: () => { void notifications.skip(); }, retryPermission: () => { void notifications.retryPermission(); }, settings: () => { void notifications.settings(); } }}
+        renderCreation={creation} onSignOut={() => { void controller.logout(); }} />
     </>;
   }
   if (state.kind === 'authenticated') return <><StatusBar style="light" /><OnboardingView state={profile} notifications={{ state: notificationState, onEnable: () => { void notifications.enable(); }, onSkip: () => { void notifications.skip(); }, onRetryPermission: () => { void notifications.retryPermission(); }, onSettings: () => { void notifications.settings(); } }}
@@ -137,4 +148,3 @@ export function AuthScreen({ controller, authenticate, profileApi, oathApi, acce
     onLogout={() => { void controller.logout(); }}
     onRetry={() => { if (state.kind === 'signed_out') void checkAvailability(); else void controller.retry(); }} /></>;
 }
-const styles = StyleSheet.create({ fill: { flex: 1 }, hidden: { display: 'none' } });

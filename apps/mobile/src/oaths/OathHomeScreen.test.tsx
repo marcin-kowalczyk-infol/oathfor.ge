@@ -290,59 +290,53 @@ test('a newer room request replaces an unfinished hearth request and its place',
   expect(screen.getByTestId('forge-place-chronicle', { includeHiddenElements: true })).toBeTruthy();
 });
 
-test('the header badge shows the active character and opens the change screen', async () => {
-  const f = setup(); const onChangeCharacter = jest.fn();
-  const character = { id: characterId, name: 'Mira', presetId: 'dummy_braid', form: 'feminine' as const, createdAt: serverTime };
-  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" character={character} onChangeCharacter={onChangeCharacter} /></LocalizationProvider>);
-  const badge = await screen.findByRole('button', { name: 'Change character, current: Mira, Oathkeeper' });
-  expect(screen.getByText('Mira')).toBeOnTheScreen();
-  await fireEvent.press(badge);
-  expect(onChangeCharacter).toHaveBeenCalledTimes(1);
+const phone = (fontScale: number) => ({ width: 390, height: 844, scale: 3, fontScale });
+test('in room layout the header door returns to the Forge', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const f = setup(); const onReturn = jest.fn();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn }} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Return to the Forge' }));
+  expect(onReturn).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole('button', { name: 'Back to menu' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Change character/ })).toBeNull();
 });
-test('at normal text size the badge is a one-line pill beside the door with an ellipsized name and no visible title', async () => {
-  const f = setup(); const name = 'Bogumiła-Przemysława';
-  const character = { id: characterId, name, presetId: 'dummy_braid', form: 'feminine' as const, createdAt: serverTime };
-  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" character={character} onChangeCharacter={jest.fn()} forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
-  await screen.findByRole('button', { name: `Zmień postać, obecnie: ${name}, Obrończyni Przysięgi` });
-  expect(screen.getByText(name).props).toMatchObject({ numberOfLines: 1, ellipsizeMode: 'tail' });
-  expect(screen.queryByText('Obrończyni Przysięgi')).toBeNull();
-  expect(StyleSheet.flatten(screen.getByTestId('oath-header').props.style)).toMatchObject({ flexDirection: 'row', flexWrap: 'nowrap' });
+test('in simple layout the header and creation return to the menu instead of the room', async () => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const f = setup(); const onReturn = jest.fn();
+  jest.mocked(f.controller.resetCreation).mockReturnValue(true);
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn }} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Wróć do menu' }));
+  expect(onReturn).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole('button', { name: 'Wróć do Kuźni' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Złóż Przysięgę' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Wróć do menu' }));
+  expect(onReturn).toHaveBeenCalledTimes(2);
 });
-test('at large text the badge becomes a full-width row under the door and shows the title', async () => {
-  const original = { ...Dimensions.get('window') };
-  await act(async () => { Dimensions.set({ window: { ...original, fontScale: 2 }, screen: Dimensions.get('screen') }); });
-  try {
-    const f = setup(); const name = 'Bogumiła-Przemysława';
-    const character = { id: characterId, name, presetId: 'dummy_braid', form: 'feminine' as const, createdAt: serverTime };
-    await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" character={character} onChangeCharacter={jest.fn()} forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
-    await screen.findByRole('button', { name: `Zmień postać, obecnie: ${name}, Obrończyni Przysięgi` });
-    expect(screen.getByText(name).props).toMatchObject({ numberOfLines: 1, adjustsFontSizeToFit: true });
-    expect(screen.getByText(name).props.maxFontSizeMultiplier).toBeLessThanOrEqual(1.5);
-    expect(screen.getByText('Obrończyni Przysięgi').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
-    expect(StyleSheet.flatten(screen.getByTestId('oath-header').props.style)).toMatchObject({ flexDirection: 'column', alignItems: 'stretch' });
-    expect(StyleSheet.flatten(screen.getByTestId('character-badge-name').props.style)).toMatchObject({ flex: 1 });
-  } finally { await act(async () => { Dimensions.set({ window: original, screen: Dimensions.get('screen') }); }); }
-});
-test('without a character the header has no badge', async () => {
+test('without Forge navigation the header offers no way back', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
   const f = setup();
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await screen.findByRole('button', { name: /Open Oath: Running/ });
-  expect(screen.queryByRole('button', { name: /Change character/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Return to the Forge' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Back to menu' })).toBeNull();
 });
-
-test('a long door label shrinks to two lines while the badge keeps room for about seven letters, and stacks when even that cannot fit', async () => {
-  const f = setup(); const name = 'Bogumiła-Przemysława';
-  const character = { id: characterId, name, presetId: 'dummy_braid', form: 'feminine' as const, createdAt: serverTime };
-  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" character={character} onChangeCharacter={jest.fn()} forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
-  await screen.findByRole('button', { name: `Change character, current: ${name}, Oathkeeper` });
-  expect(screen.getByText('Return to the Forge').props.numberOfLines).toBe(2);
-  expect(StyleSheet.flatten(screen.getByTestId('character-badge-name').props.style)).toMatchObject({ minWidth: 72 });
-  const layout = (id: string, width: number) => fireEvent(screen.getByTestId(id), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width, height: 64 } } });
-  await layout('oath-header', 343); await layout('oath-door', 170);
-  expect(StyleSheet.flatten(screen.getByTestId('oath-header').props.style)).toMatchObject({ flexDirection: 'row' });
-  await layout('oath-door', 200);
-  expect(StyleSheet.flatten(screen.getByTestId('oath-header').props.style)).toMatchObject({ flexDirection: 'column' });
-  expect(screen.getByText('Oathkeeper')).toBeOnTheScreen();
+test('a new reload value reloads the visible list and leaves an open detail alone', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const f = setup();
+  const view = (reload: number) => <LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" reload={reload} /></LocalizationProvider>;
+  const rendered = await render(view(0));
+  await screen.findByRole('button', { name: /Open Oath: Running/ });
+  expect(f.controller.list).toHaveBeenCalledTimes(1);
+  await rendered.rerender(view(1));
+  await act(async () => {});
+  expect(f.controller.list).toHaveBeenCalledTimes(2);
+  expect(jest.mocked(f.controller.list).mock.calls[1][0]).toEqual({ view: 'today' });
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await screen.findByLabelText('Status: Under review');
+  await rendered.rerender(view(2));
+  await act(async () => {});
+  expect(f.controller.list).toHaveBeenCalledTimes(2);
+  expect(screen.getByLabelText('Status: Under review')).toBeOnTheScreen();
 });
 
 test('the serif screen title, the tab labels and the detail state label are capped for the largest text, body copy is not', async () => {

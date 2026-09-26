@@ -50,7 +50,7 @@ test('choosing another character switches once and choosing the active one only 
 
 test('busy disables every card and the back action, and announces the change', async () => {
   const f = await setup(ready({ busy: true }));
-  for (const name of ['Mira, Oathkeeper, active character', 'Bor, Oathkeeper', 'New character', 'Back to Oaths']) expect(screen.getByRole('button', { name })).toBeDisabled();
+  for (const name of ['Mira, Oathkeeper, active character', 'Bor, Oathkeeper', 'New character', 'Back to menu']) expect(screen.getByRole('button', { name })).toBeDisabled();
   expect(screen.getByText('Changing character…')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Bor, Oathkeeper' }));
   expect(f.onChoose).not.toHaveBeenCalled();
@@ -84,7 +84,7 @@ test('Polish uses the grammatical title of each character and a DUMMY-free place
 
 test('back returns without a request', async () => {
   const f = await setup();
-  await fireEvent.press(screen.getByRole('button', { name: 'Back to Oaths' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Back to menu' }));
   expect(f.onBack).toHaveBeenCalledTimes(1); expect(f.onChoose).not.toHaveBeenCalled();
 });
 

@@ -2,7 +2,7 @@
   "badge": "DEMO · controls",
   "title": "Simulator controls",
   "notice": "DUMMY API, authentication and memory storage. No real proof, rewards or providers. Reset clears this demo session.",
-  "close": "Back to the Forge",
+  "close": "Close controls",
   "new": "New player · onboarding",
   "empty": "New Forge · empty",
   "returning": "Returning player",
@@ -13,7 +13,5 @@
   "lose": "Lose next acceptance reply",
   "armed": "Next acceptance reply will be lost",
   "add": "Add demo Oath",
-  "resetHint": "Scenarios reset all synthetic data.",
-  "sceneOpen": "Explore the Forge · prototype",
-  "sceneGuide": "Zharomir · show the places again"
+  "resetHint": "Scenarios reset all synthetic data."
 }

@@ -64,6 +64,8 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     // A returning player has two DUMMY characters to switch between, Radomir active. An empty or new account starts with creation.
     characters: (populated ? [{ id: characterId, name: 'Radomir', presetId: 'dummy_cropped', form: 'masculine', createdAt: iso(initialNow - 172800000) }, { id: characterIdAt(2), name: 'Wiesna', presetId: 'dummy_curly', form: 'feminine', createdAt: iso(initialNow - 86400000) }] : []) as Character[],
     activeCharacterId: (populated ? characterId : null) as string | null,
+    // The room guide flag per account. Interface restart keeps it, a scenario starts without it, so the guide shows on the first room entry.
+    guideSeen: new Set<string>(),
     creations: new Map<string, string>(), creation: null as PendingCreation | null, paused: new Set<string>(), previewOwners: new Map<string, string>(),
     pending: new Map<string, PendingAcceptance | null>(), previews: new Map<string, Preview>(), accepted: new Map<string, string>(), requests: new Map<string, string>(), oaths: [] as Oath[],
   };
@@ -195,6 +197,7 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     return { controller, authenticate, profileApi, oathApi, characterApi,
       acceptanceStorage: { async read(owner: string, character: string) { return success(clone(state.pending.get(`${owner}.${character}`) ?? null)); }, async write(owner: string, character: string, value: PendingAcceptance | null) { if (value && (value.accountId !== owner || value.characterId !== character)) return { kind: 'unavailable' as const }; state.pending.set(`${owner}.${character}`, clone(value)); return { kind: 'success' as const }; } },
       creationStorage: { async read(owner: string) { return success(state.creation?.accountId === owner ? clone(state.creation) : null); }, async write(owner: string, value: PendingCreation | null) { if (value && value.accountId !== owner) return { kind: 'unavailable' as const }; state.creation = clone(value); return { kind: 'success' as const }; } },
+      guideStorage: { async read(owner: string) { return state.guideSeen.has(owner); }, async markSeen(owner: string) { state.guideSeen.add(owner); } },
       apple: { async isAvailable() { return true; }, onRevoked() { return () => {}; } },
       permissions: { async read() { return { kind: 'denied' as const, canAskAgain: false }; }, async request() { return { kind: 'denied' as const, canAskAgain: false }; }, async openSettings() { return false; } },
     };
