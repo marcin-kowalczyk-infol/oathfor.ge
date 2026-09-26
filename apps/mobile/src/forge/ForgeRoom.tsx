@@ -1,30 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { useMotionAllowed } from '../src/ui/useMotion';
-import { tokens } from '../src/ui/tokens';
+import { useMotionAllowed } from '../ui/useMotion';
+import { tokens } from '../ui/tokens';
 import { StationEffect } from './StationEffect';
-import { HearthFire } from '../src/ui/HearthFire';
-import en from './locales/en.json';
-import pl from './locales/pl.json';
+import { HearthFire } from '../ui/HearthFire';
+import { useTranslation } from '../localization/LocalizationProvider';
 
-type Station = 'hearth' | 'seals' | 'chronicle';
-const stations: { id: Station; x: number; y: number; footX: number; footY: number }[] = [
+export type ForgeStation = 'hearth' | 'seals' | 'chronicle';
+const stations: { id: ForgeStation; x: number; y: number; footX: number; footY: number }[] = [
   { id: 'hearth', x: 0.515, y: 0.45, footX: 0.515, footY: 0.565 },
   { id: 'seals', x: 0.22, y: 0.52, footX: 0.30, footY: 0.635 },
   { id: 'chronicle', x: 0.82, y: 0.51, footX: 0.72, footY: 0.65 },
 ];
-const room = require('../assets/forge/room-prototype-v03.png');
+const room = require('../../assets/forge/room-prototype-v03.png');
 // Cells are pre-aligned in export: feet at 95% of the cell, head centred, one shared scale.
 const sheets = {
-  forward: require('../assets/forge/zharomir-walk-forward-v01.png'),
-  back: require('../assets/forge/zharomir-walk-back-v01.png'),
-  left: require('../assets/forge/zharomir-walk-left-v01.png'),
-  right: require('../assets/forge/zharomir-walk-right-v01.png'),
-  idle: require('../assets/forge/zharomir-idle-v01.png'),
-  actions: require('../assets/forge/zharomir-station-actions-v01.png'),
+  forward: require('../../assets/forge/zharomir-walk-forward-v01.png'),
+  back: require('../../assets/forge/zharomir-walk-back-v01.png'),
+  left: require('../../assets/forge/zharomir-walk-left-v01.png'),
+  right: require('../../assets/forge/zharomir-walk-right-v01.png'),
+  idle: require('../../assets/forge/zharomir-idle-v01.png'),
+  actions: require('../../assets/forge/zharomir-station-actions-v01.png'),
 };
 // Station poses: embers, open-hand presentation, reading. The raised-palm seal pose reads as "stop" and is unused.
-const stationPose: Record<Station, number> = { hearth: 0, seals: 3, chronicle: 2 };
+const stationPose: Record<ForgeStation, number> = { hearth: 0, seals: 3, chronicle: 2 };
 const cell = 116;
 const start = { x: 0.5, y: 0.82 };
 type Direction = 'forward' | 'back' | 'left' | 'right';
@@ -72,9 +71,14 @@ function SceneHotspot({ label, hint, selected, onPress, anchor, door = false, al
   </Pressable>;
 }
 
-/** An isolated spatial interaction study: visiting a station never mutates an Oath. */
-export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete, onOpenStation }: { locale: 'pl' | 'en'; onExit: () => void; showIntro?: boolean; onIntroComplete?: () => void; onOpenStation?: (station: Station) => void }) {
-  const copy = (locale === 'pl' ? pl : en).scene;
+/**
+ * The Forge room entrance: visiting a station never mutates an Oath, only its named action leaves the room.
+ * showGuide starts the four-step guide. A later change to a new truthy value (true or a restart id) starts it again.
+ */
+export function ForgeRoom({ showGuide = false, onGuideComplete, onOpenStation, onExit }: {
+  showGuide?: boolean | number; onGuideComplete?: () => void; onOpenStation: (station: ForgeStation) => void; onExit: () => void;
+}) {
+  const { t, i18n } = useTranslation();
   const { width, height, fontScale } = useWindowDimensions();
   const largeText = fontScale > 1.3;
   const [viewport, setViewport] = useState({ width, height });
@@ -87,20 +91,27 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
   const point = (x: number, y: number) => ({ left: left + x * sceneWidth, top: top + y * sceneHeight });
   const hotspot = (x: number, y: number) => ({ left: Math.max(38, Math.min(viewport.width - 38, left + x * sceneWidth)), top: Math.max(48, Math.min(viewport.height - 48, top + y * sceneHeight)) });
   const allowed = useMotionAllowed();
-  const [target, setTarget] = useState<Station | null>(null);
-  const [arrived, setArrived] = useState<Station | null>(null);
+  const [target, setTarget] = useState<ForgeStation | null>(null);
+  const [arrived, setArrived] = useState<ForgeStation | null>(null);
   const [frame, setFrame] = useState(0);
   const [direction, setDirection] = useState<Direction>('back');
   const [idleFrame, setIdleFrame] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const lastDestination = useRef(start);
   const [bubbleOpen, setBubbleOpen] = useState(false);
-  const [guideStep, setGuideStep] = useState<number | null>(() => showIntro ? 0 : null);
+  const [guideStep, setGuideStep] = useState<number | null>(() => showGuide ? 0 : null);
+  const guideRequest = useRef(showGuide);
+  useEffect(() => {
+    if (guideRequest.current === showGuide) return;
+    guideRequest.current = showGuide;
+    // A restart replaces whatever station the player had open, so its bubble never returns after the guide.
+    if (showGuide) { setGuideStep(0); setBubbleOpen(false); }
+  }, [showGuide]);
   const guidePlace = guideStep === null ? null : (['hearth', 'seals', 'chronicle', 'door'] as const)[guideStep];
-  function finishIntro() {
+  function finishGuide() {
     if (guideStep === null) return;
     setGuideStep(null);
-    onIntroComplete?.();
+    onGuideComplete?.();
   }
   const camera = useRef(new Animated.Value(0)).current;
   const entered = useRef(false);
@@ -109,7 +120,7 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
   const bubble = useRef(new Animated.Value(1)).current;
   const position = useRef(new Animated.ValueXY(start)).current;
   const generation = useRef(0);
-  const settled = useRef<Station | null>(null);
+  const settled = useRef<ForgeStation | null>(null);
 
   useEffect(() => {
     if (!allowed) { camera.setValue(entered.current ? 1 : 0); return; }
@@ -181,8 +192,8 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
     return () => reveal.stop();
   }, [allowed, arrived, bubble, bubbleOpen]);
 
-  function choose(id: Station) {
-    finishIntro();
+  function choose(id: ForgeStation) {
+    finishGuide();
     // Invalidate before React flushes effect cleanup, including a native completion in that gap.
     if (id !== target) generation.current++;
     setTouchRequest(value => value + 1);
@@ -216,13 +227,13 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.scenery}>
       <Image source={room} resizeMode="stretch" style={{ position: 'absolute', left, top, width: sceneWidth, height: sceneHeight }} />
       <HearthFire anchor={point(0.515, 0.463)} size={sceneWidth * 0.17} opacity={0.8} />
-      {stations.map(station => <Animated.Image source={require('../assets/forge/ember-haze-v01.png')} key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === station.id ? [0.45, 0.75] : target === station.id ? [0.30, 0.60] : [0.16, 0.48] }) }]} />)}
-      <Animated.Image source={require('../assets/forge/ember-haze-v01.png')} style={[styles.doorGlow, { ...point(0.17, 0.37), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === 'door' ? [0.45, 0.72] : [0.16, 0.48] }) }]} />
+      {stations.map(station => <Animated.Image source={require('../../assets/forge/ember-haze-v01.png')} key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === station.id ? [0.45, 0.75] : target === station.id ? [0.30, 0.60] : [0.16, 0.48] }) }]} />)}
+      <Animated.Image source={require('../../assets/forge/ember-haze-v01.png')} style={[styles.doorGlow, { ...point(0.17, 0.37), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === 'door' ? [0.45, 0.72] : [0.16, 0.48] }) }]} />
       {target && <StationEffect station={target} request={touchRequest} allowed={allowed} anchor={point(stations.find(item => item.id === target)!.x, stations.find(item => item.id === target)!.y)} />}
       {target && !arrived && [0, 1, 2].map(spark => <View key={spark} style={[styles.spark, { ...point(0.44 + spark * 0.055, 0.46 - ((frame + spark) % 4) * 0.025), opacity: 0.25 + ((frame + spark) % 4) * 0.18 }]} />)}
     </View>
-    <SceneHotspot label={copy.exit} onPress={() => { finishIntro(); onExit(); }} anchor={hotspot(0.17, 0.37)} door allowed={allowed} glow={glow} />
-    {stations.map(station => <SceneHotspot key={station.id} label={copy[station.id]} hint={copy.inspect} selected={target === station.id} onPress={() => choose(station.id)} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} />)}
+    <SceneHotspot label={t('room.exit')} onPress={() => { finishGuide(); onExit(); }} anchor={hotspot(0.17, 0.37)} door allowed={allowed} glow={glow} />
+    {stations.map(station => <SceneHotspot key={station.id} label={t(`room.${station.id}`)} hint={t('room.inspect')} selected={target === station.id} onPress={() => choose(station.id)} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} />)}
     <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.hero, { left, top, transform: [{ translateX: position.x.interpolate({ inputRange: [0, 1], outputRange: [-cell / 2, sceneWidth - cell / 2] }) }, { translateY: position.y.interpolate({ inputRange: [0, 1], outputRange: [-cell * 0.95, sceneHeight - cell * 0.95] }) }] }]}>
       <View style={styles.heroShadow} />
       <View testID={sprite.id} style={[styles.spriteCell, { transform: [{ translateY: walking && allowed ? [0, -2, 0, -2][frame] : 0 }] }]}>
@@ -232,26 +243,26 @@ export function ForgeScene({ locale, onExit, showIntro = false, onIntroComplete,
     </Animated.View>
     {(guidePlace || (bubbleOpen && arrived)) && <Animated.View style={[styles.bubble, { left: guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText ? bubbleHeight : undefined, opacity: guidePlace ? 1 : bubble, transform: [{ translateY: guidePlace ? 0 : bubble.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
       <View pointerEvents="none" accessible={false} style={[styles.bubbleTail, { left: Math.max(24, Math.min(bubbleWidth - 40, (guidePlace ? guideX : foot!.x) - (guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft) - 9)) }]} />
-      <ScrollView key={`${guidePlace ?? arrived}-${locale}-${fontScale}`} style={largeText ? { flex: 1 } : { flexGrow: 0, flexShrink: 1 }} contentContainerStyle={styles.bubbleContent} accessibilityLiveRegion="polite">
+      <ScrollView key={`${guidePlace ?? arrived}-${i18n.language}-${fontScale}`} style={largeText ? { flex: 1 } : { flexGrow: 0, flexShrink: 1 }} contentContainerStyle={styles.bubbleContent} accessibilityLiveRegion="polite">
         <View style={styles.speakerRow}>
           <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.avatar}>
-            <Image source={require('../assets/companion/zharomir-wanderer-v01.png')} resizeMode="stretch" style={styles.avatarImage} />
+            <Image source={require('../../assets/companion/zharomir-wanderer-v01.png')} resizeMode="stretch" style={styles.avatarImage} />
           </View>
-          <Text maxFontSizeMultiplier={2} style={styles.speaker}>{copy.speaker}</Text>
+          <Text maxFontSizeMultiplier={2} style={styles.speaker}>{t('room.speaker')}</Text>
         </View>
-        {!guidePlace && arrived && <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.detailTitle}>{copy[arrived]}</Text>}
-        <Text maxFontSizeMultiplier={2} style={styles.description}>{guidePlace ? copy.guide[guidePlace] : copy.descriptions[arrived!]}</Text>
-        {!guidePlace && arrived && onOpenStation && <Pressable accessibilityRole="button" accessibilityLabel={copy.actions[arrived]} onPress={() => onOpenStation(arrived)} style={({ pressed }) => [styles.stationAction, { opacity: pressed ? 0.6 : 1 }]}>
-          <Text maxFontSizeMultiplier={2} style={styles.actionLabel}>{copy.actions[arrived]} <Text accessibilityElementsHidden>→</Text></Text>
+        {!guidePlace && arrived && <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.detailTitle}>{t(`room.${arrived}`)}</Text>}
+        <Text maxFontSizeMultiplier={2} style={styles.description}>{guidePlace ? t(`room.guide.${guidePlace}`) : t(`room.descriptions.${arrived}`)}</Text>
+        {!guidePlace && arrived && <Pressable accessibilityRole="button" accessibilityLabel={t(`room.actions.${arrived}`)} onPress={() => onOpenStation(arrived)} style={({ pressed }) => [styles.stationAction, { opacity: pressed ? 0.6 : 1 }]}>
+          <Text maxFontSizeMultiplier={2} style={styles.actionLabel}>{t(`room.actions.${arrived}`)} <Text accessibilityElementsHidden>→</Text></Text>
         </Pressable>}
       </ScrollView>
       {guidePlace && <View style={styles.guideFooter}>
         <Text accessible={false} allowFontScaling={false} style={styles.stepCount}>{guideStep! + 1} / 4</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={guideStep === 3 ? copy.guide.done : copy.guide.next} onPress={() => guideStep === 3 ? finishIntro() : setGuideStep(value => value! + 1)} style={styles.guideNext}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t(guideStep === 3 ? 'room.guide.done' : 'room.guide.next')} onPress={() => guideStep === 3 ? finishGuide() : setGuideStep(value => value! + 1)} style={styles.guideNext}>
           <Text accessible={false} allowFontScaling={false} style={styles.nextMark}>{guideStep === 3 ? '✓' : '→'}</Text>
         </Pressable>
       </View>}
-      <Pressable accessibilityRole="button" accessibilityLabel={guidePlace ? copy.guide.skip : copy.dismiss} onPress={() => guidePlace ? finishIntro() : setBubbleOpen(false)} style={styles.dismiss}><Text accessible={false} allowFontScaling={false} style={styles.dismissMark}>×</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={t(guidePlace ? 'room.guide.skip' : 'room.dismiss')} onPress={() => guidePlace ? finishGuide() : setBubbleOpen(false)} style={styles.dismiss}><Text accessible={false} allowFontScaling={false} style={styles.dismissMark}>×</Text></Pressable>
     </Animated.View>}
   </View>;
 }
