@@ -86,8 +86,8 @@ export function SettingsScreen(props: SettingsScreenProps) {
               </Pressable>;
             })}
           </View>
-          {localeState.saving && <Text accessibilityLiveRegion="polite" style={styles.note}>{t('settings.language.saving')}</Text>}
-          {localeState.error && !localeState.saving && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{t('settings.language.error')}</Text>}
+          {localeState.saving && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.note}>{t('settings.language.saving')}</Text>}
+          {localeState.error && !localeState.saving && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{t('settings.language.error')}</Text>}
         </View>
 
         <View style={styles.card}>
@@ -99,13 +99,13 @@ export function SettingsScreen(props: SettingsScreenProps) {
             <View accessible={false} style={[styles.track, enabled && styles.trackOn]}><View style={[styles.knob, enabled && styles.knobOn]} /></View>
           </Pressable>
           {/* A permission action shows its own busy reason, so the note covers the other cases. */}
-          {busy && !mayRetry && !mayOpenSettings && <Text accessibilityLiveRegion="polite" style={styles.note}>{t('settings.notifications.busy')}</Text>}
-          <Text style={styles.note}>{t('settings.notifications.future')}</Text>
-          {unknownPermission && <Text accessibilityLiveRegion="polite" style={styles.body}>{t(`settings.notifications.permission_${permission.kind}`)}</Text>}
-          {blocked && <Text accessibilityLiveRegion="polite" style={styles.body}>{t(mayOpenSettings ? 'settings.notifications.denied' : 'settings.notifications.notAllowed')}</Text>}
+          {busy && !mayRetry && !mayOpenSettings && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.note}>{t('settings.notifications.busy')}</Text>}
+          <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.note}>{t('settings.notifications.future')}</Text>
+          {unknownPermission && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.body}>{t(`settings.notifications.permission_${permission.kind}`)}</Text>}
+          {blocked && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.body}>{t(mayOpenSettings ? 'settings.notifications.denied' : 'settings.notifications.notAllowed')}</Text>}
           {mayRetry && <Action label={t('settings.notifications.askPermission')} onPress={props.onRetryPermission} busy={busy} variant="secondary" />}
           {mayOpenSettings && <Action label={t('settings.notifications.openSettings')} onPress={props.onOpenSystemSettings} busy={busy} variant="secondary" />}
-          {error && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{t(`settings.notifications.error_${error}`)}</Text>}
+          {error && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{t(`settings.notifications.error_${error}`)}</Text>}
         </View>
 
         <View style={styles.card}>
@@ -115,7 +115,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
             <View style={[styles.seal, styles[pauseState]]} />
             <View style={styles.identity}>
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={styles.name}>{character.name}</Text>
-              <Text style={styles.body}>{t(`settings.pause.state_${pauseState}`)}</Text>
+              <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t(`settings.pause.state_${pauseState}`)}</Text>
             </View>
             <Text allowFontScaling={false} style={styles.chevron}>›</Text>
           </Pressable>

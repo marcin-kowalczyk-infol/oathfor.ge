@@ -312,6 +312,16 @@ test('in simple layout the header and creation return to the menu instead of the
   await fireEvent.press(await screen.findByRole('button', { name: 'Wróć do menu' }));
   expect(onReturn).toHaveBeenCalledTimes(2);
 });
+test.each([[1, 'Return to the Forge', 1], [2, 'Back to menu', 0]] as const)('at font scale %s the creation back control reads "%s" with %s door pictures', async (fontScale, label, doors) => {
+  // Native MVP-18 check: the simple layout creation screen still showed the room door picture beside "Back to menu".
+  Dimensions.set({ window: phone(fontScale), screen: phone(fontScale) });
+  const f = setup(); const onReturn = jest.fn();
+  jest.mocked(f.controller.resetCreation).mockReturnValue(true);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn }} /></LocalizationProvider>);
+  expect(await screen.findByLabelText('Completion date')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: label })).toBeOnTheScreen();
+  expect(screen.queryAllByTestId('scene-door-picture', { includeHiddenElements: true })).toHaveLength(doors);
+});
 test('without Forge navigation the header offers no way back', async () => {
   Dimensions.set({ window: phone(1), screen: phone(1) });
   const f = setup();

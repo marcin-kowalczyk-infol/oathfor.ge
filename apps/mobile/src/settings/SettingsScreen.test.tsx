@@ -150,3 +150,14 @@ test('renders in English', async () => {
   expect(screen.getByRole('header', { name: 'Language' })).toBeOnTheScreen();
   expect(screen.getByText('Reminders are not sent yet. Your choice is kept for later.')).toBeOnTheScreen();
 });
+
+test('text inside the cards is capped so long Polish words never break mid-word at the largest text', async () => {
+  // Native MVP-18 check on iPhone SE 3: "Zapamiętamy" broke as "Zapamiętam / y" in the notifications card.
+  await setup({ notificationState: { permission: { kind: 'denied', canAskAgain: false }, busy: false }, localeState: { saving: false, error: true } }, 'pl');
+  for (const text of [
+    'Przypomnienia nie są jeszcze wysyłane. Zapamiętamy Twój wybór na później.',
+    'iOS blokuje powiadomienia z Oathforge. Włącz je w ustawieniach iOS.',
+    'Nie udało się zapisać języka. Język pozostaje bez zmian. Spróbuj ponownie.',
+    'W grze',
+  ]) expect(screen.getByText(text).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
+});

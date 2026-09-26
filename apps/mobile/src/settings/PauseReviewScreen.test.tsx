@@ -142,3 +142,12 @@ test('Polish review uses localized copy without exposing IDs', async () => {
   expect(screen.getByRole('button', { name: 'Wróć do ustawień' })).toBeOnTheScreen();
   expect(screen.queryByText(id)).toBeNull();
 });
+
+test('text inside the review cards is capped so long Polish words never break mid-word at the largest text', async () => {
+  // Native MVP-18 check on iPhone SE 3 at the largest size: card entries grew to one word per line inside the narrow cards.
+  const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
+  await show(f, 'pl');
+  await screen.findByRole('button', { name: 'Potwierdź pauzę' });
+  expect(screen.getByText('Brak').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
+  expect(screen.getByText(/^Bieganie · /).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
+});

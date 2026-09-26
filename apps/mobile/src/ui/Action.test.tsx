@@ -40,3 +40,9 @@ test('busy action exposes busy state and prevents repeated activation', async ()
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
   expect(onPress).toHaveBeenCalledTimes(1);
 });
+
+test('the label is capped so a long Polish word never breaks inside the button at the largest text', async () => {
+  // Native MVP-18 check on iPhone SE 3: "Potwierdź pauzę" broke as "Potwierd / ź" at the largest accessibility size.
+  await render(<LocalizationProvider initialLocale="pl"><Fixture onPress={jest.fn()} /></LocalizationProvider>);
+  expect(screen.getByText('Spróbuj ponownie').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
+});

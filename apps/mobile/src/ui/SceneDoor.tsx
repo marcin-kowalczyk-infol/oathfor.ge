@@ -3,7 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export function SceneDoor({ label, onPress, disabled = false, maxLines }: { label: string; onPress(): void; disabled?: boolean; maxLines?: number }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.door, { opacity: disabled ? 0.5 : pressed ? 0.7 : 1 }]}>
-    <View style={styles.picture} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View testID="scene-door-picture" style={styles.picture} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Image source={require('../../assets/forge/room-prototype-v03.png')} resizeMode="stretch" style={styles.image} />
     </View>
     <Text numberOfLines={maxLines} style={styles.label}>{label}</Text>

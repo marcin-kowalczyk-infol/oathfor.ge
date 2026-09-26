@@ -271,7 +271,8 @@ const styles = StyleSheet.create({
   statLabel: { color: '#bfa682', fontSize: 13, lineHeight: 17 },
   paused: { marginTop: 10, color: tokens.color.neutral, fontSize: 13, lineHeight: 17, fontWeight: '600' },
   // The visible pill is 33 pt high, the touch target keeps 48 pt.
-  pillTarget: { marginTop: 14, minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center' },
+  // The column width limits the pill, so the one-line label shrinks instead of running past the column on a 375 pt screen.
+  pillTarget: { marginTop: 14, minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center', maxWidth: '100%' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(214,170,105,0.4)', backgroundColor: 'rgba(214,170,105,0.1)' },
   pillPressed: { backgroundColor: 'rgba(214,170,105,0.22)' },
   pillMark: { color: gold.pill, fontSize: 14, lineHeight: 17 },

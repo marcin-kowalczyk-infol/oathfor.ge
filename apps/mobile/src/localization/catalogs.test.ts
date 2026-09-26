@@ -37,3 +37,10 @@ test('an explicit zero override cannot bypass argument validation', () => {
   changed.pl.evidence.correctionsRemaining_zero = 'Brak prób dla {{wrongName}}';
   expect(validateCatalogs(changed)).toContain('arguments differ: evidence.correctionsRemaining');
 });
+
+test('English copy names the companion Zharomir, never the Polish spelling', () => {
+  // Native MVP-18 check found the English menu tutorial tile reading "Żaromir".
+  const polishName = (value: unknown): boolean => typeof value === 'string' ? value.includes('Żaromir') : typeof value === 'object' && value !== null && Object.values(value).some(polishName);
+  expect(polishName(catalogs.en)).toBe(false);
+  expect(polishName(demoEn)).toBe(false);
+});

@@ -32,7 +32,7 @@ After onboarding completes, an account without an active character sees full-scr
 
 Creation shows a large illustration of the selected preset, a row of preset portraits, the name field with live validation, and three form choices showing their title. "Create character" submits once. Leaving or losing the connection keeps the draft and creates nothing. A lost reply is retried with the same request identity, so it can never create a duplicate.
 
-"Change character" lists up to three character cards with the active one marked, plus a "New character" slot while below the limit. Choosing a card makes it active and reloads that character's Oaths. Until the main menu exists, the entry is a character badge in the Oath screen header.
+"Change character" lists up to three character cards with the active one marked, plus a "New character" slot while below the limit. Choosing a card makes it active and reloads that character's Oaths. The entry is the "Change character" pill on the character card of the [main menu](main-menu.md). Back returns to the menu.
 
 A pending acceptance belongs to the character of its preview. Switching characters never completes or discards it. It becomes visible again when that character is active.
 

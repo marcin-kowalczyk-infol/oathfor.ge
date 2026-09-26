@@ -10,9 +10,9 @@ export function CompanionBubble({ message }: { message: string }) {
       <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Image source={require('../../assets/companion/zharomir-wanderer-v01.png')} resizeMode="stretch" style={styles.portrait} />
       </View>
-      <Text style={styles.name}>{t('companion.speaker')}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.name}>{t('companion.speaker')}</Text>
     </View>
-    <Text style={styles.message}>{message}</Text>
+    <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.message}>{message}</Text>
   </View>;
 }
 const styles = StyleSheet.create({

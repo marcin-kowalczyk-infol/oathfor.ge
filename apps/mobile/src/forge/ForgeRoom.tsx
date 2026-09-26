@@ -99,6 +99,7 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, onOpenStation, o
   const [zoomed, setZoomed] = useState(false);
   const lastDestination = useRef(start);
   const [bubbleOpen, setBubbleOpen] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
   const [guideStep, setGuideStep] = useState<number | null>(() => showGuide ? 0 : null);
   const guideRequest = useRef(showGuide);
   useEffect(() => {
@@ -213,7 +214,12 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, onOpenStation, o
   // Large text gets a scrollable lower overlay, leaving all station targets available.
   // Large text raises the overlay floor, still below the station touch areas.
   const floor = viewport.height * (largeText ? 0.58 : 0.70);
-  const bubbleTop = foot && !largeText ? Math.min(viewport.height - 130, Math.max(foot.y + 18, floor)) : floor;
+  const preferredTop = foot && !largeText ? Math.min(viewport.height - 130, Math.max(foot.y + 18, floor)) : floor;
+  // A bubble taller than the space below its place grows upward, as far as the lower edge of the station touch areas.
+  // The native SE 3 check clipped the guide text and the station action at the bottom edge.
+  const natural = contentHeight + 4 + (guidePlace ? 44 : 0);
+  const stationEdge = Math.max(...stations.map(station => viewport.height * 0.45 + (hotspot(station.x, station.y).top + 36 - viewport.height * 0.45) * zoom));
+  const bubbleTop = largeText || contentHeight === 0 ? preferredTop : Math.min(preferredTop, Math.max(stationEdge, viewport.height - 20 - natural));
   const sprite = walking
     ? { sheet: sheets[direction], index: frame, id: `hero-walk-${direction}` }
     : arrived ? { sheet: sheets.actions, index: stationPose[arrived], id: `hero-pose-${arrived}` }
@@ -241,9 +247,9 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, onOpenStation, o
       </View>
     </Animated.View>
     </Animated.View>
-    {(guidePlace || (bubbleOpen && arrived)) && <Animated.View style={[styles.bubble, { left: guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText ? bubbleHeight : undefined, opacity: guidePlace ? 1 : bubble, transform: [{ translateY: guidePlace ? 0 : bubble.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
+    {(guidePlace || (bubbleOpen && arrived)) && <Animated.View testID="room-bubble" style={[styles.bubble, { left: guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText ? bubbleHeight : undefined, opacity: guidePlace ? 1 : bubble, transform: [{ translateY: guidePlace ? 0 : bubble.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
       <View pointerEvents="none" accessible={false} style={[styles.bubbleTail, { left: Math.max(24, Math.min(bubbleWidth - 40, (guidePlace ? guideX : foot!.x) - (guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft) - 9)) }]} />
-      <ScrollView key={`${guidePlace ?? arrived}-${i18n.language}-${fontScale}`} style={largeText ? { flex: 1 } : { flexGrow: 0, flexShrink: 1 }} contentContainerStyle={styles.bubbleContent} accessibilityLiveRegion="polite">
+      <ScrollView key={`${guidePlace ?? arrived}-${i18n.language}-${fontScale}`} style={largeText ? { flex: 1 } : { flexGrow: 0, flexShrink: 1 }} testID="room-bubble-content" onContentSizeChange={(_, measured) => setContentHeight(measured)} contentContainerStyle={styles.bubbleContent} accessibilityLiveRegion="polite">
         <View style={styles.speakerRow}>
           <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.avatar}>
             <Image source={require('../../assets/companion/zharomir-wanderer-v01.png')} resizeMode="stretch" style={styles.avatarImage} />

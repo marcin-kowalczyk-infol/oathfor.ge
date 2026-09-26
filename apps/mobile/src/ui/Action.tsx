@@ -35,7 +35,7 @@ export function Action({ label, onPress, disabled = false, busy = false, unavail
       style={({ pressed }) => [styles.button, variant === 'primary' ? styles.primary : styles.secondary, pressed && styles.pressed, unavailable && styles.unavailable]}
     >
       {variant === 'primary' && <Text allowFontScaling={false} accessible={false} style={styles.sigil}>◆</Text>}
-      <Text style={[styles.label, variant === 'primary' ? styles.primaryLabel : styles.secondaryLabel]}>{label}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, variant === 'primary' ? styles.primaryLabel : styles.secondaryLabel]}>{label}</Text>
       {variant === 'secondary' && <Text allowFontScaling={false} accessible={false} style={styles.arrow}>›</Text>}
     </Pressable></Animated.View>
     {unavailable && reason && <Text style={styles.reason}>{reason}</Text>}

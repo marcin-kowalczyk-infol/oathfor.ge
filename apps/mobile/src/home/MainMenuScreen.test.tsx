@@ -103,7 +103,7 @@ test('a pending acceptance replaces the Forge subtitle', async () => {
 
 test('the simple layout hides the Tutorial tile', async () => {
   await setup({ layout: 'simple' });
-  expect(screen.queryByRole('button', { name: 'Tutorial, Żaromir shows the way' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Tutorial, Zharomir guides you' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Settings, Language, pause, account' })).toBeOnTheScreen();
 });
 
@@ -113,6 +113,8 @@ test('the room layout shows the side-by-side card, half-width tiles and a one-li
   expect(screen.getByTestId('menu-tile-pair')).toHaveStyle({ flexDirection: 'row' });
   for (const id of ['menu-tutorial', 'menu-settings']) expect(screen.getByTestId(id)).toHaveStyle({ flex: 1 });
   expect(screen.getByText('Change character').props.numberOfLines).toBe(1);
+  // Native MVP-18 check on iPhone SE 3: the English pill kept its full width and ran past the text column to the card frame.
+  expect(screen.getByRole('button', { name: 'Change character' })).toHaveStyle({ maxWidth: '100%' });
 });
 
 test('large text stacks the card', async () => {
@@ -127,7 +129,7 @@ test('large text stacks the card', async () => {
 test('each tile and the pill call their handler once', async () => {
   const f = await setup();
   await fireEvent.press(screen.getByRole('button', { name: 'Enter the Forge, Hearth, seals and chronicle' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Tutorial, Żaromir shows the way' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Tutorial, Zharomir guides you' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Settings, Language, pause, account' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Change character' }));
   for (const handler of [f.onForge, f.onTutorial, f.onSettings, f.onChangeCharacter]) expect(handler).toHaveBeenCalledTimes(1);

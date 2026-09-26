@@ -100,8 +100,8 @@ export function PauseReviewScreen({ controller, character, onBack, onChanged }: 
             <CompanionBubble message={t(pause.summary.paused ? 'oathHome.paused' : 'oathHome.pauseIntro')} />
             {(['withdraw', 'preserve'] as const).map(key => <View key={key} style={styles.card}>
               <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.section, fontScale > 1.5 && styles.sectionLarge]}>{t(`oathHome.${key}`)}</Text>
-              {pause[key].length === 0 && <Text style={styles.body}>{t('oathHome.none')}</Text>}
-              {pause[key].map(item => <View key={item.id} style={[styles.entry, simple && styles.stackedEntry]}><ActivityEmblem activity={item.snapshot.activity} size={52} /><Text style={[styles.body, styles.entryCopy]}>{summary(item)}</Text></View>)}
+              {pause[key].length === 0 && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('oathHome.none')}</Text>}
+              {pause[key].map(item => <View key={item.id} style={[styles.entry, simple && styles.stackedEntry]}><ActivityEmblem activity={item.snapshot.activity} size={52} /><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.body, styles.entryCopy]}>{summary(item)}</Text></View>)}
             </View>)}
             <Action label={t(pause.summary.paused ? 'oathHome.resume' : 'oathHome.confirmPause')} busy={mutating} onPress={() => { void changePause(); }} />
           </>}

@@ -10,6 +10,7 @@ import { tokens } from '../ui/tokens';
 import { SceneSurface } from '../ui/SceneSurface';
 import { CompanionBubble } from '../ui/CompanionBubble';
 import { SceneDoor } from '../ui/SceneDoor';
+import { BackLink } from '../ui/BackLink';
 import { ActivityOffering } from './ActivityOffering';
 import { SnapshotRules } from './SnapshotRules';
 import type { OathController } from './controller';
@@ -18,7 +19,7 @@ export type OathCreationDraft = { activity: Activity; scheduled: boolean; activa
 function emptyDraft(timezone: string): OathCreationDraft {
   return { activity: 'running', scheduled: false, activation: { date: '', time: '', zone: timezone }, deadline: { date: '', time: '', zone: timezone } };
 }
-export function OathScreen({ controller, timezone, onBack, backLabel, initialDraft, onDraftChange, approach = null }: { controller: OathController; timezone: string; onBack?(): void; backLabel?: string; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void; approach?: number | null }) {
+export function OathScreen({ controller, timezone, onBack, backLabel, backPlain = false, initialDraft, onDraftChange, approach = null }: { controller: OathController; timezone: string; onBack?(): void; backLabel?: string; /** Simple layout: a plain back control instead of the room door picture. */ backPlain?: boolean; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void; approach?: number | null }) {
   const { t } = useTranslation();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const [draft, setDraft] = useState<OathCreationDraft>(() => initialDraft ?? emptyDraft(timezone));
@@ -76,7 +77,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, initialDra
   }
   return <SceneSurface place="hearth" approach={approach} scroll={scroll}><SafeAreaView style={styles.safeArea}>
     <Animated.ScrollView style={entrance} key={scene} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
-      {onBack && <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />}
+      {onBack && (backPlain ? <BackLink label={backLabel ?? t('oathHome.today')} onPress={onBack} /> : <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />)}
       {!review && !detail && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
       {!ready && <>
         <Text accessibilityLiveRegion="polite" style={styles.body}>{t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading')}</Text>

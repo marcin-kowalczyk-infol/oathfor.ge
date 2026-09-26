@@ -2,9 +2,11 @@
 
 Status: owner authorized a simulator prototype on 2026-09-25. This is a separate development-only scene, not an accepted replacement for Oath navigation or a production animation rig. It explores rune selection → companion movement → station response. It creates no commitment, XP or unlock.
 
+Update 2026-09-26 (MVP-18): the room now runs in the app as `apps/mobile/src/forge/ForgeRoom.tsx`, the entrance to the Oath screens from the [main menu](../product/main-menu.md). The exports below are used by the app, not only by the demo. The art stays provisional. Moving it into the app does not accept it as final production art.
+
 ## Selected provisional exports
 
-Original artwork generated with built-in `image_gen` on 2026-09-25. Exact model and seed were not exposed. Masters, exact prompts and provenance remain in ignored `graphics/mvp-05/stations/`; selected unchanged exports live in `apps/mobile/assets/forge/` and are referenced only by the demo scene. Production `index.ts` is unchanged.
+Original artwork generated with built-in `image_gen` on 2026-09-25. Exact model and seed were not exposed. Masters, exact prompts and provenance remain in ignored `graphics/mvp-05/stations/`; selected unchanged exports live in `apps/mobile/assets/forge/` and were referenced only by the demo scene until MVP-18 moved the room into the app. Production `index.ts` is unchanged.
 
 | ID | Dimensions / alpha | Usage | SHA-256 |
 | --- | --- | --- | --- |

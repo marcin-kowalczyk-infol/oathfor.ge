@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { Animated, Dimensions } from 'react-native';
+import { Animated, Dimensions, StyleSheet } from 'react-native';
 import { ForgeRoom, walkDirection } from './ForgeRoom';
 import { useMotionAllowed } from '../ui/useMotion';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
@@ -203,4 +203,34 @@ test('a guide restart in an open room closes the station bubble', async () => {
   await view.rerender(room({ showGuide: 1 }));
   await fireEvent.press(screen.getByRole('button', { name: en.room.guide.skip }));
   expect(screen.queryByText(en.room.descriptions.seals)).toBeNull();
+});
+
+// Native MVP-18 check on iPhone SE 3: the guide text and the station action were clipped at the bottom of the bubble.
+const flat = (element: { props: { style?: unknown } }) => StyleSheet.flatten(element.props.style as never) as { top: number; maxHeight: number };
+const stationBottoms = () => (['hearth', 'seals', 'chronicle'] as const).map(station => {
+  const style = StyleSheet.flatten(screen.getByRole('button', { name: en.room[station] }).props.style) as { top: number; marginTop: number; height: number };
+  return style.top + style.marginTop + style.height;
+});
+const small = { width: 375, height: 603, scale: 2, fontScale: 1 };
+test.each([
+  ['the guide', { showGuide: true }, null, 146],
+  ['a station bubble', {}, 'chronicle', 192],
+] as const)('on a small screen %s grows upward to show its whole text above the bottom edge', async (_name, props, station, content) => {
+  Dimensions.set({ window: small, screen: small });
+  await render(room(props));
+  if (station) await fireEvent.press(screen.getByRole('button', { name: en.room[station] }));
+  await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 343, content);
+  const bubble = flat(screen.getByTestId('room-bubble'));
+  const chrome = 4 + (station ? 0 : 44);
+  expect(bubble.top + content + chrome).toBeLessThanOrEqual(small.height - 20);
+  expect(bubble.maxHeight).toBeGreaterThanOrEqual(content + chrome);
+  expect(bubble.top).toBeGreaterThanOrEqual(Math.max(...stationBottoms()));
+});
+
+test('a bubble that already fits keeps its place under the character', async () => {
+  const tall = { width: 402, height: 810, scale: 3, fontScale: 1 };
+  Dimensions.set({ window: tall, screen: tall });
+  await render(room({ showGuide: true }));
+  await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 370, 120);
+  expect(flat(screen.getByTestId('room-bubble')).top).toBeCloseTo(tall.height * 0.7);
 });

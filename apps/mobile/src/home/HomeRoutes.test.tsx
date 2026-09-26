@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Dimensions } from 'react-native';
-import { render, screen } from '@testing-library/react-native';
+import { act, render, screen } from '@testing-library/react-native';
+import type { Oath } from '../api/oathSchema';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
-import type { OathController } from '../oaths/controller';
+import type { OathController, OathControllerState } from '../oaths/controller';
 import type { HomeState } from './homeRoute';
 import { HomeRoutes, type HomeRoutesProps } from './HomeRoutes';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
@@ -38,4 +39,25 @@ test('a pause route whose Oath controller serves another character goes back to 
   expect(await screen.findByRole('header', { name: 'Settings' })).toBeOnTheScreen();
   expect(screen.queryByRole('header', { name: 'Review pause' })).toBeNull();
   expect(oaths.getPause).not.toHaveBeenCalled();
+});
+
+test('a newly confirmed Oath refreshes the menu summary', async () => {
+  let state: OathControllerState = { kind: 'ready', busy: false, preview: null, pending: null, oath: null, needsReview: false };
+  const listeners = new Set<() => void>();
+  let total = 2;
+  const summaryLoads = () => jest.mocked(oaths.list).mock.calls.filter(([query]) => query.limit === 1).length;
+  const oaths = {
+    getState: () => state, subscribe: (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener); },
+    list: jest.fn(async () => ({ kind: 'success', value: { items: [], nextCursor: null, total, serverTime: '2026-09-26T12:00:00Z', paused: false, characterId: mira.id } })),
+    detail: jest.fn(), getPause: jest.fn(), resetCreation: jest.fn(), recover: jest.fn(),
+    boundCharacter: () => ({ accountId, characterId: mira.id }),
+  } as unknown as OathController;
+  await render(<Harness oaths={oaths} initial={{ accountId, characterId: mira.id, route: { kind: 'menu' }, sequence: 0 }} />);
+  expect(await screen.findByLabelText('2 current Oaths')).toBeOnTheScreen();
+  expect(summaryLoads()).toBe(1);
+  total = 3;
+  state = { ...state, oath: { id: '20000000-0000-4000-8000-000000000009' } as unknown as Oath };
+  await act(async () => listeners.forEach(listener => listener()));
+  expect(await screen.findByLabelText('3 current Oaths')).toBeOnTheScreen();
+  expect(summaryLoads()).toBe(2);
 });

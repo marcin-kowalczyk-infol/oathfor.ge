@@ -7,6 +7,7 @@ import type { Oath, OathListEnvelope } from '../api/oathSchema';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import { SceneDoor } from '../ui/SceneDoor';
+import { BackLink } from '../ui/BackLink';
 import { compactStoredTime } from './compactStoredTime';
 import { SceneSurface, type ForgePlace } from '../ui/SceneSurface';
 import { StateSeal } from '../ui/StateSeal';
@@ -121,15 +122,12 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     return t('oathHome.group', { date, timezone: item.snapshot.deadline.timezone });
   }
   const place: ForgePlace = hearthRequest ? 'hearth' : route === 'detail' ? 'seals' : view === 'history' ? 'chronicle' : 'seals';
-  if (available && route === 'create') return <OathScreen approach={arrival?.place === 'hearth' ? arrival.id : null} controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? returnLabel : undefined} onBack={forgeNavigation?.onReturn ?? (() => { void loadList('today'); })} />;
+  if (available && route === 'create') return <OathScreen approach={arrival?.place === 'hearth' ? arrival.id : null} controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? returnLabel : undefined} backPlain={!!forgeNavigation && !interactiveForge} onBack={forgeNavigation?.onReturn ?? (() => { void loadList('today'); })} />;
   // Today's hub leaves an empty band under the tabs. The seal wall is lowered into it.
   return <SceneSurface place={place} drop={route === 'list' && view === 'today' && interactiveForge ? 0.3 : 0} scroll={scroll} approach={arrival && arrival.place === place && place !== 'hearth' ? arrival.id : null}><SafeAreaView style={styles.safeArea}><Animated.ScrollView style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
     {forgeNavigation && (interactiveForge
       ? <SceneDoor label={returnLabel} onPress={forgeNavigation.onReturn} />
-      : <Pressable accessibilityRole="button" accessibilityLabel={returnLabel} onPress={forgeNavigation.onReturn} style={({ pressed }) => [styles.menuButton, pressed && styles.pressedMenu]}>
-        <Text allowFontScaling={false} style={styles.menuArrow}>‹</Text>
-        <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.menuLabel}>{returnLabel}</Text>
-      </Pressable>)}
+      : <BackLink label={returnLabel} onPress={forgeNavigation.onReturn} />)}
     <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t(route === 'detail' ? 'forge.detail' : view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>
     {!available && <>
       <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
@@ -194,11 +192,6 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
 }
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  // Matches the back button of Settings, which also returns to the menu.
-  menuButton: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, alignSelf: 'flex-start', paddingRight: 12 },
-  pressedMenu: { opacity: 0.85 },
-  menuArrow: { color: tokens.color.primary, fontSize: 30, lineHeight: 32 },
-  menuLabel: { color: '#e5d4b2', fontFamily: tokens.font.display, fontSize: 17, lineHeight: 24, flexShrink: 1 },
   content: { flexGrow: 1, paddingHorizontal: tokens.space.card, paddingTop: 24, paddingBottom: 36, gap: tokens.space.section },
   entry: { gap: 10 },
   journalEntry: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, backgroundColor: 'rgba(32, 28, 23, 0.94)', borderRadius: 8, borderTopWidth: 1, borderTopColor: '#8d6941', borderBottomWidth: 3, borderBottomColor: '#080c0d', boxShadow: '0 6px 18px rgba(0,0,0,0.3)' },

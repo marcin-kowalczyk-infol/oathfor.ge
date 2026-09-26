@@ -1,10 +1,10 @@
 # Main menu, Settings and the Forge room
 
-Status: accepted specification, owner decisions of 2026-09-26 during brainstorming (sub-project 2 after [player characters](player-character.md)). Delivery epic: MVP-18 in the local backlog. Not implemented yet.
+Status: accepted specification, owner decisions of 2026-09-26 during brainstorming (sub-project 2 after [player characters](player-character.md)). Implemented locally in MVP-18 on 2026-09-26 and checked natively in the development demo, see [main menu acceptance](../engineering/testing.md#main-menu-acceptance-mvp-18-2026-09-26). Pending: owner visual acceptance, VoiceOver (deferred by the owner), final room and preset art, and the intermittent wrong image seen on the iPhone 18 Pro in the demo (see the acceptance record).
 
 ## Purpose
 
-After sign-in the player needs one calm home screen. It shows who they play as and leads to the three things they do: work with Oaths in the Forge, learn the place with Żaromir and change settings. The menu replaces the temporary character badge in the Oath header. Pause and sign-out leave the Oath screens and move to Settings. The Forge room, so far only in the development demo, becomes the real entrance to the Oath screens.
+After sign-in the player needs one calm home screen. It shows who they play as and leads to the three things they do: work with Oaths in the Forge, learn the place with Żaromir and change settings. The menu replaces the temporary character badge in the Oath header. Pause and sign-out leave the Oath screens and move to Settings. The Forge room, earlier only in the development demo, is the real entrance to the Oath screens.
 
 The Żaromir tutorial with its own content is a later, separate specification (sub-project 3). Account deletion, data export and support belong to MVP-14.
 
@@ -24,13 +24,13 @@ Sign-in, onboarding and a first character come before the menu, as in [player ch
 | Forge room | Seals | Today list |
 | Forge room | Chronicle | History list |
 | Forge room | Moonlit door | Menu |
-| Oath screens | Door "Return to the Forge" | Forge room. In simple layout, a "Menu" button returns to the menu. |
+| Oath screens | Door "Return to the Forge" | Forge room. In simple layout, a plain "Back to menu" button returns to the menu. |
 | Settings | Pause row | Pause review of the active character, back returns to Settings |
 | Settings | Back | Menu |
 
-Every route belongs to one account and one active character. A sign-out, an account change or a character change resets the route to the menu. The Oath screens stay mounted and hidden under the menu, the room and Settings, so their tab, drafts and handled room requests survive a return, as they already do under the change-character screen.
+Every route belongs to one account and one active character. A sign-out, an account change or a character change resets the route to the menu. The Oath screens stay mounted and hidden under the menu, the room and Settings, so their tab, drafts and handled room requests survive a return, as they already do under the change-character screen. The route belongs to the signed-in account, so a session check keeps it. The app checks the session again only after a return from the background, not after a short inactive moment such as a permission alert.
 
-**Simple layout.** When the window is narrower than 350 pt or the text scale exceeds 1.3, the room is not interactive (the existing rule in the Oath screens). Then "Enter the Forge" opens the Today list directly, the Oath header shows a "Menu" button instead of the door, and the Tutorial tile is hidden while Settings takes the full width.
+**Simple layout.** When the window is narrower than 350 pt or the text scale exceeds 1.3, the room is not interactive (the existing rule in the Oath screens). Then "Enter the Forge" opens the Today list directly, the Oath header and Oath creation show a plain "Back to menu" button instead of the door, and the Tutorial tile is hidden while Settings takes the full width.
 
 **First visit.** The first entry into the room on a device starts the four-step guide automatically. The Tutorial tile starts it again at any time. The "seen" flag is local device storage per account, never sent to the server. Losing it only shows the guide again.
 
@@ -52,7 +52,7 @@ Copy (PL / EN):
 | Element | Polish | English |
 | --- | --- | --- |
 | Forge tile | Wejdź do Kuźni · Palenisko, pieczęcie i kronika | Enter the Forge · Hearth, seals and chronicle |
-| Tutorial tile | Samouczek · Żaromir oprowadzi | Tutorial · Żaromir shows the way |
+| Tutorial tile | Samouczek · Żaromir oprowadzi | Tutorial · Zharomir guides you |
 | Settings tile | Ustawienia · Język, pauza, konto | Settings · Language, pause, account |
 | Change character | Zmień postać | Change character |
 | Pending acceptance | Przysięga czeka na potwierdzenie | An Oath awaits confirmation |
@@ -62,7 +62,7 @@ Copy (PL / EN):
 
 The stat counts the active character's Oaths in the Today view: scheduled, active, awaiting proof, needing more evidence and under review. The server owns the count.
 
-`GET /api/oaths` gains a `total` field with the number of items in the requested view for the active character, after the same due-state reconciliation the list already performs. The menu reads `view=today&limit=1` and uses `total` and `paused`. It refreshes on every menu entry, on app foreground and after an Oath mutation. There is no concurrent-Oath quota, so counting list pages on the client is not reliable.
+`GET /api/oaths` gains a `total` field with the number of items in the requested view for the active character, after the same due-state reconciliation the list already performs. The menu reads `view=today&limit=1` and uses `total` and `paused`. It refreshes on every menu entry, on app foreground, after an Oath confirmation and after a pause change. There is no concurrent-Oath quota, so counting list pages on the client is not reliable.
 
 ## Settings
 
@@ -77,7 +77,7 @@ A full screen with a back button to the menu, on the same darkened room backgrou
 
 ## Forge room
 
-The demo scene (`apps/mobile/demo/ForgeScene.tsx`, `StationEffect.tsx`) moves into the app with its behavior: full-screen room `room-prototype-v03`, Żaromir walking to the chosen place, contextual speech bubbles, the four-step guide, diffuse object lights and the moonlit door. Its copy moves from the demo catalogs to the main PL/EN catalogs. Reduce Motion keeps the existing static equivalent. The demo keeps its controls and scenarios but uses the app room instead of its own copy.
+The room lives in the app as `apps/mobile/src/forge/ForgeRoom.tsx` with `StationEffect.tsx`, moved from the demo with its behavior: full-screen room `room-prototype-v03`, Żaromir walking to the chosen place, contextual speech bubbles, the four-step guide, diffuse object lights and the moonlit door. Its copy is in the main PL/EN catalogs under `room`. Reduce Motion keeps the existing static equivalent. A speech bubble taller than the space under its place grows upward, never above the station touch areas, so its text and action stay visible on a 375 × 667 pt screen. The demo keeps its controls and scenarios and renders the app room.
 
 The room art stays provisional, as recorded in the [stations prototype](../art/forge-stations-prototype.md). Moving it into the app does not accept it as final art.
 

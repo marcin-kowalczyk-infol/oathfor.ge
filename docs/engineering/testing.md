@@ -182,3 +182,34 @@ Native checks used the development demo with its DUMMY runtime, so no real API, 
 | iPhone SE 3, lost creation reply | Pending message, dimmed locked controls and retry. Retry created exactly one character. |
 
 Not observed natively, covered by tests where noted: NFD composition on Hermes, a pending Oath acceptance surviving a switch (tests), pausing one character and checking another (tests), creating the third character up to the limit (tests), an app restart during creation (tests), English at the largest text size, iPhone 18 Pro in English or at the largest text size, Oath rules and detail screens at the largest text size, and VoiceOver, which the owner deferred on 2026-09-26. The presets are DUMMY art. Owner visual acceptance is pending.
+
+## Main menu acceptance (MVP-18), 2026-09-26
+
+Automated: API integration tests cover `total` for Today and History, per character, after reconciliation and unchanged by pagination. Mobile tests cover the strict `total` validation, the menu summary and its refreshes (menu entry, foreground, Oath confirmation, pause change), the home route reducer, the room with guide storage, the menu, Settings, the pause review and the routing through `AuthScreen`. The full mobile suite passed with 58 suites and 706 tests.
+
+Native checks used the development demo with its DUMMY runtime in Expo Go 57.0.9 on iOS 27.0. No real API, Apple sign-in, Keychain or notification permission prompt was observed.
+
+| Device and setting | Observed |
+| --- | --- |
+| iPhone 18 Pro, Polish | Menu card for Radomir with 3 current Oaths. First room entry starts the four-step guide. Hearth leads to creation, date, time, rules and confirmation. The room door returns to the menu. Seals open Today and an Oath detail. Change character to Wiesna, then the demo "add Oath" control gives 0, 1, 2 and 5 with the Polish forms `bieżących Przysiąg`, `bieżąca Przysięga`, `bieżące Przysięgi`, `bieżących Przysiąg`. Radomir shows 3 and 4 with `bieżące Przysięgi`. |
+| iPhone 18 Pro, English | Language switched in Settings survives "Restart interface". Notifications toggle. Pause review, confirmation back to Settings, the menu adds "Character paused" and the hearth then shows the pause notice. Tutorial replays the guide. A lost acceptance reply gives the Forge subtitle "An Oath awaits confirmation", and the Forge resumes the check. A new character from the change screen returns to the menu with its card. Sign-out reaches the sign-in screen. |
+| iPhone 18 Pro, English, largest accessibility text, Reduce Motion on | Stacked card, full-width tiles, Settings, pause review. Simple layout: the Forge opens Today with "Back to menu". |
+| iPhone SE 3, Polish, first run | "Nowa Kuźnia · pusta": character creation, menu with 0 current Oaths, guide on the first room entry, hearth and chronicle bubbles, creation with date and time, rules, and a lost reply ending in the menu subtitle "Przysięga czeka na potwierdzenie" with 4 current Oaths after the check. Change character opens from the card and back returns to the menu. |
+| iPhone SE 3, Polish, largest accessibility text | Stacked menu, simple layout Forge to Today, plain "Wróć do menu" in Today and in creation, Settings and pause review after the fixes below, without a word broken inside. |
+| iPhone SE 3, Polish, extra-extra-large text, Reduce Motion on | Row card, static guide, seals bubble and its action to Today. |
+| iPhone SE 3, English | Menu with the pill inside the text column, guide, hearth bubble, Tutorial replay, Settings. Switching back to Polish in Settings survives "Restart interface". |
+
+Defects found natively and fixed, each with a failing test first unless noted:
+
+| Defect | Fix | Evidence |
+| --- | --- | --- |
+| Room bubble clipped at the bottom on SE 3, cutting the guide text and the station action. Not demo-only: at the full 667 pt height the guide needs about 194 pt and the old layout left 180 pt. | A bubble taller than the space under its place grows upward, never above the station touch areas. | Two `ForgeRoom` tests failed with bubble bottoms of 616 and 628 pt against a 583 pt limit, then passed. Rechecked on SE 3. |
+| Simple-layout Oath creation showed the room door picture beside "Back to menu". | New plain `BackLink`, shared by the simple-layout Oath header and creation. | The font scale 2 case expected no door picture and found one, then passed. Rechecked on SE 3 at the largest text. |
+| No test for the menu summary refresh after an Oath confirmation. | New `HomeRoutes` test. | Written after the code, so checked by mutation: removing the refresh made it fail. |
+| English menu Tutorial subtitle used the Polish spelling "Żaromir". | "Zharomir guides you", shorter so the tile keeps its lines. | New catalog test failed, then passed. |
+| Polish words broken inside at the largest text on SE 3: "potwierdzen/iem" in the pause review bubble, "Potwierd/ź" in the confirm button, "Zapamiętam/y" in the Settings note, one word per line in the pause review cards. | New `tokens.maxScale.inset` 2.5 for text in buttons, bubbles and cards. The bubble speaker name uses the display cap. | Four tests failed with an uncapped size, then passed. Rechecked on SE 3. |
+| English "Change character" pill ran past the text column to the card frame on SE 3. | The pill is limited to the column width, so its one-line label shrinks. | Menu test failed, then passed. Rechecked on SE 3. |
+
+Open defect, not fixed: on the 18 Pro the Oath creation backdrop sometimes showed the state seal sprite sheet instead of the hearth close-up, and once the bubble avatar showed another texture. The asset bytes in the Expo Go URL cache matched the files. The suspected cause is a React Native 0.86 Fabric race, where an image response reaches the main queue after its view was recycled for another image. This is a hypothesis, not a confirmed cause. It was seen only in the demo, which loads assets from the Metro server. It needs a check in a development build with bundled assets.
+
+Not observed natively: VoiceOver (deferred by the owner on 2026-09-26), the real notification permission prompt and "Open iOS Settings", session re-validation after a background return, drafts and a language save across a background return, guide storage in SecureStore (the demo keeps it in memory), counts above 5 in Polish (tests only), real API, Apple sign-in and Keychain. Presets, room and menu art are provisional or DUMMY. Owner visual acceptance is pending.
