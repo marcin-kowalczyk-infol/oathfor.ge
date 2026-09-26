@@ -15,6 +15,19 @@ test.each([
   expect(createTranslation('pl').t('evidence.correctionsRemaining', { count })).toBe(expected);
 });
 
+test('selects Polish and English plurals without Intl.PluralRules, as on Hermes for iOS', () => {
+  const original = Object.getOwnPropertyDescriptor(Intl, 'PluralRules')!;
+  Object.defineProperty(Intl, 'PluralRules', { value: undefined, configurable: true, writable: true });
+  try {
+    const pl = createTranslation('pl');
+    expect(pl.t('auth.rateLimited', { count: 5 })).toBe('Zbyt wiele prób. Poczekaj 5 sekund przed ponownym logowaniem.');
+    expect(pl.t('auth.rateLimited', { count: 22 })).toBe('Zbyt wiele prób. Poczekaj 22 sekundy przed ponownym logowaniem.');
+    const en = createTranslation('en');
+    expect(en.t('auth.rateLimited', { count: 1 })).toBe('Too many attempts. Wait 1 second before signing in again.');
+    expect(en.t('auth.rateLimited', { count: 5 })).toBe('Too many attempts. Wait 5 seconds before signing in again.');
+  } finally { Object.defineProperty(Intl, 'PluralRules', original); }
+});
+
 test('renders complete English messages with named interpolation', () => {
   const { t } = createTranslation('en');
   expect(t('evidence.correctionsRemaining', { count: 1 })).toBe('1 correction attempt remains.');

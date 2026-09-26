@@ -374,6 +374,21 @@
       "pending": "Finish creating {{name}} before changing character."
     }
   },
+  "menu": {
+    "currentOaths_one": "current Oath",
+    "currentOaths_other": "current Oaths",
+    "currentOathsLabel": "current Oaths",
+    "currentOathsUnknown": "Number of current Oaths unknown",
+    "paused": "Character paused",
+    "changeCharacter": "Change character",
+    "forge": "Enter the Forge",
+    "forgeDetail": "Hearth, seals and chronicle",
+    "forgePending": "An Oath awaits confirmation",
+    "tutorial": "Tutorial",
+    "tutorialDetail": "Żaromir shows the way",
+    "settings": "Settings",
+    "settingsDetail": "Language, pause, account"
+  },
   "settings": {
     "title": "Settings",
     "back": "Back to menu",
