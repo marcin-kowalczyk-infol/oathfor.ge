@@ -9,22 +9,23 @@ jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 const id = '20000000-0000-4000-8000-000000000001';
 const serverTime = '2026-10-26T00:00:00Z';
+const characterId = '30000000-0000-4000-8000-000000000001';
 function oath(patch: Partial<Oath> = {}): Oath {
   const snapshot = JSON.parse(JSON.stringify(catalog)); snapshot.activity = 'running';
   snapshot.activation = { mode: 'now', time: { local: '2026-10-24T02:00:00', timezone: 'Europe/Warsaw', offset: '+02:00', explicitOffset: false, utc: '2026-10-24T00:00:00Z' } };
   snapshot.deadline = { local: '2026-10-25T02:30:00', timezone: 'Europe/Warsaw', offset: '+02:00', explicitOffset: true, utc: '2026-10-25T00:30:00Z', receiptCutoff: '2026-10-25T00:45:00Z' };
   for (const locale of ['pl', 'en']) { snapshot.copy[locale].activity = snapshot.copy[locale].activities.running; delete snapshot.copy[locale].activities; }
-  return { id, snapshot, state: 'review_pending', createdAt: '2026-10-24T00:00:00Z', activatedAt: '2026-10-24T00:00:00Z', terminalAt: null, reason: 'service_availability_unknown', review: { enteredAt: '2026-10-25T00:45:01Z', closesAt: '2026-10-28T00:45:01Z' }, ...patch };
+  return { id, characterId, snapshot, state: 'review_pending', createdAt: '2026-10-24T00:00:00Z', activatedAt: '2026-10-24T00:00:00Z', terminalAt: null, reason: 'service_availability_unknown', review: { enteredAt: '2026-10-25T00:45:01Z', closesAt: '2026-10-28T00:45:01Z' }, ...patch };
 }
 function setup(items = [oath()]) {
   let state: OathControllerState = { kind: 'ready', busy: false, preview: null, pending: null, oath: null, needsReview: false };
   const listeners = new Set<() => void>();
-  const controller = { getState: () => state, subscribe: (fn: () => void) => { listeners.add(fn); return () => listeners.delete(fn); }, list: jest.fn().mockResolvedValue({ kind: 'success', value: { items, nextCursor: null, serverTime, paused: false } }), detail: jest.fn().mockResolvedValue({ kind: 'success', value: { oath: items[0], serverTime } }), getPause: jest.fn(), pause: jest.fn(), resetCreation: jest.fn(), recover: jest.fn() } as unknown as OathController;
+  const controller = { getState: () => state, subscribe: (fn: () => void) => { listeners.add(fn); return () => listeners.delete(fn); }, list: jest.fn().mockResolvedValue({ kind: 'success', value: { items, nextCursor: null, serverTime, paused: false, characterId } }), detail: jest.fn().mockResolvedValue({ kind: 'success', value: { oath: items[0], serverTime } }), getPause: jest.fn(), pause: jest.fn(), resetCreation: jest.fn(), recover: jest.fn() } as unknown as OathController;
   return { controller, onLogout: jest.fn(), state, change(next: OathControllerState) { state = next; listeners.forEach(fn => fn()); } };
 }
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
-const page = (items: Oath[], nextCursor: string | null = null, paused = false) => ({ kind: 'success' as const, value: { items, nextCursor, serverTime, paused } });
-const pauseSummary = (revision = 'a'.repeat(64), paused = false) => ({ paused, revision, withdraw: paused ? [] : [id], preserve: [], serverTime });
+const page = (items: Oath[], nextCursor: string | null = null, paused = false) => ({ kind: 'success' as const, value: { items, nextCursor, serverTime, paused, characterId } });
+const pauseSummary = (revision = 'a'.repeat(64), paused = false) => ({ paused, revision, withdraw: paused ? [] : [id], preserve: [], serverTime, characterId });
 test('Today retains overdue review-pending Oaths and opens their authoritative stored detail', async () => {
   const f = setup(); await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   expect(await screen.findByText('Under review')).toBeOnTheScreen();
@@ -50,7 +51,7 @@ test('empty Today has loading, failed retry and explicit creation states', async
   expect(jest.mocked(f.controller.list).mock.calls[2][0]).toEqual({ view: 'today' });
 });
 test('history paginates withdrawals and refresh begins with the first page', async () => {
-  const first = oath({ state: 'withdrawn', reason: 'account_paused', terminalAt: serverTime, review: null });
+  const first = oath({ state: 'withdrawn', reason: 'character_paused', terminalAt: serverTime, review: null });
   const second = oath({ ...first, id: '20000000-0000-4000-8000-000000000002' });
   const f = setup([]); jest.mocked(f.controller.list).mockResolvedValueOnce(page([])).mockResolvedValueOnce(page([first], 'cursor1')).mockResolvedValueOnce(page([second])).mockResolvedValueOnce(page([first]));
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
@@ -78,6 +79,13 @@ test('Today preserves server order across future, current and overdue pending co
   expect(screen.getByRole('header', { name: 'Cases in progress' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Scheduled' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Active commitments' })).toBeOnTheScreen();
+});
+test('a character pause withdrawal explains that resuming does not restore it', async () => {
+  const withdrawn = oath({ state: 'withdrawn', reason: 'character_paused', terminalAt: serverTime, review: null });
+  const f = setup([withdrawn]);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  expect(await screen.findByText('Withdrawn when gameplay was paused. Resuming does not restore this Oath.')).toBeOnTheScreen();
 });
 test('partial pause-detail failure never exposes confirmation', async () => {
   const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
@@ -130,8 +138,21 @@ test('pause shows meaningful complete-set summaries and a changed revision requi
   expect(await screen.findByText('Your Oaths changed. Review this updated list before confirming pause.')).toBeOnTheScreen();
   expect(f.controller.pause).toHaveBeenCalledTimes(1);
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
-  expect(jest.mocked(f.controller.pause).mock.calls.map(call => call[0])).toEqual([{ paused: true, revision: 'a'.repeat(64) }, { paused: true, revision: 'b'.repeat(64) }]);
+  expect(jest.mocked(f.controller.pause).mock.calls.map(call => call[0])).toEqual([{ characterId, paused: true, revision: 'a'.repeat(64) }, { characterId, paused: true, revision: 'b'.repeat(64) }]);
   expect(jest.mocked(f.controller.list).mock.calls[1][0]).toEqual({ view: 'today' });
+});
+test('a character switch during pause review reloads the review with a character notice', async () => {
+  const f = setup(); const otherCharacter = '30000000-0000-4000-8000-000000000002';
+  jest.mocked(f.controller.getPause).mockResolvedValueOnce({ kind: 'success', value: pauseSummary() }).mockResolvedValueOnce({ kind: 'success', value: { ...pauseSummary('b'.repeat(64)), characterId: otherCharacter } });
+  jest.mocked(f.controller.pause).mockResolvedValueOnce({ kind: 'oath_error', code: 'character_changed' }).mockResolvedValueOnce({ kind: 'success', value: pauseSummary('c'.repeat(64), true) });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await screen.findByText('Under review'); await fireEvent.press(screen.getByRole('button', { name: 'Pause and resume' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
+  expect(await screen.findByText('Your active character changed. Review the current Oaths again.')).toBeOnTheScreen();
+  expect(screen.queryByText('Your Oaths changed. Review this updated list before confirming pause.')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Reload pause review' })).toBeNull();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
+  expect(jest.mocked(f.controller.pause).mock.calls.map(call => call[0])).toEqual([{ characterId, paused: true, revision: 'a'.repeat(64) }, { characterId: otherCharacter, paused: true, revision: 'b'.repeat(64) }]);
 });
 test('resume only sends the flag, and a failed change requires current-state reload', async () => {
   const f = setup([]); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), true) });
@@ -139,7 +160,7 @@ test('resume only sends the flag, and a failed change requires current-state rel
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await screen.findByText('No current Oaths. Choose a workout when you are ready.'); await fireEvent.press(screen.getByRole('button', { name: 'Pause and resume' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Resume gameplay' }));
-  expect(jest.mocked(f.controller.pause).mock.calls[0][0]).toEqual({ paused: false });
+  expect(jest.mocked(f.controller.pause).mock.calls[0][0]).toEqual({ characterId, paused: false });
   expect(screen.queryByRole('button', { name: 'Resume gameplay' })).toBeNull();
   await fireEvent.press(await screen.findByRole('button', { name: 'Reload pause review' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Resume gameplay' }));

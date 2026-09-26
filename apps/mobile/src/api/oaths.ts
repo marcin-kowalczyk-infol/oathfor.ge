@@ -3,14 +3,14 @@ import { createBoundedRequest, exact, type ClientOptions } from './request';
 import { isUuid, isPreviewInput, isPreviewEnvelope, isStoredPreviewEnvelope, isOathEnvelope, isOathListEnvelope, isPauseEnvelope,
   type PreviewInput, type PreviewEnvelope, type StoredPreviewEnvelope, type OathEnvelope, type OathListEnvelope, type PauseEnvelope } from './oathSchema';
 
-export type OathCode = 'invalid_request' | 'invalid_activity' | 'onboarding_incomplete' | 'account_paused'
+export type OathCode = 'invalid_request' | 'invalid_activity' | 'onboarding_incomplete' | 'character_paused' | 'character_required' | 'character_changed'
   | 'activation_elapsed' | 'deadline_not_after_activation' | 'preview_superseded' | 'idempotency_conflict' | 'not_found' | 'pause_preview_changed';
 export type TimeCode = 'invalid_local_time' | 'invalid_timezone' | 'invalid_offset' | 'nonexistent_local_time' | 'ambiguous_local_time' | 'offset_mismatch' | 'unsupported_time_offset';
 export type OathFailure = { kind: 'oath_error'; code: OathCode }
   | { kind: 'time_error'; code: TimeCode; field: 'activation' | 'deadline'; validOffsets?: string[] };
 export type OathResult<T> = { kind: 'success'; value: T } | AuthFailure | OathFailure;
 export type OathListQuery = { view: 'today' | 'history'; limit?: number; cursor?: string };
-export type PauseInput = { paused: true; revision: string } | { paused: false };
+export type PauseInput = { characterId: string; paused: true; revision: string } | { characterId: string; paused: false };
 
 function safeError(status: number, error: unknown): OathFailure | undefined {
   if (status === 400 && error && typeof error === 'object' && 'code' in error) {
@@ -28,7 +28,7 @@ function safeError(status: number, error: unknown): OathFailure | undefined {
   }
   if (exact(error, ['code']) && typeof error.code === 'string') {
     const codes: Record<number, string[]> = { 400: ['invalid_request', 'invalid_activity'], 404: ['not_found'],
-      409: ['onboarding_incomplete', 'account_paused', 'activation_elapsed', 'deadline_not_after_activation', 'preview_superseded', 'idempotency_conflict', 'pause_preview_changed'] };
+      409: ['onboarding_incomplete', 'character_paused', 'character_required', 'character_changed', 'activation_elapsed', 'deadline_not_after_activation', 'preview_superseded', 'idempotency_conflict', 'pause_preview_changed'] };
     if (codes[status]?.includes(error.code)) return { kind: 'oath_error', code: error.code as OathCode };
   }
   return undefined;
@@ -66,7 +66,9 @@ export function createOathClient(options: ClientOptions) {
       return request('/api/oath-pause', 'GET', 200, isPauseEnvelope, undefined, token, signal, policy);
     },
     pause(token: string, input: PauseInput, signal?: AbortSignal): Promise<OathResult<PauseEnvelope>> {
-      if (!(exact(input, ['paused']) && input.paused === false) && !(exact(input, ['paused', 'revision']) && input.paused === true && typeof input.revision === 'string' && /^[0-9a-f]{64}$/.test(input.revision))) return invalid();
+      const valid = (exact(input, ['characterId', 'paused']) && input.paused === false)
+        || (exact(input, ['characterId', 'paused', 'revision']) && input.paused === true && typeof input.revision === 'string' && /^[0-9a-f]{64}$/.test(input.revision));
+      if (!valid || !isUuid(input.characterId)) return invalid();
       return request('/api/oath-pause', 'POST', 200, isPauseEnvelope, JSON.stringify(input), token, signal, policy);
     },
   };

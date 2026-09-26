@@ -27,7 +27,7 @@ export type RequestPolicy<F> = {
 export function createBoundedRequest<F = never>(options: ClientOptions, mapError?: (path: string, status: number, code: unknown) => F | undefined) {
   const transport: AuthTransport = options.transport ?? expoFetch;
   const origin = baseOrigin(options.baseUrl, options.development === true);
-  async function request<T>(path: string, method: string, status: number | readonly number[], validate: (value: unknown) => value is T,
+  async function request<T>(path: string, method: string, status: number | readonly number[], validate: (value: unknown, status: number) => value is T,
     body?: string, token?: string, signal?: AbortSignal, policy: RequestPolicy<F> = {}): Promise<AuthResult<T> | F> {
     const accepts = (candidate: number) => typeof status === 'number' ? candidate === status : status.includes(candidate);
     const maxBytes = policy.maxResponseBytes ?? MAX_RESPONSE_BYTES;
@@ -83,7 +83,7 @@ export function createBoundedRequest<F = never>(options: ClientOptions, mapError
           text += decoder.decode(chunk.value, { stream: true });
         }
         const value: unknown = JSON.parse(text + decoder.decode());
-        if (accepts(response.status) && validate(value)) return { kind: 'success', value };
+        if (accepts(response.status) && validate(value, response.status)) return { kind: 'success', value };
         if (!exact(value, ['error'])) return unavailable;
         const structured = policy.mapStructuredError?.(response.status, value.error);
         if (structured !== undefined) return structured;

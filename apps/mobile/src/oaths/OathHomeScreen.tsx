@@ -39,7 +39,7 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
   const [detail, setDetail] = useState<Oath | null>(null);
   const detailId = useRef('');
   const [pause, setPause] = useState<PauseReview | null>(null);
-  const [pauseChanged, setPauseChanged] = useState(false);
+  const [pauseChanged, setPauseChanged] = useState<null | 'oaths' | 'character'>(null);
   const [pauseFailed, setPauseFailed] = useState(false);
   const generation = useRef(0);
   const mutation = useRef<symbol | undefined>(undefined);
@@ -85,7 +85,7 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
     if (result.kind === 'success' && result.value.oath.id === id) setDetail(result.value.oath);
     else setFailed(true);
   }
-  async function showPause(changed = false) {
+  async function showPause(changed: null | 'oaths' | 'character' = null) {
     const epoch = ++generation.current;
     setRoute('pause'); setPause(null); setLoading(true); setFailed(false); setPauseFailed(false); setPauseChanged(changed);
     const result = await loadPauseReview(controller);
@@ -97,13 +97,16 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
     if (!pause || mutation.current) return;
     const operation = Symbol('pause'); mutation.current = operation; setMutating(true);
     const epoch = generation.current;
-    const result = await controller.pause(pause.summary.paused ? { paused: false } : { paused: true, revision: pause.summary.revision });
+    // The reviewed summary names the character it was computed for, so a switch in between gives character_changed.
+    const { characterId } = pause.summary;
+    const result = await controller.pause(pause.summary.paused ? { characterId, paused: false } : { characterId, paused: true, revision: pause.summary.revision });
     if (mutation.current !== operation) return;
     mutation.current = undefined;
     setMutating(false);
     if (!current(epoch)) return;
     if (result.kind === 'success') { await loadList('today'); return; }
-    if (result.kind === 'oath_error' && result.code === 'pause_preview_changed') { await showPause(true); return; }
+    if (result.kind === 'oath_error' && result.code === 'pause_preview_changed') { await showPause('oaths'); return; }
+    if (result.kind === 'oath_error' && result.code === 'character_changed') { await showPause('character'); return; }
     setPause(null); setPauseFailed(true);
   }
   function create(recover = false) {
@@ -196,13 +199,13 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
             <Text style={styles.detailStateLabel}>{t(`oath.states.${detail.state}`)}</Text>
           </View>
           {detail.reason === 'service_availability_unknown' && <Text style={styles.body}>{t('oathHome.unknownAvailability')}</Text>}
-          {detail.reason === 'account_paused' && <Text style={styles.body}>{t('oathHome.withdrawn')}</Text>}
+          {detail.reason === 'character_paused' && <Text style={styles.body}>{t('oathHome.withdrawn')}</Text>}
           {detail.review && <Text style={styles.body}>{t('oathHome.reviewDeadline', { deadline: formatDeadline(new Date(detail.review.closesAt), locale, 'UTC') })}</Text>}
           <View style={styles.parchment}><SnapshotRules snapshot={detail.snapshot} /></View>
         </>}
       </>}
       {route === 'pause' && <>
-        {pauseChanged && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.pauseChanged')} /></View>}
+        {pauseChanged && <View accessibilityLiveRegion="polite"><CompanionBubble message={t(pauseChanged === 'character' ? 'oath.error.character_changed' : 'oathHome.pauseChanged')} /></View>}
         {(failed || pauseFailed) && <><CompanionBubble message={t(pauseFailed ? 'oathHome.pauseError' : 'oathHome.loadError')} /><Action label={t('oathHome.reviewPause')} onPress={() => { void showPause(); }} /></>}
         {pause && <>
           <CompanionBubble message={t(pause.summary.paused ? 'oathHome.paused' : 'oathHome.pauseIntro')} />

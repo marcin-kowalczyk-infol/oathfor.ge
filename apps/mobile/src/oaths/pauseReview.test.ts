@@ -3,7 +3,7 @@ import type { OathResult } from '../api/oaths';
 import { loadPauseReview } from './pauseReview';
 
 const id = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
-const summary = (withdraw: string[], preserve: string[] = []): PauseEnvelope => ({ paused: false, revision: 'a'.repeat(64), withdraw, preserve, serverTime: '2026-09-25T00:00:00Z' });
+const summary = (withdraw: string[], preserve: string[] = []): PauseEnvelope => ({ paused: false, revision: 'a'.repeat(64), withdraw, preserve, serverTime: '2026-09-25T00:00:00Z', characterId: '30000000-0000-4000-8000-000000000001' });
 // Transport validation owns the full snapshot; these detail fixtures isolate complete-set loading.
 const oath = (value: string) => ({ id: value, state: 'scheduled' }) as Oath;
 const success = <T,>(value: T): OathResult<T> => ({ kind: 'success', value });

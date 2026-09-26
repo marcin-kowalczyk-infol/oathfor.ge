@@ -119,13 +119,13 @@ const sectionKeys = ['activation', 'timing', 'evidence', 'photo', 'activityRecor
 export type RuleCopy = { title: string; subtitle: string; promise: string; declaration: string; activity: string; sections: Record<typeof sectionKeys[number], string> };
 export type Snapshot = typeof policy & { activity: Activity; activation: { mode: 'now' | 'scheduled'; time: ResolvedTime | null }; deadline: ResolvedTime & { receiptCutoff: string }; copy: { pl: RuleCopy; en: RuleCopy } };
 export type OathState = 'scheduled' | 'active' | 'proof_pending' | 'needs_more_evidence' | 'review_pending' | 'fulfilled' | 'missed' | 'unresolved' | 'withdrawn';
-export type Oath = { id: string; state: OathState; snapshot: Snapshot; createdAt: string; activatedAt: string | null; terminalAt: string | null; reason: string | null; review: null | { enteredAt: string; closesAt: string } };
+export type Oath = { id: string; characterId: string; state: OathState; snapshot: Snapshot; createdAt: string; activatedAt: string | null; terminalAt: string | null; reason: string | null; review: null | { enteredAt: string; closesAt: string } };
 export type Preview = { id: string; snapshot: Snapshot };
-export type PreviewEnvelope = { preview: Preview; serverTime: string };
-export type StoredPreviewEnvelope = { preview: Preview; oathId: string | null };
+export type PreviewEnvelope = { preview: Preview; characterId: string; serverTime: string };
+export type StoredPreviewEnvelope = { preview: Preview; characterId: string; oathId: string | null };
 export type OathEnvelope = { oath: Oath; serverTime: string };
-export type OathListEnvelope = { items: Oath[]; nextCursor: string | null; serverTime: string; paused: boolean };
-export type PauseEnvelope = { paused: boolean; revision: string; withdraw: string[]; preserve: string[]; serverTime: string };
+export type OathListEnvelope = { items: Oath[]; nextCursor: string | null; serverTime: string; paused: boolean; characterId: string };
+export type PauseEnvelope = { paused: boolean; revision: string; withdraw: string[]; preserve: string[]; serverTime: string; characterId: string };
 
 export function isUuid(value: unknown): value is string { return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value); }
 function activity(value: unknown): value is Activity { return value === 'running' || value === 'strength_training' || value === 'mobility'; }
@@ -135,6 +135,7 @@ function local(value: unknown): value is string {
   return Number.isFinite(date.getTime()) && date.toISOString() === `${value}.000Z`;
 }
 function utc(value: unknown): value is string { return typeof value === 'string' && value.endsWith('Z') && local(value.slice(0, -1)); }
+export { utc as isUtcTime };
 function zone(value: unknown): value is string { return typeof value === 'string' && value.length <= 128 && (value === 'UTC' || /^[A-Za-z][A-Za-z0-9_+-]*(?:\/[A-Za-z0-9_+-]+)+$/.test(value)); }
 function offset(value: unknown): value is string { return typeof value === 'string' && value !== '-00:00' && /^[+-](?:[01][0-9]|2[0-3]):[0-5][0-9]$/.test(value); }
 function localInput(value: unknown): value is LocalTimeInput {
@@ -175,15 +176,15 @@ export function isSnapshot(value: unknown, committed = false): value is Snapshot
   return resolved(value.activation.time) && Date.parse(value.activation.time.utc) < Date.parse(value.deadline.utc);
 }
 function preview(value: unknown): value is Preview { return exact(value, ['id', 'snapshot']) && isUuid(value.id) && isSnapshot(value.snapshot) && (value.snapshot.activation.mode !== 'now' || value.snapshot.activation.time === null); }
-export function isPreviewEnvelope(value: unknown): value is PreviewEnvelope { return exact(value, ['preview', 'serverTime']) && preview(value.preview) && utc(value.serverTime); }
-export function isStoredPreviewEnvelope(value: unknown): value is StoredPreviewEnvelope { return exact(value, ['preview', 'oathId']) && preview(value.preview) && (value.oathId === null || isUuid(value.oathId)); }
+export function isPreviewEnvelope(value: unknown): value is PreviewEnvelope { return exact(value, ['preview', 'characterId', 'serverTime']) && preview(value.preview) && isUuid(value.characterId) && utc(value.serverTime); }
+export function isStoredPreviewEnvelope(value: unknown): value is StoredPreviewEnvelope { return exact(value, ['preview', 'characterId', 'oathId']) && preview(value.preview) && isUuid(value.characterId) && (value.oathId === null || isUuid(value.oathId)); }
 const states = ['scheduled', 'active', 'proof_pending', 'needs_more_evidence', 'review_pending', 'fulfilled', 'missed', 'unresolved', 'withdrawn'];
 const terminalStates = ['fulfilled', 'missed', 'unresolved', 'withdrawn'];
 export function isOath(value: unknown): value is Oath {
-  if (!exact(value, ['id', 'state', 'snapshot', 'createdAt', 'activatedAt', 'terminalAt', 'reason', 'review']) || !isUuid(value.id)
+  if (!exact(value, ['id', 'characterId', 'state', 'snapshot', 'createdAt', 'activatedAt', 'terminalAt', 'reason', 'review']) || !isUuid(value.id) || !isUuid(value.characterId)
     || !states.includes(value.state as string) || !isSnapshot(value.snapshot, true) || !utc(value.createdAt)
     || !(value.activatedAt === null || utc(value.activatedAt)) || !(value.terminalAt === null || utc(value.terminalAt))
-    || !(value.reason === null || (typeof value.reason === 'string' && /^[a-z][a-z0-9_]{0,63}$/.test(value.reason)))) return false;
+    || !(value.reason === null || (typeof value.reason === 'string' && /^[a-z][a-z0-9_]{0,63}$/.test(value.reason) && value.reason !== 'account_paused'))) return false;
   const time = value.snapshot.activation.time;
   if (!time || Date.parse(value.createdAt) > Date.parse(time.utc)) return false;
   if (value.activatedAt !== null && value.activatedAt !== time.utc) return false;
@@ -198,12 +199,13 @@ export function isOath(value: unknown): value is Oath {
 }
 export function isOathEnvelope(value: unknown): value is OathEnvelope { return exact(value, ['oath', 'serverTime']) && isOath(value.oath) && utc(value.serverTime); }
 export function isOathListEnvelope(value: unknown): value is OathListEnvelope {
-  return exact(value, ['items', 'nextCursor', 'serverTime', 'paused']) && Array.isArray(value.items) && value.items.length <= 100 && value.items.every(isOath)
+  return exact(value, ['items', 'nextCursor', 'serverTime', 'paused', 'characterId']) && isUuid(value.characterId) && Array.isArray(value.items) && value.items.length <= 100
+    && value.items.every(item => isOath(item) && item.characterId === value.characterId)
     && new Set(value.items.map(item => item.id)).size === value.items.length && utc(value.serverTime) && typeof value.paused === 'boolean'
     && (value.nextCursor === null || (typeof value.nextCursor === 'string' && /^[A-Za-z0-9_-]{1,1024}$/.test(value.nextCursor) && value.items.length > 0));
 }
 export function isPauseEnvelope(value: unknown): value is PauseEnvelope {
-  if (!exact(value, ['paused', 'revision', 'withdraw', 'preserve', 'serverTime']) || typeof value.paused !== 'boolean'
+  if (!exact(value, ['paused', 'revision', 'withdraw', 'preserve', 'serverTime', 'characterId']) || !isUuid(value.characterId) || typeof value.paused !== 'boolean'
     || typeof value.revision !== 'string' || !/^[0-9a-f]{64}$/.test(value.revision) || !utc(value.serverTime)
     || !Array.isArray(value.withdraw) || !Array.isArray(value.preserve) || !value.withdraw.every(isUuid) || !value.preserve.every(isUuid)) return false;
   const ids = [...value.withdraw, ...value.preserve];

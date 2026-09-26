@@ -2,16 +2,28 @@ import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import { isPreviewEnvelope } from './oathSchema';
 
 const id = '00000000-0000-4000-8000-000000000001';
+const characterId = '30000000-0000-4000-8000-00000000000c';
+const otherCharacterId = '30000000-0000-4000-8000-000000000002';
 function preview() {
   const snapshot = JSON.parse(JSON.stringify(catalog)) as Record<string, any>;
   snapshot.activity = 'running';
   snapshot.activation = { mode: 'now', time: null };
   snapshot.deadline = { local: '2026-10-25T02:30:00', timezone: 'Europe/Warsaw', offset: '+02:00', explicitOffset: true, utc: '2026-10-25T00:30:00Z', receiptCutoff: '2026-10-25T00:45:00Z' };
   for (const locale of ['pl', 'en']) { snapshot.copy[locale].activity = snapshot.copy[locale].activities.running; delete snapshot.copy[locale].activities; }
-  return { preview: { id, snapshot }, serverTime: '2026-10-24T00:00:00Z' };
+  return { preview: { id, snapshot }, characterId, serverTime: '2026-10-24T00:00:00Z' };
 }
 test('accepts the actual canonical bilingual policy snapshot from the server', () => {
   expect(isPreviewEnvelope(preview())).toBe(true);
+});
+
+test('preview envelopes require the canonical owning character', () => {
+  const { preview: value, serverTime } = preview();
+  expect(isPreviewEnvelope({ preview: value, serverTime })).toBe(false);
+  expect(isPreviewEnvelope({ preview: value, characterId: characterId.toUpperCase(), serverTime })).toBe(false);
+  expect(isPreviewEnvelope({ preview: value, characterId: null, serverTime })).toBe(false);
+  expect(isStoredPreviewEnvelope({ preview: value, characterId, oathId: null })).toBe(true);
+  expect(isStoredPreviewEnvelope({ preview: value, oathId: null })).toBe(false);
+  expect(isStoredPreviewEnvelope({ preview: value, characterId: 'other', oathId: null })).toBe(false);
 });
 
 import { isOathEnvelope, isOathListEnvelope, isPauseEnvelope, isPreviewInput, isStoredPreviewEnvelope, isUuid } from './oathSchema';
@@ -19,7 +31,7 @@ import { isOathEnvelope, isOathListEnvelope, isPauseEnvelope, isPreviewInput, is
 function oath() {
   const value = preview();
   value.preview.snapshot.activation = { mode: 'scheduled', time: { local: '2026-10-24T20:00:00', timezone: 'UTC', offset: '+00:00', explicitOffset: false, utc: '2026-10-24T20:00:00Z' } };
-  return { oath: { id, snapshot: value.preview.snapshot, state: 'scheduled', createdAt: value.serverTime, activatedAt: null as string | null, terminalAt: null as string | null, reason: null as string | null, review: null as { enteredAt: string; closesAt: string } | null }, serverTime: value.serverTime };
+  return { oath: { id, characterId, snapshot: value.preview.snapshot, state: 'scheduled', createdAt: value.serverTime, activatedAt: null as string | null, terminalAt: null as string | null, reason: null as string | null, review: null as { enteredAt: string; closesAt: string } | null }, serverTime: value.serverTime };
 }
 
 test.each([
@@ -48,10 +60,10 @@ test.each([
 
 test('stored preview keeps saved copy and remains readable after its original deadline', () => {
   const value = preview(); value.preview.snapshot.copy.en.title = 'A previously accepted title';
-  expect(isStoredPreviewEnvelope({ preview: value.preview, oathId: null })).toBe(true);
-  expect(isStoredPreviewEnvelope({ preview: value.preview, oathId: id })).toBe(true);
-  expect(isStoredPreviewEnvelope({ preview: value.preview, oathId: 'other' })).toBe(false);
-  expect(isStoredPreviewEnvelope({ preview: value.preview, oathId: null, extra: true })).toBe(false);
+  expect(isStoredPreviewEnvelope({ preview: value.preview, characterId, oathId: null })).toBe(true);
+  expect(isStoredPreviewEnvelope({ preview: value.preview, characterId, oathId: id })).toBe(true);
+  expect(isStoredPreviewEnvelope({ preview: value.preview, characterId, oathId: 'other' })).toBe(false);
+  expect(isStoredPreviewEnvelope({ preview: value.preview, characterId, oathId: null, extra: true })).toBe(false);
 });
 
 test('validates real committed timing and terminal/review metadata', () => {
@@ -63,9 +75,18 @@ test('validates real committed timing and terminal/review metadata', () => {
   value.oath.review = { enteredAt: '2026-10-25T00:45:01Z', closesAt: '2026-10-28T00:45:01Z' };
   expect(isOathEnvelope(value)).toBe(true);
   value.oath.review.closesAt = '2026-10-28T00:45:02Z'; expect(isOathEnvelope(value)).toBe(false);
-  const withdrawn = oath(); withdrawn.oath.state = 'withdrawn'; withdrawn.oath.reason = 'account_paused';
+  const withdrawn = oath(); withdrawn.oath.state = 'withdrawn'; withdrawn.oath.reason = 'character_paused';
   expect(isOathEnvelope(withdrawn)).toBe(false);
   withdrawn.oath.terminalAt = withdrawn.oath.createdAt; expect(isOathEnvelope(withdrawn)).toBe(true);
+  withdrawn.oath.reason = 'account_paused'; expect(isOathEnvelope(withdrawn)).toBe(false);
+});
+
+test('the Oath representation requires its canonical owning character', () => {
+  const value = oath(); expect(isOathEnvelope(value)).toBe(true);
+  const { characterId: _omitted, ...withoutCharacter } = value.oath;
+  expect(isOathEnvelope({ ...value, oath: withoutCharacter })).toBe(false);
+  expect(isOathEnvelope({ ...value, oath: { ...value.oath, characterId: characterId.toUpperCase() } })).toBe(false);
+  expect(isOathEnvelope({ ...value, oath: { ...value.oath, characterId: null } })).toBe(false);
 });
 
 test('rejects activation after deadline and altered effective activation', () => {
@@ -77,12 +98,19 @@ test('rejects activation after deadline and altered effective activation', () =>
 
 test('list and pause envelopes reject duplicate IDs, unknown fields and unsafe cursors', () => {
   const item = oath().oath;
-  const list = { items: [item], nextCursor: null as string | null, serverTime: '2026-10-24T00:00:00Z', paused: false };
+  const list = { items: [item], nextCursor: null as string | null, serverTime: '2026-10-24T00:00:00Z', paused: false, characterId };
   expect(isOathListEnvelope(list)).toBe(true);
+  expect(isOathListEnvelope({ ...list, items: [], characterId: otherCharacterId })).toBe(true);
+  expect(isOathListEnvelope({ ...list, characterId: otherCharacterId })).toBe(false);
+  const { characterId: _listCharacter, ...legacyList } = list;
+  expect(isOathListEnvelope(legacyList)).toBe(false);
   expect(isOathListEnvelope({ ...list, items: [item, item] })).toBe(false);
   expect(isOathListEnvelope({ ...list, nextCursor: '../bad' })).toBe(false);
-  const pause = { paused: false, revision: 'a'.repeat(64), withdraw: [id], preserve: [], serverTime: list.serverTime };
+  const pause = { paused: false, revision: 'a'.repeat(64), withdraw: [id], preserve: [], serverTime: list.serverTime, characterId };
   expect(isPauseEnvelope(pause)).toBe(true);
+  const { characterId: _pauseCharacter, ...legacyPause } = pause;
+  expect(isPauseEnvelope(legacyPause)).toBe(false);
+  expect(isPauseEnvelope({ ...pause, characterId: 'A'.repeat(36) })).toBe(false);
   expect(isPauseEnvelope({ ...pause, preserve: [id] })).toBe(false);
   expect(isPauseEnvelope({ ...pause, paused: true })).toBe(false);
   expect(isPauseEnvelope({ ...pause, paused: true, withdraw: [] })).toBe(true);
