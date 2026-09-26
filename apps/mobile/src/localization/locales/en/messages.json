@@ -259,7 +259,6 @@
     "today": "Today",
     "history": "History",
     "create": "Create an Oath",
-    "pause": "Pause and resume",
     "loading": "Loading Oaths…",
     "loadError": "We could not load your Oaths. Try again.",
     "emptyToday": "No current Oaths. Choose a workout when you are ready.",
@@ -299,8 +298,7 @@
     "guide": "Zharomir keeps the hearth. Your next step begins outside it.",
     "detail": "Oath details",
     "empty": "Every Oath begins with a spark.",
-    "emptyHint": "Choose one workout and give it a time. Review the promise before you commit.",
-    "pauseShort": "Pause"
+    "emptyHint": "Choose one workout and give it a time. Review the promise before you commit."
   },
   "character": {
     "title": "Forge your character",
@@ -409,7 +407,8 @@
       "state_active": "Active",
       "state_paused": "Paused",
       "state_unknown": "State unknown",
-      "hint": "Opens the pause review for this character."
+      "hint": "Opens the pause review for this character.",
+      "back": "Back to Settings"
     },
     "account": {
       "title": "Account",

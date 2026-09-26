@@ -18,7 +18,7 @@ export type OathCreationDraft = { activity: Activity; scheduled: boolean; activa
 function emptyDraft(timezone: string): OathCreationDraft {
   return { activity: 'running', scheduled: false, activation: { date: '', time: '', zone: timezone }, deadline: { date: '', time: '', zone: timezone } };
 }
-export function OathScreen({ controller, timezone, onLogout, onBack, backLabel, initialDraft, onDraftChange, approach = null }: { controller: OathController; timezone: string; onLogout(): void; onBack?(): void; backLabel?: string; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void; approach?: number | null }) {
+export function OathScreen({ controller, timezone, onBack, backLabel, initialDraft, onDraftChange, approach = null }: { controller: OathController; timezone: string; onBack?(): void; backLabel?: string; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void; approach?: number | null }) {
   const { t } = useTranslation();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const [draft, setDraft] = useState<OathCreationDraft>(() => initialDraft ?? emptyDraft(timezone));
@@ -126,7 +126,6 @@ export function OathScreen({ controller, timezone, onLogout, onBack, backLabel, 
           {...(!valid || (!!choices && !(choices.field === 'activation' ? activation.offset : deadline.offset))
             ? { disabled: true, unavailableReason: !valid ? t('oath.formRequired') : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
       </>}
-      <Action label={t('auth.signOut')} variant="secondary" onPress={onLogout} />
     </Animated.ScrollView>
   </SafeAreaView></SceneSurface>;
 }

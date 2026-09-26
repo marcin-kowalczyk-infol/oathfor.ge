@@ -123,7 +123,7 @@ export function AuthScreen({ controller, authenticate, profileApi, oathApi, acce
     return <><StatusBar style="light" />
       {overlay && <View style={styles.fill}>{overlay}</View>}
       <View style={overlay ? styles.hidden : styles.fill} accessibilityElementsHidden={!!overlay} importantForAccessibility={overlay ? 'no-hide-descendants' : 'auto'}>
-        <MotionSuspended suspended={!!overlay}><OathHomeScreen forgeNavigation={forgeNavigation} key={`${state.account.id}.${characterState.activeCharacterId}`} controller={oaths} timezone={profile.value.profile.timezone!} onLogout={() => { void controller.logout(); }}
+        <MotionSuspended suspended={!!overlay}><OathHomeScreen forgeNavigation={forgeNavigation} key={`${state.account.id}.${characterState.activeCharacterId}`} controller={oaths} timezone={profile.value.profile.timezone!}
           character={active} onChangeCharacter={() => openCharacters('change')} /></MotionSuspended>
       </View>
     </>;

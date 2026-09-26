@@ -21,7 +21,7 @@ function setup(items = [oath()]) {
   let state: OathControllerState = { kind: 'ready', busy: false, preview: null, pending: null, oath: null, needsReview: false };
   const listeners = new Set<() => void>();
   const controller = { getState: () => state, subscribe: (fn: () => void) => { listeners.add(fn); return () => listeners.delete(fn); }, list: jest.fn().mockResolvedValue({ kind: 'success', value: { items, nextCursor: null, total: items.length, serverTime, paused: false, characterId } }), detail: jest.fn().mockResolvedValue({ kind: 'success', value: { oath: items[0], serverTime } }), getPause: jest.fn(), pause: jest.fn(), resetCreation: jest.fn(), recover: jest.fn() } as unknown as OathController;
-  return { controller, onLogout: jest.fn(), state, change(next: OathControllerState) { state = next; listeners.forEach(fn => fn()); } };
+  return { controller, state, change(next: OathControllerState) { state = next; listeners.forEach(fn => fn()); } };
 }
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 const page = (items: Oath[], nextCursor: string | null = null, paused = false, total = items.length + (nextCursor ? 1 : 0)) => ({ kind: 'success' as const, value: { items, nextCursor, total, serverTime, paused, characterId } });
@@ -80,20 +80,23 @@ test('Today preserves server order across future, current and overdue pending co
   expect(screen.getByRole('header', { name: 'Scheduled' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Active commitments' })).toBeOnTheScreen();
 });
+test('Today, History and detail render no pause control and no sign-out, which live in Settings', async () => {
+  const f = setup(); await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await screen.findByText('Under review');
+  const absent = () => { for (const name of ['Pause and resume', 'Sign out']) expect(screen.queryByRole('button', { name })).toBeNull(); expect(screen.queryByText('Ⅱ')).toBeNull(); };
+  absent();
+  await fireEvent.press(screen.getByRole('button', { name: /Open Oath: Running/ }));
+  await screen.findByLabelText('Status: Under review'); absent();
+  await fireEvent.press(screen.getByRole('button', { name: 'History' }));
+  await screen.findByText('Under review'); absent();
+  expect(f.controller.getPause).not.toHaveBeenCalled();
+});
 test('a character pause withdrawal explains that resuming does not restore it', async () => {
   const withdrawn = oath({ state: 'withdrawn', reason: 'character_paused', terminalAt: serverTime, review: null });
   const f = setup([withdrawn]);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
   expect(await screen.findByText('Withdrawn when gameplay was paused. Resuming does not restore this Oath.')).toBeOnTheScreen();
-});
-test('partial pause-detail failure never exposes confirmation', async () => {
-  const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
-  jest.mocked(f.controller.detail).mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' });
-  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  await screen.findByText('Under review'); await fireEvent.press(screen.getByRole('button', { name: 'Pause and resume' }));
-  expect(await screen.findByRole('button', { name: 'Reload pause review' })).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Confirm pause' })).toBeNull(); expect(f.controller.pause).not.toHaveBeenCalled();
 });
 test('unresolved acceptance remains reachable from Today and cannot be reset into a new creation', async () => {
   const f = setup([]); f.change({ kind: 'ready', busy: false, pending: { version: 2, accountId: id, characterId, previewId: id, requestId: id }, preview: null, oath: null, needsReview: false });
@@ -113,77 +116,14 @@ test('session invalidation hides detail content and ignores pending read complet
   await act(async () => incoming.resolve({ kind: 'success', value: { oath: oath(), serverTime } }));
   expect(screen.queryByLabelText('Status: Under review')).toBeNull(); expect(screen.queryByText(oath().snapshot.copy.en.sections.appeal)).toBeNull();
 });
-test('Polish history and pause controls use localized copy without exposing IDs', async () => {
+test('Polish history uses localized copy and offers neither pause nor sign-out', async () => {
   const f = setup([]);
   await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   expect(await screen.findByText('Brak bieżących Przysiąg. Wybierz trening, gdy zechcesz zacząć.')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Historia' }));
   expect(await screen.findByText('Nie ma jeszcze zakończonych ani wycofanych Przysiąg.')).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Pauza i wznowienie' })).toBeOnTheScreen();
-});
-test('pause shows meaningful complete-set summaries and a changed revision requires a new confirmation', async () => {
-  const f = setup(); const extraId = '20000000-0000-4000-8000-000000000002';
-  const preserved = oath({ id: extraId });
-  jest.mocked(f.controller.getPause).mockResolvedValueOnce({ kind: 'success', value: { ...pauseSummary(), preserve: [extraId] } }).mockResolvedValueOnce({ kind: 'success', value: pauseSummary('b'.repeat(64)) });
-  jest.mocked(f.controller.detail).mockImplementation(async selectedId => ({ kind: 'success', value: { oath: selectedId === id ? oath() : preserved, serverTime } }));
-  jest.mocked(f.controller.pause).mockResolvedValueOnce({ kind: 'oath_error', code: 'pause_preview_changed' }).mockResolvedValueOnce({ kind: 'success', value: pauseSummary('c'.repeat(64), true) });
-  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  await screen.findByText('Under review'); await fireEvent.press(screen.getByRole('button', { name: 'Pause and resume' }));
-  expect(await screen.findByRole('button', { name: 'Confirm pause' })).toBeOnTheScreen();
-  expect(screen.getByRole('header', { name: 'Will be withdrawn' })).toBeOnTheScreen();
-  expect(screen.getByRole('header', { name: 'Will continue' })).toBeOnTheScreen();
-  expect(screen.getAllByText(/Running ·.*Europe\/Warsaw/)).toHaveLength(2);
-  expect(screen.queryByText(id)).toBeNull(); expect(f.controller.pause).not.toHaveBeenCalled();
-  await fireEvent.press(screen.getByRole('button', { name: 'Confirm pause' }));
-  expect(await screen.findByText('Your Oaths changed. Review this updated list before confirming pause.')).toBeOnTheScreen();
-  expect(f.controller.pause).toHaveBeenCalledTimes(1);
-  await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
-  expect(jest.mocked(f.controller.pause).mock.calls.map(call => call[0])).toEqual([{ paused: true, revision: 'a'.repeat(64) }, { paused: true, revision: 'b'.repeat(64) }]);
-  expect(jest.mocked(f.controller.list).mock.calls[1][0]).toEqual({ view: 'today' });
-});
-test('a character switch during pause review stops and waits for the app to rebind instead of pausing another character', async () => {
-  const f = setup();
-  jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
-  jest.mocked(f.controller.pause).mockResolvedValueOnce({ kind: 'oath_error', code: 'character_changed' });
-  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  await screen.findByText('Under review'); await fireEvent.press(screen.getByRole('button', { name: 'Pause and resume' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
-  expect(await screen.findByText('Your active character changed. Review the current Oaths again.')).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Confirm pause' })).toBeNull();
-  expect(screen.getByRole('button', { name: 'Reload pause review' })).toBeOnTheScreen();
-  expect(f.controller.getPause).toHaveBeenCalledTimes(1);
-  expect(jest.mocked(f.controller.pause).mock.calls.map(call => call[0])).toEqual([{ paused: true, revision: 'a'.repeat(64) }]);
-});
-test('resume only sends the flag, and a failed change requires current-state reload', async () => {
-  const f = setup([]); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), true) });
-  jest.mocked(f.controller.pause).mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' }).mockResolvedValueOnce({ kind: 'success', value: pauseSummary() });
-  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  await screen.findByText('No current Oaths. Choose a workout when you are ready.'); await fireEvent.press(screen.getByRole('button', { name: 'Pause and resume' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Resume gameplay' }));
-  expect(jest.mocked(f.controller.pause).mock.calls[0][0]).toEqual({ paused: false });
-  expect(screen.queryByRole('button', { name: 'Resume gameplay' })).toBeNull();
-  await fireEvent.press(await screen.findByRole('button', { name: 'Reload pause review' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Resume gameplay' }));
-  expect(await screen.findByText('No current Oaths. Choose a workout when you are ready.')).toBeOnTheScreen();
-});
-test('controller revalidation clears old pause busy state without an old response unlocking a newer mutation', async () => {
-  const f = setup([]); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), true) });
-  const old = deferred<Awaited<ReturnType<OathController['pause']>>>(); const newer = deferred<Awaited<ReturnType<OathController['pause']>>>();
-  jest.mocked(f.controller.pause).mockReturnValueOnce(old.promise).mockReturnValueOnce(newer.promise);
-  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  await screen.findByText('No current Oaths. Choose a workout when you are ready.'); await fireEvent.press(screen.getByRole('button', { name: 'Pause and resume' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Resume gameplay' }));
-  expect(screen.getByRole('button', { name: 'Today', disabled: true })).toBeOnTheScreen();
-  await act(async () => f.change({ kind: 'loading' }));
-  await act(async () => f.change(f.state));
-  expect(await screen.findByRole('button', { name: 'Today', disabled: false })).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Pause and resume' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Resume gameplay' }));
-  await act(async () => old.resolve({ kind: 'success', value: pauseSummary() }));
-  expect(screen.getByRole('button', { name: 'Today', disabled: true })).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Resume gameplay', disabled: true })).toBeOnTheScreen();
-  await act(async () => newer.resolve({ kind: 'success', value: pauseSummary() }));
-  expect(await screen.findByRole('button', { name: 'Today', disabled: false })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Pauza i wznowienie' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Wyloguj się' })).toBeNull();
 });
 test('late list and detail responses cannot replace the newly selected screen', async () => {
   const f = setup(); const late = deferred<Awaited<ReturnType<OathController['list']>>>();
@@ -263,14 +203,14 @@ test('confirmation arriving after returning to Today clears the committed draft'
   expect(screen.queryByText('21:00')).toBeNull();
 });
 
-test('paused Forge makes the paused state visible and offers review without a creation affordance', async () => {
+test('paused Forge makes the paused state visible without a creation affordance or a pause control', async () => {
   Dimensions.set({ window: { width: 390, height: 844, scale: 3, fontScale: 1 }, screen: { width: 390, height: 844, scale: 3, fontScale: 1 } });
   const f = setup([]);
   jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   expect(await screen.findByText('Gameplay is paused. Existing reviews continue. Withdrawn Oaths will not return.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Create an Oath' })).toBeNull();
-  expect(screen.getByRole('button', { name: 'Pause and resume' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Pause and resume' })).toBeNull();
 });
 
 test('room navigation opens history and keeps full stored time in accessibility', async () => {

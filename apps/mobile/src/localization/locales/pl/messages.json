@@ -263,7 +263,6 @@
     "today": "Dzisiaj",
     "history": "Historia",
     "create": "Złóż Przysięgę",
-    "pause": "Pauza i wznowienie",
     "loading": "Wczytywanie Przysiąg…",
     "loadError": "Nie udało się wczytać Przysiąg. Spróbuj ponownie.",
     "emptyToday": "Brak bieżących Przysiąg. Wybierz trening, gdy zechcesz zacząć.",
@@ -303,8 +302,7 @@
     "guide": "Żaromir strzeże paleniska. Twój kolejny krok zaczyna się poza nim.",
     "detail": "Szczegóły Przysięgi",
     "empty": "Każda Przysięga zaczyna się od iskry.",
-    "emptyHint": "Wybierz jeden trening i wyznacz mu czas. Poznaj zasady, zanim złożysz Przysięgę.",
-    "pauseShort": "Pauza"
+    "emptyHint": "Wybierz jeden trening i wyznacz mu czas. Poznaj zasady, zanim złożysz Przysięgę."
   },
   "character": {
     "title": "Wykuj swoją postać",
@@ -415,7 +413,8 @@
       "state_active": "W grze",
       "state_paused": "W pauzie",
       "state_unknown": "Stan nieznany",
-      "hint": "Otwiera skutki pauzy tej postaci."
+      "hint": "Otwiera skutki pauzy tej postaci.",
+      "back": "Wróć do ustawień"
     },
     "account": {
       "title": "Konto",

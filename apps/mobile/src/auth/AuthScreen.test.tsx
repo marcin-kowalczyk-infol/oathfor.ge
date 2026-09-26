@@ -110,8 +110,6 @@ test('completed accounts load profile and confirmed language before their destin
   expect(await screen.findByRole('header', { name: 'Twoje Przysięgi' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Złóż Przysięgę' }));
   expect(await screen.findByRole('button', { name: 'Zobacz zasady' })).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Wyloguj się' }));
-  expect(await screen.findByText('Welcome to Oathforge')).toBeOnTheScreen();
 });
 
 test('language preview keeps the draft and explicit confirmation saves basics before the companion handoff', async () => {

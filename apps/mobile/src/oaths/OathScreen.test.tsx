@@ -28,7 +28,7 @@ function setup() {
   const storage: PendingStorage = { read: jest.fn().mockResolvedValue({ kind: 'success', value: null }), write: jest.fn().mockResolvedValue({ kind: 'success' }) };
   const api = { preview: jest.fn().mockResolvedValue({ kind: 'success', value: envelope }), getPreview: jest.fn().mockResolvedValue({ kind: 'success', value: { preview: envelope.preview, characterId, oathId: null } }), confirm: jest.fn().mockResolvedValue({ kind: 'unavailable', retry: 'request' }) } as unknown as OathClient;
   const controller = createOathController({ session, api, storage }); controller.setCharacter({ accountId, characterId }); controllers.push(controller);
-  return { controller, api, storage, envelope, onLogout: jest.fn() };
+  return { controller, api, storage, envelope };
 }
 test('chosen running deadline previews all rules before explicit acceptance can commit', async () => {
   const f = setup(); f.controller.start();
@@ -128,7 +128,8 @@ test('Polish form and stored rules support recovery after restart without new co
   expect(f.api.confirm).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('button', { name: 'Sprawdź potwierdzenie' }));
   expect(jest.mocked(f.api.confirm).mock.calls[0][1].requestId).toBe(id);
-  await fireEvent.press(screen.getByRole('button', { name: 'Wyloguj się' })); expect(f.onLogout).toHaveBeenCalledTimes(1);
+  // Sign-out lives in Settings only.
+  expect(screen.queryByRole('button', { name: 'Wyloguj się' })).toBeNull();
 });
 
 test('creation offers a calendar and time controls without raw date inputs', async () => {
