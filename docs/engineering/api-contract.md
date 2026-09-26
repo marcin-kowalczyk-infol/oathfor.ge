@@ -116,7 +116,7 @@ All endpoints reuse HTTPS/Bearer/no-store and safe error envelope `{"error":{"co
 
 ## Player character contract
 
-Status: planned in MVP-17, not implemented. Local engineering contract, 2026-09-26, implementing the accepted [player character specification](../product/player-character.md) and [ADR 0005](../decisions/0005-character-owned-oaths.md). Existing Bearer, HTTPS, no-store, 16 KiB JSON bound, 415 media type check and safe error envelope apply. Unknown fields and wrong types return 400 `invalid_request`. Infrastructure failure returns 503 `temporarily_unavailable` with no partial write. Invalid, expired or revoked sessions return 401 `unauthenticated`. IDs use canonical lowercase UUID text, and a malformed ID in a body returns 400 `invalid_request`.
+Status: `GET` and `POST /api/characters` implemented in MVP-17-T02 with integration and race coverage, 2026-09-26. Switching and character-owned Oaths are planned, not implemented. The runtime image has no `ext-intl`, so NFC uses the declared `symfony/polyfill-intl-normalizer`. Local engineering contract, 2026-09-26, implementing the accepted [player character specification](../product/player-character.md) and [ADR 0005](../decisions/0005-character-owned-oaths.md). Existing Bearer, HTTPS, no-store, 16 KiB JSON bound, 415 media type check and safe error envelope apply. Unknown fields and wrong types return 400 `invalid_request`. Infrastructure failure returns 503 `temporarily_unavailable` with no partial write. Invalid, expired or revoked sessions return 401 `unauthenticated`. IDs use canonical lowercase UUID text, and a malformed ID in a body returns 400 `invalid_request`.
 
 ### Persistence and locking
 
@@ -126,7 +126,7 @@ Every character request and every Oath read or write locks the account row first
 
 ### Presets, forms and names
 
-The server owns the preset catalog in `apps/api/resources/character/presets_v1.json`. IDs match `^[a-z0-9_]{1,64}$`. The catalog will hold four DUMMY presets, `dummy_braid`, `dummy_cropped`, `dummy_curly` and `dummy_tied`, marked `"dummy": true`. They are replaced by owner artwork later. A stored character keeps its preset ID, so a character's `presetId` may be absent from the current `presets` list. Clients must accept that and draw a neutral placeholder.
+The server owns the preset catalog in `apps/api/resources/character/presets_v1.json`. IDs match `^[a-z0-9_]{1,64}$`. The catalog holds four DUMMY presets, `dummy_braid`, `dummy_cropped`, `dummy_curly` and `dummy_tied`, marked `"dummy": true`. They are replaced by owner artwork later. A stored character keeps its preset ID, so a character's `presetId` may be absent from the current `presets` list. Clients must accept that and draw a neutral placeholder.
 
 `form` is `masculine`, `feminine` or `neutral`. It selects Polish grammatical variants and is independent of the preset look.
 

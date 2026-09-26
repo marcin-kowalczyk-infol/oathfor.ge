@@ -1,0 +1,9 @@
+{
+  "version": "presets_v1",
+  "presets": [
+    {"id": "dummy_braid", "dummy": true},
+    {"id": "dummy_cropped", "dummy": true},
+    {"id": "dummy_curly", "dummy": true},
+    {"id": "dummy_tied", "dummy": true}
+  ]
+}
