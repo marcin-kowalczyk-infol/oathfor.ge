@@ -21,6 +21,7 @@ All product and delivery documents live here except business plans, which belong
 | [Core-screen visual system](art/ui-system.md) | Selected tokens, PL/EN screen patterns and accessibility handoff |
 | [Asset pipeline](art/pipeline.md) | Sources, continuity, local artwork and exports |
 | [Player preset assets](art/player-preset-assets.md) | DUMMY character preset exports and their replacement |
+| [Main-menu assets](art/menu-assets.md) | Settings tile export, provenance and reused menu art |
 | [Roadmap](delivery/roadmap.md) | Engineering/product gates, without business forecasts |
 | [Decisions](decisions/0001-project-foundation.md) | Accepted foundation and provenance |
 | [Source register](references.md) | Primary references and verification date |

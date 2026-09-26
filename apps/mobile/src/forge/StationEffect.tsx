@@ -20,7 +20,7 @@ export function StationEffect({ station, request, allowed, anchor }: {
   const opacity = progress.interpolate({ inputRange: [0, 0.15, 0.65, 1], outputRange: [0, 0.85, 0.55, 0] });
   return <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.anchor, anchor]}>
     {station === 'hearth' && <>
-      <Animated.Image source={require('../assets/forge/ember-haze-v01.png')} style={[styles.flare, { opacity, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [10, -36] }) }, { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1.6] }) }] }]} />
+      <Animated.Image source={require('../../assets/forge/ember-haze-v01.png')} style={[styles.flare, { opacity, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [10, -36] }) }, { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1.6] }) }] }]} />
       {[0, 1, 2, 3, 4, 5].map(index => <Animated.View key={index} style={[styles.ember, { opacity, transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, (index - 2.5) * 13] }) }, { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [8, -35 - index % 3 * 15] }) }] }]} />)}
     </>}
     {station === 'chronicle' && [0, 1, 2].map(index => <Animated.View key={index} style={[styles.page, { opacity, transform: [{ perspective: 240 }, { rotateZ: '-12deg' }, { rotateY: progress.interpolate({ inputRange: [0, 0.22 + index * 0.14, 1], outputRange: ['0deg', '-90deg', '-175deg'] }) }] }]} />)}

@@ -13,7 +13,7 @@ jest.mock('../src/ui/useMotion', () => ({ useMotionAllowed: () => false, MotionS
 test('re-running demo effects keeps character creation and the Oath list loadable', async () => {
   await render(<StrictMode><DemoApp /></StrictMode>);
   await fireEvent.press(screen.getByRole('button', { name: 'Pomiń wprowadzenie' }));
-  await fireEvent.press(screen.getByRole('button', { name: pl.scene.exit }));
+  await fireEvent.press(screen.getByRole('button', { name: messages.room.exit }));
   expect(await screen.findByRole('header', { name: messages.character.title })).toBeOnTheScreen();
   await fireEvent.changeText(screen.getByLabelText(messages.character.name), 'Mira');
   await fireEvent.press(screen.getByRole('radio', { name: `${messages.character.form.feminine}, ${messages.character.form.feminineDetail}` }));

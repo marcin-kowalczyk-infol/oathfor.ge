@@ -1,12 +1,18 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Animated, Dimensions } from 'react-native';
-import { ForgeScene, walkDirection } from './ForgeScene';
-import { useMotionAllowed } from '../src/ui/useMotion';
-import en from './locales/en.json';
+import { ForgeRoom, walkDirection } from './ForgeRoom';
+import { useMotionAllowed } from '../ui/useMotion';
+import { LocalizationProvider } from '../localization/LocalizationProvider';
+import type { Locale } from '../localization/locale';
+import en from '../localization/locales/en/messages.json';
+import pl from '../localization/locales/pl/messages.json';
 
-jest.mock('../src/ui/useMotion', () => ({ useMotionAllowed: jest.fn() }));
-// The decorative flame owns its own loop and is not part of scene navigation.
-jest.mock('../src/ui/HearthFire', () => ({ HearthFire: () => null }));
+jest.mock('../ui/useMotion', () => ({ useMotionAllowed: jest.fn() }));
+// The decorative flame owns its own loop and is not part of room navigation.
+jest.mock('../ui/HearthFire', () => ({ HearthFire: () => null }));
+type Props = Parameters<typeof ForgeRoom>[0];
+const room = (props: Partial<Props> = {}, locale: Locale = 'en') =>
+  <LocalizationProvider initialLocale={locale}><ForgeRoom onExit={jest.fn()} onOpenStation={jest.fn()} {...props} /></LocalizationProvider>;
 const motion = jest.mocked(useMotionAllowed);
 let intervals: jest.SpyInstance;
 let clear: jest.SpyInstance;
@@ -22,13 +28,13 @@ afterEach(() => { jest.restoreAllMocks(); jest.useRealTimers(); });
 
 test('reduced motion immediately reveals the selected station and exit is the only external action', async () => {
   const onExit = jest.fn();
-  await render(<ForgeScene locale="en" onExit={onExit} />);
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.seals }));
-  expect(screen.getByRole('button', { name: en.scene.seals, selected: true })).toBeOnTheScreen();
-  expect(screen.getByText(en.scene.descriptions.seals)).toBeOnTheScreen();
+  await render(room({ onExit }));
+  await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
+  expect(screen.getByRole('button', { name: en.room.seals, selected: true })).toBeOnTheScreen();
+  expect(screen.getByText(en.room.descriptions.seals)).toBeOnTheScreen();
   expect(onExit).not.toHaveBeenCalled();
   expect(walkTimers()).toHaveLength(0);
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.exit }));
+  await fireEvent.press(screen.getByRole('button', { name: en.room.exit }));
   expect(onExit).toHaveBeenCalledTimes(1);
 });
 
@@ -42,17 +48,17 @@ test('a late interrupted walk cannot reveal the old station; leaving cancels mot
     stops.push(stop);
     return { start: done => { if (done) finishes.push(done); }, stop, reset: jest.fn() };
   });
-  const view = await render(<ForgeScene locale="en" onExit={jest.fn()} />);
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.hearth }));
+  const view = await render(room());
+  await fireEvent.press(screen.getByRole('button', { name: en.room.hearth }));
   const firstArrival = finishes[finishes.length - 1];
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.chronicle }));
+  await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
   const latestArrival = finishes[finishes.length - 1];
   await act(async () => firstArrival({ finished: true }));
-  expect(screen.queryByText(en.scene.descriptions.hearth)).toBeNull();
-  expect(screen.queryByText(en.scene.descriptions.chronicle)).toBeNull();
+  expect(screen.queryByText(en.room.descriptions.hearth)).toBeNull();
+  expect(screen.queryByText(en.room.descriptions.chronicle)).toBeNull();
   await act(async () => latestArrival({ finished: true }));
-  expect(screen.getByText(en.scene.descriptions.chronicle)).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.seals }));
+  expect(screen.getByText(en.room.descriptions.chronicle)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
   expect(walkTimers()).toHaveLength(3);
   await view.unmount();
   for (const timer of walkTimers()) expect(clear).toHaveBeenCalledWith(timer);
@@ -62,44 +68,44 @@ test('a late interrupted walk cannot reveal the old station; leaving cancels mot
 test('turning motion off during a walk finishes at the requested station and clears its timer', async () => {
   motion.mockReturnValue(true);
   jest.spyOn(Animated, 'timing').mockImplementation(() => ({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() }));
-  const view = await render(<ForgeScene locale="en" onExit={jest.fn()} />);
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.hearth }));
+  const view = await render(room());
+  await fireEvent.press(screen.getByRole('button', { name: en.room.hearth }));
   motion.mockReturnValue(false);
-  await view.rerender(<ForgeScene locale="en" onExit={jest.fn()} />);
-  expect(screen.getByText(en.scene.descriptions.hearth)).toBeOnTheScreen();
+  await view.rerender(room());
+  expect(screen.getByText(en.room.descriptions.hearth)).toBeOnTheScreen();
   for (const timer of walkTimers()) expect(clear).toHaveBeenCalledWith(timer);
 });
 
 
 test('large text exposes one labelled control per station with a scrollable bubble', async () => {
   Dimensions.set({ window: { width: 320, height: 568, scale: 2, fontScale: 3 }, screen: { width: 320, height: 568, scale: 2, fontScale: 3 } });
-  await render(<ForgeScene locale="en" onExit={jest.fn()} />);
-  expect(screen.getAllByRole('button', { name: en.scene.chronicle })).toHaveLength(1);
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.chronicle }));
-  expect(screen.getByText(en.scene.descriptions.chronicle)).toBeOnTheScreen();
+  await render(room());
+  expect(screen.getAllByRole('button', { name: en.room.chronicle })).toHaveLength(1);
+  await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
+  expect(screen.getByText(en.room.descriptions.chronicle)).toBeOnTheScreen();
 });
 
 test('restoring motion after arrival does not replay the walk or hide the station description', async () => {
-  const view = await render(<ForgeScene locale="en" onExit={jest.fn()} />);
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.hearth }));
-  expect(screen.getByText(en.scene.descriptions.hearth)).toBeOnTheScreen();
+  const view = await render(room());
+  await fireEvent.press(screen.getByRole('button', { name: en.room.hearth }));
+  expect(screen.getByText(en.room.descriptions.hearth)).toBeOnTheScreen();
   motion.mockReturnValue(true);
-  await view.rerender(<ForgeScene locale="en" onExit={jest.fn()} />);
-  expect(screen.getByText(en.scene.descriptions.hearth)).toBeOnTheScreen();
+  await view.rerender(room());
+  expect(screen.getByText(en.room.descriptions.hearth)).toBeOnTheScreen();
   expect(walkTimers()).toHaveLength(0);
 });
 
 
 test('a dismissed bubble stays closed across motion changes and the station can reopen it', async () => {
-  const view = await render(<ForgeScene locale="en" onExit={jest.fn()} />);
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.seals }));
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.dismiss }));
-  expect(screen.queryByText(en.scene.descriptions.seals)).toBeNull();
+  const view = await render(room());
+  await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
+  await fireEvent.press(screen.getByRole('button', { name: en.room.dismiss }));
+  expect(screen.queryByText(en.room.descriptions.seals)).toBeNull();
   motion.mockReturnValue(true);
-  await view.rerender(<ForgeScene locale="en" onExit={jest.fn()} />);
-  expect(screen.queryByText(en.scene.descriptions.seals)).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.seals }));
-  expect(screen.getByText(en.scene.descriptions.seals)).toBeOnTheScreen();
+  await view.rerender(room());
+  expect(screen.queryByText(en.room.descriptions.seals)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
+  expect(screen.getByText(en.room.descriptions.seals)).toBeOnTheScreen();
   expect(walkTimers()).toHaveLength(0);
 });
 
@@ -107,19 +113,19 @@ test('a dismissed bubble stays closed across motion changes and the station can 
 test('ambient glow starts only with motion allowed and stops when motion is disabled', async () => {
   const stop = jest.fn();
   const loop = jest.spyOn(Animated, 'loop').mockReturnValue({ start: jest.fn(), stop, reset: jest.fn() });
-  const view = await render(<ForgeScene locale="en" onExit={jest.fn()} />);
+  const view = await render(room());
   expect(loop).not.toHaveBeenCalled();
   motion.mockReturnValue(true);
-  await view.rerender(<ForgeScene locale="en" onExit={jest.fn()} />);
+  await view.rerender(room());
   expect(loop).toHaveBeenCalledTimes(1);
   motion.mockReturnValue(false);
-  await view.rerender(<ForgeScene locale="en" onExit={jest.fn()} />);
+  await view.rerender(room());
   expect(stop).toHaveBeenCalledTimes(1);
 });
 
 test('guide advances manually without walking or exiting', async () => {
-  const onExit = jest.fn(); const onIntroComplete = jest.fn();
-  await render(<ForgeScene locale="en" onExit={onExit} showIntro onIntroComplete={onIntroComplete} />);
+  const onExit = jest.fn(); const onGuideComplete = jest.fn();
+  await render(room({ onExit, showGuide: true, onGuideComplete }));
   expect(screen.getByText('Zharomir')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
   expect(screen.getByText('These glowing seals hold your commitments.')).toBeOnTheScreen();
@@ -127,26 +133,26 @@ test('guide advances manually without walking or exiting', async () => {
   await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
   expect(screen.getByText('The moonlit door takes you back. Explore whenever you wish.')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Start exploring' }));
-  expect(onIntroComplete).toHaveBeenCalledTimes(1);
+  expect(onGuideComplete).toHaveBeenCalledTimes(1);
   expect(onExit).not.toHaveBeenCalled();
   expect(walkTimers()).toHaveLength(0);
 });
 
 test('touching a station ends the introduction and arrival keeps its speaker', async () => {
-  const onIntroComplete = jest.fn();
-  await render(<ForgeScene locale="en" onExit={jest.fn()} showIntro onIntroComplete={onIntroComplete} />);
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.chronicle }));
-  expect(onIntroComplete).toHaveBeenCalledTimes(1);
+  const onGuideComplete = jest.fn();
+  await render(room({ showGuide: true, onGuideComplete }));
+  await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
+  expect(onGuideComplete).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole('button', { name: 'Next place' })).toBeNull();
   expect(screen.getByText('Zharomir')).toBeOnTheScreen();
-  expect(screen.getByText(en.scene.descriptions.chronicle)).toBeOnTheScreen();
+  expect(screen.getByText(en.room.descriptions.chronicle)).toBeOnTheScreen();
 });
 
 test('station discovery requires its named action before opening the matching screen', async () => {
   const open = jest.fn();
-  await render(<ForgeScene locale="en" onExit={jest.fn()} onOpenStation={open} />);
+  await render(room({ onOpenStation: open }));
   for (const [station, label] of [['hearth', 'Shape an Oath'], ['seals', 'View current Oaths'], ['chronicle', 'Read history']] as const) {
-    await fireEvent.press(screen.getByRole('button', { name: en.scene[station] }));
+    await fireEvent.press(screen.getByRole('button', { name: en.room[station] }));
     expect(open).toHaveBeenCalledTimes(['hearth', 'seals', 'chronicle'].indexOf(station));
     await fireEvent.press(screen.getByRole('button', { name: label }));
     expect(open).toHaveBeenLastCalledWith(station);
@@ -161,8 +167,40 @@ test('walking picks the sheet that faces the travel direction and never mirrors'
 });
 
 test('arrival shows the station pose, including the static reduced-motion equivalent', async () => {
-  await render(<ForgeScene locale="en" onExit={jest.fn()} />);
+  await render(room());
   expect(screen.getByTestId('hero-idle', { includeHiddenElements: true })).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: en.scene.chronicle }));
+  await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
   expect(screen.getByTestId('hero-pose-chronicle', { includeHiddenElements: true })).toBeTruthy();
+});
+
+test.each([['pl', pl], ['en', en]] as const)('the %s door leaves the room and names every station from the main catalog', async (locale, copy) => {
+  const onExit = jest.fn();
+  await render(room({ onExit }, locale));
+  for (const station of ['hearth', 'seals', 'chronicle'] as const) expect(screen.getByRole('button', { name: copy.room[station] })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: copy.room.exit }));
+  expect(onExit).toHaveBeenCalledTimes(1);
+});
+
+test('a later guide request starts the guide from the first place', async () => {
+  const onGuideComplete = jest.fn();
+  const view = await render(room({ showGuide: false, onGuideComplete }));
+  expect(screen.queryByRole('button', { name: en.room.guide.next })).toBeNull();
+  await view.rerender(room({ showGuide: true, onGuideComplete }));
+  expect(screen.getByText(en.room.guide.hearth)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: en.room.guide.skip }));
+  expect(onGuideComplete).toHaveBeenCalledTimes(1);
+  await view.rerender(room({ showGuide: 2, onGuideComplete }));
+  expect(screen.getByText(en.room.guide.hearth)).toBeOnTheScreen();
+  await view.rerender(room({ showGuide: 2, onGuideComplete }));
+  await fireEvent.press(screen.getByRole('button', { name: en.room.guide.next }));
+  expect(screen.getByText(en.room.guide.seals)).toBeOnTheScreen();
+});
+
+test('a guide restart in an open room closes the station bubble', async () => {
+  const view = await render(room());
+  await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
+  expect(screen.getByText(en.room.descriptions.seals)).toBeOnTheScreen();
+  await view.rerender(room({ showGuide: 1 }));
+  await fireEvent.press(screen.getByRole('button', { name: en.room.guide.skip }));
+  expect(screen.queryByText(en.room.descriptions.seals)).toBeNull();
 });
