@@ -305,5 +305,60 @@
     "empty": "Każda Przysięga zaczyna się od iskry.",
     "emptyHint": "Wybierz jeden trening i wyznacz mu czas. Poznaj zasady, zanim złożysz Przysięgę.",
     "pauseShort": "Pauza"
+  },
+  "character": {
+    "title": "Wykuj swoją postać",
+    "intro": "Wybierz wygląd, imię i tytuł, którym Kuźnia będzie się do Ciebie zwracać.",
+    "preview": "Podgląd: {{name}}, {{title}}",
+    "unnamed": "Bez imienia",
+    "untitled": "Tytuł niewybrany",
+    "dummy": "DUMMY",
+    "dummyLabel": "Grafika zastępcza",
+    "looks": "Wygląd",
+    "look": "Wygląd {{index}} z {{count}}",
+    "noLooks": "Nie można teraz pokazać żadnego wyglądu. Wczytaj wygląd ponownie, aby przejść dalej.",
+    "reloadLooks": "Wczytaj wygląd ponownie",
+    "name": "Imię",
+    "nameHint": "Od 2 do 20 liter. Między nimi może stać spacja, łącznik lub apostrof.",
+    "nameError": {
+      "too_short": "Imię potrzebuje co najmniej 2 liter.",
+      "too_long": "Imię może mieć najwyżej 20 znaków.",
+      "invalid_character": "Użyj samych liter. Między nimi może stać spacja, łącznik lub apostrof.",
+      "separator": "Spacja, łącznik lub apostrof może stać tylko pojedynczo, między dwiema literami."
+    },
+    "titles": "Tytuł",
+    "titlesHint": "Forma decyduje o tytule i o tym, jak Kuźnia zwraca się do Ciebie.",
+    "form": {
+      "masculine": "Obrońca Przysięgi",
+      "masculineDetail": "forma męska",
+      "feminine": "Obrończyni Przysięgi",
+      "feminineDetail": "forma żeńska",
+      "neutral": "Straż Przysięgi",
+      "neutralDetail": "forma neutralna"
+    },
+    "formChoice": "{{title}}, {{detail}}",
+    "create": "Stwórz postać",
+    "retry": "Spróbuj ponownie",
+    "unmet": "Wpisz imię i wybierz tytuł, aby przejść dalej.",
+    "unmetName": "Wpisz poprawne imię, aby przejść dalej.",
+    "unmetForm": "Wybierz tytuł, aby przejść dalej.",
+    "unmetLook": "Wybierz wygląd, aby przejść dalej.",
+    "loading": "Wczytuję Twoje postacie…",
+    "storageUnavailable": "To urządzenie nie odczytało zapisanych wyborów. Spróbuj ponownie.",
+    "pending": "Połączenie zerwało się, zanim Kuźnia odpowiedziała. Postać {{name}} czeka zapisana na tym urządzeniu. Spróbuj ponownie, aby dokończyć.",
+    "finishing": "Kończę tworzenie postaci {{name}}…",
+    "rateLimited_one": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana na tym urządzeniu. Spróbuj ponownie za {{count}} sekundę.",
+    "rateLimited_few": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana na tym urządzeniu. Spróbuj ponownie za {{count}} sekundy.",
+    "rateLimited_many": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana na tym urządzeniu. Spróbuj ponownie za {{count}} sekund.",
+    "rateLimited_other": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana na tym urządzeniu. Spróbuj ponownie za {{count}} sekundy.",
+    "error": {
+      "invalid_character_name": "Kuźnia nie przyjęła tego imienia. Wybierz inne.",
+      "invalid_preset": "Ten wygląd nie jest już dostępny. Wczytaj wygląd ponownie i wybierz jeszcze raz.",
+      "character_limit_reached": "To konto ma już trzy postacie, tyle ile może pomieścić.",
+      "onboarding_incomplete": "Dokończ konfigurację konta, zanim stworzysz postać.",
+      "generic": "Nie udało się stworzyć tej postaci. Sprawdź wybory i spróbuj ponownie.",
+      "unavailable": "Kuźnia jest teraz nieosiągalna. Sprawdź połączenie i spróbuj ponownie.",
+      "storage": "To urządzenie nie zapisało Twoich wyborów. Spróbuj ponownie."
+    }
   }
 }

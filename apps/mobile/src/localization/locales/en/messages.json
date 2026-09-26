@@ -301,5 +301,58 @@
     "empty": "Every Oath begins with a spark.",
     "emptyHint": "Choose one workout and give it a time. Review the promise before you commit.",
     "pauseShort": "Pause"
+  },
+  "character": {
+    "title": "Forge your character",
+    "intro": "Choose a look, a name and the title the Forge will call you by.",
+    "preview": "Preview: {{name}}, {{title}}",
+    "unnamed": "Unnamed",
+    "untitled": "Title not chosen",
+    "dummy": "DUMMY",
+    "dummyLabel": "Placeholder art",
+    "looks": "Look",
+    "look": "Look {{index}} of {{count}}",
+    "noLooks": "No looks can be shown right now. Reload the looks to continue.",
+    "reloadLooks": "Reload looks",
+    "name": "Name",
+    "nameHint": "2 to 20 letters. A space, hyphen or apostrophe may sit between them.",
+    "nameError": {
+      "too_short": "Use at least 2 letters.",
+      "too_long": "Use at most 20 characters.",
+      "invalid_character": "Use letters only. A space, hyphen or apostrophe may sit between them.",
+      "separator": "Put a single space, hyphen or apostrophe only between two letters."
+    },
+    "titles": "Title",
+    "titlesHint": "In English every form reads Oathkeeper. The form sets how Polish text addresses you.",
+    "form": {
+      "masculine": "Oathkeeper",
+      "masculineDetail": "he / him",
+      "feminine": "Oathkeeper",
+      "feminineDetail": "she / her",
+      "neutral": "Oathkeeper",
+      "neutralDetail": "they / them"
+    },
+    "formChoice": "{{title}}, {{detail}}",
+    "create": "Create character",
+    "retry": "Try again",
+    "unmet": "Enter a name and choose a title to continue.",
+    "unmetName": "Enter a valid name to continue.",
+    "unmetForm": "Choose a title to continue.",
+    "unmetLook": "Choose a look to continue.",
+    "loading": "Gathering your characters…",
+    "storageUnavailable": "This device could not read your saved choices. Try again.",
+    "pending": "The connection dropped before the Forge answered. {{name}} is saved on this device. Try again to finish.",
+    "finishing": "Finishing {{name}}…",
+    "rateLimited_one": "The Forge asks for a short pause. {{name}} is saved on this device. Try again in {{count}} second.",
+    "rateLimited_other": "The Forge asks for a short pause. {{name}} is saved on this device. Try again in {{count}} seconds.",
+    "error": {
+      "invalid_character_name": "The Forge did not accept this name. Choose another one.",
+      "invalid_preset": "That look is no longer available. Reload the looks and choose again.",
+      "character_limit_reached": "This account already has three characters, the most it can hold.",
+      "onboarding_incomplete": "Finish setting up your account before creating a character.",
+      "generic": "We could not create this character. Check your choices and try again.",
+      "unavailable": "The Forge cannot be reached right now. Check your connection and try again.",
+      "storage": "This device could not save your choices. Try again."
+    }
   }
 }
