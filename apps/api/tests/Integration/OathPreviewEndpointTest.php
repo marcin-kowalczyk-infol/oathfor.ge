@@ -57,7 +57,8 @@ final class OathPreviewEndpointTest extends WebTestCase
             self::assertSame(gmdate('Y-m-d\TH:i:s\Z', $this->clock->time + 8100), $preview['snapshot']['deadline']['receiptCutoff']);
         }
         $stored = $this->connection->fetchOne('SELECT snapshot FROM oath_preview WHERE id = ?', [$preview['id']]);
-        $this->connection->executeStatement("UPDATE account SET gameplay_paused = TRUE, onboarding_status = 'pending'");
+        $this->connection->executeStatement("UPDATE account SET onboarding_status = 'pending'");
+        $this->connection->executeStatement('UPDATE player_character SET paused = TRUE');
         $this->connection->insert('account_profile', ['account_id' => self::ACCOUNT, 'locale' => 'pl', 'timezone' => 'Europe/Warsaw']);
         $this->request('GET', '/api/oath-previews/'.$preview['id']);
         self::assertSame($preview, $this->body()['preview']);
@@ -116,9 +117,10 @@ final class OathPreviewEndpointTest extends WebTestCase
         $this->connection->executeStatement("UPDATE account SET onboarding_status = 'pending'");
         $this->request('POST', '/api/oath-previews', $this->input());
         $this->assertError(409, 'onboarding_incomplete');
-        $this->connection->executeStatement("UPDATE account SET onboarding_status = 'complete', gameplay_paused = TRUE");
+        $this->connection->executeStatement("UPDATE account SET onboarding_status = 'complete'");
+        $this->connection->executeStatement('UPDATE player_character SET paused = TRUE');
         $this->request('POST', '/api/oath-previews', $this->input());
-        $this->assertError(409, 'account_paused');
+        $this->assertError(409, 'character_paused');
         foreach ([null, 'Bearer short'] as $header) {
             $this->client->request('POST', '/api/oath-previews', server: ['CONTENT_TYPE' => 'application/json'] + (null === $header ? [] : ['HTTP_AUTHORIZATION' => $header]), content: json_encode($this->input(), JSON_THROW_ON_ERROR));
             $this->assertError(401, 'unauthenticated');
@@ -202,7 +204,7 @@ final class OathPreviewEndpointTest extends WebTestCase
             if (str_contains($change, 'expiry')) { $input['time'] += 2592000; }
             elseif ('revocation' === $change) { $this->connection->executeStatement('UPDATE app_session SET revoked_at = ?', [$input['time']]); }
             elseif ('deletion' === $change) { $this->connection->executeStatement("UPDATE account SET status = 'deleting'"); }
-            elseif ('pause' === $change) { $this->connection->executeStatement('UPDATE account SET gameplay_paused = TRUE'); $code = 'account_paused'; }
+            elseif ('pause' === $change) { $this->connection->executeStatement('UPDATE player_character SET paused = TRUE'); $code = 'character_paused'; }
             elseif ('activation_elapsed' === $change) { $input['time'] += 3600; $code = 'activation_elapsed'; }
             else { $input['time'] += 7200; $code = 'deadline_not_after_activation'; }
             file_put_contents($path, json_encode($input, JSON_THROW_ON_ERROR));

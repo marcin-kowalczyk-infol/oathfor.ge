@@ -20,7 +20,7 @@ final class PreviewService
             $account = $this->sessions->findActive($bearer);
             if (null === $account) { return new OathFailure('unauthenticated', 401); }
             return $this->connection->transactional(function () use ($account, $bearer, $input, $id): array|OathFailure {
-                $row = $this->connection->fetchAssociative('SELECT status, onboarding_status, gameplay_paused, active_character_id FROM account WHERE id = ? FOR UPDATE', [$account->id]);
+                $row = $this->connection->fetchAssociative('SELECT status, onboarding_status, active_character_id FROM account WHERE id = ? FOR UPDATE', [$account->id]);
                 $session = $this->connection->fetchAssociative('SELECT expires_at, revoked_at FROM app_session WHERE token_digest = ? AND account_id = ? FOR UPDATE', [hash('sha256', $bearer), $account->id]);
                 $now = $this->clock->now();
                 if (false === $row || 'active' !== $row['status'] || false === $session || null !== $session['revoked_at'] || $now >= $session['expires_at']) { return new OathFailure('unauthenticated', 401); }
@@ -32,7 +32,8 @@ final class PreviewService
                 }
                 if ('complete' !== $row['onboarding_status']) { return new OathFailure('onboarding_incomplete', 409); }
                 if (null === $row['active_character_id']) { return new OathFailure('character_required', 409); }
-                if ($row['gameplay_paused']) { return new OathFailure('account_paused', 409); }
+                // A separate statement after the account lock sees pause changes committed while this request waited.
+                if ($this->connection->fetchOne('SELECT paused FROM player_character WHERE account_id = ? AND id = ?', [$account->id, $row['active_character_id']])) { return new OathFailure('character_paused', 409); }
                 if (null !== $failure = $input->timingFailure($now)) { return $failure; }
                 $activation = $input->activation?->toArray();
                 if (null !== $activation) { unset($activation['receiptCutoff']); }

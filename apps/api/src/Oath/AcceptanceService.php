@@ -15,7 +15,7 @@ final class AcceptanceService
             $account = $this->sessions->findActive($bearer);
             if (null === $account) { return new OathFailure('unauthenticated', 401); }
             return $this->connection->transactional(function () use ($account, $bearer, $input): AcceptanceResult|OathFailure {
-                $row = $this->connection->fetchAssociative('SELECT status, onboarding_status, gameplay_paused FROM account WHERE id = ? FOR UPDATE', [$account->id]);
+                $row = $this->connection->fetchAssociative('SELECT status, onboarding_status FROM account WHERE id = ? FOR UPDATE', [$account->id]);
                 $session = $this->connection->fetchAssociative('SELECT expires_at, revoked_at FROM app_session WHERE token_digest = ? AND account_id = ? FOR UPDATE', [hash('sha256', $bearer), $account->id]);
                 $locked = $this->reconciler->lockOwned($account->id);
                 $now = $this->clock->now();
@@ -26,7 +26,7 @@ final class AcceptanceService
                     $this->reconciler->reconcileLocked($locked, $now);
                     return $this->result($account->id, $request['oath_id'], $now, false);
                 }
-                $preview = $this->connection->fetchAssociative('SELECT snapshot, character_id, oath_id FROM oath_preview WHERE account_id = ? AND id = ?', [$account->id, $input->previewId]);
+                $preview = $this->connection->fetchAssociative('SELECT p.snapshot, p.character_id, p.oath_id, c.paused FROM oath_preview p JOIN player_character c ON c.account_id = p.account_id AND c.id = p.character_id WHERE p.account_id = ? AND p.id = ?', [$account->id, $input->previewId]);
                 if (false === $preview) { return new OathFailure('not_found', 404); }
                 if (null !== $preview['oath_id']) {
                     $this->reconciler->reconcileLocked($locked, $now);
@@ -34,7 +34,7 @@ final class AcceptanceService
                     return $this->result($account->id, $preview['oath_id'], $now, false);
                 }
                 if ('complete' !== $row['onboarding_status']) { return new OathFailure('onboarding_incomplete', 409); }
-                if ($row['gameplay_paused']) { return new OathFailure('account_paused', 409); }
+                if ($preview['paused']) { return new OathFailure('character_paused', 409); }
                 $snapshot = json_decode($preview['snapshot'], true, flags: JSON_THROW_ON_ERROR);
                 if (RuleCatalog::TEMPLATE_VERSION !== $snapshot['templateVersion'] || RuleCatalog::POLICY_VERSION !== $snapshot['policyVersion']) { return new OathFailure('preview_superseded', 409); }
                 $scheduled = 'scheduled' === $snapshot['activation']['mode'];

@@ -304,7 +304,7 @@ Pausing does not stop the server clock. It disables new commitment/Recovery acti
 | Recovery proof/correction/review pending | Keep the pending Recovery and its original clocks | May still grant 15 XP once if fulfilled; original miss remains |
 | Already unresolved, withdrawn, or Recovery terminal | Preserve outcome and history | No replay, new attempt or refund; resume changes only pause state |
 
-Pause is global for this player's first-loop commitments: it withdraws all scheduled originals and active commitments without finalized proof, and suppresses future gameplay interventions. It does not affect another player's state. Resume only clears the pause flag; it does not reactivate withdrawn commitments, reset any receipt/deadline/window, or replay suppressed reminders. New commitments require explicit acceptance of their own rules. The player may remain paused indefinitely; no automatic resume or recurring guilt message is scheduled.
+Pause is global for this player's first-loop commitments: it withdraws all scheduled originals and active commitments without finalized proof, and suppresses future gameplay interventions. Since MVP-17 this pause belongs to one [player character](player-character.md) and covers only that character's commitments (owner decision, 2026-09-26). It does not affect another player's state. Resume only clears the pause flag; it does not reactivate withdrawn commitments, reset any receipt/deadline/window, or replay suppressed reminders. New commitments require explicit acceptance of their own rules. The player may remain paused indefinitely; no automatic resume or recurring guilt message is scheduled.
 
 ### Pause race and delivery rules
 

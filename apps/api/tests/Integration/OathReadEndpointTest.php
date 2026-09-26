@@ -61,7 +61,7 @@ final class OathReadEndpointTest extends WebTestCase
         $this->request('GET', '/api/oaths');
         self::assertSame($first, $this->body()['items'][0]['id']);
         self::assertCount(3, $this->body()['items']);
-        $this->connection->executeStatement("UPDATE oath SET state = 'withdrawn', terminal_at = ?, reason = 'account_paused' WHERE id IN (?, ?)", [$this->clock->time, $first, $second]);
+        $this->connection->executeStatement("UPDATE oath SET state = 'withdrawn', terminal_at = ?, reason = 'character_paused' WHERE id IN (?, ?)", [$this->clock->time, $first, $second]);
         $ids = [$first, $second]; rsort($ids);
         $this->request('GET', '/api/oaths?view=history&limit=1');
         self::assertSame([$ids[0]], array_column($this->body()['items'], 'id'));
@@ -75,7 +75,8 @@ final class OathReadEndpointTest extends WebTestCase
     public function testPausedIncompleteOwnerKeepsExactSnapshotButOtherAccountCannotReadOrListIt(): void
     {
         $oath = $this->createOath();
-        $this->connection->executeStatement("UPDATE account SET gameplay_paused = TRUE, onboarding_status = 'pending'");
+        $this->connection->executeStatement("UPDATE account SET onboarding_status = 'pending'");
+        $this->connection->executeStatement('UPDATE player_character SET paused = TRUE');
         $this->connection->insert('account_profile', ['account_id' => self::ACCOUNT, 'locale' => 'pl', 'timezone' => 'Europe/Warsaw']);
         $this->request('GET', '/api/oaths/'.$oath['id']);
         self::assertSame($oath, $this->body()['oath']);

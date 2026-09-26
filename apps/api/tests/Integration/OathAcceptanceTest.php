@@ -76,8 +76,9 @@ final class OathAcceptanceTest extends WebTestCase
         $this->accept($id);
         $oath = $this->body()['oath'];
         $this->clock->time += 10000;
-        $this->connection->executeStatement("UPDATE account SET gameplay_paused = TRUE, onboarding_status = 'pending'");
-        $this->connection->executeStatement("UPDATE oath SET state = 'withdrawn', terminal_at = ?, reason = 'account_paused'", [$this->clock->time]);
+        $this->connection->executeStatement("UPDATE account SET onboarding_status = 'pending'");
+        $this->connection->executeStatement('UPDATE player_character SET paused = TRUE');
+        $this->connection->executeStatement("UPDATE oath SET state = 'withdrawn', terminal_at = ?, reason = 'character_paused'", [$this->clock->time]);
         $snapshot = json_decode($this->connection->fetchOne('SELECT snapshot FROM oath_preview'), true, flags: JSON_THROW_ON_ERROR);
         $snapshot['policyVersion'] = 'DUMMY-replaced';
         $this->connection->executeStatement('UPDATE oath_preview SET snapshot = ?', [json_encode($snapshot, JSON_THROW_ON_ERROR)]);
@@ -116,9 +117,10 @@ final class OathAcceptanceTest extends WebTestCase
         $id = $this->preview();
         $this->connection->executeStatement("UPDATE account SET onboarding_status = 'pending'");
         $this->accept($id); $this->assertError(409, 'onboarding_incomplete');
-        $this->connection->executeStatement("UPDATE account SET onboarding_status = 'complete', gameplay_paused = TRUE");
-        $this->accept($id); $this->assertError(409, 'account_paused');
-        $this->connection->executeStatement('UPDATE account SET gameplay_paused = FALSE');
+        $this->connection->executeStatement("UPDATE account SET onboarding_status = 'complete'");
+        $this->connection->executeStatement('UPDATE player_character SET paused = TRUE');
+        $this->accept($id); $this->assertError(409, 'character_paused');
+        $this->connection->executeStatement('UPDATE player_character SET paused = FALSE');
         $snapshot = json_decode($this->connection->fetchOne('SELECT snapshot FROM oath_preview'), true, flags: JSON_THROW_ON_ERROR);
         foreach (['templateVersion', 'policyVersion'] as $field) {
             $changed = array_replace($snapshot, [$field => 'DUMMY-replaced']);
@@ -179,7 +181,7 @@ final class OathAcceptanceTest extends WebTestCase
             if (str_contains($change, 'expiry')) { $data['time'] += 2592000; }
             elseif ('revocation' === $change) { $this->connection->executeStatement('UPDATE app_session SET revoked_at = ?', [$data['time']]); }
             elseif ('deletion' === $change) { $this->connection->executeStatement("UPDATE account SET status = 'deleting'"); }
-            elseif ('pause' === $change) { $this->connection->executeStatement('UPDATE account SET gameplay_paused = TRUE'); $code = 'account_paused'; }
+            elseif ('pause' === $change) { $this->connection->executeStatement('UPDATE player_character SET paused = TRUE'); $code = 'character_paused'; }
             elseif ('activation_elapsed' === $change) { $data['time'] += 3600; $code = 'activation_elapsed'; }
             elseif ('now_time' === $change) { $data['time'] += 30; }
             else { $data['time'] += 7200; $code = 'deadline_not_after_activation'; }

@@ -48,12 +48,15 @@ final class CharacterMigrationTest extends KernelTestCase
     public function testMigrationIsReversible(): void
     {
         $this->connection->executeStatement('TRUNCATE account CASCADE');
+        $this->migration('Version20260926120000', '--down');
         $this->migration('Version20260926110000', '--down');
         $this->migration('Version20260926100000', '--down');
         try {
             self::assertFalse($this->connection->fetchOne("SELECT to_regclass('player_character') IS NOT NULL"));
             self::assertSame(0, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'active_character_id'"));
-        } finally { $this->migration('Version20260926100000', '--up'); $this->migration('Version20260926110000', '--up'); }
+        } finally { foreach (['Version20260926100000', 'Version20260926110000', 'Version20260926120000'] as $version) { $this->migration($version, '--up'); } }
+        self::assertSame(1, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'player_character' AND column_name = 'paused'"));
+        self::assertSame(0, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'gameplay_paused'"));
         self::assertTrue($this->connection->fetchOne("SELECT to_regclass('player_character') IS NOT NULL"));
         self::assertSame(1, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'active_character_id'"));
     }
@@ -83,6 +86,19 @@ final class CharacterMigrationTest extends KernelTestCase
         $this->connection->executeStatement($insert, [self::ACCOUNT, $a, $preview]);
         $this->connection->executeStatement('DELETE FROM player_character WHERE id = ?', [$b]);
         self::assertSame(1, $this->connection->fetchOne('SELECT COUNT(*) FROM oath'));
+    }
+    public function testPauseMigrationMovesFlagToCharacter(): void
+    {
+        $paused = $this->character(self::ACCOUNT, 1);
+        $this->character(self::OTHER, 1);
+        $this->connection->executeStatement('UPDATE player_character SET paused = TRUE WHERE id = ?', [$paused]);
+        $this->migration('Version20260926120000', '--down');
+        try {
+            self::assertSame([[self::ACCOUNT, true], [self::OTHER, false]], array_map(fn (array $row): array => [$row['id'], $row['gameplay_paused']], $this->connection->fetchAllAssociative('SELECT id, gameplay_paused FROM account ORDER BY id')));
+            self::assertSame(0, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'player_character' AND column_name = 'paused'"));
+        } finally { $this->migration('Version20260926120000', '--up'); }
+        self::assertSame([[self::ACCOUNT, true], [self::OTHER, false]], array_map(fn (array $row): array => [$row['account_id'], $row['paused']], $this->connection->fetchAllAssociative('SELECT account_id, paused FROM player_character ORDER BY account_id')));
+        self::assertSame(0, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'gameplay_paused'"));
     }
     private function character(string $account, int $slot, ?string $request = null, string $name = 'Mira', string $form = 'feminine'): string
     {

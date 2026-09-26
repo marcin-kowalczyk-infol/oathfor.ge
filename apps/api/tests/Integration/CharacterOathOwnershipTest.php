@@ -38,11 +38,11 @@ final class CharacterOathOwnershipTest extends WebTestCase
         $this->request('GET', '/api/oaths?view=history'); $this->assertError(409, 'character_required');
         $this->request('GET', '/api/oaths/00000000-0000-4000-a000-000000000001'); $this->assertError(409, 'character_required');
         $this->request('GET', '/api/oath-pause'); $this->assertError(409, 'character_required');
-        $this->request('POST', '/api/oath-pause', ['paused' => false]); $this->assertError(409, 'character_required');
+        $this->request('POST', '/api/oath-pause', ['characterId' => '00000000-0000-4000-a000-000000000001', 'paused' => false]); $this->assertError(409, 'character_required');
         $this->connection->executeStatement("UPDATE account SET onboarding_status = 'pending'");
         $this->request('POST', '/api/oath-previews', $this->previewInput()); $this->assertError(409, 'onboarding_incomplete');
         self::assertSame(0, $this->connection->fetchOne('SELECT COUNT(*) FROM oath_preview'));
-        self::assertFalse($this->connection->fetchOne('SELECT gameplay_paused FROM account'));
+        self::assertSame(0, $this->connection->fetchOne('SELECT COUNT(*) FROM player_character'));
     }
     public function testPreviewAndOathCarryTheActiveCharacter(): void
     {
@@ -107,7 +107,7 @@ final class CharacterOathOwnershipTest extends WebTestCase
         $b = CharacterFixture::activate($this->connection, self::ACCOUNT, 2);
         $bOaths = [$this->oath(), $this->oath()];
         sort($aOaths); sort($bOaths);
-        $this->connection->executeStatement("UPDATE oath SET state = 'withdrawn', terminal_at = ?, reason = 'account_paused' WHERE id IN (?, ?)", [$this->clock->time, $aOaths[1], $bOaths[1]]);
+        $this->connection->executeStatement("UPDATE oath SET state = 'withdrawn', terminal_at = ?, reason = 'character_paused' WHERE id IN (?, ?)", [$this->clock->time, $aOaths[1], $bOaths[1]]);
         $this->request('GET', '/api/oaths?limit=1');
         self::assertSame([$bOaths[0]], array_column($this->body()['items'], 'id'));
         self::assertNull($this->body()['nextCursor']);
@@ -144,21 +144,22 @@ final class CharacterOathOwnershipTest extends WebTestCase
         $bOath = $this->oath();
         $this->request('GET', '/api/oath-pause');
         $revision = $this->body()['revision'];
-        $this->request('POST', '/api/oath-pause', ['paused' => true, 'revision' => $revision]);
+        $this->request('POST', '/api/oath-pause', ['characterId' => $b, 'paused' => true, 'revision' => $revision]);
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
         self::assertSame($b, $this->body()['characterId']);
-        self::assertSame('withdrawn', $this->connection->fetchOne('SELECT state FROM oath WHERE id = ?', [$bOath]));
+        self::assertSame(['withdrawn', 'character_paused'], array_values((array) $this->connection->fetchAssociative('SELECT state, reason FROM oath WHERE id = ?', [$bOath])));
         self::assertSame('active', $this->connection->fetchOne('SELECT state FROM oath WHERE id = ?', [$aOath]));
+        self::assertSame([false, true], array_map('boolval', $this->connection->fetchFirstColumn('SELECT paused FROM player_character ORDER BY slot')));
     }
     public function testRevisionBindsCharacter(): void
     {
         CharacterFixture::activate($this->connection, self::ACCOUNT);
         $this->request('GET', '/api/oath-pause');
         $first = $this->body()['revision'];
-        CharacterFixture::activate($this->connection, self::ACCOUNT, 2);
+        $second = CharacterFixture::activate($this->connection, self::ACCOUNT, 2);
         $this->request('GET', '/api/oath-pause');
         self::assertNotSame($first, $this->body()['revision']);
-        $this->request('POST', '/api/oath-pause', ['paused' => true, 'revision' => $first]); $this->assertError(409, 'pause_preview_changed');
+        $this->request('POST', '/api/oath-pause', ['characterId' => $second, 'paused' => true, 'revision' => $first]); $this->assertError(409, 'pause_preview_changed');
     }
     private function switchTo(string $id): void
     {
