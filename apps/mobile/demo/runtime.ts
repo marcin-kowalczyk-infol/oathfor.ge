@@ -138,7 +138,7 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
       const denied = guard(bearer); if (denied) return denied; if (!active()) return required; reconcile();
       const rows = state.oaths.filter(own).filter(oath => query.view === 'history' ? oath.terminalAt !== null : oath.terminalAt === null).sort((a, b) => query.view === 'history' ? b.terminalAt!.localeCompare(a.terminalAt!) || b.id.localeCompare(a.id) : a.snapshot.deadline.utc.localeCompare(b.snapshot.deadline.utc) || a.id.localeCompare(b.id));
       const start = Number(query.cursor?.replace('page_', '') ?? 0), limit = query.limit ?? 20;
-      return success({ items: clone(rows.slice(start, start + limit)), nextCursor: rows.length > start + limit ? `page_${start + limit}` : null, serverTime: iso(state.now), paused: isPaused(), characterId: active()! });
+      return success({ items: clone(rows.slice(start, start + limit)), nextCursor: rows.length > start + limit ? `page_${start + limit}` : null, total: rows.length, serverTime: iso(state.now), paused: isPaused(), characterId: active()! });
     },
     async getPause(bearer) { const denied = guard(bearer); if (denied) return denied; return active() ? success(pauseSummary()) : required; },
     async pause(bearer, input) {

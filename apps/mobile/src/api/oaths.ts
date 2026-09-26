@@ -60,7 +60,8 @@ export function createOathClient(options: ClientOptions) {
         || (query.cursor !== undefined && (typeof query.cursor !== 'string' || !/^[A-Za-z0-9_-]{1,1024}$/.test(query.cursor)))) return invalid();
       const limit = query.limit ?? 20;
       const path = `/api/oaths?view=${query.view}&limit=${limit}${query.cursor ? `&cursor=${query.cursor}` : ''}`;
-      return request(path, 'GET', 200, (value): value is OathListEnvelope => isOathListEnvelope(value) && value.items.length <= limit, undefined, token, signal, { ...policy, maxResponseBytes: 4 * 1024 * 1024 });
+      const valid = (value: unknown): value is OathListEnvelope => isOathListEnvelope(value) && value.items.length <= limit;
+      return request(path, 'GET', 200, valid, undefined, token, signal, { ...policy, maxResponseBytes: 4 * 1024 * 1024 });
     },
     getPause(token: string, signal?: AbortSignal): Promise<OathResult<PauseEnvelope>> {
       return request('/api/oath-pause', 'GET', 200, isPauseEnvelope, undefined, token, signal, policy);

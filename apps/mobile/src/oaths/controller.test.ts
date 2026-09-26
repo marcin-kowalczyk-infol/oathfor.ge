@@ -196,7 +196,7 @@ test('character_required from an Oath call asks the owner to reload characters',
 const summary = (character: string) => ({ paused: false, revision: 'a'.repeat(64), withdraw: [], preserve: [], serverTime: '2026-10-24T00:00:00Z', characterId: character });
 test('responses naming another character become character_changed and ask the owner to reload characters', async () => {
   const f = setup(); const c = f.create(); c.start(); await flush();
-  jest.mocked(f.api.list).mockResolvedValueOnce({ kind: 'success', value: { items: [], nextCursor: null, serverTime: '2026-10-24T00:00:00Z', paused: false, characterId: otherCharacter } });
+  jest.mocked(f.api.list).mockResolvedValueOnce({ kind: 'success', value: { items: [], nextCursor: null, total: 0, serverTime: '2026-10-24T00:00:00Z', paused: false, characterId: otherCharacter } });
   jest.mocked(f.api.detail).mockResolvedValueOnce({ kind: 'success', value: { oath: { id: previewId, characterId: otherCharacter }, serverTime: '2026-10-24T00:00:00Z' } } as Awaited<ReturnType<OathClient['detail']>>);
   jest.mocked(f.api.getPause).mockResolvedValueOnce({ kind: 'success', value: summary(otherCharacter) });
   jest.mocked(f.api.pause).mockResolvedValueOnce({ kind: 'success', value: summary(otherCharacter) }).mockResolvedValueOnce({ kind: 'oath_error', code: 'character_changed' });

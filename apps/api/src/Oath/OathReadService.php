@@ -36,6 +36,7 @@ final class OathReadService
                 $after = ' AND ('.$column.', id) '.($today ? '>' : '<').' (?, ?::uuid)';
                 $parameters[] = $cursor['key']; $parameters[] = $cursor['id'];
             }
+            // Every Oath writer locks the account row first, so the count and the page below see the same rows.
             $total = (int) $this->connection->fetchOne('SELECT COUNT(*) FROM oath WHERE account_id = ? AND character_id = ? AND '.$predicate, [$accountId, $characterId]);
             $order = $today ? ' ASC' : ' DESC';
             $rows = $this->connection->fetchAllAssociative('SELECT * FROM oath WHERE account_id = ? AND character_id = ? AND '.$predicate.$after.' ORDER BY '.$column.$order.', id'.$order.' LIMIT '.($input->limit + 1), $parameters);

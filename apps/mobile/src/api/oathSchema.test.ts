@@ -96,11 +96,30 @@ test('rejects activation after deadline and altered effective activation', () =>
   expect(isOathEnvelope(active)).toBe(false);
 });
 
+test('rejects a list envelope without total', () => {
+  const list = { items: [oath().oath], nextCursor: null, serverTime: '2026-10-24T00:00:00Z', paused: false, characterId };
+  expect(isOathListEnvelope(list)).toBe(false);
+});
+
+test('list envelope total counts the whole view and covers every page', () => {
+  const list = { items: [oath().oath], nextCursor: null as string | null, total: 1, serverTime: '2026-10-24T00:00:00Z', paused: false, characterId };
+  expect(isOathListEnvelope(list)).toBe(true);
+  expect(isOathListEnvelope({ ...list, total: 3 })).toBe(true);
+  expect(isOathListEnvelope({ ...list, nextCursor: 'page_1', total: 2 })).toBe(true);
+  expect(isOathListEnvelope({ ...list, items: [], total: 0 })).toBe(true);
+  expect(isOathListEnvelope({ ...list, total: -1 })).toBe(false);
+  expect(isOathListEnvelope({ ...list, total: 1.5 })).toBe(false);
+  expect(isOathListEnvelope({ ...list, total: '1' })).toBe(false);
+  expect(isOathListEnvelope({ ...list, total: null })).toBe(false);
+  expect(isOathListEnvelope({ ...list, total: 0 })).toBe(false);
+  expect(isOathListEnvelope({ ...list, nextCursor: 'page_1', total: 1 })).toBe(false);
+});
+
 test('list and pause envelopes reject duplicate IDs, unknown fields and unsafe cursors', () => {
   const item = oath().oath;
-  const list = { items: [item], nextCursor: null as string | null, serverTime: '2026-10-24T00:00:00Z', paused: false, characterId };
+  const list = { items: [item], nextCursor: null as string | null, total: 1, serverTime: '2026-10-24T00:00:00Z', paused: false, characterId };
   expect(isOathListEnvelope(list)).toBe(true);
-  expect(isOathListEnvelope({ ...list, items: [], characterId: otherCharacterId })).toBe(true);
+  expect(isOathListEnvelope({ ...list, items: [], total: 0, characterId: otherCharacterId })).toBe(true);
   expect(isOathListEnvelope({ ...list, characterId: otherCharacterId })).toBe(false);
   const { characterId: _listCharacter, ...legacyList } = list;
   expect(isOathListEnvelope(legacyList)).toBe(false);

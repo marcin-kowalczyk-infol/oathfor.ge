@@ -21,6 +21,10 @@ test('empty and returning fixtures reuse bilingual immutable rule content', asyn
   const history = await api.list(token, { view: 'history', limit: 20 });
   expect(history.kind).toBe('success');
   if (history.kind === 'success') expect(history.value.nextCursor).toBe('page_20');
+  const owned = returning.state.oaths.filter(oath => oath.characterId === returning.state.activeCharacterId);
+  const [today, historyTail] = await Promise.all([api.list(token, { view: 'today', limit: 1 }), api.list(token, { view: 'history', limit: 20, cursor: 'page_20' })]);
+  expect(today).toMatchObject({ kind: 'success', value: { total: owned.filter(oath => oath.terminalAt === null).length } });
+  expect(historyTail).toMatchObject({ kind: 'success', value: { nextCursor: null, total: owned.filter(oath => oath.terminalAt !== null).length } });
   const id = await preview(empty);
   const rules = empty.state.previews.get(id)!.snapshot;
   expect(rules.copy.pl.activity).toBeTruthy();

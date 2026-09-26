@@ -30,7 +30,7 @@ test('confirmation accepts created and replayed real immutable snapshot envelope
 });
 test('bounded list transport accepts 100 complete snapshots exceeding the legacy 64KiB limit', async () => {
   const { oath, serverTime } = fixture();
-  const envelope = { items: Array.from({ length: 100 }, (_, i) => ({ ...oath, id: `20000000-0000-4000-8000-${String(i).padStart(12, '0')}` })), nextCursor: null, serverTime, paused: false, characterId };
+  const envelope = { items: Array.from({ length: 100 }, (_, i) => ({ ...oath, id: `20000000-0000-4000-8000-${String(i).padStart(12, '0')}` })), nextCursor: null, total: 100, serverTime, paused: false, characterId };
   expect(new TextEncoder().encode(JSON.stringify(envelope)).byteLength).toBeGreaterThan(64 * 1024);
   const transport = jest.fn().mockResolvedValueOnce(response(200, envelope)); const client = createOathClient({ baseUrl: 'https://api.example.test', transport });
   await expect(client.list(token, { view: 'today', limit: 100 })).resolves.toEqual({ kind: 'success', value: envelope });
@@ -38,6 +38,13 @@ test('bounded list transport accepts 100 complete snapshots exceeding the legacy
   await expect(client.list(token, { view: 'today', limit: 20 })).resolves.toMatchObject({ kind: 'unavailable' });
   transport.mockResolvedValueOnce(response(200, { padding: 'x'.repeat(4 * 1024 * 1024) }));
   await expect(client.list(token, { view: 'today', limit: 100 })).resolves.toMatchObject({ kind: 'unavailable' });
+});
+test('a first page without a further cursor is accepted as sent, the server owns the total', async () => {
+  const { oath, serverTime } = fixture();
+  const page = { items: [oath], nextCursor: null, total: 2, serverTime, paused: false, characterId };
+  const transport = jest.fn().mockResolvedValueOnce(response(200, page));
+  const client = createOathClient({ baseUrl: 'https://api.example.test', transport });
+  await expect(client.list(token, { view: 'today', limit: 20 })).resolves.toEqual({ kind: 'success', value: page });
 });
 test('single envelope keeps its 64KiB budget and malformed error metadata is not exposed', async () => {
   const transport = jest.fn(); const client = createOathClient({ baseUrl: 'https://api.example.test', transport });

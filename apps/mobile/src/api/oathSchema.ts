@@ -124,7 +124,7 @@ export type Preview = { id: string; snapshot: Snapshot };
 export type PreviewEnvelope = { preview: Preview; characterId: string; serverTime: string };
 export type StoredPreviewEnvelope = { preview: Preview; characterId: string; oathId: string | null };
 export type OathEnvelope = { oath: Oath; serverTime: string };
-export type OathListEnvelope = { items: Oath[]; nextCursor: string | null; serverTime: string; paused: boolean; characterId: string };
+export type OathListEnvelope = { items: Oath[]; nextCursor: string | null; total: number; serverTime: string; paused: boolean; characterId: string };
 export type PauseEnvelope = { paused: boolean; revision: string; withdraw: string[]; preserve: string[]; serverTime: string; characterId: string };
 
 export function isUuid(value: unknown): value is string { return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value); }
@@ -199,10 +199,12 @@ export function isOath(value: unknown): value is Oath {
 }
 export function isOathEnvelope(value: unknown): value is OathEnvelope { return exact(value, ['oath', 'serverTime']) && isOath(value.oath) && utc(value.serverTime); }
 export function isOathListEnvelope(value: unknown): value is OathListEnvelope {
-  return exact(value, ['items', 'nextCursor', 'serverTime', 'paused', 'characterId']) && isUuid(value.characterId) && Array.isArray(value.items) && value.items.length <= 100
+  return exact(value, ['items', 'nextCursor', 'total', 'serverTime', 'paused', 'characterId']) && isUuid(value.characterId) && Array.isArray(value.items) && value.items.length <= 100
     && value.items.every(item => isOath(item) && item.characterId === value.characterId)
     && new Set(value.items.map(item => item.id)).size === value.items.length && utc(value.serverTime) && typeof value.paused === 'boolean'
-    && (value.nextCursor === null || (typeof value.nextCursor === 'string' && /^[A-Za-z0-9_-]{1,1024}$/.test(value.nextCursor) && value.items.length > 0));
+    && (value.nextCursor === null || (typeof value.nextCursor === 'string' && /^[A-Za-z0-9_-]{1,1024}$/.test(value.nextCursor) && value.items.length > 0))
+    // The view total counts every page. A further page means rows beyond this one.
+    && Number.isSafeInteger(value.total) && (value.total as number) >= value.items.length && (value.nextCursor === null || (value.total as number) > value.items.length);
 }
 export function isPauseEnvelope(value: unknown): value is PauseEnvelope {
   if (!exact(value, ['paused', 'revision', 'withdraw', 'preserve', 'serverTime', 'characterId']) || !isUuid(value.characterId) || typeof value.paused !== 'boolean'
