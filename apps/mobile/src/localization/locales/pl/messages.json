@@ -382,6 +382,23 @@
       "pending": "Dokończ tworzenie postaci {{name}}, zanim zmienisz postać."
     }
   },
+  "menu": {
+    "currentOaths_one": "bieżąca Przysięga",
+    "currentOaths_few": "bieżące Przysięgi",
+    "currentOaths_many": "bieżących Przysiąg",
+    "currentOaths_other": "bieżącej Przysięgi",
+    "currentOathsLabel": "bieżące Przysięgi",
+    "currentOathsUnknown": "Liczba bieżących Przysiąg nieznana",
+    "paused": "Postać w pauzie",
+    "changeCharacter": "Zmień postać",
+    "forge": "Wejdź do Kuźni",
+    "forgeDetail": "Palenisko, pieczęcie i kronika",
+    "forgePending": "Przysięga czeka na potwierdzenie",
+    "tutorial": "Samouczek",
+    "tutorialDetail": "Żaromir oprowadzi",
+    "settings": "Ustawienia",
+    "settingsDetail": "Język, pauza, konto"
+  },
   "room": {
     "hearth": "Palenisko",
     "seals": "Pieczęcie",
