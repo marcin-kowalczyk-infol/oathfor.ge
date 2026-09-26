@@ -74,4 +74,10 @@ test('the returning fixture already has an active character owning its Oaths', a
   const dummy = createDummy('pl', true);
   expect(dummy.state.activeCharacterId).toBe('30000000-0000-4000-8000-000000000001');
   expect(dummy.state.oaths.every(oath => oath.characterId === dummy.state.activeCharacterId)).toBe(true);
+  expect(dummy.state.characters.map(item => item.name)).toEqual(['Radomir', 'Wiesna']);
+  const api = dummy.runtime();
+  await api.characterApi.activate(token, '30000000-0000-4000-8000-000000000002');
+  expect(await api.oathApi.list(token, { view: 'today' })).toMatchObject({ kind: 'success', value: { items: [], characterId: '30000000-0000-4000-8000-000000000002' } });
+  const created = await api.characterApi.create(token, { requestId: '40000000-0000-4000-8000-000000000003', name: 'Wit', presetId: 'dummy_tied', form: 'neutral' });
+  expect(created).toMatchObject({ kind: 'success', value: { character: { id: '30000000-0000-4000-8000-000000000003' } } });
 });

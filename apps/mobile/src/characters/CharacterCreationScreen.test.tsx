@@ -227,3 +227,19 @@ test('the warm light is a card-wide overlay, not a layer clipped by the figure s
     expect(insideStage).toBe(false);
   }
 });
+
+test('an unresolved creation hides the way back and still explains itself without an error', async () => {
+  const onCancel = jest.fn();
+  await render(<LocalizationProvider initialLocale="en"><CharacterCreationScreen state={ready({ pendingCreation: pending })} draft={emptyCreationDraft} onDraft={jest.fn()} onCreate={jest.fn()} onRetry={jest.fn()} onReload={jest.fn()} onCancel={onCancel} /></LocalizationProvider>);
+  await act(async () => {});
+  expect(screen.queryByRole('button', { name: 'Back to characters' })).toBeNull();
+  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device. Try again to finish.')).toBeOnTheScreen();
+});
+
+test('creation opened from the change screen offers a way back when nothing is pending', async () => {
+  const onCancel = jest.fn();
+  await render(<LocalizationProvider initialLocale="en"><CharacterCreationScreen state={ready()} draft={emptyCreationDraft} onDraft={jest.fn()} onCreate={jest.fn()} onRetry={jest.fn()} onReload={jest.fn()} onCancel={onCancel} /></LocalizationProvider>);
+  await act(async () => {});
+  await fireEvent.press(screen.getByRole('button', { name: 'Back to characters' }));
+  expect(onCancel).toHaveBeenCalledTimes(1);
+});

@@ -130,7 +130,8 @@ export function createCharacterController(options: { session: SessionController;
     ready(true); await send(generation);
   }
   async function switchCharacter(characterId: string) {
-    if (state.kind !== 'ready' || state.busy || characterId === state.activeCharacterId) return;
+    // An unresolved creation would make its replay activate a new character later, so switching waits for it.
+    if (state.kind !== 'ready' || state.busy || pending || characterId === state.activeCharacterId) return;
     const epoch = generation; ready(true);
     const result = await call((token, signal) => options.api.activate(token, characterId, signal), epoch);
     if (!current(epoch)) return;
@@ -156,6 +157,8 @@ export function createCharacterController(options: { session: SessionController;
     stop() { invalidate(); unsubscribe?.(); unsubscribe = undefined; binding = undefined; listing = null; pending = null; publish({ kind: 'idle' }); },
     dispose() { invalidate(); unsubscribe?.(); unsubscribe = undefined; disposed = true; listeners.clear(); },
     refresh, create, retryCreation, switch: switchCharacter,
+    /** Drops a shown error, for example when the player leaves the screen it belonged to. */
+    clearError() { if (state.kind === 'ready' && state.error && !state.busy) ready(); },
   };
 }
 export type CharacterController = ReturnType<typeof createCharacterController>;

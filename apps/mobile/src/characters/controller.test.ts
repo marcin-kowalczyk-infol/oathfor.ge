@@ -275,3 +275,22 @@ test('character_limit_reached reloads the list so the full roster is shown', asy
   expect(f.api.list).toHaveBeenCalledTimes(2);
   expect(ready(c.getState())).toMatchObject({ characters: [bor, mira, third], activeCharacterId: third.id, pendingCreation: null, error: { kind: 'character_error', code: 'character_limit_reached' } });
 });
+
+test('switching is ignored while a creation is unresolved, so a later replay cannot surprise the player', async () => {
+  const f = setup(listing([bor], bor.id)); const c = f.create(); c.start(); await flush();
+  await c.create(draft);
+  expect(ready(c.getState()).pendingCreation).toEqual(record);
+  await c.switch(mira.id);
+  expect(f.api.activate).not.toHaveBeenCalled();
+  expect(ready(c.getState())).toMatchObject({ activeCharacterId: bor.id, busy: false });
+});
+
+test('clearError removes a shown error without touching the stored creation', async () => {
+  const f = setup(); const c = f.create(); c.start(); await flush();
+  await c.create(draft);
+  expect(ready(c.getState()).error).toEqual(unavailable);
+  c.clearError();
+  expect(ready(c.getState()).error).toBeUndefined();
+  expect(ready(c.getState()).pendingCreation).toEqual(record);
+  expect(f.saved.get(accountId)).toEqual(record);
+});

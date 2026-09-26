@@ -359,6 +359,27 @@
       "generic": "Nie udało się stworzyć tej postaci. Sprawdź wybory i spróbuj ponownie.",
       "unavailable": "Kuźnia jest teraz nieosiągalna. Sprawdź połączenie i spróbuj ponownie.",
       "storage": "To urządzenie nie zapisało Twoich wyborów. Spróbuj ponownie."
+    },
+    "cancel": "Wróć do postaci",
+    "badge": "Zmień postać, obecnie: {{name}}, {{title}}",
+    "change": {
+      "title": "Zmień postać",
+      "intro": "Wybierz, kto niesie Twoje Przysięgi. Każda postać ma własne.",
+      "back": "Wróć do Przysiąg",
+      "active": "Aktywna postać",
+      "card": "{{name}}, {{title}}",
+      "cardActive": "{{name}}, {{title}}, aktywna postać",
+      "new": "Nowa postać",
+      "newDetail": "Wykuj kolejną postać.",
+      "full": "Wszystkie trzy miejsca są zajęte.",
+      "switching": "Zmieniam postać…",
+      "error": {
+        "not_found": "Ta postać nie jest już dostępna. Wybierz inną.",
+        "generic": "Nie udało się zmienić postaci. Spróbuj ponownie."
+      },
+      "resume": "Dokończ tworzenie postaci {{name}}",
+      "resumeDetail": "Kuźnia jeszcze nie odpowiedziała. Twoje wybory są zapisane.",
+      "pending": "Dokończ tworzenie postaci {{name}}, zanim zmienisz postać."
     }
   }
 }

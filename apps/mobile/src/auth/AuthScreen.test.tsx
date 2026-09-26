@@ -8,7 +8,7 @@ import { LocalizationProvider } from '../localization/LocalizationProvider';
 import * as characterControllers from '../characters/controller';
 import type { SessionStorage } from './sessionStorage';
 import type { OathClient } from '../api/oaths';
-import type { CharacterClient, CharacterList } from '../api/characters';
+import type { Character, CharacterClient, CharacterList } from '../api/characters';
 
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: mockDeviceLanguage }], getCalendars: () => [{ timeZone: 'Europe/Warsaw' }] }));
 jest.mock('../onboarding/notificationPermissions', () => ({ nativeNotificationPermissions: { read: jest.fn().mockResolvedValue({ kind: 'unavailable', canAskAgain: false }), request: jest.fn(), openSettings: jest.fn() } }));
@@ -23,7 +23,7 @@ const session = { token: 'A'.repeat(43), expiresAt: '2026-10-24T12:00:00Z' };
 const challenge = { challengeId: 'B'.repeat(43), nonce: 'C'.repeat(43), state: 'D'.repeat(43), expiresAt: '2026-09-24T12:05:00Z' };
 let mockDeviceLanguage = 'en';
 const mira = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'dummy_braid', form: 'feminine' as const, createdAt: '2026-09-24T12:00:00Z' };
-const listing = (characters: typeof mira[], activeCharacterId: string | null): CharacterList => ({ characters, activeCharacterId, limit: 3, presets: ['dummy_braid', 'dummy_cropped', 'dummy_curly', 'dummy_tied'], serverTime: '2026-09-24T12:00:00Z' });
+const listing = (characters: Character[], activeCharacterId: string | null): CharacterList => ({ characters, activeCharacterId, limit: 3, presets: ['dummy_braid', 'dummy_cropped', 'dummy_curly', 'dummy_tied'], serverTime: '2026-09-24T12:00:00Z' });
 const completeProfile = { profile: { locale: 'en', timezone: 'UTC', intention: 'regular_activity', companionIntroduced: true, notificationPreference: 'disabled' }, onboardingStatus: 'complete' };
 beforeEach(() => { mockDeviceLanguage = 'en'; });
 const controllers: SessionController[] = [];
@@ -343,4 +343,86 @@ test('a switch rebinds the Oath controller before the new character screen sends
   await act(async () => {});
   expect(events).toEqual(['activate', 'read B', 'oaths']);
   expect(screen.getByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
+});
+
+test('the header badge opens character change, switching returns to the chosen character and new character creation can be cancelled', async () => {
+  const runtime = setup();
+  const bor = { ...mira, id: '30000000-0000-4000-8000-00000000000b', name: 'Bor', form: 'masculine' as const };
+  const wit = { ...mira, id: '30000000-0000-4000-8000-00000000000c', name: 'Wit', form: 'neutral' as const, presetId: 'dummy_tied' };
+  let serverActive = mira.id; let roster: Character[] = [mira, bor];
+  runtime.profileApi.get.mockResolvedValue({ kind: 'success', value: completeProfile });
+  runtime.characterApi.list.mockImplementation(async () => ({ kind: 'success', value: listing(roster, serverActive) }));
+  runtime.characterApi.activate.mockImplementation(async (_token: string, id: string) => { serverActive = id; return { kind: 'success', value: listing(roster, id) }; });
+  runtime.characterApi.create.mockImplementation(async () => { roster = [...roster, wit]; serverActive = wit.id; return { kind: 'success', created: true, value: { character: wit, activeCharacterId: wit.id, serverTime: '2026-09-24T12:00:00Z' } }; });
+  jest.mocked(runtime.oathApi.list).mockImplementation(async () => ({ kind: 'success', value: { items: [], nextCursor: null, serverTime: '2026-09-24T12:00:00Z', paused: false, characterId: serverActive } }));
+  await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Change character, current: Mira, Oathkeeper' }));
+  expect(await screen.findByRole('header', { name: 'Change character' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Mira, Oathkeeper, active character' }));
+  expect(await screen.findByRole('button', { name: 'Change character, current: Mira, Oathkeeper' })).toBeOnTheScreen();
+  expect(runtime.characterApi.activate).not.toHaveBeenCalled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Change character, current: Mira, Oathkeeper' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Bor, Oathkeeper' }));
+  expect(await screen.findByRole('button', { name: 'Change character, current: Bor, Oathkeeper' })).toBeOnTheScreen();
+  expect(runtime.characterApi.activate).toHaveBeenCalledTimes(1);
+  expect(runtime.acceptanceStorage.read).toHaveBeenLastCalledWith(account.id, bor.id);
+  await fireEvent.press(screen.getByRole('button', { name: 'Change character, current: Bor, Oathkeeper' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'New character' }));
+  expect(await screen.findByRole('header', { name: 'Forge your character' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Back to characters' }));
+  expect(await screen.findByRole('header', { name: 'Change character' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'New character' }));
+  await fireEvent.changeText(await screen.findByLabelText('Name'), 'Wit');
+  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, they / them' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Create character' }));
+  expect(await screen.findByRole('button', { name: 'Change character, current: Wit, Oathkeeper' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Change character, current: Wit, Oathkeeper' }));
+  expect(await screen.findByText('All three places are taken.')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Back to Oaths' }));
+  expect(await screen.findByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
+});
+
+test('first-run creation offers sign-out but no way back', async () => {
+  const runtime = setup();
+  runtime.profileApi.get.mockResolvedValue({ kind: 'success', value: completeProfile });
+  runtime.characterApi.list.mockResolvedValue({ kind: 'success', value: listing([], null) });
+  await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  expect(await screen.findByRole('header', { name: 'Forge your character' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Back to characters' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
+  expect(await screen.findByText('Welcome to Oathforge')).toBeOnTheScreen();
+});
+
+test('a failed switch error does not follow the player into new character creation', async () => {
+  const runtime = setup();
+  const bor = { ...mira, id: '30000000-0000-4000-8000-00000000000b', name: 'Bor', form: 'masculine' as const };
+  runtime.profileApi.get.mockResolvedValue({ kind: 'success', value: completeProfile });
+  runtime.characterApi.list.mockResolvedValue({ kind: 'success', value: listing([mira, bor], mira.id) });
+  runtime.characterApi.activate.mockResolvedValue({ kind: 'character_error', code: 'not_found' });
+  await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Change character, current: Mira, Oathkeeper' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Bor, Oathkeeper' }));
+  expect(await screen.findByText('This character is no longer available. Choose another one.')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'New character' }));
+  expect(await screen.findByRole('header', { name: 'Forge your character' })).toBeOnTheScreen();
+  expect(screen.queryByText('We could not create this character. Check your choices and try again.')).toBeNull();
+});
+
+test('the Oath screens stay mounted behind the change screen, keeping the tab and handled room requests', async () => {
+  const runtime = setup();
+  runtime.profileApi.get.mockResolvedValue({ kind: 'success', value: completeProfile });
+  const forgeNavigation = { request: { id: 7, target: 'history' as const }, onReturn: jest.fn() };
+  await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} forgeNavigation={forgeNavigation} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  expect(await screen.findByRole('button', { name: 'History', selected: true })).toBeOnTheScreen();
+  const calls = jest.mocked(runtime.oathApi.list).mock.calls.length;
+  await fireEvent.press(screen.getByRole('button', { name: 'Change character, current: Mira, Oathkeeper' }));
+  expect(await screen.findByRole('header', { name: 'Change character' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Back to Oaths' }));
+  expect(await screen.findByRole('button', { name: 'History', selected: true })).toBeOnTheScreen();
+  expect(jest.mocked(runtime.oathApi.list).mock.calls.length).toBe(calls);
 });

@@ -353,6 +353,27 @@
       "generic": "We could not create this character. Check your choices and try again.",
       "unavailable": "The Forge cannot be reached right now. Check your connection and try again.",
       "storage": "This device could not save your choices. Try again."
+    },
+    "cancel": "Back to characters",
+    "badge": "Change character, current: {{name}}, {{title}}",
+    "change": {
+      "title": "Change character",
+      "intro": "Choose who carries your Oaths. Each character keeps their own.",
+      "back": "Back to Oaths",
+      "active": "Active",
+      "card": "{{name}}, {{title}}",
+      "cardActive": "{{name}}, {{title}}, active character",
+      "new": "New character",
+      "newDetail": "Forge another character.",
+      "full": "All three places are taken.",
+      "switching": "Changing character…",
+      "error": {
+        "not_found": "This character is no longer available. Choose another one.",
+        "generic": "We could not change the character. Try again."
+      },
+      "resume": "Finish creating {{name}}",
+      "resumeDetail": "The Forge has not answered yet. Your choices are saved.",
+      "pending": "Finish creating {{name}} before changing character."
     }
   }
 }

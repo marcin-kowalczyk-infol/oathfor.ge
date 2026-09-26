@@ -1,4 +1,4 @@
-import { Dimensions } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
@@ -348,4 +348,58 @@ test('a newer room request replaces an unfinished hearth request and its place',
   await act(async () => first.resolve(page([oath()])));
   await screen.findAllByText('Under review');
   expect(screen.getByTestId('forge-place-chronicle', { includeHiddenElements: true })).toBeTruthy();
+});
+
+test('the header badge shows the active character and opens the change screen', async () => {
+  const f = setup(); const onChangeCharacter = jest.fn();
+  const character = { id: characterId, name: 'Mira', presetId: 'dummy_braid', form: 'feminine' as const, createdAt: serverTime };
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" character={character} onChangeCharacter={onChangeCharacter} /></LocalizationProvider>);
+  const badge = await screen.findByRole('button', { name: 'Change character, current: Mira, Oathkeeper' });
+  expect(screen.getByText('Mira')).toBeOnTheScreen();
+  await fireEvent.press(badge);
+  expect(onChangeCharacter).toHaveBeenCalledTimes(1);
+});
+test('at normal text size the badge is a one-line pill beside the door with an ellipsized name and no visible title', async () => {
+  const f = setup(); const name = 'Bogumiła-Przemysława';
+  const character = { id: characterId, name, presetId: 'dummy_braid', form: 'feminine' as const, createdAt: serverTime };
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" character={character} onChangeCharacter={jest.fn()} forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await screen.findByRole('button', { name: `Zmień postać, obecnie: ${name}, Obrończyni Przysięgi` });
+  expect(screen.getByText(name).props).toMatchObject({ numberOfLines: 1, ellipsizeMode: 'tail' });
+  expect(screen.queryByText('Obrończyni Przysięgi')).toBeNull();
+  expect(StyleSheet.flatten(screen.getByTestId('oath-header').props.style)).toMatchObject({ flexDirection: 'row', flexWrap: 'nowrap' });
+});
+test('at large text the badge becomes a full-width row under the door and shows the title', async () => {
+  const original = Dimensions.get('window');
+  await act(async () => { Dimensions.set({ window: { ...original, fontScale: 2 }, screen: Dimensions.get('screen') }); });
+  try {
+    const f = setup(); const name = 'Bogumiła-Przemysława';
+    const character = { id: characterId, name, presetId: 'dummy_braid', form: 'feminine' as const, createdAt: serverTime };
+    await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" character={character} onChangeCharacter={jest.fn()} forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+    await screen.findByRole('button', { name: `Zmień postać, obecnie: ${name}, Obrończyni Przysięgi` });
+    expect(screen.getByText(name).props.numberOfLines).toBeUndefined();
+    expect(screen.getByText('Obrończyni Przysięgi')).toBeOnTheScreen();
+    expect(StyleSheet.flatten(screen.getByTestId('oath-header').props.style)).toMatchObject({ flexDirection: 'column', alignItems: 'stretch' });
+    expect(StyleSheet.flatten(screen.getByTestId('character-badge-name').props.style)).toMatchObject({ flex: 1 });
+  } finally { await act(async () => { Dimensions.set({ window: original, screen: Dimensions.get('screen') }); }); }
+});
+test('without a character the header has no badge', async () => {
+  const f = setup();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await screen.findByRole('button', { name: /Open Oath: Running/ });
+  expect(screen.queryByRole('button', { name: /Change character/ })).toBeNull();
+});
+
+test('a long door label shrinks to two lines while the badge keeps room for about seven letters, and stacks when even that cannot fit', async () => {
+  const f = setup(); const name = 'Bogumiła-Przemysława';
+  const character = { id: characterId, name, presetId: 'dummy_braid', form: 'feminine' as const, createdAt: serverTime };
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" character={character} onChangeCharacter={jest.fn()} forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await screen.findByRole('button', { name: `Change character, current: ${name}, Oathkeeper` });
+  expect(screen.getByText('Return to the Forge').props.numberOfLines).toBe(2);
+  expect(StyleSheet.flatten(screen.getByTestId('character-badge-name').props.style)).toMatchObject({ minWidth: 72 });
+  const layout = (id: string, width: number) => fireEvent(screen.getByTestId(id), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width, height: 64 } } });
+  await layout('oath-header', 343); await layout('oath-door', 170);
+  expect(StyleSheet.flatten(screen.getByTestId('oath-header').props.style)).toMatchObject({ flexDirection: 'row' });
+  await layout('oath-door', 200);
+  expect(StyleSheet.flatten(screen.getByTestId('oath-header').props.style)).toMatchObject({ flexDirection: 'column' });
+  expect(screen.getByText('Oathkeeper')).toBeOnTheScreen();
 });

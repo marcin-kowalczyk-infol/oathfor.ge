@@ -61,8 +61,8 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     now: initialNow, expired: false, offline: false, loseNext: false, revision: 1, counter: 1,
     profile: { profile: { locale, timezone: 'Europe/Warsaw', intention: completed ? 'regular_activity' : null, companionIntroduced: completed, notificationPreference: completed ? 'disabled' : null }, onboardingStatus: completed ? 'complete' : 'pending' } as ProfileEnvelope,
     session: { version: 1, kind: 'active', session: { token, expiresAt: iso(initialNow + 86400000) } } as SessionEnvelope,
-    // A returning player already has one DUMMY character, an empty or new account starts with creation.
-    characters: (populated ? [{ id: characterId, name: 'Radomir', presetId: 'dummy_cropped', form: 'masculine', createdAt: iso(initialNow - 86400000) }] : []) as Character[],
+    // A returning player has two DUMMY characters to switch between, Radomir active. An empty or new account starts with creation.
+    characters: (populated ? [{ id: characterId, name: 'Radomir', presetId: 'dummy_cropped', form: 'masculine', createdAt: iso(initialNow - 172800000) }, { id: characterIdAt(2), name: 'Wiesna', presetId: 'dummy_curly', form: 'feminine', createdAt: iso(initialNow - 86400000) }] : []) as Character[],
     activeCharacterId: (populated ? characterId : null) as string | null,
     creations: new Map<string, string>(), creation: null as PendingCreation | null, paused: new Set<string>(), previewOwners: new Map<string, string>(),
     pending: new Map<string, PendingAcceptance | null>(), previews: new Map<string, Preview>(), accepted: new Map<string, string>(), requests: new Map<string, string>(), oaths: [] as Oath[],

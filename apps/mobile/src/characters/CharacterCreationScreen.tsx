@@ -18,6 +18,10 @@ export type CharacterCreationScreenProps = {
   onCreate(draft: CharacterDraft): void;
   onRetry(): void;
   onReload(): void;
+  /** Offered when creation was opened from the change-character screen. */
+  onCancel?(): void;
+  /** Offered on first-run creation, where there is no way back. */
+  onSignOut?(): void;
 };
 
 const forms: CharacterForm[] = ['masculine', 'feminine', 'neutral'];
@@ -78,7 +82,7 @@ export function CharacterCreationScreen(props: CharacterCreationScreenProps) {
   </SafeAreaView>;
 }
 
-function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload }: CharacterCreationScreenProps & { state: Ready }) {
+function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCancel, onSignOut }: CharacterCreationScreenProps & { state: Ready }) {
   const { t } = useTranslation();
   const { height, fontScale } = useWindowDimensions();
   const entrance = useSceneEntrance('character-creation');
@@ -104,7 +108,8 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload }: Ch
   // The feet stand a little above the name panel, the light pool is centred on them.
   const feet = stageHeight - STAGE_BOTTOM;
   const title = form ? t(`character.form.${form}`) : t('character.untitled');
-  const message = errorKey(state.error, pending?.name ?? null);
+  // A stored creation explains itself even when no error came with it, for example after returning from the change screen.
+  const message = errorKey(state.error, pending?.name ?? null) ?? (pending && !state.busy ? { key: 'character.pending', name: pending.name } : null);
   const limitShown = message?.key === 'character.error.character_limit_reached';
   const waitText = pending && wait > 0 ? t('character.rateLimited', { count: wait, name: pending.name }) : undefined;
   const serverNameError = state.error?.kind === 'character_error' && state.error.code === 'invalid_character_name' ? t('character.error.invalid_character_name') : undefined;
@@ -119,6 +124,11 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload }: Ch
     onCreate({ name: check.name, presetId, form });
   }
   return <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets>
+    {onCancel && !pending && <Pressable accessibilityRole="button" accessibilityLabel={t('character.cancel')} accessibilityState={{ disabled: state.busy }} disabled={state.busy}
+      onPress={() => { if (!state.busy) onCancel(); }} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
+      <Text allowFontScaling={false} style={styles.backArrow}>‹</Text>
+      <Text style={styles.backLabel}>{t('character.cancel')}</Text>
+    </Pressable>}
     <View style={styles.header}>
       <Text accessibilityRole="header" style={styles.title}>{t('character.title')}</Text>
       <Text style={styles.intro}>{t('character.intro')}</Text>
@@ -190,6 +200,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload }: Ch
         {...(waitText && !state.busy ? { disabled: true, unavailableReason: waitText } : { disabled: false })} />
       : <Action label={t('character.create')} onPress={submit} busy={state.busy}
         {...(reason && !state.busy ? { disabled: true, unavailableReason: reason } : { disabled: false })} />}
+    {onSignOut && <Action variant="secondary" label={t('auth.signOut')} onPress={onSignOut} />}
   </ScrollView>;
 }
 
@@ -217,6 +228,9 @@ const styles = StyleSheet.create({
   vignette: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, experimental_backgroundImage: 'radial-gradient(120% 60% at 50% 22%, rgba(255,150,60,0.10) 0%, rgba(255,150,60,0) 60%)' },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40, gap: 24 },
   header: { gap: 8 },
+  back: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, alignSelf: 'flex-start', paddingRight: 12, marginBottom: -12 },
+  backArrow: { color: tokens.color.primary, fontSize: 30, lineHeight: 32 },
+  backLabel: { color: '#e5d4b2', fontFamily: tokens.font.display, fontSize: 17, lineHeight: 24, flexShrink: 1 },
   title: { fontFamily: tokens.font.display, color: gold.name, fontSize: 30, lineHeight: 36, textAlign: 'center' },
   intro: { color: tokens.color.secondary, fontSize: tokens.body, lineHeight: tokens.body * 1.5, textAlign: 'center' },
   card: { borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: gold.line, backgroundColor: '#1f1812',

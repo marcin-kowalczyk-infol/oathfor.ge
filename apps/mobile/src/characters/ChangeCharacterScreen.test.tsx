@@ -1,0 +1,110 @@
+import { AccessibilityInfo, AppState } from 'react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { LocalizationProvider } from '../localization/LocalizationProvider';
+import { ChangeCharacterScreen } from './ChangeCharacterScreen';
+import type { CharacterControllerState } from './controller';
+import type { Character } from '../api/characters';
+jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
+jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
+type Ready = Extract<CharacterControllerState, { kind: 'ready' }>;
+const at = '2026-09-26T12:00:00Z';
+const mira: Character = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'dummy_braid', form: 'feminine', createdAt: at };
+const bor: Character = { id: '30000000-0000-4000-8000-00000000000b', name: 'Bor', presetId: 'owner_final_01', form: 'masculine', createdAt: at };
+const wit: Character = { id: '30000000-0000-4000-8000-00000000000c', name: 'Wit', presetId: 'dummy_tied', form: 'neutral', createdAt: at };
+const ready = (patch: Partial<Ready> = {}): Ready => ({ kind: 'ready', characters: [mira, bor], activeCharacterId: mira.id, presets: ['dummy_braid'], limit: 3, busy: false, pendingCreation: null, activeRevision: 1, ...patch });
+afterEach(() => jest.restoreAllMocks());
+
+async function setup(state: Ready = ready(), locale: 'en' | 'pl' = 'en') {
+  const handlers = { onChoose: jest.fn(), onNew: jest.fn(), onBack: jest.fn() };
+  const view = await render(<LocalizationProvider initialLocale={locale}><ChangeCharacterScreen state={state} {...handlers} /></LocalizationProvider>);
+  await act(async () => {});
+  const rerender = async (next: Ready) => { await view.rerender(<LocalizationProvider initialLocale={locale}><ChangeCharacterScreen state={next} {...handlers} /></LocalizationProvider>); await act(async () => {}); };
+  return { ...handlers, rerender };
+}
+
+test('shows a new-character slot below the limit', async () => {
+  const f = await setup();
+  expect(screen.getByRole('button', { name: 'Mira, Oathkeeper, active character' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Bor, Oathkeeper' })).toBeOnTheScreen();
+  expect(screen.getByText('Active')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'New character' }));
+  expect(f.onNew).toHaveBeenCalledTimes(1);
+});
+
+test('three characters leave no new-character slot', async () => {
+  await setup(ready({ characters: [mira, bor, wit] }));
+  expect(screen.queryByRole('button', { name: 'New character' })).toBeNull();
+  expect(screen.getByText('All three places are taken.')).toBeOnTheScreen();
+});
+
+test('choosing another character switches once and choosing the active one only returns', async () => {
+  const f = await setup();
+  await fireEvent.press(screen.getByRole('button', { name: 'Bor, Oathkeeper' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Bor, Oathkeeper' }));
+  expect(f.onChoose).toHaveBeenCalledTimes(1);
+  expect(f.onChoose).toHaveBeenCalledWith(bor.id);
+  await fireEvent.press(screen.getByRole('button', { name: 'Mira, Oathkeeper, active character' }));
+  expect(f.onBack).toHaveBeenCalledTimes(1);
+  expect(f.onChoose).toHaveBeenCalledTimes(1);
+});
+
+test('busy disables every card and the back action, and announces the change', async () => {
+  const f = await setup(ready({ busy: true }));
+  for (const name of ['Mira, Oathkeeper, active character', 'Bor, Oathkeeper', 'New character', 'Back to Oaths']) expect(screen.getByRole('button', { name })).toBeDisabled();
+  expect(screen.getByText('Changing character…')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Bor, Oathkeeper' }));
+  expect(f.onChoose).not.toHaveBeenCalled();
+});
+
+test('a failed switch keeps the current character and shows a localized error', async () => {
+  const f = await setup();
+  await fireEvent.press(screen.getByRole('button', { name: 'Bor, Oathkeeper' }));
+  await f.rerender(ready({ error: { kind: 'character_error', code: 'not_found' } }));
+  expect(screen.getByText('This character is no longer available. Choose another one.')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Mira, Oathkeeper, active character' })).toBeOnTheScreen();
+  await f.rerender(ready({ error: { kind: 'unavailable', retry: 'request' } }));
+  expect(screen.getByText('The Forge cannot be reached right now. Check your connection and try again.')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Bor, Oathkeeper' }));
+  expect(f.onChoose).toHaveBeenCalledTimes(2);
+});
+
+test('an error from before opening the screen is not shown', async () => {
+  await setup(ready({ error: { kind: 'character_error', code: 'invalid_preset' } }));
+  expect(screen.queryByText('We could not change the character. Try again.')).toBeNull();
+});
+
+test('Polish uses the grammatical title of each character and a DUMMY-free placeholder for undrawable looks', async () => {
+  await setup(ready(), 'pl');
+  expect(screen.getByRole('header', { name: 'Zmień postać' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Mira, Obrończyni Przysięgi, aktywna postać' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Bor, Obrońca Przysięgi' })).toBeOnTheScreen();
+  expect(screen.getByText('Aktywna postać')).toBeOnTheScreen();
+  expect(screen.getByTestId(`portrait-placeholder-${bor.id}`, { includeHiddenElements: true })).toBeTruthy();
+});
+
+test('back returns without a request', async () => {
+  const f = await setup();
+  await fireEvent.press(screen.getByRole('button', { name: 'Back to Oaths' }));
+  expect(f.onBack).toHaveBeenCalledTimes(1); expect(f.onChoose).not.toHaveBeenCalled();
+});
+
+test('Reduce Motion shows the cards without an entrance offset', async () => {
+  jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
+  Object.defineProperty(AppState, 'currentState', { value: 'active', configurable: true });
+  await setup();
+  expect(screen.getByTestId('character-cards')).toHaveStyle({ opacity: 1, transform: [{ translateY: 0 }] });
+});
+
+test('an unresolved creation is shown as a card that returns to creation, and other characters wait', async () => {
+  const pending = { version: 1 as const, accountId: '10000000-0000-4000-8000-00000000000a', requestId: '40000000-0000-4000-8000-00000000000a', name: 'Zoya', presetId: 'dummy_curly', form: 'neutral' as const };
+  const f = await setup(ready({ pendingCreation: pending }));
+  expect(screen.queryByRole('button', { name: 'New character' })).toBeNull();
+  expect(screen.getByText('Finish creating Zoya before changing character.')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Bor, Oathkeeper' })).toBeDisabled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Finish creating Zoya' }));
+  expect(f.onNew).toHaveBeenCalledTimes(1);
+  await fireEvent.press(screen.getByRole('button', { name: 'Bor, Oathkeeper' }));
+  expect(f.onChoose).not.toHaveBeenCalled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Mira, Oathkeeper, active character' }));
+  expect(f.onBack).toHaveBeenCalledTimes(1);
+});
