@@ -208,8 +208,8 @@ final class CharacterEndpointTest extends WebTestCase
     /** The 503 comes from the firewall session check, which reads the database before the controller runs. */
     public function testOutageReturnsSafeNoStoreErrors(): void
     {
-        foreach (['GET', 'POST'] as $method) {
-            $process = new Process([PHP_BINARY, 'tests/Fixtures/profile_http_worker.php', $method, '/api/characters'], dirname(__DIR__, 2), ['DATABASE_URL' => 'postgresql://DUMMY:DUMMY-never-log-this@127.0.0.1:1/unavailable?serverVersion=17']);
+        foreach ([['GET', '/api/characters'], ['POST', '/api/characters'], ['PUT', '/api/characters/active']] as [$method, $path]) {
+            $process = new Process([PHP_BINARY, 'tests/Fixtures/profile_http_worker.php', $method, $path], dirname(__DIR__, 2), ['DATABASE_URL' => 'postgresql://DUMMY:DUMMY-never-log-this@127.0.0.1:1/unavailable?serverVersion=17']);
             $process->setTimeout(10); $process->run();
             self::assertSame(0, $process->getExitCode(), $process->getErrorOutput());
             self::assertSame([503, 'no-store, private', '{"error":{"code":"temporarily_unavailable"}}'], json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR));
@@ -322,6 +322,152 @@ final class CharacterEndpointTest extends WebTestCase
             unlink($path);
         }
     }
+    public function testSwitchingToOwnCharacterWritesOnlyActivePointer(): void
+    {
+        $this->create(self::rid(1));
+        $first = $this->body()['character'];
+        $this->create(self::rid(2), 'Nora', 'dummy_tied', 'neutral');
+        $second = $this->body()['character'];
+        $characters = $this->connection->fetchAllAssociative('SELECT * FROM player_character ORDER BY slot');
+        $before = $this->snapshot();
+        $this->clock->time += 60;
+        $this->switchTo($first['id']);
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertResponseHeaderSame('Cache-Control', 'no-store, private');
+        $expected = ['characters' => [$first, $second], 'activeCharacterId' => $first['id'], 'limit' => 3, 'presets' => self::PRESETS, 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $this->clock->time)];
+        self::assertSame($expected, $this->body());
+        $this->request('GET', '/api/characters');
+        self::assertSame($expected, $this->body());
+        self::assertSame($first['id'], $this->connection->fetchOne('SELECT active_character_id FROM account'));
+        self::assertSame($before, $this->snapshot());
+        self::assertSame($characters, $this->connection->fetchAllAssociative('SELECT * FROM player_character ORDER BY slot'));
+    }
+    public function testSwitchingToActiveCharacterDoesNotWrite(): void
+    {
+        $this->create(self::rid(1));
+        $id = $this->body()['character']['id'];
+        $version = $this->connection->fetchOne('SELECT xmin::text FROM account WHERE id = ?', [self::ACCOUNT]);
+        $this->switchTo($id);
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertSame($id, $this->body()['activeCharacterId']);
+        self::assertSame($version, $this->connection->fetchOne('SELECT xmin::text FROM account WHERE id = ?', [self::ACCOUNT]));
+    }
+    public function testSwitchingToForeignOrUnknownCharacterIsNotFound(): void
+    {
+        $this->create(self::rid(1));
+        $id = $this->body()['character']['id'];
+        $this->connection->insert('account', ['id' => self::OTHER, 'created_at' => $this->clock->time, 'onboarding_status' => 'complete']);
+        $foreign = $this->connection->fetchOne('INSERT INTO player_character (account_id, slot, creation_request_id, name, preset_id, form, created_at) VALUES (?, 1, ?, ?, ?, ?, ?) RETURNING id', [self::OTHER, self::rid(1), 'Obca', 'dummy_tied', 'feminine', $this->clock->time]);
+        foreach ([$foreign, '00000000-0000-4000-a000-999999999999'] as $target) {
+            $this->switchTo($target);
+            $this->assertError(404, 'not_found');
+        }
+        self::assertSame($id, $this->connection->fetchOne('SELECT active_character_id FROM account WHERE id = ?', [self::ACCOUNT]));
+        self::assertNull($this->connection->fetchOne('SELECT active_character_id FROM account WHERE id = ?', [self::OTHER]));
+        $this->connection->executeStatement('UPDATE account SET active_character_id = NULL WHERE id = ?', [self::ACCOUNT]);
+        $this->switchTo('00000000-0000-4000-a000-999999999999');
+        $this->assertError(404, 'not_found');
+        self::assertNull($this->connection->fetchOne('SELECT active_character_id FROM account WHERE id = ?', [self::ACCOUNT]));
+    }
+    public function testInvalidSwitchInputIsRejectedWithoutWrite(): void
+    {
+        $this->create(self::rid(1));
+        $id = $this->body()['character']['id'];
+        $this->create(self::rid(2), 'Nora');
+        $bodies = ['', '{', '[]', 'null', '{}', '"x"', json_encode(['characterId' => strtoupper($id)], JSON_THROW_ON_ERROR), '{"characterId":"not-a-uuid"}', '{"characterId":null}', '{"characterId":5}', '{"characterId":["x"]}', json_encode(['characterId' => $id, 'accountId' => self::ACCOUNT], JSON_THROW_ON_ERROR), json_encode(['character' => ['characterId' => $id]], JSON_THROW_ON_ERROR)];
+        foreach ($bodies as $body) {
+            $this->client->request('PUT', '/api/characters/active', server: ['HTTP_AUTHORIZATION' => 'Bearer '.self::TOKEN, 'CONTENT_TYPE' => 'application/json'], content: $body);
+            $this->assertError(400, 'invalid_request');
+        }
+        $valid = json_encode(['characterId' => $id], JSON_THROW_ON_ERROR);
+        $this->client->request('PUT', '/api/characters/active?x=1', server: ['HTTP_AUTHORIZATION' => 'Bearer '.self::TOKEN, 'CONTENT_TYPE' => 'application/json'], content: $valid);
+        $this->assertError(400, 'invalid_request');
+        foreach ([['text/plain', $valid, 415, 'unsupported_media_type'], ['application/json', str_repeat(' ', 16385), 413, 'request_too_large']] as [$type, $body, $status, $code]) {
+            $this->client->request('PUT', '/api/characters/active', server: ['HTTP_AUTHORIZATION' => 'Bearer '.self::TOKEN, 'CONTENT_TYPE' => $type], content: $body);
+            $this->assertError($status, $code);
+        }
+        self::assertNotSame($id, $this->connection->fetchOne('SELECT active_character_id FROM account'));
+    }
+    public function testSwitchingRequiresValidSession(): void
+    {
+        $this->create(self::rid(1));
+        $id = $this->body()['character']['id'];
+        $this->create(self::rid(2), 'Nora');
+        $active = $this->body()['character']['id'];
+        $valid = json_encode(['characterId' => $id], JSON_THROW_ON_ERROR);
+        $cases = [
+            [[], null],
+            [['HTTP_AUTHORIZATION' => 'Bearer short'], null],
+            [['HTTP_AUTHORIZATION' => 'Bearer '.str_repeat('B', 43)], null],
+            [null, fn () => $this->clock->time += 2592000],
+            [null, fn () => $this->connection->executeStatement('UPDATE app_session SET revoked_at = ?', [$this->clock->time])],
+            [null, fn () => $this->connection->executeStatement("UPDATE account SET status = 'deleting'")],
+        ];
+        foreach ($cases as [$server, $change]) {
+            $time = $this->clock->time;
+            if (null !== $change) { $change(); }
+            $this->client->request('PUT', '/api/characters/active', server: ($server ?? ['HTTP_AUTHORIZATION' => 'Bearer '.self::TOKEN]) + ['CONTENT_TYPE' => 'application/json'], content: $valid);
+            $this->assertError(401, 'unauthenticated');
+            $this->clock->time = $time;
+            $this->connection->executeStatement("UPDATE account SET status = 'active'");
+            $this->connection->executeStatement('UPDATE app_session SET revoked_at = NULL');
+        }
+        self::assertSame($active, $this->connection->fetchOne('SELECT active_character_id FROM account'));
+    }
+    public function testSwitchDatabaseFailureKeepsActiveCharacter(): void
+    {
+        $this->create(self::rid(1));
+        $id = $this->body()['character']['id'];
+        $this->create(self::rid(2), 'Nora');
+        $active = $this->body()['character']['id'];
+        $this->connection->executeStatement("ALTER TABLE account ADD CONSTRAINT dummy_switch_failure CHECK (active_character_id IS DISTINCT FROM '".$id."'::uuid) NOT VALID");
+        try {
+            $this->switchTo($id);
+            $this->assertError(503, 'temporarily_unavailable');
+            self::assertSame($active, $this->connection->fetchOne('SELECT active_character_id FROM account'));
+        } finally { $this->connection->executeStatement('ALTER TABLE account DROP CONSTRAINT dummy_switch_failure'); }
+        $this->switchTo($id);
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertSame($id, $this->connection->fetchOne('SELECT active_character_id FROM account'));
+    }
+    /** @return iterable<string, array{string}> */
+    public static function switchLockChanges(): iterable
+    {
+        foreach (['session_expiry', 'revocation', 'deletion', 'now_time'] as $change) { yield $change => [$change]; }
+    }
+    #[DataProvider('switchLockChanges')]
+    public function testSwitchRechecksAfterAccountLock(string $change): void
+    {
+        $this->create(self::rid(1));
+        $id = $this->body()['character']['id'];
+        $this->create(self::rid(2), 'Nora');
+        $active = $this->body()['character']['id'];
+        $this->connection->beginTransaction();
+        $this->connection->fetchOne('SELECT id FROM account WHERE id = ? FOR UPDATE', [self::ACCOUNT]);
+        [$worker, $path, $data] = $this->worker('', '', $id);
+        try {
+            $this->assertWaiting($worker);
+            if ('session_expiry' === $change) { $data['time'] += 2592000; }
+            elseif ('revocation' === $change) { $this->connection->executeStatement('UPDATE app_session SET revoked_at = ?', [$data['time']]); }
+            elseif ('deletion' === $change) { $this->connection->executeStatement("UPDATE account SET status = 'deleting'"); }
+            else { $data['time'] += 30; }
+            file_put_contents($path, json_encode($data, JSON_THROW_ON_ERROR));
+            $this->connection->commit();
+            $result = $this->workerResult($worker);
+            if ('now_time' === $change) {
+                self::assertSame($id, $result['activeCharacterId']);
+                self::assertSame(gmdate('Y-m-d\TH:i:s\Z', $data['time']), $result['serverTime']);
+                self::assertSame($id, $this->connection->fetchOne('SELECT active_character_id FROM account'));
+            } else {
+                self::assertSame(['error' => ['code' => 'unauthenticated']], $result);
+                self::assertSame($active, $this->connection->fetchOne('SELECT active_character_id FROM account'));
+            }
+        } finally {
+            $worker->stop();
+            if ($this->connection->isTransactionActive()) { $this->connection->rollBack(); }
+            unlink($path);
+        }
+    }
     /** @return array<string, mixed> */
     private function snapshot(): array
     {
@@ -331,14 +477,15 @@ final class CharacterEndpointTest extends WebTestCase
         return $tables;
     }
     /** @return array{Process, string, array<string, mixed>} */
-    private function worker(string $requestId, string $name): array
+    private function worker(string $requestId, string $name, ?string $switchTo = null): array
     {
         $path = tempnam(sys_get_temp_dir(), 'oathforge-DUMMY-character-');
         self::assertIsString($path);
         chmod($path, 0600);
-        $data = ['time' => $this->clock->time, 'token' => self::TOKEN, 'input' => ['requestId' => $requestId, 'name' => $name, 'presetId' => 'dummy_braid', 'form' => 'feminine']];
+        $input = null === $switchTo ? ['requestId' => $requestId, 'name' => $name, 'presetId' => 'dummy_braid', 'form' => 'feminine'] : ['characterId' => $switchTo];
+        $data = ['time' => $this->clock->time, 'token' => self::TOKEN, 'input' => $input];
         file_put_contents($path, json_encode($data, JSON_THROW_ON_ERROR));
-        $worker = new Process([PHP_BINARY, 'tests/Fixtures/character_creation_worker.php', $path], dirname(__DIR__, 2));
+        $worker = new Process([PHP_BINARY, 'tests/Fixtures/'.(null === $switchTo ? 'character_creation_worker.php' : 'character_switch_worker.php'), $path], dirname(__DIR__, 2));
         $worker->setTimeout(12); $worker->start();
         return [$worker, $path, $data];
     }
@@ -366,6 +513,7 @@ final class CharacterEndpointTest extends WebTestCase
     {
         $this->request('POST', '/api/characters', json_encode(['requestId' => $requestId, 'name' => $name, 'presetId' => $presetId, 'form' => $form], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
     }
+    private function switchTo(string $characterId): void { $this->request('PUT', '/api/characters/active', json_encode(['characterId' => $characterId], JSON_THROW_ON_ERROR)); }
     private function request(string $method, string $path, string $body = ''): void { $this->client->request($method, $path, server: ['HTTP_AUTHORIZATION' => 'Bearer '.self::TOKEN, 'CONTENT_TYPE' => 'application/json'], content: $body); }
     private function assertError(int $status, string $code): void
     {

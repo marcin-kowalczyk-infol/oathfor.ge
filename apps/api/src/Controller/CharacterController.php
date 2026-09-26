@@ -3,7 +3,7 @@
 declare(strict_types=1);
 namespace App\Controller;
 
-use App\Character\{CharacterFailure, CharacterInput, CharacterResult, CharacterService};
+use App\Character\{CharacterFailure, CharacterInput, CharacterResult, CharacterService, SwitchInput};
 use App\Security\SessionTokenExtractor;
 use Symfony\Component\HttpFoundation\{JsonResponse, Request};
 use Symfony\Component\Routing\Attribute\Route;
@@ -21,16 +21,30 @@ final class CharacterController
     #[Route('/api/characters', name: 'character_create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
-        $body = stream_get_contents($request->getContent(true), 16385);
-        if (false === $body || strlen($body) > 16384) { return $this->respond(new CharacterFailure('request_too_large', 413)); }
-        if ('application/json' !== strtolower(trim(explode(';', $request->headers->get('Content-Type') ?? '')[0]))) { return $this->respond(new CharacterFailure('unsupported_media_type', 415)); }
-        try { $data = json_decode($body, false, 8, JSON_THROW_ON_ERROR); }
-        catch (\JsonException) { return $this->respond(new CharacterFailure('invalid_request')); }
-        if (!$data instanceof \stdClass || 0 !== $request->query->count()) { return $this->respond(new CharacterFailure('invalid_request')); }
-        $input = CharacterInput::parse(get_object_vars($data));
+        $data = $this->json($request);
+        $input = $data instanceof CharacterFailure ? $data : CharacterInput::parse($data);
         if ($input instanceof CharacterFailure) { return $this->respond($input); }
         $token = $this->tokens->extractAccessToken($request);
         return $this->respond(null === $token ? new CharacterFailure('unauthenticated', 401) : $this->characters->create($token, $input));
+    }
+    #[Route('/api/characters/active', name: 'character_activate', methods: ['PUT'])]
+    public function activate(Request $request): JsonResponse
+    {
+        $data = $this->json($request);
+        $input = $data instanceof CharacterFailure ? $data : SwitchInput::parse($data);
+        if ($input instanceof CharacterFailure) { return $this->respond($input); }
+        $token = $this->tokens->extractAccessToken($request);
+        return $this->respond(null === $token ? new CharacterFailure('unauthenticated', 401) : $this->characters->activate($token, $input));
+    }
+    /** @return array<string, mixed>|CharacterFailure */
+    private function json(Request $request): array|CharacterFailure
+    {
+        $body = stream_get_contents($request->getContent(true), 16385);
+        if (false === $body || strlen($body) > 16384) { return new CharacterFailure('request_too_large', 413); }
+        if ('application/json' !== strtolower(trim(explode(';', $request->headers->get('Content-Type') ?? '')[0]))) { return new CharacterFailure('unsupported_media_type', 415); }
+        try { $data = json_decode($body, false, 8, JSON_THROW_ON_ERROR); }
+        catch (\JsonException) { return new CharacterFailure('invalid_request'); }
+        return $data instanceof \stdClass && 0 === $request->query->count() ? get_object_vars($data) : new CharacterFailure('invalid_request');
     }
     /** @param array<string, mixed>|CharacterResult|CharacterFailure $result */
     private function respond(array|CharacterResult|CharacterFailure $result): JsonResponse

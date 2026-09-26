@@ -17,9 +17,21 @@ final class CharacterService
      */
     public function list(#[\SensitiveParameter] string $bearer): array|CharacterFailure
     {
-        $result = $this->locked($bearer, function (string $accountId, array $account, int $now): array {
-            $rows = $this->connection->fetchAllAssociative('SELECT id, name, preset_id, form, created_at FROM player_character WHERE account_id = ? ORDER BY slot', [$accountId]);
-            return ['characters' => array_map(self::character(...), $rows), 'activeCharacterId' => $account['active_character_id'], 'limit' => self::LIMIT, 'presets' => $this->presets->ids(), 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now)];
+        $result = $this->locked($bearer, fn (string $accountId, array $account, int $now): array => $this->listing($accountId, $account['active_character_id'], $now));
+        return $result instanceof CharacterResult ? $result->body : $result;
+    }
+
+    /**
+     * Makes an own character active. Writes only account.active_character_id, and nothing when it is already active.
+     * @phpstan-impure
+     * @return array<string, mixed>|CharacterFailure
+     */
+    public function activate(#[\SensitiveParameter] string $bearer, SwitchInput $input): array|CharacterFailure
+    {
+        $result = $this->locked($bearer, function (string $accountId, array $account, int $now) use ($input): array|CharacterFailure {
+            if (false === $this->connection->fetchOne('SELECT id FROM player_character WHERE account_id = ? AND id = ?', [$accountId, $input->characterId])) { return new CharacterFailure('not_found', 404); }
+            if ($account['active_character_id'] !== $input->characterId) { $this->connection->executeStatement('UPDATE account SET active_character_id = ? WHERE id = ?', [$input->characterId, $accountId]); }
+            return $this->listing($accountId, $input->characterId, $now);
         });
         return $result instanceof CharacterResult ? $result->body : $result;
     }
@@ -62,6 +74,13 @@ final class CharacterService
                 return is_array($result) ? new CharacterResult($result, false) : $result;
             });
         } catch (\Doctrine\DBAL\Exception) { return new CharacterFailure('temporarily_unavailable', 503); }
+    }
+
+    /** @return array<string, mixed> */
+    private function listing(string $accountId, ?string $activeId, int $now): array
+    {
+        $rows = $this->connection->fetchAllAssociative('SELECT id, name, preset_id, form, created_at FROM player_character WHERE account_id = ? ORDER BY slot', [$accountId]);
+        return ['characters' => array_map(self::character(...), $rows), 'activeCharacterId' => $activeId, 'limit' => self::LIMIT, 'presets' => $this->presets->ids(), 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now)];
     }
 
     /**
