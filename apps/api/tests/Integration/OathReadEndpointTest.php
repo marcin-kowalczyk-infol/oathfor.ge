@@ -72,6 +72,51 @@ final class OathReadEndpointTest extends WebTestCase
         $this->request('GET', '/api/oaths');
         self::assertSame([$third], array_column($this->body()['items'], 'id'));
     }
+    public function testTotalCountsWholeViewIndependentOfLimitAndCursor(): void
+    {
+        $ids = []; for ($i = 0; $i < 5; ++$i) { $ids[] = $this->createOath()['id']; }
+        $this->connection->executeStatement("UPDATE oath SET state = 'withdrawn', terminal_at = ?, reason = 'character_paused' WHERE id IN (?, ?)", [$this->clock->time, $ids[0], $ids[1]]);
+        $this->request('GET', '/api/oaths?view=today&limit=1');
+        self::assertSame(3, $this->body()['total']);
+        self::assertCount(1, $this->body()['items']);
+        $cursor = $this->body()['nextCursor'];
+        self::assertIsString($cursor);
+        $this->request('GET', '/api/oaths?view=today&limit=1&cursor='.$cursor);
+        self::assertSame(3, $this->body()['total']);
+        self::assertCount(1, $this->body()['items']);
+        $this->request('GET', '/api/oaths?view=history');
+        self::assertSame(2, $this->body()['total']);
+        self::assertCount(2, $this->body()['items']);
+    }
+    public function testTotalIgnoresOtherCharacterOfSameAccount(): void
+    {
+        $active = $this->connection->fetchOne('SELECT active_character_id FROM account WHERE id = ?', [self::ACCOUNT]);
+        $ids = [$this->createOath()['id'], $this->createOath()['id']];
+        $this->connection->executeStatement("UPDATE oath SET state = 'withdrawn', terminal_at = ?, reason = 'character_paused' WHERE id = ?", [$this->clock->time, $ids[0]]);
+        $other = CharacterFixture::activate($this->connection, self::ACCOUNT, 2);
+        $foreign = $this->createOath()['id']; for ($i = 0; $i < 3; ++$i) { $this->createOath(); }
+        $this->connection->executeStatement("UPDATE oath SET state = 'withdrawn', terminal_at = ?, reason = 'character_paused' WHERE id = ?", [$this->clock->time, $foreign]);
+        $this->request('GET', '/api/oaths');
+        self::assertSame([3, $other], [$this->body()['total'], $this->body()['characterId']]);
+        $this->connection->executeStatement('UPDATE account SET active_character_id = ? WHERE id = ?', [$active, self::ACCOUNT]);
+        $this->request('GET', '/api/oaths');
+        self::assertSame([1, [$ids[1]]], [$this->body()['total'], array_column($this->body()['items'], 'id')]);
+        $this->request('GET', '/api/oaths?view=history');
+        self::assertSame([1, [$ids[0]]], [$this->body()['total'], array_column($this->body()['items'], 'id')]);
+    }
+    public function testTotalCountsReconciledStateAndIsZeroWithoutOaths(): void
+    {
+        foreach (['today', 'history'] as $view) { $this->request('GET', '/api/oaths?view='.$view); self::assertSame([0, []], [$this->body()['total'], $this->body()['items']]); }
+        $oath = $this->createOath()['id']; $terminal = $this->createOath()['id'];
+        $this->connection->executeStatement("UPDATE oath SET state = 'withdrawn', terminal_at = ?, reason = 'character_paused' WHERE id = ?", [$this->clock->time, $terminal]);
+        $this->clock->time += 10000;
+        $this->request('GET', '/api/oaths?limit=1');
+        self::assertSame('review_pending', $this->connection->fetchOne('SELECT state FROM oath WHERE id = ?', [$oath]));
+        self::assertSame([1, [$oath], ['review_pending']], [$this->body()['total'], array_column($this->body()['items'], 'id'), array_column($this->body()['items'], 'state')]);
+        self::assertNull($this->body()['nextCursor']);
+        $this->request('GET', '/api/oaths?view=history');
+        self::assertSame([1, [$terminal]], [$this->body()['total'], array_column($this->body()['items'], 'id')]);
+    }
     public function testPausedIncompleteOwnerKeepsExactSnapshotButOtherAccountCannotReadOrListIt(): void
     {
         $oath = $this->createOath();

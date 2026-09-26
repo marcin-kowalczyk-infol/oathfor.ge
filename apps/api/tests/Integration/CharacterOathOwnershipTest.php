@@ -74,7 +74,7 @@ final class CharacterOathOwnershipTest extends WebTestCase
         $oath = $this->body()['oath'];
         self::assertSame($a, $oath['characterId']);
         $this->request('GET', '/api/oaths');
-        self::assertSame(['items' => [], 'nextCursor' => null, 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $this->clock->time), 'paused' => false, 'characterId' => $b], $this->body());
+        self::assertSame(['items' => [], 'nextCursor' => null, 'total' => 0, 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $this->clock->time), 'paused' => false, 'characterId' => $b], $this->body());
         $this->request('GET', '/api/oaths/'.$oath['id']); $this->assertError(404, 'not_found');
         $this->accept($preview);
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
