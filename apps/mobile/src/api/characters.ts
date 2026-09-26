@@ -8,7 +8,7 @@ export type Character = { id: string; name: string; presetId: string; form: Char
 export type CharacterList = { characters: Character[]; activeCharacterId: string | null; limit: 3; presets: string[]; serverTime: string };
 export type CharacterCreation = { character: Character; activeCharacterId: string; serverTime: string };
 export type CharacterCreationInput = { requestId: string; name: string; presetId: string; form: CharacterForm };
-export type CharacterCode = 'invalid_character_name' | 'invalid_preset' | 'character_limit_reached' | 'idempotency_conflict' | 'onboarding_incomplete' | 'not_found';
+export type CharacterCode = 'invalid_request' | 'invalid_character_name' | 'invalid_preset' | 'character_limit_reached' | 'idempotency_conflict' | 'onboarding_incomplete' | 'not_found';
 export type CharacterFailure = { kind: 'character_error'; code: CharacterCode };
 export type CharacterResult<T> = { kind: 'success'; value: T } | AuthFailure | CharacterFailure;
 /** 201 creates the character, 200 replays an earlier creation with the same request ID. */
@@ -40,16 +40,13 @@ function validInput(input: unknown): input is CharacterCreationInput {
 }
 
 const errors: Record<string, Record<number, CharacterCode[]>> = {
-  '/api/characters': { 400: ['invalid_character_name', 'invalid_preset'], 409: ['character_limit_reached', 'idempotency_conflict', 'onboarding_incomplete'] },
+  // A server 400 invalid_request is decisive, unlike the client-side { kind: 'invalid_request' } refusal before sending.
+  '/api/characters': { 400: ['invalid_request', 'invalid_character_name', 'invalid_preset'], 409: ['character_limit_reached', 'idempotency_conflict', 'onboarding_incomplete'] },
   '/api/characters/active': { 404: ['not_found'] },
 };
 
 export function createCharacterClient(options: ClientOptions) {
-  const request = createBoundedRequest<CharacterFailure | { kind: 'invalid_request' }>(options, (path, status, code) => {
-    // The server will never accept this creation, so a stored retry can be cleared.
-    if (path === '/api/characters' && status === 400 && code === 'invalid_request') return { kind: 'invalid_request' };
-    return typeof code === 'string' && (errors[path]?.[status] as string[] | undefined)?.includes(code) ? { kind: 'character_error', code: code as CharacterCode } : undefined;
-  });
+  const request = createBoundedRequest<CharacterFailure>(options, (path, status, code) => typeof code === 'string' && (errors[path]?.[status] as string[] | undefined)?.includes(code) ? { kind: 'character_error', code: code as CharacterCode } : undefined);
   return {
     list: (token: string, signal?: AbortSignal): Promise<CharacterResult<CharacterList>> =>
       request('/api/characters', 'GET', 200, isCharacterList, undefined, token, signal),

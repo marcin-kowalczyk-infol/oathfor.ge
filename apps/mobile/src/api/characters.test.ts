@@ -56,10 +56,12 @@ test('returned names are parsed structurally, so a letter unknown to the client 
   await expect(client.list(token)).resolves.toEqual({ kind: 'success', value: newer });
 });
 
-test('a creation the server rejects as malformed is decisive, not retryable', async () => {
+test('a creation the server rejects as malformed is decisive and distinct from a client-side refusal', async () => {
   const { client, transport } = setup();
   transport.mockResolvedValueOnce(response(400, { error: { code: 'invalid_request' } }));
-  await expect(client.create(token, input)).resolves.toEqual({ kind: 'invalid_request' });
+  await expect(client.create(token, input)).resolves.toEqual({ kind: 'character_error', code: 'invalid_request' });
+  await expect(client.create('not-a-token', input)).resolves.toEqual({ kind: 'invalid_request' });
+  expect(transport).toHaveBeenCalledTimes(1);
   transport.mockResolvedValueOnce(response(400, { error: { code: 'invalid_request', field: 'name' } }));
   await expect(client.create(token, input)).resolves.toEqual({ kind: 'unavailable', retry: 'request' });
 });
