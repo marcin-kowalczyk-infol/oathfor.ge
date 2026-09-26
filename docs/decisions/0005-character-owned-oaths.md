@@ -1,6 +1,6 @@
 # ADR 0005: Oaths belong to player characters
 
-Status: accepted by owner decision, 2026-09-26. Not implemented.
+Status: accepted by owner decision, 2026-09-26. Implemented in MVP-17-T02 to T05, 2026-09-26.
 
 ## Context
 

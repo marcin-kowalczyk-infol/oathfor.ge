@@ -8,4 +8,6 @@ export const tokens = {
   title: 28,
   radius: 16,
   controlHeight: 48,
+  // Display text caps so the longest words (Obrończyni, NIEWYBRANY, a 20-letter name) never break mid-word at 375pt. Body copy stays uncapped.
+  maxScale: { display: 2, choice: 2.5, name: 1.5 },
 } as const;

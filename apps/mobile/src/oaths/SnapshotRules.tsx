@@ -46,20 +46,20 @@ export function SnapshotRules({ snapshot }: { snapshot: Snapshot }) {
       <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <ActivityEmblem activity={snapshot.activity} size={112} />
       </View>
-      <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>
+      <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{copy.title}</Text>
       <Text style={styles.secondary}>{copy.subtitle}</Text>
     </View>
     <View style={styles.promise}><Text style={styles.promiseText}>{promise}</Text></View>
     <View style={styles.facts}>{facts.map(([label, value]) => <View key={label} style={styles.group}>
-      <Text accessibilityRole="header" style={styles.heading}>{label}</Text>
+      <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{label}</Text>
       <Text style={styles.body}>{value}</Text>
     </View>)}</View>
     <View style={styles.card}>
-      <Text accessibilityRole="header" style={styles.heading}>{t('oath.rules.declaration')}</Text>
+      <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t('oath.rules.declaration')}</Text>
       <Text style={styles.body}>{copy.declaration}</Text>
     </View>
     {sections.map(section => <View key={section} style={[styles.card, (section === 'evidence' || section === 'photo' || section === 'activityRecord') && styles.evidence]}>
-      <Text accessibilityRole="header" style={styles.heading}>{t(`oath.sections.${section}`)}</Text>
+      <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t(`oath.sections.${section}`)}</Text>
       <Text style={styles.body}>{copy.sections[section]}</Text>
     </View>)}
   </View>;

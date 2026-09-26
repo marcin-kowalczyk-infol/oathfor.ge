@@ -77,7 +77,7 @@ export function OathScreen({ controller, timezone, onLogout, onBack, backLabel, 
   return <SceneSurface place="hearth" approach={approach} scroll={scroll}><SafeAreaView style={styles.safeArea}>
     <Animated.ScrollView style={entrance} key={scene} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
       {onBack && <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />}
-      {!review && !detail && <Text accessibilityRole="header" style={styles.title}>{t('oath.title')}</Text>}
+      {!review && !detail && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
       {!ready && <>
         <Text accessibilityLiveRegion="polite" style={styles.body}>{t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading')}</Text>
         {state.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
@@ -91,7 +91,7 @@ export function OathScreen({ controller, timezone, onLogout, onBack, backLabel, 
       {detail && <>
         <View style={styles.confirmed}>
           <CommitMark />
-          <Text accessibilityRole="header" style={styles.title}>{t('oath.confirmed')}</Text>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.confirmed')}</Text>
           <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.state', { state: t(`oath.states.${oath.state}`) })}</Text>
         </View>
         <SnapshotRules snapshot={oath.snapshot} />

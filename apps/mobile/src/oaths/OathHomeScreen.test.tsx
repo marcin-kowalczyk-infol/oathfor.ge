@@ -369,15 +369,16 @@ test('at normal text size the badge is a one-line pill beside the door with an e
   expect(StyleSheet.flatten(screen.getByTestId('oath-header').props.style)).toMatchObject({ flexDirection: 'row', flexWrap: 'nowrap' });
 });
 test('at large text the badge becomes a full-width row under the door and shows the title', async () => {
-  const original = Dimensions.get('window');
+  const original = { ...Dimensions.get('window') };
   await act(async () => { Dimensions.set({ window: { ...original, fontScale: 2 }, screen: Dimensions.get('screen') }); });
   try {
     const f = setup(); const name = 'Bogumiła-Przemysława';
     const character = { id: characterId, name, presetId: 'dummy_braid', form: 'feminine' as const, createdAt: serverTime };
     await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" character={character} onChangeCharacter={jest.fn()} forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
     await screen.findByRole('button', { name: `Zmień postać, obecnie: ${name}, Obrończyni Przysięgi` });
-    expect(screen.getByText(name).props.numberOfLines).toBeUndefined();
-    expect(screen.getByText('Obrończyni Przysięgi')).toBeOnTheScreen();
+    expect(screen.getByText(name).props).toMatchObject({ numberOfLines: 1, adjustsFontSizeToFit: true });
+    expect(screen.getByText(name).props.maxFontSizeMultiplier).toBeLessThanOrEqual(1.5);
+    expect(screen.getByText('Obrończyni Przysięgi').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
     expect(StyleSheet.flatten(screen.getByTestId('oath-header').props.style)).toMatchObject({ flexDirection: 'column', alignItems: 'stretch' });
     expect(StyleSheet.flatten(screen.getByTestId('character-badge-name').props.style)).toMatchObject({ flex: 1 });
   } finally { await act(async () => { Dimensions.set({ window: original, screen: Dimensions.get('screen') }); }); }
@@ -402,4 +403,14 @@ test('a long door label shrinks to two lines while the badge keeps room for abou
   await layout('oath-door', 200);
   expect(StyleSheet.flatten(screen.getByTestId('oath-header').props.style)).toMatchObject({ flexDirection: 'column' });
   expect(screen.getByText('Oathkeeper')).toBeOnTheScreen();
+});
+
+test('the serif screen title, the tab labels and the detail state label are capped for the largest text, body copy is not', async () => {
+  const f = setup();
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  const title = await screen.findByRole('header', { name: 'Twoje Przysięgi' });
+  expect(title.props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
+  for (const tab of ['Dzisiaj', 'Historia']) expect(screen.getByText(tab).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
+  await fireEvent.press(screen.getByRole('button', { name: /Otwórz Przysięgę/ }));
+  expect((await screen.findAllByText('W trakcie rozpatrywania')).some(text => (text.props.maxFontSizeMultiplier ?? 99) <= 2)).toBe(true);
 });

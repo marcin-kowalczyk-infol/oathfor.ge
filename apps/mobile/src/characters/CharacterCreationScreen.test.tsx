@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AccessibilityInfo, AppState, StyleSheet } from 'react-native';
+import { AccessibilityInfo, AppState, Dimensions, StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { CharacterCreationScreen, emptyCreationDraft, type CharacterCreationDraft } from './CharacterCreationScreen';
@@ -242,4 +242,50 @@ test('creation opened from the change screen offers a way back when nothing is p
   await act(async () => {});
   await fireEvent.press(screen.getByRole('button', { name: 'Back to characters' }));
   expect(onCancel).toHaveBeenCalledTimes(1);
+});
+
+async function atFontScale<T>(fontScale: number, run: () => Promise<T>) {
+  const original = { ...Dimensions.get('window') };
+  await act(async () => { Dimensions.set({ window: { ...original, fontScale }, screen: Dimensions.get('screen') }); });
+  try { return await run(); } finally { await act(async () => { Dimensions.set({ window: original, screen: Dimensions.get('screen') }); }); }
+}
+
+test('at the largest text display words never break mid-word: capped display text, one-line names and stacked title choices', async () => {
+  await atFontScale(3.1, async () => {
+    await setup(ready(), 'pl'); await act(async () => {});
+    const unnamed = screen.getByText('Bez imienia');
+    expect(unnamed.props).toMatchObject({ numberOfLines: 1, adjustsFontSizeToFit: true });
+    expect(unnamed.props.maxFontSizeMultiplier).toBeLessThanOrEqual(1.5);
+    const untitled = screen.getByText('Tytuł niewybrany');
+    expect(untitled.props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
+    expect(StyleSheet.flatten(untitled.props.style).letterSpacing).toBeLessThanOrEqual(1);
+    expect(screen.getByRole('header', { name: 'Wykuj swoją postać' }).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
+    const choice = screen.getByRole('radio', { name: 'Obrończyni Przysięgi, forma żeńska' });
+    expect(StyleSheet.flatten(choice.props.style)).toMatchObject({ flexDirection: 'column' });
+    expect(screen.getByText('Obrończyni Przysięgi').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
+    expect(screen.getByText('forma żeńska').props.maxFontSizeMultiplier).toBeUndefined();
+    expect(screen.getByText('Od 2 do 20 liter. Między nimi może stać spacja, łącznik lub apostrof.').props.maxFontSizeMultiplier).toBeUndefined();
+  });
+});
+
+test('at normal text size title choices keep the radio beside the text', async () => {
+  await atFontScale(1, async () => {
+    await setup(); await act(async () => {});
+    expect(StyleSheet.flatten(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }).props.style)).toMatchObject({ flexDirection: 'row' });
+  });
+});
+
+test('locked controls look disabled while the words around them stay readable', async () => {
+  await setup(ready({ pendingCreation: pending, error: { kind: 'unavailable', retry: 'request' } })); await act(async () => {});
+  const opacity = (element: ReturnType<typeof screen.getByText>) => StyleSheet.flatten(element.props.style)?.opacity;
+  expect(opacity(nameField())).toBe(0.55);
+  for (const radio of screen.getAllByRole('radio')) { expect(radio).toBeDisabled(); expect(opacity(radio)).toBe(0.55); }
+  expect(opacity(screen.getByText('Name'))).toBeUndefined();
+  expect(opacity(screen.getByRole('button', { name: 'Try again' }))).not.toBe(0.55);
+});
+
+test('open controls keep full opacity', async () => {
+  await setup(); await act(async () => {});
+  expect(StyleSheet.flatten(nameField().props.style).opacity).toBeUndefined();
+  for (const radio of screen.getAllByRole('radio')) expect(StyleSheet.flatten(radio.props.style).opacity).toBeUndefined();
 });

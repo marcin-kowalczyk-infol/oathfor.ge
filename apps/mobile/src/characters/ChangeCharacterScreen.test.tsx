@@ -108,3 +108,14 @@ test('an unresolved creation is shown as a card that returns to creation, and ot
   await fireEvent.press(screen.getByRole('button', { name: 'Mira, Oathkeeper, active character' }));
   expect(f.onBack).toHaveBeenCalledTimes(1);
 });
+
+test('card names stay on one line and display text is capped for the largest text', async () => {
+  const long = { ...wit, name: 'Bogumiłaprzemysława' };
+  await setup(ready({ characters: [mira, long] }), 'pl');
+  const name = screen.getByText('Bogumiłaprzemysława');
+  expect(name.props).toMatchObject({ numberOfLines: 1, adjustsFontSizeToFit: true });
+  expect(name.props.maxFontSizeMultiplier).toBeLessThanOrEqual(1.5);
+  expect(screen.getByText('Straż Przysięgi').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
+  expect(screen.getByRole('header', { name: 'Zmień postać' }).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
+  expect(screen.getByText('Wybierz, kto niesie Twoje Przysięgi. Każda postać ma własne.').props.maxFontSizeMultiplier).toBeUndefined();
+});

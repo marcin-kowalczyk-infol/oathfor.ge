@@ -44,10 +44,10 @@ export function ChangeCharacterScreen({ state, onChoose, onNew, onBack }: Change
       <Pressable accessibilityRole="button" accessibilityLabel={t('character.change.back')} accessibilityState={{ disabled: state.busy }} disabled={state.busy}
         onPress={() => { if (!state.busy) onBack(); }} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
         <Text allowFontScaling={false} style={styles.backArrow}>‹</Text>
-        <Text style={styles.backLabel}>{t('character.change.back')}</Text>
+        <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.backLabel}>{t('character.change.back')}</Text>
       </Pressable>
       <View style={styles.header}>
-        <Text accessibilityRole="header" style={styles.title}>{t('character.change.title')}</Text>
+        <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('character.change.title')}</Text>
         <Text style={styles.intro}>{t('character.change.intro')}</Text>
       </View>
       <Animated.View testID="character-cards" style={[styles.cards, entrance]}>
@@ -61,9 +61,9 @@ export function ChangeCharacterScreen({ state, onChoose, onNew, onBack }: Change
             <View pointerEvents="none" style={[styles.glow, active && styles.activeGlow]} />
             <CharacterPortrait id={character.id} presetId={character.presetId} name={character.name} size={72} active={active} />
             <View style={[styles.identity, stacked && styles.stackedIdentity]}>
-              <Text style={styles.name}>{character.name}</Text>
-              <Text style={styles.role}>{title}</Text>
-              {active && <View style={styles.activeLabel}><Text allowFontScaling={false} style={styles.activeMark}>✓</Text><Text style={styles.activeText}>{t('character.change.active')}</Text></View>}
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={styles.name}>{character.name}</Text>
+              <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.role, fontScale > 1.5 && styles.roleLarge]}>{title}</Text>
+              {active && <View style={styles.activeLabel}><Text allowFontScaling={false} style={styles.activeMark}>✓</Text><Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.activeText}>{t('character.change.active')}</Text></View>}
             </View>
             <View pointerEvents="none" style={[styles.innerFrame, active && styles.activeInnerFrame]} />
           </Pressable>;
@@ -72,7 +72,7 @@ export function ChangeCharacterScreen({ state, onChoose, onNew, onBack }: Change
             onPress={() => { if (!state.busy) onNew(); }} style={({ pressed }) => [styles.card, styles.newCard, stacked && styles.stackedCard, pressed && styles.pressed]}>
             <CharacterPortrait id={pending.requestId} presetId={pending.presetId} name={pending.name} size={72} />
             <View style={[styles.identity, stacked && styles.stackedIdentity]}>
-              <Text style={styles.newTitle}>{t('character.change.resume', { name: pending.name })}</Text>
+              <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.newTitle}>{t('character.change.resume', { name: pending.name })}</Text>
               <Text style={styles.detail}>{t('character.change.resumeDetail')}</Text>
             </View>
           </Pressable>
@@ -81,7 +81,7 @@ export function ChangeCharacterScreen({ state, onChoose, onNew, onBack }: Change
             onPress={() => { if (!state.busy) onNew(); }} style={({ pressed }) => [styles.card, styles.newCard, stacked && styles.stackedCard, pressed && styles.pressed]}>
             <View style={styles.plus}><Text allowFontScaling={false} style={styles.plusMark}>+</Text></View>
             <View style={[styles.identity, stacked && styles.stackedIdentity]}>
-              <Text style={styles.newTitle}>{t('character.change.new')}</Text>
+              <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.newTitle}>{t('character.change.new')}</Text>
               <Text style={styles.detail}>{t('character.change.newDetail')}</Text>
             </View>
           </Pressable>
@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
   identity: { flex: 1, gap: 4 },
   stackedIdentity: { flex: 0, alignSelf: 'stretch' },
   name: { fontFamily: tokens.font.display, color: gold.name, fontSize: 24, lineHeight: 30 },
+  roleLarge: { letterSpacing: 1 },
   role: { color: gold.role, fontSize: 13, lineHeight: 18, letterSpacing: 2.5, textTransform: 'uppercase', fontWeight: '600' },
   activeLabel: { marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
     backgroundColor: 'rgba(214,170,105,0.14)', borderWidth: 1, borderColor: gold.line },

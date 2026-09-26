@@ -340,6 +340,12 @@ The implemented pause flow starts with `GET /api/oath-pause`, which reconciles e
 
 Future receipt finalization and settlement must preserve the same account-first serialization. Pending proof/correction/terminal test fixtures establish pause preservation only; they do not establish real evidence or reward processing.
 
+## Player characters
+
+MVP-17 adds `GET` and `POST /api/characters` and `PUT /api/characters/active`, see the [contract](api-contract.md#player-character-contract). Apply the migrations `Version20260926100000` to `Version20260926120000` before use. The second of them deletes local Oaths, previews and acceptance requests, because no production data exists. The third moves the pause flag from the account to its characters. Every Oath endpoint except preview reads and acceptance needs an active character and otherwise answers `409 character_required`.
+
+The preset catalog lives in `apps/api/resources/character/presets_v1.json`. Name normalization uses the declared `symfony/polyfill-intl-normalizer`, because the runtime image has no `ext-intl`. Mobile creates the request identity with `expo-crypto` and stores a pending creation in SecureStore before sending. Pending Oath acceptances are stored per account and character. The demo runs the real creation and change-character screens against a DUMMY character client, see [demo README](../../apps/mobile/demo/README.md). DUMMY presets are listed in the [preset manifest](../art/player-preset-assets.md).
+
 ## Mobile Oath transport boundary
 
 Local implementation choices for MVP-05-T08, 2026-09-25: validate the known catalog/policy version and policy values, dynamic deadline relationships and complete bilingual copy shape before rendering server data. Display stored server copy; a bundled validator must not replace an accepted snapshot with newer text. Unknown or malformed payloads are recoverable transport failures, never gameplay outcomes.

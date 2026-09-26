@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { Character } from '../api/characters';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { tokens } from '../ui/tokens';
@@ -14,14 +14,16 @@ export const BADGE_MIN_WIDTH = BADGE_NAME_MIN + 85;
  */
 export function CharacterBadge({ character, onPress, compact, disabled = false }: { character: Character; onPress(): void; compact: boolean; disabled?: boolean }) {
   const { t } = useTranslation();
+  const { fontScale } = useWindowDimensions();
   const title = t(`character.form.${character.form}`);
   return <Pressable accessibilityRole="button" accessibilityLabel={t('character.badge', { name: character.name, title })} accessibilityState={{ disabled }} disabled={disabled}
     onPress={() => { if (!disabled) onPress(); }} style={({ pressed }) => [styles.badge, compact ? styles.compact : styles.row, pressed && styles.pressed, disabled && styles.disabled]}>
     <CharacterPortrait id={character.id} presetId={character.presetId} name={character.name} size={36} active />
     <View testID="character-badge-name" style={[styles.identity, compact ? styles.compactIdentity : styles.rowIdentity]}>
       {compact
-        ? <Text numberOfLines={1} ellipsizeMode="tail" style={styles.name}>{character.name}</Text>
-        : <><Text style={styles.name}>{character.name}</Text><Text style={styles.role}>{title}</Text></>}
+        ? <Text numberOfLines={1} ellipsizeMode="tail" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.name}>{character.name}</Text>
+        : <><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={styles.name}>{character.name}</Text>
+          <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.role, fontScale > 1.5 && styles.roleLarge]}>{title}</Text></>}
     </View>
     <Text allowFontScaling={false} style={styles.chevron}>›</Text>
   </Pressable>;
@@ -40,6 +42,7 @@ const styles = StyleSheet.create({
   // In the full-width row the text takes the free width, so the chevron sits at the right edge.
   rowIdentity: { flex: 1 },
   name: { fontFamily: tokens.font.display, color: '#f6e6c8', fontSize: 17, lineHeight: 22 },
+  roleLarge: { letterSpacing: 1 },
   role: { color: '#caa06a', fontSize: 11, lineHeight: 15, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: '600' },
   chevron: { color: tokens.color.primary, fontSize: 22, lineHeight: 24 },
 });

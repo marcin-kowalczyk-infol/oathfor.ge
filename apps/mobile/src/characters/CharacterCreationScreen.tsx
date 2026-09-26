@@ -70,7 +70,7 @@ export function CharacterCreationScreen(props: CharacterCreationScreenProps) {
     <View key={fontScale} style={styles.fill}>
       {state.kind === 'ready' ? <CreationForm {...props} state={state} />
         : <ScrollView contentContainerStyle={styles.content}>
-          <Text accessibilityRole="header" style={styles.title}>{t('character.title')}</Text>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('character.title')}</Text>
           {state.kind === 'loading' || state.kind === 'idle'
             ? <Text accessibilityLiveRegion="polite" style={styles.intro}>{t('character.loading')}</Text>
             : <>
@@ -85,6 +85,7 @@ export function CharacterCreationScreen(props: CharacterCreationScreenProps) {
 function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCancel, onSignOut }: CharacterCreationScreenProps & { state: Ready }) {
   const { t } = useTranslation();
   const { height, fontScale } = useWindowDimensions();
+  const large = fontScale > 1.5;
   const entrance = useSceneEntrance('character-creation');
   const submitted = useRef(false);
   // A new controller state answers the previous press, so a later press may submit again.
@@ -127,10 +128,10 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
     {onCancel && !pending && <Pressable accessibilityRole="button" accessibilityLabel={t('character.cancel')} accessibilityState={{ disabled: state.busy }} disabled={state.busy}
       onPress={() => { if (!state.busy) onCancel(); }} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
       <Text allowFontScaling={false} style={styles.backArrow}>‹</Text>
-      <Text style={styles.backLabel}>{t('character.cancel')}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.backLabel}>{t('character.cancel')}</Text>
     </Pressable>}
     <View style={styles.header}>
-      <Text accessibilityRole="header" style={styles.title}>{t('character.title')}</Text>
+      <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('character.title')}</Text>
       <Text style={styles.intro}>{t('character.intro')}</Text>
     </View>
 
@@ -144,8 +145,8 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
             : <View testID="character-placeholder" style={[styles.placeholder, { height: figureHeight * 0.8, width: figureHeight * 0.8 * FIGURE_RATIO }]} />}
         </View>
         <View style={styles.identity}>
-          <Text style={[styles.cardName, !check.valid && styles.cardNameEmpty]}>{check.valid ? check.name : t('character.unnamed')}</Text>
-          <Text style={[styles.role, !form && styles.roleEmpty]}>{title}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={[styles.cardName, !check.valid && styles.cardNameEmpty]}>{check.valid ? check.name : t('character.unnamed')}</Text>
+          <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.role, large && styles.roleLarge, !form && styles.roleEmpty]}>{title}</Text>
           <View style={styles.rule} />
         </View>
       </View>
@@ -156,7 +157,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
     </Animated.View>
 
     <View style={styles.section}>
-      <Text style={styles.label}>{t('character.looks')}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.label, large && styles.labelLarge]}>{t('character.looks')}</Text>
       {looks.length === 0 ? <>
         <Message text={t('character.noLooks')} />
         <Action variant="secondary" label={t('character.reloadLooks')} onPress={onReload} />
@@ -165,7 +166,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
           const selected = id === presetId;
           return <Pressable key={id} accessibilityRole="radio" accessibilityLabel={t('character.look', { index: index + 1, count: looks.length })}
             accessibilityState={{ selected, disabled: locked }} disabled={locked} onPress={() => { if (!locked) onDraft({ presetId: id }); }}
-            style={({ pressed }) => [styles.portraitRing, selected && styles.portraitSelected, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.portraitRing, selected && styles.portraitSelected, pressed && styles.pressed, locked && styles.locked]}>
             <Image source={presetArt(id)!.portrait} style={styles.portrait} />
             {selected && <View style={styles.check}><Text allowFontScaling={false} style={styles.checkText}>✓</Text></View>}
           </Pressable>;
@@ -174,19 +175,19 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
     </View>
 
     <View style={styles.section}>
-      <Text nativeID="character-name-label" style={styles.label}>{t('character.name')}</Text>
+      <Text nativeID="character-name-label" maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.label, large && styles.labelLarge]}>{t('character.name')}</Text>
       <TextInput accessibilityLabel={t('character.name')} accessibilityLabelledBy="character-name-label" accessibilityHint={nameProblem !== null ? t(`character.nameError.${nameProblem}`) : serverNameError ?? t('character.nameHint')}
         value={name} editable={!locked} onChangeText={value => { if (!locked) onDraft({ name: value }); }}
         autoCapitalize="words" autoCorrect={false} autoComplete="off" textContentType="none" importantForAutofill="no" spellCheck={false} maxLength={40} returnKeyType="done"
-        style={[styles.input, nameProblem !== null && styles.inputProblem, locked && styles.inputLocked]} />
+        style={[styles.input, nameProblem !== null && styles.inputProblem, locked && styles.inputLocked, locked && styles.locked]} />
       {nameProblem !== null
         ? <Text accessibilityLiveRegion="polite" style={styles.problem}>{t(`character.nameError.${nameProblem}`)}</Text>
         : <Text style={styles.hint}>{t('character.nameHint')}</Text>}
     </View>
 
     <View style={styles.section} accessibilityRole="radiogroup" accessibilityLabel={t('character.titles')}>
-      <Text style={styles.label}>{t('character.titles')}</Text>
-      {forms.map(option => <FormChoice key={option} t={t} form={option} selected={form === option} disabled={locked} onPress={() => onDraft({ form: option })} />)}
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.label, large && styles.labelLarge]}>{t('character.titles')}</Text>
+      {forms.map(option => <FormChoice key={option} t={t} stacked={fontScale > 1.5} form={option} selected={form === option} disabled={locked} onPress={() => onDraft({ form: option })} />)}
       <Text style={styles.hint}>{t('character.titlesHint')}</Text>
     </View>
 
@@ -204,15 +205,15 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
   </ScrollView>;
 }
 
-function FormChoice({ t, form, selected, disabled, onPress }: { t: Translate; form: CharacterForm; selected: boolean; disabled: boolean; onPress(): void }) {
+function FormChoice({ t, form, selected, disabled, stacked, onPress }: { t: Translate; form: CharacterForm; selected: boolean; disabled: boolean; stacked: boolean; onPress(): void }) {
   const title = t(`character.form.${form}`);
   const detail = t(`character.form.${form}Detail`);
   return <Pressable accessibilityRole="radio" accessibilityLabel={t('character.formChoice', { title, detail })} accessibilityState={{ selected, disabled }}
     disabled={disabled} onPress={() => { if (!disabled) onPress(); }}
-    style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}>
+    style={({ pressed }) => [styles.choice, stacked && styles.choiceStacked, selected && styles.choiceSelected, pressed && styles.pressed, disabled && styles.locked]}>
     <View style={[styles.radio, selected && styles.radioSelected]}>{selected && <Text allowFontScaling={false} style={styles.radioMark}>✓</Text>}</View>
     <View style={styles.choiceText}>
-      <Text style={styles.choiceTitle}>{title}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.choiceTitle}>{title}</Text>
       <Text style={styles.choiceDetail}>{detail}</Text>
     </View>
   </Pressable>;
@@ -243,6 +244,11 @@ const styles = StyleSheet.create({
   identity: { alignItems: 'center', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 22, gap: 6 },
   cardName: { fontFamily: tokens.font.display, color: gold.name, fontSize: 28, lineHeight: 34, textAlign: 'center' },
   cardNameEmpty: { color: tokens.color.secondary, fontStyle: 'italic' },
+  // Small caps tracking would push long words over the line at large text.
+  roleLarge: { letterSpacing: 1 },
+  labelLarge: { letterSpacing: 1 },
+  // At large text the radio moves above the title so the words get the full card width.
+  choiceStacked: { flexDirection: 'column', alignItems: 'flex-start' },
   role: { color: gold.role, fontSize: 13, lineHeight: 18, letterSpacing: 2.5, textTransform: 'uppercase', fontWeight: '600', textAlign: 'center' },
   roleEmpty: { color: tokens.color.secondary },
   rule: { marginTop: 10, width: 140, height: 1, experimental_backgroundImage: 'linear-gradient(90deg, rgba(214,170,105,0) 0%, rgba(214,170,105,0.7) 50%, rgba(214,170,105,0) 100%)' },
@@ -260,6 +266,8 @@ const styles = StyleSheet.create({
   check: { position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: tokens.color.primary, borderWidth: 2, borderColor: '#0f1012', alignItems: 'center', justifyContent: 'center' },
   checkText: { color: tokens.color.canvas, fontSize: 13, lineHeight: 16, fontWeight: '800' },
   pressed: { opacity: 0.85 },
+  // Locked controls dim, labels, hints and messages around them keep full contrast. The selected ring stays visible.
+  locked: { opacity: 0.55 },
   input: { minHeight: 52, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(214,170,105,0.35)', backgroundColor: '#1b1714', color: tokens.color.text,
     fontSize: 19, fontFamily: tokens.font.display, paddingHorizontal: 16, paddingVertical: 12 },
   inputProblem: { borderColor: tokens.color.missed },

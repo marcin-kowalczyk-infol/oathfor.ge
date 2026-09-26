@@ -207,3 +207,8 @@ test('a profile timezone missing from device data does not prevent choosing a da
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   expect(jest.mocked(f.api.preview).mock.calls[0][1].deadline).toEqual({ local: '2026-10-25T18:00:00', timezone: 'Europe/Warsaw' });
 });
+
+test('the serif Oath creation title is capped for the largest text', async () => {
+  const f = setup(); f.controller.start(); await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  expect((await screen.findByRole('header', { name: 'Próba Iskry' })).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
+});

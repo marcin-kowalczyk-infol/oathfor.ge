@@ -1,6 +1,6 @@
 # Player characters
 
-Status: accepted specification, owner decisions of 2026-09-26 during brainstorming. Not implemented. Delivery epic: MVP-17 in the local backlog. Architectural decision: [ADR 0005](../decisions/0005-character-owned-oaths.md).
+Status: accepted specification, owner decisions of 2026-09-26 during brainstorming. Implemented locally in MVP-17 on 2026-09-26 with four DUMMY presets. Owner preset artwork, owner visual acceptance and VoiceOver remain pending. Delivery epic: MVP-17 in the local backlog. Architectural decision: [ADR 0005](../decisions/0005-character-owned-oaths.md).
 
 ## Purpose
 

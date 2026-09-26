@@ -166,3 +166,19 @@ Final v03 SE3 check also verified the full portrait room, coordinate seal select
 Focused guide/session tests observed3failures against the previous scene, then passed; full demo4suites/15tests and TypeScript pass. Independent review found no code findings. Native SE3: PL four-step guide advances highlights from hearth through seals/book/door, final completion dismisses it, a book visit shows the same portrait/name in the ordinary bubble. DEMO replay and switching to EN reveal the first English instruction. Portrait crop and normal-size next/skip controls are visible.
 
 Eight system text increases on SE3 produced readable large speaker text and reachable fixed controls, but scripted drag/scroll did not establish that the rest of the long first instruction can be reached. This specific large-text scrolling check remains unverified; do not count the screenshot as a pass for the whole bubble. Eight decreases restored normal text, verified visually. VoiceOver speech/focus and final owner acceptance remain pending; no other system setting or production entry was changed.
+
+## Player character acceptance (MVP-17), 2026-09-26
+
+Automated: API integration tests cover creation, identical and concurrent retries, the three-character limit under a worker race, invalid name and preset codes, foreign characters, switching, `character_required`, previews bound to a character, acceptance after a switch, per-character lists, cursors and pause, and the pause flag read after the account lock. Mobile tests cover strict character envelopes, name parity with the PHP vectors, durable creation retry, routing to creation, rebinding on a switch, pending acceptance per character and the creation and change screens. Final counts are in the MVP-17 task records.
+
+Native checks used the development demo with its DUMMY runtime, so no real API, Apple sign-in or Keychain behavior was observed.
+
+| Device and setting | Observed |
+| --- | --- |
+| iPhone 18 Pro, iOS 27.0, Polish | Creation with look change, live name validation (`Xy2` rejected), form choice and live preview, then Oath screens. Returning player switch from Radomir to Wiesna shows only that character's Oaths. Change screen, creation from it with its back link, one-row header badge. |
+| iPhone SE 3, English | Creation layout fits, change screen, header badge stacks under the door with the chevron at the right edge. |
+| iPhone SE 3, Polish, Hermes | Pasted `Żaneta O’Brien` (U+017B, U+2019) accepted, a mis-encoded paste rejected. `String.prototype.normalize` runs on every keystroke without error. |
+| iPhone SE 3, Polish, largest accessibility text, Reduce Motion on | After fixes no word breaks inside a word on creation, form choices, preview card, change screen, badge and the Oath list title. |
+| iPhone SE 3, lost creation reply | Pending message, dimmed locked controls and retry. Retry created exactly one character. |
+
+Not observed natively, covered by tests where noted: NFD composition on Hermes, a pending Oath acceptance surviving a switch (tests), pausing one character and checking another (tests), creating the third character up to the limit (tests), an app restart during creation (tests), English at the largest text size, iPhone 18 Pro in English or at the largest text size, Oath rules and detail screens at the largest text size, and VoiceOver, which the owner deferred on 2026-09-26. The presets are DUMMY art. Owner visual acceptance is pending.

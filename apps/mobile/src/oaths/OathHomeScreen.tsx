@@ -158,7 +158,7 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
       {/* Switching mid-flow would abandon a detail or pause review, so the badge lives on the lists only. */}
       {character && onChangeCharacter && route === 'list' && <CharacterBadge character={character} compact={compactHeader} disabled={mutating} onPress={onChangeCharacter} />}
     </View>}
-    <Text accessibilityRole="header" style={styles.title}>{t(route === 'pause' ? 'oathHome.pauseTitle' : route === 'detail' ? 'forge.detail' : view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>
+    <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t(route === 'pause' ? 'oathHome.pauseTitle' : route === 'detail' ? 'forge.detail' : view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>
     {!available && <>
       <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
       {account.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
@@ -167,7 +167,8 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
       <View style={[styles.navigation, !interactiveForge && styles.stackedNavigation]}>{(['today', 'history'] as const).map(destination => <Pressable key={destination}
         accessibilityRole="button" accessibilityLabel={t(`oathHome.${destination}`)} accessibilityState={{ selected: route === 'list' && view === destination, disabled: mutating }} disabled={mutating}
         onPress={() => { void loadList(destination); }} style={[styles.tab, !interactiveForge && styles.stackedTab, route === 'list' && view === destination && styles.selectedTab]}>
-        <Text style={styles.label}>{t(`oathHome.${destination}`)}</Text>
+        {/* Tabs are sans functional text, capped because the MVP-05 native check saw them break mid-word at the maximum size. */}
+        <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.label}>{t(`oathHome.${destination}`)}</Text>
       </Pressable>)}</View>
       {route === 'list' && list?.paused && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.paused')} /></View>}
       {route === 'list' && busyNotice && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('forge.busy')} /></View>}
@@ -209,7 +210,7 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
           <View style={styles.detailSeal}><ActivityEmblem activity={detail.snapshot.activity} size={108} /><Text style={styles.activity}>{detail.snapshot.copy[locale].activity}</Text></View>
           <View accessible accessibilityLabel={t('oath.state', { state: t(`oath.states.${detail.state}`) })} accessibilityLiveRegion="polite" style={styles.detailState}>
             <StateSeal state={detail.state} size={56} />
-            <Text style={styles.detailStateLabel}>{t(`oath.states.${detail.state}`)}</Text>
+            <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.detailStateLabel}>{t(`oath.states.${detail.state}`)}</Text>
           </View>
           {detail.reason === 'service_availability_unknown' && <Text style={styles.body}>{t('oathHome.unknownAvailability')}</Text>}
           {detail.reason === 'character_paused' && <Text style={styles.body}>{t('oathHome.withdrawn')}</Text>}
