@@ -381,5 +381,45 @@
       "resumeDetail": "Kuźnia jeszcze nie odpowiedziała. Twoje wybory są zapisane.",
       "pending": "Dokończ tworzenie postaci {{name}}, zanim zmienisz postać."
     }
+  },
+  "settings": {
+    "title": "Ustawienia",
+    "back": "Wróć do menu",
+    "language": {
+      "title": "Język",
+      "pl": "Polski",
+      "en": "English",
+      "saving": "Zapisywanie języka…",
+      "error": "Nie udało się zapisać języka. Język pozostaje bez zmian. Spróbuj ponownie."
+    },
+    "notifications": {
+      "title": "Powiadomienia",
+      "on": "Włączone",
+      "off": "Wyłączone",
+      "future": "Przypomnienia nie są jeszcze wysyłane. Zapamiętamy Twój wybór na później.",
+      "denied": "iOS blokuje powiadomienia z Oathforge. Włącz je w ustawieniach iOS.",
+      "notAllowed": "To urządzenie nie zezwoliło jeszcze na powiadomienia.",
+      "askPermission": "Poproś o zgodę",
+      "openSettings": "Otwórz ustawienia iOS",
+      "error_save": "Nie udało się zapisać wyboru powiadomień. Spróbuj ponownie.",
+      "error_settings": "Nie udało się otworzyć ustawień iOS. Spróbuj ponownie.",
+      "busy": "Aktualizowanie powiadomień…",
+      "permission_unavailable": "Nie udało się sprawdzić zgody na powiadomienia na tym urządzeniu. Twój wybór pozostaje zapisany.",
+      "permission_checking": "Sprawdzanie zgody na powiadomienia na tym urządzeniu…"
+    },
+    "pause": {
+      "title": "Pauza",
+      "row_active": "Postać {{name}}: w grze",
+      "row_paused": "Postać {{name}}: w pauzie",
+      "row_unknown": "Postać {{name}}: stan nieznany",
+      "state_active": "W grze",
+      "state_paused": "W pauzie",
+      "state_unknown": "Stan nieznany",
+      "hint": "Otwiera skutki pauzy tej postaci."
+    },
+    "account": {
+      "title": "Konto",
+      "signOut": "Wyloguj się"
+    }
   }
 }

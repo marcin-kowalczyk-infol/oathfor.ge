@@ -20,9 +20,11 @@ export function createNotificationController({ session, onboarding, permissions 
   const publish = (patch: Partial<NotificationState>) => { state = { ...state, ...patch }; listeners.forEach(listener => listener()); };
   const eligible = () => {
     const profile = onboarding.getState();
-    return active && session.getState().kind === 'authenticated' && profile.kind === 'ready'
-      && profile.value.onboardingStatus === 'pending' && !!profile.value.profile.locale
-      && isSupportedTimezone(profile.value.profile.timezone) && !!profile.value.profile.intention && profile.value.profile.companionIntroduced;
+    if (!active || session.getState().kind !== 'authenticated' || profile.kind !== 'ready') return false;
+    // A completed profile keeps the choice editable in Settings. Onboarding reaches it only after the basics are saved.
+    if (profile.value.onboardingStatus === 'complete') return true;
+    return !!profile.value.profile.locale && isSupportedTimezone(profile.value.profile.timezone)
+      && !!profile.value.profile.intention && profile.value.profile.companionIntroduced;
   };
   const preference = () => { const profile = onboarding.getState(); return profile.kind === 'ready' ? profile.value.profile.notificationPreference : null; };
   const current = (owner: number) => active && owner === generation && eligible();

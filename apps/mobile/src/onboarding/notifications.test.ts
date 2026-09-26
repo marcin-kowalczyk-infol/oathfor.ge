@@ -13,8 +13,8 @@ const denied: DevicePermission = { kind: 'denied', canAskAgain: false };
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 async function flush() { for (let index = 0; index < 30; index++) await Promise.resolve(); }
 const disposals: (() => void)[] = [];
-async function setup(preference: 'enabled' | 'disabled' | null = null) {
-  let stored: ProfileEnvelope = { ...basics, profile: { ...basics.profile, notificationPreference: preference } };
+async function setup(preference: 'enabled' | 'disabled' | null = null, onboardingStatus: ProfileEnvelope['onboardingStatus'] = 'pending') {
+  let stored: ProfileEnvelope = { onboardingStatus, profile: { ...basics.profile, notificationPreference: preference } };
   const auth = createSessionController({ now: () => Date.parse('2026-09-25T00:00:00Z'), api: { me: async () => ({ kind: 'success', value: { account } }), logout: async () => ({ kind: 'success', value: undefined }) }, storage: { read: async () => ({ kind: 'success', value: { version: 1, kind: 'active', session } }), write: async () => ({ kind: 'success' }) } });
   const api = {
     get: jest.fn().mockImplementation(async () => ({ kind: 'success', value: stored })),
@@ -97,4 +97,29 @@ test('nonaskable denial uses Settings, whose failure leaves continuation usable'
   permissions.openSettings.mockResolvedValue(false); await notifications.settings();
   expect(notifications.getState()).toMatchObject({ error: 'settings', busy: false });
   expect(notifications.getState().busy).toBe(false);
+});
+
+describe('a completed profile in Settings', () => {
+  test('refresh reads the device permission', async () => {
+    const { notifications, permissions } = await setup('enabled', 'complete');
+    expect(permissions.read).toHaveBeenCalledTimes(1);
+    permissions.read.mockResolvedValue(denied);
+    await notifications.refresh();
+    expect(notifications.getState().permission).toEqual(denied);
+  });
+  test('enable saves enabled and requests permission', async () => {
+    const { notifications, permissions, api, stored } = await setup('disabled', 'complete');
+    await notifications.enable();
+    expect(api.patch).toHaveBeenCalledWith(session.token, { notificationPreference: 'enabled' }, expect.any(AbortSignal));
+    expect(stored().profile.notificationPreference).toBe('enabled');
+    expect(permissions.request).toHaveBeenCalledTimes(1);
+    expect(notifications.getState()).toMatchObject({ permission: denied, busy: false });
+  });
+  test('skip saves disabled without requesting permission', async () => {
+    const { notifications, permissions, stored } = await setup('enabled', 'complete');
+    await notifications.skip();
+    expect(stored().profile.notificationPreference).toBe('disabled');
+    expect(permissions.request).not.toHaveBeenCalled();
+    expect(notifications.getState().busy).toBe(false);
+  });
 });

@@ -375,5 +375,45 @@
       "resumeDetail": "The Forge has not answered yet. Your choices are saved.",
       "pending": "Finish creating {{name}} before changing character."
     }
+  },
+  "settings": {
+    "title": "Settings",
+    "back": "Back to menu",
+    "language": {
+      "title": "Language",
+      "pl": "Polski",
+      "en": "English",
+      "saving": "Saving the language…",
+      "error": "The language was not saved. Your current language stays. Try again."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "on": "On",
+      "off": "Off",
+      "future": "Reminders are not sent yet. Your choice is kept for later.",
+      "denied": "iOS blocks notifications from Oathforge. Turn them on in iOS Settings.",
+      "notAllowed": "This device has not allowed notifications yet.",
+      "askPermission": "Ask for permission",
+      "openSettings": "Open iOS Settings",
+      "error_save": "The notification choice was not saved. Try again.",
+      "error_settings": "iOS Settings could not be opened. Try again.",
+      "busy": "Updating notifications…",
+      "permission_unavailable": "We could not check notification permission on this device. Your choice is still saved.",
+      "permission_checking": "Checking notification permission on this device…"
+    },
+    "pause": {
+      "title": "Pause",
+      "row_active": "{{name}}: active",
+      "row_paused": "{{name}}: paused",
+      "row_unknown": "{{name}}: state unknown",
+      "state_active": "Active",
+      "state_paused": "Paused",
+      "state_unknown": "State unknown",
+      "hint": "Opens the pause review for this character."
+    },
+    "account": {
+      "title": "Account",
+      "signOut": "Sign out"
+    }
   }
 }
