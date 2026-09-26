@@ -6,7 +6,7 @@ Status: accepted specification, owner decisions of 2026-09-26 during brainstormi
 
 The player needs a visible identity of their own. Żaromir stays a separate companion who guides and reacts. An account can hold several characters, like save slots. Each character has its own Oaths, history and pause. The character is created once and then kept. A later main menu shows the active character on its first screen.
 
-This specification covers the character itself. The main menu, Settings, moving the Forge room into the app and the tutorial are later, separate specifications.
+This specification covers the character itself. The main menu, Settings and the Forge room are specified in [main menu](main-menu.md). The tutorial is a later, separate specification.
 
 ## Rules
 
