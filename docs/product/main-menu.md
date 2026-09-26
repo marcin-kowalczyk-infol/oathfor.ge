@@ -85,7 +85,7 @@ The room art stays provisional, as recorded in the [stations prototype](../art/f
 
 - Menu background and Forge tile: crops of `room-prototype-v03` already in `apps/mobile/assets/forge/`.
 - Tutorial tile: the canonical `zharomir-wanderer-v01` export.
-- Settings tile: forge tools art. The mockup file `tools.jpg` has no recorded source. Before shipping, the art director either traces it to a tracked export or prepares a new provisional export with prompt, provenance and a manifest entry, following the [art pipeline](../art/pipeline.md).
+- Settings tile: `settings-tools-v01`, a provisional crop of the hearth station export traced from the mockup file `tools.jpg`. Details and checksums are in the [menu asset manifest](../art/menu-assets.md).
 - Card figure: the preset figure of the active character, currently DUMMY presets.
 
 ## Acceptance
