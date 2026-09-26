@@ -22,3 +22,5 @@ __pycache__/
 # Local epic execution plans and research journals.
 /.local/epics/
 /.local/tasks/
+# Local brainstorming companion sessions.
+/.superpowers/

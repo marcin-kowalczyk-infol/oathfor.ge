@@ -1,48 +1,70 @@
-# Player character and Forge roles
+# Player characters
 
-Status: product exploration requested by the owner on 2026-09-26. The avatar creator, naming and visual progression below are proposals, not approved MVP additions or implemented account fields. The existing [onboarding contract](onboarding.md), [first-loop rules](first-loop.md) and server-owned progression remain authoritative.
+Status: accepted specification, owner decisions of 2026-09-26 during brainstorming. Not implemented. Delivery epic: MVP-17 in the local backlog. Architectural decision: [ADR 0005](../decisions/0005-character-owned-oaths.md).
 
-## Why a separate player character
+## Purpose
 
-Owner observation: Żaromir works as a helper and guide, but the main player has no visible identity. The current spatial prototype moves a provisional Żaromir sprite. That demonstrates walking and station interaction, not a selected player avatar.
+The player needs a visible identity of their own. Żaromir stays a separate companion who guides and reacts. An account can hold several characters, like save slots. Each character has its own Oaths, history and pause. The character is created once and then kept. A later main menu shows the active character on its first screen.
 
-Agent opinion: the player should own the central character. Żaromir should be a distinct companion who introduces places, explains consequences and reacts to the player's choices. He should remain recognizable in his portrait and speech bubbles. Moving only Żaromir makes it unclear whose journey this is and leaves personal progression without a visible subject.
+This specification covers the character itself. The main menu, Settings, moving the Forge room into the app and the tutorial are later, separate specifications.
 
-Proposed staging: show the player near the entrance, with Żaromir beside the hearth or appearing when guidance is needed. Selecting a place moves the player there. Żaromir may turn toward the player or speak, but should not perform the player's commitment. Only an explicit rule confirmation creates an Oath.
+## Rules
 
-## First appearance and customization
+**Local decisions: owner instruction, 2026-09-26.**
 
-Owner direction for exploration: people should be able to build a character and choose gender presentation and appearance. The starting character should look ordinary and inexperienced, with a simple everyday silhouette. Record this as a visual starting point, not a judgment about the person's real fitness, body or worth.
-
-Agent proposal: plain linen or wool clothing, worn boots, modest equipment and an unadorned belt. No starting heroic armor, trophies or magical aura. Keep the figure appealing and dignified. Later cosmetic layers could make the journey visible without replacing facial identity or making body transformation a requirement.
-
-For a first prototype, offer a few coherent presets with optional hair, skin tone and presentation choices. Do not make the user finish a complex editor before seeing the Forge. A single full-screen character selection with a clear continue action could precede the current journey. Detailed customization could be revisited later. These are proposed experience choices, not persistence or entitlement decisions.
-
-## Naming candidates
-
-| Candidate | Assessment |
+| Topic | Rule |
 | --- | --- |
-| Twoja postać / Your character | Recommended interface wording for now. Clear and easy to understand. |
-| Przysiężnik / Oathbearer | Proposed role title for exploration. Fits the commitment theme, but needs owner and PL/EN copy review. Not a historical authenticity claim. |
-| Oathtar | Owner's working idea. Distinctive, but its pronunciation and connection to the Slavic direction are less clear. Keep in the idea list, not the current interface. |
+| Count | An account holds up to 3 characters. The first one is required. Characters cannot be deleted in MVP. |
+| Look | The player picks one preset. A preset is a complete illustration set, not layered parts. The server owns the list of valid preset IDs. |
+| Name | 2 to 20 characters after trimming and NFC normalization. Unicode letters, with a single space, hyphen or apostrophe allowed between letters. No uniqueness and no word filter in MVP. Only the player sees the name. |
+| Polish form | Masculine, feminine or neutral. Chosen at creation, independent of the preset look. |
+| Title | PL: Obrońca Przysięgi, Obrończyni Przysięgi, Straż Przysięgi. EN: Oathkeeper. |
+| Editing | A created character cannot be changed. "Change character" switches the active character or creates a new one while below the limit. |
+| Ownership | Every Oath belongs to exactly one character. Lists, detail, previews, acceptance and pause apply to one character. |
+| Pause | Pause belongs to a character. It withdraws only that character's current Oaths. |
+| Order | Sign-in, onboarding, then a first character, then the Oath screens. No Oath exists without a character. |
 
-Agent recommendation: separate a simple interface term from the eventual lore title. The user chooses a character, then learns who that character is in this world. Do not invent a new noun merely to replace the familiar word avatar.
+Creating or switching characters grants no XP, reward or unlock. Only explicit rule acceptance creates an Oath, as before.
 
-## Forge interaction map
+## First run and switching
 
-Local implementation direction from the same feedback:
+After onboarding completes, an account without an active character sees full-screen character creation. The same rule applies to every account, so no separate invitation path exists. If an Oath endpoint reports `character_required`, the app returns to character creation.
 
-| Place | Purpose | Feedback | Boundary |
-| --- | --- | --- | --- |
-| Hearth | Choose and prepare a new Oath | A short fire burst and a modest camera approach on room entry | Opens creation or recovery of a pending confirmation. Never commits by tapping the fire. |
-| Seals | Inspect current commitments and cases | A short turning motion | Opens the current list. Each item opens its authoritative detail. |
-| Chronicle | Revisit past outcomes | A page-turn motion | Opens history. It does not duplicate creation as its primary purpose. |
-| Door or return control | Leave a panel and return to the room | Clear door imagery | Preserves form choices and unresolved acceptance. It does not sign out. |
+Creation shows a large illustration of the selected preset, a row of preset portraits, the name field with live validation, and three form choices showing their title. "Create character" submits once. Leaving or losing the connection keeps the draft and creates nothing. A lost reply is retried with the same request identity, so it can never create a duplicate.
 
-Station animation is immediate feedback. A short companion bubble names the purpose and exposes the destination action. Motion must not determine whether an Oath exists. Reduced motion uses the same choices with static feedback. Rapid place changes cannot open an obsolete destination.
+"Change character" lists up to three character cards with the active one marked, plus a "New character" slot while below the limit. Choosing a card makes it active and reloads that character's Oaths. Until the main menu exists, the entry is a character badge in the Oath screen header.
 
-## Before an avatar feature is implemented
+A pending acceptance belongs to the character of its preview. Switching characters never completes or discards it. It becomes visible again when that character is active.
 
-Decide the first preset range, PL/EN naming, whether selection precedes or follows account setup, and the later editing policy. Prepare distinct player and companion references and inspect their silhouettes together. Define server-owned profile persistence, retry behavior and cosmetic entitlement rules in a separate bounded task. An interrupted selection must not mark onboarding complete or grant XP. Existing accounts need a deliberate default or an optional invitation to select a character.
+## Server behavior
 
-Observable prototype acceptance: the owner can identify the player and Żaromir without reading labels, can see who is speaking, can select a starter look without earning progression, and can identify which Forge object opens creation, current Oaths or history. No avatar creator is delivered by the current visual-polish continuation.
+- A `player_character` record holds identity, account, name, preset, form, pause state with its revision, and creation time. The account stores its active character.
+- `GET /api/characters` returns the characters and the active ID. `POST /api/characters` creates and activates a character, idempotent by client request ID. `PUT /api/characters/active` switches. Another account's character is not found.
+- The limit is enforced under the account row lock, the same serialization used by profile and Oath writes.
+- Oath list, detail and pause use the account's active character. A preview records its character. Acceptance creates the Oath for the preview's character even if the active character changed meanwhile.
+- Without an active character, Oath endpoints answer `409 character_required`.
+- No production data exists. The migration removes local test Oaths instead of assigning them.
+
+Exact request and response shapes are recorded in the [API contract](../engineering/api-contract.md) when implemented.
+
+## Mobile behavior
+
+- A strict client validates character responses like the profile client.
+- A character controller serializes creation and switching. It stores the creation request ID before sending.
+- The Oath controller binds to account and character. A switch invalidates its in-flight requests and reloads lists, like a session change.
+- Pending acceptance storage is keyed by account and character.
+- Polish copy addressed to the player can select masculine, feminine or neutral variants. In this epic only the title uses them.
+
+## Artwork
+
+The owner supplies 6 to 8 presets, each as a full figure and a portrait, varying presentation, skin tone, hair and everyday body type. Until then, the four figures from `player-starters-lineup-v01` are DUMMY presets, labelled in the manifest and never shipped as final. Presets follow the [art pipeline](../art/pipeline.md) and the [visual quality bar](../art/ui-system.md#visual-quality-bar).
+
+## Acceptance
+
+- API integration tests: creation, identical retry, limit, invalid name and preset codes, foreign character, switch, `character_required`, preview bound to character, acceptance after switch, per-character lists and pause.
+- Mobile tests: response validation, lost-reply retry, routing to creation, switch invalidation, pending acceptance per character, name validation.
+- Native checks on iPhone SE 3 and iPhone 18 Pro in Polish and English, maximum text and Reduce Motion. VoiceOver is deferred by owner decision, 2026-09-26.
+
+## Out of scope
+
+Main menu, Settings, Forge room in the app, tutorial, character deletion, name moderation, XP and rewards, sharing characters with squads.
