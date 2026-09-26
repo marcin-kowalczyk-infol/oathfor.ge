@@ -421,5 +421,33 @@
       "title": "Konto",
       "signOut": "Wyloguj się"
     }
+  },
+  "room": {
+    "hearth": "Palenisko",
+    "seals": "Pieczęcie",
+    "chronicle": "Kronika",
+    "inspect": "Odkryj",
+    "descriptions": {
+      "hearth": "Tutaj nabierają kształtu nowe Przysięgi.",
+      "seals": "Tutaj czekają Twoje zobowiązania.",
+      "chronicle": "Tutaj zostają ślady Twojej drogi."
+    },
+    "exit": "Wyjdź z Kuźni",
+    "dismiss": "Zamknij dymek",
+    "speaker": "Żaromir",
+    "guide": {
+      "hearth": "Jestem Żaromir. Dotknij rozświetlonego paleniska. Tu rodzą się Przysięgi.",
+      "seals": "Te świetliste pieczęcie skrywają Twoje zobowiązania.",
+      "chronicle": "W kronice zostają ślady Twojej drogi. Dotknij księgi.",
+      "door": "Drzwi w blasku księżyca prowadzą z powrotem. Rozejrzyj się śmiało.",
+      "next": "Następne miejsce",
+      "done": "Zacznij odkrywać",
+      "skip": "Pomiń wprowadzenie"
+    },
+    "actions": {
+      "hearth": "Ukształtuj Przysięgę",
+      "seals": "Zobacz obecne Przysięgi",
+      "chronicle": "Czytaj historię"
+    }
   }
 }

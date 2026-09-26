@@ -1,7 +1,7 @@
 import type { LayoutMode } from '../ui/layoutMode';
+import type { ForgeStation as Station } from '../forge/ForgeRoom';
 export type HomeOrigin = 'menu' | 'settings';
 export type OathTarget = 'create' | 'today' | 'history';
-export type Station = 'hearth' | 'seals' | 'chronicle';
 // guide and request ids grow with each tap, so a screen can tell a new request from one it already handled.
 export type HomeRoute =
   | { kind: 'menu' } | { kind: 'settings' } | { kind: 'pause' }

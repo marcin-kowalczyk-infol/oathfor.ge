@@ -14,34 +14,6 @@
   "armed": "Next acceptance reply will be lost",
   "add": "Add demo Oath",
   "resetHint": "Scenarios reset all synthetic data.",
-  "scene": {
-    "hearth": "Hearth",
-    "seals": "Seals",
-    "chronicle": "Chronicle",
-    "inspect": "Discover",
-    "descriptions": {
-      "hearth": "New Oaths take shape here.",
-      "seals": "Your commitments await here.",
-      "chronicle": "Your journey leaves its mark here."
-    },
-    "exit": "Leave the Forge",
-    "dismiss": "Close the speech bubble",
-    "speaker": "Zharomir",
-    "guide": {
-      "hearth": "I’m Zharomir. Touch the glowing hearth. Oaths take shape here.",
-      "seals": "These glowing seals hold your commitments.",
-      "chronicle": "The chronicle holds the traces of your journey. Touch the book.",
-      "door": "The moonlit door takes you back. Explore whenever you wish.",
-      "next": "Next place",
-      "done": "Start exploring",
-      "skip": "Skip introduction"
-    },
-    "actions": {
-      "hearth": "Shape an Oath",
-      "seals": "View current Oaths",
-      "chronicle": "Read history"
-    }
-  },
   "sceneOpen": "Explore the Forge · prototype",
   "sceneGuide": "Zharomir · show the places again"
 }

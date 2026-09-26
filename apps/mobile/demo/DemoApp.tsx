@@ -4,8 +4,10 @@ import type { ForgeNavigation } from '../src/oaths/OathHomeScreen';
 import { AuthScreen } from '../src/auth/AuthScreen';
 import { LocalizationProvider } from '../src/localization/LocalizationProvider';
 import type { Locale } from '../src/localization/locale';
+import { I18nextProvider } from 'react-i18next';
+import { createTranslation } from '../src/localization/createTranslation';
 import { createDummy } from './runtime';
-import { ForgeScene } from './ForgeScene';
+import { ForgeRoom } from '../src/forge/ForgeRoom';
 import { MotionSuspended } from '../src/ui/useMotion';
 import en from './locales/en.json';
 import pl from './locales/pl.json';
@@ -24,6 +26,8 @@ function Run({ dummy, locale, forgeNavigation }: { dummy: Dummy; locale: Locale;
 }
 export default function DemoApp() {
   const [locale, setLocale] = useState<Locale>('pl');
+  // The room keeps its state across a language change, as the demo scene did before it moved into the app.
+  const [roomTranslation] = useState(() => createTranslation('pl'));
   const { fontScale } = useWindowDimensions();
   const [dummy, setDummy] = useState(() => createDummy('pl', true, false));
   const [mount, setMount] = useState(0);
@@ -42,7 +46,7 @@ export default function DemoApp() {
   const copy = locale === 'pl' ? pl : en;
   const restart = () => { setRequest(null); setMount(value => value + 1); };
   function reset(complete: boolean, populated = complete) { setDummy(createDummy(locale, complete, populated)); setIntroSeen(false); restart(); setScene(false); setControls(false); }
-  function language(next: Locale) { dummy.state.profile.profile.locale = next; setLocale(next); restart(); }
+  function language(next: Locale) { dummy.state.profile.profile.locale = next; void roomTranslation.changeLanguage(next); setLocale(next); restart(); }
   const buttons: [string, () => void][] = [
     [copy.sceneOpen, () => { setScene(true); setControls(false); }],
     [copy.sceneGuide, () => { setIntroSeen(false); setGuideRun(value => value + 1); setScene(true); setControls(false); }],
@@ -59,7 +63,7 @@ export default function DemoApp() {
     <StatusBar hidden={scene} />
     {/* The room is fullscreen, while functional screens keep the badge below the status bar. */}
     <BadgeFrame><Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={[styles.badge, scene && styles.sceneBadge]}><Text key={fontScale} allowFontScaling={!scene} maxFontSizeMultiplier={1.4} style={styles.badgeText}>{scene ? 'DEMO' : copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable></BadgeFrame>
-    <View style={styles.product}><View style={[styles.product, scene && styles.hidden]} accessibilityElementsHidden={scene} importantForAccessibility={scene ? 'no-hide-descendants' : 'auto'} pointerEvents={scene ? 'none' : 'auto'}><MotionSuspended suspended={scene}><Run key={mount} dummy={dummy} locale={locale} forgeNavigation={{ request, onReturn: () => setScene(true) }} /></MotionSuspended></View>{scene && <ForgeScene key={guideRun} locale={locale} showIntro={!introSeen} onIntroComplete={() => setIntroSeen(true)} onExit={() => openStation('seals')} onOpenStation={openStation} />}</View>
+    <View style={styles.product}><View style={[styles.product, scene && styles.hidden]} accessibilityElementsHidden={scene} importantForAccessibility={scene ? 'no-hide-descendants' : 'auto'} pointerEvents={scene ? 'none' : 'auto'}><MotionSuspended suspended={scene}><Run key={mount} dummy={dummy} locale={locale} forgeNavigation={{ request, onReturn: () => setScene(true) }} /></MotionSuspended></View>{scene && <I18nextProvider i18n={roomTranslation}><ForgeRoom key={guideRun} showGuide={!introSeen} onGuideComplete={() => setIntroSeen(true)} onExit={() => openStation('seals')} onOpenStation={openStation} /></I18nextProvider>}</View>
     <Modal visible={controls} animationType="none" onRequestClose={() => setControls(false)}>
       <SafeAreaView style={styles.root}><ScrollView contentContainerStyle={styles.controls}>
         <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>

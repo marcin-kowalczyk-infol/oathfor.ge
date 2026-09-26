@@ -36,12 +36,14 @@ final class OathReadService
                 $after = ' AND ('.$column.', id) '.($today ? '>' : '<').' (?, ?::uuid)';
                 $parameters[] = $cursor['key']; $parameters[] = $cursor['id'];
             }
+            // Every Oath writer locks the account row first, so the count and the page below see the same rows.
+            $total = (int) $this->connection->fetchOne('SELECT COUNT(*) FROM oath WHERE account_id = ? AND character_id = ? AND '.$predicate, [$accountId, $characterId]);
             $order = $today ? ' ASC' : ' DESC';
             $rows = $this->connection->fetchAllAssociative('SELECT * FROM oath WHERE account_id = ? AND character_id = ? AND '.$predicate.$after.' ORDER BY '.$column.$order.', id'.$order.' LIMIT '.($input->limit + 1), $parameters);
             $more = count($rows) > $input->limit;
             if ($more) { array_pop($rows); }
             $last = [] === $rows ? null : $rows[array_key_last($rows)];
-            return ['items' => array_map(OathRepresentation::fromRow(...), $rows), 'nextCursor' => $more && null !== $last ? OathCursor::encode($accountId, $characterId, $input->view, $last[$column], $last['id']) : null, 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now), 'paused' => $paused, 'characterId' => $characterId];
+            return ['items' => array_map(OathRepresentation::fromRow(...), $rows), 'nextCursor' => $more && null !== $last ? OathCursor::encode($accountId, $characterId, $input->view, $last[$column], $last['id']) : null, 'total' => $total, 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now), 'paused' => $paused, 'characterId' => $characterId];
         });
     }
     /** Reads are scoped to the active character. Without one the answer is character_required, before any reconciliation.
