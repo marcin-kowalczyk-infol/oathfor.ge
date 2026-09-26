@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AccessibilityInfo, AppState } from 'react-native';
+import { AccessibilityInfo, AppState, StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { CharacterCreationScreen, emptyCreationDraft, type CharacterCreationDraft } from './CharacterCreationScreen';
@@ -202,4 +202,28 @@ test('a stored preset the app cannot draw shows a neutral figure and still retri
   expect(screen.queryAllByRole('radio', { name: /^Look /, selected: true })).toHaveLength(0);
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
   expect(f.onRetry).toHaveBeenCalledTimes(1);
+});
+
+test('the name field suppresses iOS AutoFill suggestions', async () => {
+  await setup(); await act(async () => {});
+  expect(nameField().props).toMatchObject({ textContentType: 'none', autoComplete: 'off' });
+});
+
+test('the portrait row centres when it fits and still scrolls when it overflows', async () => {
+  await setup(); await act(async () => {});
+  const row = screen.getByTestId('character-looks');
+  expect(row.props.accessibilityRole).toBe('radiogroup');
+  expect(row.props.horizontal).toBe(true);
+  expect(StyleSheet.flatten(row.props.contentContainerStyle)).toMatchObject({ flexGrow: 1, justifyContent: 'center' });
+});
+
+test('the warm light is a card-wide overlay, not a layer clipped by the figure stage', async () => {
+  await setup(); await act(async () => {});
+  const stage = screen.getByTestId('character-stage');
+  for (const id of ['character-glow', 'character-pool']) {
+    const layer = screen.getByTestId(id);
+    let parent = layer.parent; let insideStage = false;
+    while (parent) { if (parent === stage) insideStage = true; parent = parent.parent; }
+    expect(insideStage).toBe(false);
+  }
 });

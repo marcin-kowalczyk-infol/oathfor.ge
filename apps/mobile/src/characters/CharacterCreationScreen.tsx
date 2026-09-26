@@ -23,6 +23,10 @@ export type CharacterCreationScreenProps = {
 const forms: CharacterForm[] = ['masculine', 'feminine', 'neutral'];
 const gold = { line: 'rgba(214,170,105,0.55)', faint: 'rgba(214,170,105,0.22)', bright: '#f0c987', role: '#caa06a', name: '#f6e6c8' };
 const FIGURE_RATIO = 400 / 984;
+const STAGE_TOP = 24;
+const STAGE_BOTTOM = 10;
+const GLOW = 360;
+const POOL = 44;
 type Ready = Extract<CharacterControllerState, { kind: 'ready' }>;
 type Translate = ReturnType<typeof useTranslation>['t'];
 
@@ -96,6 +100,9 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload }: Ch
   const art = presetId === null ? null : presetArt(presetId);
   // Large text leaves more room for words, the figure is decorative and may shrink.
   const figureHeight = Math.round(Math.min(340, Math.max(200, height * (fontScale > 1.5 ? 0.28 : 0.36))));
+  const stageHeight = figureHeight + STAGE_TOP + STAGE_BOTTOM;
+  // The feet stand a little above the name panel, the light pool is centred on them.
+  const feet = stageHeight - STAGE_BOTTOM;
   const title = form ? t(`character.form.${form}`) : t('character.untitled');
   const message = errorKey(state.error, pending?.name ?? null);
   const limitShown = message?.key === 'character.error.character_limit_reached';
@@ -118,13 +125,13 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload }: Ch
     </View>
 
     <Animated.View testID="character-preview" style={[styles.card, entrance]}>
+      {/* The light spans the whole card and fades out on every side, so no edge cuts it where the name panel begins. */}
+      <View testID="character-glow" pointerEvents="none" style={[styles.glow, { top: feet - GLOW / 2 }]} />
+      <View testID="character-pool" pointerEvents="none" style={[styles.pool, { top: feet - POOL / 2 }]} />
       <View accessible accessibilityLabel={t('character.preview', { name: check.valid ? check.name : t('character.unnamed'), title })}>
-        <View style={[styles.stage, { height: figureHeight + 28 }]}>
-          <View pointerEvents="none" style={styles.wash} />
-          <View pointerEvents="none" style={styles.pool} />
+        <View testID="character-stage" style={[styles.stage, { height: stageHeight }]}>
           {art ? <Image source={art.figure} resizeMode="contain" accessibilityIgnoresInvertColors style={{ height: figureHeight, width: figureHeight * FIGURE_RATIO }} />
             : <View testID="character-placeholder" style={[styles.placeholder, { height: figureHeight * 0.8, width: figureHeight * 0.8 * FIGURE_RATIO }]} />}
-          <View pointerEvents="none" style={styles.floor} />
         </View>
         <View style={styles.identity}>
           <Text style={[styles.cardName, !check.valid && styles.cardNameEmpty]}>{check.valid ? check.name : t('character.unnamed')}</Text>
@@ -143,7 +150,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload }: Ch
       {looks.length === 0 ? <>
         <Message text={t('character.noLooks')} />
         <Action variant="secondary" label={t('character.reloadLooks')} onPress={onReload} />
-      </> : <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="radiogroup" accessibilityLabel={t('character.looks')} style={styles.lookRow} contentContainerStyle={styles.looks}>
+      </> : <ScrollView testID="character-looks" horizontal showsHorizontalScrollIndicator={false} accessibilityRole="radiogroup" accessibilityLabel={t('character.looks')} style={styles.lookRow} contentContainerStyle={styles.looks}>
         {looks.map((id, index) => {
           const selected = id === presetId;
           return <Pressable key={id} accessibilityRole="radio" accessibilityLabel={t('character.look', { index: index + 1, count: looks.length })}
@@ -160,7 +167,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload }: Ch
       <Text nativeID="character-name-label" style={styles.label}>{t('character.name')}</Text>
       <TextInput accessibilityLabel={t('character.name')} accessibilityLabelledBy="character-name-label" accessibilityHint={nameProblem !== null ? t(`character.nameError.${nameProblem}`) : serverNameError ?? t('character.nameHint')}
         value={name} editable={!locked} onChangeText={value => { if (!locked) onDraft({ name: value }); }}
-        autoCapitalize="words" autoCorrect={false} autoComplete="off" spellCheck={false} maxLength={40} returnKeyType="done"
+        autoCapitalize="words" autoCorrect={false} autoComplete="off" textContentType="none" importantForAutofill="no" spellCheck={false} maxLength={40} returnKeyType="done"
         style={[styles.input, nameProblem !== null && styles.inputProblem, locked && styles.inputLocked]} />
       {nameProblem !== null
         ? <Text accessibilityLiveRegion="polite" style={styles.problem}>{t(`character.nameError.${nameProblem}`)}</Text>
@@ -215,10 +222,9 @@ const styles = StyleSheet.create({
   card: { borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: gold.line, backgroundColor: '#1f1812',
     experimental_backgroundImage: 'linear-gradient(180deg, #2a1f15 0%, #18130e 100%)' },
   innerFrame: { position: 'absolute', top: 5, left: 5, right: 5, bottom: 5, borderRadius: 19, borderWidth: 1, borderColor: gold.faint },
-  stage: { alignItems: 'center', justifyContent: 'flex-end', paddingTop: 20 },
-  wash: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, experimental_backgroundImage: 'radial-gradient(60% 55% at 50% 88%, rgba(255,160,70,0.26) 0%, rgba(255,160,70,0) 100%)' },
-  pool: { position: 'absolute', bottom: 2, alignSelf: 'center', width: 220, height: 44, borderRadius: 110, experimental_backgroundImage: 'radial-gradient(closest-side, rgba(255,176,92,0.42) 0%, rgba(255,176,92,0) 100%)' },
-  floor: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 36, experimental_backgroundImage: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.28) 100%)' },
+  stage: { alignItems: 'center', justifyContent: 'flex-end', paddingTop: STAGE_TOP, paddingBottom: STAGE_BOTTOM },
+  glow: { position: 'absolute', left: 0, right: 0, height: GLOW, experimental_backgroundImage: 'radial-gradient(70% 50% at 50% 50%, rgba(255,160,70,0.26) 0%, rgba(255,160,70,0.11) 50%, rgba(255,160,70,0) 100%)' },
+  pool: { position: 'absolute', left: '50%', marginLeft: -110, width: 220, height: POOL, borderRadius: 110, experimental_backgroundImage: 'radial-gradient(closest-side, rgba(255,176,92,0.42) 0%, rgba(255,176,92,0) 100%)' },
   placeholder: { borderRadius: 999, borderWidth: 1, borderColor: gold.faint, marginBottom: 12 },
   identity: { alignItems: 'center', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 22, gap: 6 },
   cardName: { fontFamily: tokens.font.display, color: gold.name, fontSize: 28, lineHeight: 34, textAlign: 'center' },
@@ -232,7 +238,8 @@ const styles = StyleSheet.create({
   label: { color: gold.role, fontSize: 13, lineHeight: 18, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '600' },
   // Padding keeps the selected glow inside the scroll bounds, the negative margin keeps the row aligned.
   lookRow: { margin: -12 },
-  looks: { gap: 12, padding: 12 },
+  // Centred while the portraits fit, scrollable once they overflow.
+  looks: { flexGrow: 1, justifyContent: 'center', gap: 12, padding: 12 },
   portraitRing: { width: 72, height: 72, borderRadius: 36, borderWidth: 1, borderColor: gold.faint, alignItems: 'center', justifyContent: 'center', backgroundColor: '#18130e' },
   portraitSelected: { borderWidth: 2, borderColor: gold.bright, shadowColor: '#ffa446', shadowOpacity: 0.45, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
   portrait: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#1f1812' },

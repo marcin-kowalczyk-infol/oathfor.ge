@@ -5,7 +5,9 @@ import { LocalizationProvider, useTranslation } from './src/localization/Localiz
 
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'de-DE' }] }));
 
-jest.mock('./src/auth/AuthScreen', () => ({ AuthScreen: () => {
+const mockAuthProps: Record<string, unknown>[] = [];
+jest.mock('./src/auth/AuthScreen', () => ({ AuthScreen: (props: Record<string, unknown>) => {
+  mockAuthProps.push(props);
   const { Text } = require('react-native');
   const { useTranslation } = require('./src/localization/LocalizationProvider');
   return <Text>{useTranslation().t('auth.signInTitle')}</Text>;
@@ -101,4 +103,15 @@ test('product entry ignores diagnostic locale unless diagnostic mode is explicit
   await render(<App />);
   expect(screen.getByText('Welcome to Oathforge')).toBeOnTheScreen();
   expect(fetch).not.toHaveBeenCalled();
+});
+
+test('product entry wires the character client and secure creation storage like the Oath client', async () => {
+  process.env.EXPO_PUBLIC_DIAGNOSTIC_MODE = 'false';
+  jest.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}));
+  const { secureCreationStorage } = require('./src/characters/creationStorage');
+  await render(<App />);
+  const props = mockAuthProps[mockAuthProps.length - 1];
+  expect(props.creationStorage).toBe(secureCreationStorage);
+  expect(props.characterApi).toEqual(expect.objectContaining({ list: expect.any(Function), create: expect.any(Function), activate: expect.any(Function) }));
+  expect(props.oathApi).toBeDefined();
 });

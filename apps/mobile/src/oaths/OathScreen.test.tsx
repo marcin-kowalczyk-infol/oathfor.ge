@@ -27,7 +27,7 @@ function setup() {
   const session = { subscribe: () => () => {}, getToken: () => token, getState: () => ({ kind: 'authenticated', account: { id: accountId, onboardingStatus: 'complete' } }), reauthenticate: jest.fn() } as unknown as SessionController;
   const storage: PendingStorage = { read: jest.fn().mockResolvedValue({ kind: 'success', value: null }), write: jest.fn().mockResolvedValue({ kind: 'success' }) };
   const api = { preview: jest.fn().mockResolvedValue({ kind: 'success', value: envelope }), getPreview: jest.fn().mockResolvedValue({ kind: 'success', value: { preview: envelope.preview, characterId, oathId: null } }), confirm: jest.fn().mockResolvedValue({ kind: 'unavailable', retry: 'request' }) } as unknown as OathClient;
-  const controller = createOathController({ session, api, storage }); controllers.push(controller);
+  const controller = createOathController({ session, api, storage }); controller.setCharacter({ accountId, characterId }); controllers.push(controller);
   return { controller, api, storage, envelope, onLogout: jest.fn() };
 }
 test('chosen running deadline previews all rules before explicit acceptance can commit', async () => {
@@ -121,7 +121,7 @@ test('ambiguous confirmation exposes only same-identity retry and renders author
   expect(screen.queryByRole('button', { name: 'Submit evidence' })).toBeNull();
 });
 test('Polish form and stored rules support recovery after restart without new consent', async () => {
-  const f = setup(); jest.mocked(f.storage.read).mockResolvedValueOnce({ kind: 'success', value: { version: 1, accountId, previewId: id, requestId: id } });
+  const f = setup(); jest.mocked(f.storage.read).mockResolvedValueOnce({ kind: 'success', value: { version: 2, accountId, characterId, previewId: id, requestId: id } });
   f.controller.start(); await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   expect(await screen.findByRole('button', { name: 'Sprawdź potwierdzenie' })).toBeOnTheScreen();
   expect(await screen.findByText(f.envelope.preview.snapshot.copy.pl.sections.appeal)).toBeOnTheScreen();

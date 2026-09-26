@@ -5,12 +5,15 @@ import { AuthScreen, type AppleAvailability } from './AuthScreen';
 import { createAppleAuthentication } from './appleLogin';
 import { createSessionController, type SessionController } from './session';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
+import * as characterControllers from '../characters/controller';
 import type { SessionStorage } from './sessionStorage';
 import type { OathClient } from '../api/oaths';
+import type { CharacterClient, CharacterList } from '../api/characters';
 
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: mockDeviceLanguage }], getCalendars: () => [{ timeZone: 'Europe/Warsaw' }] }));
 jest.mock('../onboarding/notificationPermissions', () => ({ nativeNotificationPermissions: { read: jest.fn().mockResolvedValue({ kind: 'unavailable', canAskAgain: false }), request: jest.fn(), openSettings: jest.fn() } }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
+jest.mock('expo-crypto', () => ({ randomUUID: () => '40000000-0000-4000-8000-00000000000a' }));
 jest.mock('expo-apple-authentication', () => {
   const { Pressable } = require('react-native');
   return { isAvailableAsync: jest.fn(), signInAsync: jest.fn(), addRevokeListener: jest.fn(), AppleAuthenticationButtonType: { SIGN_IN: 0 }, AppleAuthenticationButtonStyle: { WHITE: 2 }, AppleAuthenticationButton: (props: object) => <Pressable {...props} accessibilityRole="button" accessibilityLabel="Apple sign in" /> };
@@ -19,6 +22,9 @@ const account = { id: '01997aed-8950-7f7a-bda4-36b64697b562', onboardingStatus: 
 const session = { token: 'A'.repeat(43), expiresAt: '2026-10-24T12:00:00Z' };
 const challenge = { challengeId: 'B'.repeat(43), nonce: 'C'.repeat(43), state: 'D'.repeat(43), expiresAt: '2026-09-24T12:05:00Z' };
 let mockDeviceLanguage = 'en';
+const mira = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'dummy_braid', form: 'feminine' as const, createdAt: '2026-09-24T12:00:00Z' };
+const listing = (characters: typeof mira[], activeCharacterId: string | null): CharacterList => ({ characters, activeCharacterId, limit: 3, presets: ['dummy_braid', 'dummy_cropped', 'dummy_curly', 'dummy_tied'], serverTime: '2026-09-24T12:00:00Z' });
+const completeProfile = { profile: { locale: 'en', timezone: 'UTC', intention: 'regular_activity', companionIntroduced: true, notificationPreference: 'disabled' }, onboardingStatus: 'complete' };
 beforeEach(() => { mockDeviceLanguage = 'en'; });
 const controllers: SessionController[] = [];
 function setup() {
@@ -31,9 +37,11 @@ function setup() {
   jest.mocked(Apple.isAvailableAsync).mockResolvedValue(true);
   jest.mocked(Apple.signInAsync).mockResolvedValue({ state: challenge.state, identityToken: 'DUMMY-token', authorizationCode: 'DUMMY-code' } as Apple.AppleAuthenticationCredential);
   const profileApi = { get: jest.fn().mockResolvedValue({ kind: 'success', value: { profile: { locale: null, timezone: null, intention: null, companionIntroduced: false, notificationPreference: null }, onboardingStatus: 'pending' } }), patch: jest.fn(), complete: jest.fn() };
-  const oathApi = { list: jest.fn().mockResolvedValue({ kind: 'success', value: { items: [], nextCursor: null, serverTime: '2026-09-24T12:00:00Z', paused: false } }) } as unknown as OathClient;
+  const oathApi = { list: jest.fn().mockResolvedValue({ kind: 'success', value: { items: [], nextCursor: null, serverTime: '2026-09-24T12:00:00Z', paused: false, characterId: mira.id } }) } as unknown as OathClient;
   const acceptanceStorage = { read: jest.fn().mockResolvedValue({ kind: 'success', value: null }), write: jest.fn().mockResolvedValue({ kind: 'success' }) };
-  return { api, profileApi, oathApi, acceptanceStorage, storage, controller, apple, remove, revoke: () => revoke(), authenticate: createAppleAuthentication(api) };
+  const characterApi = { list: jest.fn().mockResolvedValue({ kind: 'success', value: listing([mira], mira.id) }), create: jest.fn(), activate: jest.fn() };
+  const creationStorage = { read: jest.fn().mockResolvedValue({ kind: 'success', value: null }), write: jest.fn().mockResolvedValue({ kind: 'success' }) };
+  return { api, profileApi, oathApi, acceptanceStorage, characterApi: characterApi as typeof characterApi & CharacterClient, creationStorage, storage, controller, apple, remove, revoke: () => revoke(), authenticate: createAppleAuthentication(api) };
 }
 afterEach(() => { controllers.splice(0).forEach(controller => controller.dispose()); jest.restoreAllMocks(); });
 
@@ -245,4 +253,94 @@ test('default native adapter removes a valid revocation subscription exactly onc
   expect(remove).not.toHaveBeenCalled();
   await view.unmount();
   expect(remove).toHaveBeenCalledTimes(1);
+});
+
+test('routes a completed account without a character to creation', async () => {
+  const runtime = setup();
+  runtime.profileApi.get.mockResolvedValue({ kind: 'success', value: completeProfile });
+  runtime.characterApi.list.mockResolvedValue({ kind: 'success', value: listing([], null) });
+  runtime.characterApi.create.mockResolvedValue({ kind: 'success', created: true, value: { character: mira, activeCharacterId: mira.id, serverTime: '2026-09-24T12:00:00Z' } });
+  await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  expect(await screen.findByRole('header', { name: 'Forge your character' })).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Your Oaths' })).toBeNull();
+  expect(runtime.oathApi.list).not.toHaveBeenCalled();
+  await fireEvent.changeText(screen.getByLabelText('Name'), 'Mira');
+  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Create character' }));
+  expect(await screen.findByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
+  expect(runtime.characterApi.create.mock.calls[0][1]).toEqual({ requestId: '40000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'dummy_braid', form: 'feminine' });
+  expect(runtime.creationStorage.write).toHaveBeenCalledWith(account.id, expect.objectContaining({ requestId: '40000000-0000-4000-8000-00000000000a' }));
+  expect(runtime.acceptanceStorage.read).toHaveBeenCalledWith(account.id, mira.id);
+});
+
+test('character loading and failures never show creation, and retry reloads', async () => {
+  const runtime = setup();
+  runtime.profileApi.get.mockResolvedValue({ kind: 'success', value: completeProfile });
+  let resolveList!: (value: unknown) => void;
+  runtime.characterApi.list.mockReturnValueOnce(new Promise(resolve => { resolveList = resolve; })).mockResolvedValueOnce({ kind: 'success', value: listing([mira], mira.id) });
+  await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  expect(await screen.findByText('Gathering your characters…')).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Forge your character' })).toBeNull();
+  await act(async () => resolveList({ kind: 'unavailable', retry: 'request' }));
+  expect(screen.getByText('The Forge cannot be reached right now. Check your connection and try again.')).toBeOnTheScreen();
+  expect(screen.queryByLabelText('Name')).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
+});
+
+test('character_required from an Oath call reloads characters and returns to creation', async () => {
+  const runtime = setup();
+  runtime.profileApi.get.mockResolvedValue({ kind: 'success', value: completeProfile });
+  runtime.characterApi.list.mockResolvedValueOnce({ kind: 'success', value: listing([mira], mira.id) }).mockResolvedValue({ kind: 'success', value: listing([], null) });
+  jest.mocked(runtime.oathApi.list).mockResolvedValue({ kind: 'oath_error', code: 'character_required' });
+  await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  expect(await screen.findByRole('header', { name: 'Forge your character' })).toBeOnTheScreen();
+  expect(runtime.characterApi.list).toHaveBeenCalledTimes(2);
+});
+
+test('an Oath response for another character reloads characters and rebinds to the server active one', async () => {
+  const runtime = setup();
+  const bor = { ...mira, id: '30000000-0000-4000-8000-00000000000b', name: 'Bor' };
+  const events: string[] = [];
+  runtime.profileApi.get.mockResolvedValue({ kind: 'success', value: completeProfile });
+  runtime.characterApi.list.mockImplementationOnce(async () => { events.push('characters'); return { kind: 'success', value: listing([mira, bor], mira.id) }; })
+    .mockImplementation(async () => { events.push('characters'); return { kind: 'success', value: listing([mira, bor], bor.id) }; });
+  runtime.acceptanceStorage.read.mockImplementation(async (_account: string, character: string) => { events.push(`read ${character === bor.id ? 'B' : 'A'}`); return { kind: 'success', value: null }; });
+  let served = mira.id;
+  jest.mocked(runtime.oathApi.list).mockImplementation(async () => { events.push('oaths'); const characterId = served; served = bor.id; return { kind: 'success', value: { items: [], nextCursor: null, serverTime: '2026-09-24T12:00:00Z', paused: false, characterId } }; });
+  served = bor.id;
+  await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  expect(await screen.findByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
+  await act(async () => {});
+  expect(events.slice(0, 4)).toEqual(['characters', 'read A', 'oaths', 'characters']);
+  expect(events.slice(4)).toEqual(['read B', 'oaths']);
+  expect(runtime.acceptanceStorage.read).toHaveBeenLastCalledWith(account.id, bor.id);
+});
+
+test('a switch rebinds the Oath controller before the new character screen sends any Oath request', async () => {
+  const runtime = setup();
+  const bor = { ...mira, id: '30000000-0000-4000-8000-00000000000b', name: 'Bor' };
+  let serverActive = mira.id;
+  const events: string[] = [];
+  const created: characterControllers.CharacterController[] = [];
+  const original = characterControllers.createCharacterController;
+  jest.spyOn(characterControllers, 'createCharacterController').mockImplementation(options => { const made = original(options); created.push(made); return made; });
+  runtime.profileApi.get.mockResolvedValue({ kind: 'success', value: completeProfile });
+  runtime.characterApi.list.mockImplementation(async () => ({ kind: 'success', value: listing([mira, bor], serverActive) }));
+  runtime.characterApi.activate.mockImplementation(async (_token: string, id: string) => { events.push('activate'); serverActive = id; return { kind: 'success', value: listing([mira, bor], id) }; });
+  runtime.acceptanceStorage.read.mockImplementation(async (_account: string, character: string) => { events.push(`read ${character === bor.id ? 'B' : 'A'}`); return { kind: 'success', value: null }; });
+  jest.mocked(runtime.oathApi.list).mockImplementation(async () => { events.push('oaths'); return { kind: 'success', value: { items: [], nextCursor: null, serverTime: '2026-09-24T12:00:00Z', paused: false, characterId: serverActive } }; });
+  await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  expect(await screen.findByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
+  expect(events).toEqual(['read A', 'oaths']);
+  events.length = 0;
+  await act(async () => { await created[created.length - 1].switch(bor.id); });
+  await act(async () => {});
+  expect(events).toEqual(['activate', 'read B', 'oaths']);
+  expect(screen.getByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
 });

@@ -1,6 +1,12 @@
 import { createDummy } from './runtime';
 const token = 'A'.repeat(43);
+async function character(dummy: ReturnType<typeof createDummy>) {
+  if (dummy.state.activeCharacterId) return;
+  const created = await dummy.runtime().characterApi.create(token, { requestId: '40000000-0000-4000-8000-000000000001', name: 'Mira', presetId: 'dummy_braid', form: 'feminine' });
+  if (created.kind !== 'success') throw new Error('Character creation failed');
+}
 async function preview(dummy: ReturnType<typeof createDummy>) {
+  await character(dummy);
   const deadline = new Date(dummy.state.now + 86400000).toISOString().slice(0, 19);
   const result = await dummy.runtime().oathApi.preview(token, { activity: 'running', activation: { mode: 'now' }, deadline: { local: deadline, timezone: 'UTC' } });
   if (result.kind !== 'success') throw new Error('Preview failed');
@@ -43,4 +49,29 @@ test('reusing an acceptance request for another preview is a conflict', async ()
   await api.confirm(token, { previewId: await preview(dummy), requestId, accepted: true });
   expect(await api.confirm(token, { previewId: await preview(dummy), requestId, accepted: true })).toEqual({ kind: 'oath_error', code: 'idempotency_conflict' });
   expect(dummy.state.oaths).toHaveLength(1);
+});
+
+test('DUMMY characters: empty accounts start without one, creation replays and switching changes Oath ownership', async () => {
+  const dummy = createDummy('en', true, false);
+  const api = dummy.runtime().characterApi;
+  expect(await api.list(token)).toMatchObject({ kind: 'success', value: { characters: [], activeCharacterId: null, limit: 3, presets: ['dummy_braid', 'dummy_cropped', 'dummy_curly', 'dummy_tied'] } });
+  expect(await dummy.runtime().oathApi.list(token, { view: 'today' })).toEqual({ kind: 'oath_error', code: 'character_required' });
+  const input = { requestId: '40000000-0000-4000-8000-000000000001', name: 'Mira', presetId: 'dummy_braid', form: 'feminine' as const };
+  const first = await api.create(token, input);
+  expect(first).toMatchObject({ kind: 'success', created: true, value: { character: { id: '30000000-0000-4000-8000-000000000001', name: 'Mira' }, activeCharacterId: '30000000-0000-4000-8000-000000000001' } });
+  expect(await api.create(token, input)).toMatchObject({ kind: 'success', created: false });
+  expect(await api.create(token, { ...input, name: 'Bor' })).toEqual({ kind: 'character_error', code: 'idempotency_conflict' });
+  await preview(dummy);
+  await api.create(token, { ...input, requestId: '40000000-0000-4000-8000-000000000002', name: 'Bor' });
+  expect(dummy.state.activeCharacterId).toBe('30000000-0000-4000-8000-000000000002');
+  const today = await dummy.runtime().oathApi.list(token, { view: 'today' });
+  expect(today).toMatchObject({ kind: 'success', value: { items: [], characterId: '30000000-0000-4000-8000-000000000002' } });
+  expect(await api.activate(token, '30000000-0000-4000-8000-000000000001')).toMatchObject({ kind: 'success', value: { activeCharacterId: '30000000-0000-4000-8000-000000000001' } });
+  expect(await api.activate(token, '30000000-0000-4000-8000-000000000009')).toEqual({ kind: 'character_error', code: 'not_found' });
+});
+
+test('the returning fixture already has an active character owning its Oaths', async () => {
+  const dummy = createDummy('pl', true);
+  expect(dummy.state.activeCharacterId).toBe('30000000-0000-4000-8000-000000000001');
+  expect(dummy.state.oaths.every(oath => oath.characterId === dummy.state.activeCharacterId)).toBe(true);
 });

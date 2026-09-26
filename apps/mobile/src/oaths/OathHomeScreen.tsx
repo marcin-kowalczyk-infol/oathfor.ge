@@ -97,16 +97,16 @@ export function OathHomeScreen({ controller, timezone, onLogout, forgeNavigation
     if (!pause || mutation.current) return;
     const operation = Symbol('pause'); mutation.current = operation; setMutating(true);
     const epoch = generation.current;
-    // The reviewed summary names the character it was computed for, so a switch in between gives character_changed.
-    const { characterId } = pause.summary;
-    const result = await controller.pause(pause.summary.paused ? { characterId, paused: false } : { characterId, paused: true, revision: pause.summary.revision });
+    // The controller sends its bound character. A switch elsewhere gives character_changed and the app rebinds.
+    const result = await controller.pause(pause.summary.paused ? { paused: false } : { paused: true, revision: pause.summary.revision });
     if (mutation.current !== operation) return;
     mutation.current = undefined;
     setMutating(false);
     if (!current(epoch)) return;
     if (result.kind === 'success') { await loadList('today'); return; }
     if (result.kind === 'oath_error' && result.code === 'pause_preview_changed') { await showPause('oaths'); return; }
-    if (result.kind === 'oath_error' && result.code === 'character_changed') { await showPause('character'); return; }
+    // Another character is active now. Nothing is reloaded or sent until the app has rebound to it.
+    if (result.kind === 'oath_error' && result.code === 'character_changed') { setPause(null); setPauseChanged('character'); setPauseFailed(true); return; }
     setPause(null); setPauseFailed(true);
   }
   function create(recover = false) {
