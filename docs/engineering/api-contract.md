@@ -104,7 +104,7 @@ Local engineering choice: one account-owned profile row, defaults on account cre
 }
 ```
 
-Allowed values: locale `null | "pl" | "en"`; timezone `null | supported IANA identifier`; intention `null | "regular_activity"`; companionIntroduced boolean; notificationPreference `null | "enabled" | "disabled"`; onboardingStatus `pending | complete`. Null means no confirmed choice. Device suggestions never silently fill the persisted null values. No OS permission field, push token, nickname, health data, counters or numeric goal.
+Allowed values: locale `null | "pl" | "en"`; timezone `null | supported IANA identifier`; intention `null | "regular_activity"`; companionIntroduced boolean; notificationPreference `null | "enabled" | "disabled"`; onboardingStatus `pending | complete`. Null means no confirmed choice. Device suggestions never silently fill the persisted null values. No OS permission field, push token, nickname, health data, counters or numeric goal. The player's visible name belongs to a character, see the [player character contract](#player-character-contract), not to this profile.
 
 `PATCH /api/profile` accepts a nonempty object containing any subset of `locale`, `timezone`, `intention`, `companionIntroduced`, `notificationPreference`; no wrapper/unknown keys. Each supplied value must be non-null and valid; companionIntroduced accepts only true (acknowledgment is monotonic), intention only regular_activity. Thus committed onboarding choices cannot be cleared through this endpoint. Locale/timezone/notificationPreference may subsequently change without reopening onboarding; no separate settings feature is added here. Apply all supplied fields atomically or none. Returns the same full 200 envelope as GET, including unchanged fields and current status.
 
@@ -113,6 +113,84 @@ Timezone validation is a local interoperability choice based on [PHP timezone id
 `POST /api/onboarding/complete` accepts exactly `{}`. Under the same account/profile lock require non-null supported locale/timezone, regular_activity, companionIntroduced=true, and notificationPreference either enabled or disabled. OS permission is deliberately absent from the guard. If any requirement is missing: 409 `onboarding_incomplete`, no status mutation. Otherwise set account.onboarding_status to complete, keeping lifecycle account.status active, and return the full envelope, matching subsequent GET /api/me account status. Repeated completion returns 200 complete with no extra effects. Complete is monotonic and cannot activate an Oath or extend a session.
 
 All endpoints reuse HTTPS/Bearer/no-store and safe error envelope `{"error":{"code":"..."}}`. Protected endpoints return 401 unauthenticated for invalid sessions/inactive accounts, 503 temporarily_unavailable for infrastructure failure. PATCH/complete apply the existing 16 KiB bound (413 request_too_large), JSON media type (415 unsupported_media_type), malformed/nonobject/unknown/empty PATCH/wrong-type input (400 invalid_request). Typed unsupported values return 400 invalid_locale, invalid_timezone, invalid_intention or invalid_notification_preference; false companionIntroduced is invalid_request. Only complete has 409 onboarding_incomplete. Never include raw invalid input, provider text, bearer or account details in errors. GET has no request body. No new rate-limiter design is needed beyond existing infrastructure controls.
+
+## Player character contract
+
+Status: planned in MVP-17, not implemented. Local engineering contract, 2026-09-26, implementing the accepted [player character specification](../product/player-character.md) and [ADR 0005](../decisions/0005-character-owned-oaths.md). Existing Bearer, HTTPS, no-store, 16 KiB JSON bound, 415 media type check and safe error envelope apply. Unknown fields and wrong types return 400 `invalid_request`. Infrastructure failure returns 503 `temporarily_unavailable` with no partial write. Invalid, expired or revoked sessions return 401 `unauthenticated`. IDs use canonical lowercase UUID text, and a malformed ID in a body returns 400 `invalid_request`.
+
+### Persistence and locking
+
+A `player_character` row holds `id`, `account_id`, `slot`, `creation_request_id`, `name`, `preset_id`, `form`, `paused` and `created_at`. `slot` is 1 to 3 and unique per account, a database backstop for the limit. `creation_request_id` is unique per account. `account.active_character_id` is nullable and references the account's own character through a composite key, so an account can never point at another account's character. Characters are listed in slot order. Deleting an account deletes its characters.
+
+Every character request and every Oath read or write locks the account row first, then the session, then Oath rows in ID order where the operation needs them. Character rows are protected by the account lock and need no separate row lock. Authorization is rechecked at the fresh clock time after the locks. This keeps the [ADR 0004](../decisions/0004-oath-acceptance-and-reconciliation.md) order with no new lock hierarchy.
+
+### Presets, forms and names
+
+The server owns the preset catalog in `apps/api/resources/character/presets_v1.json`. IDs match `^[a-z0-9_]{1,64}$`. The catalog will hold four DUMMY presets, `dummy_braid`, `dummy_cropped`, `dummy_curly` and `dummy_tied`, marked `"dummy": true`. They are replaced by owner artwork later. A stored character keeps its preset ID, so a character's `presetId` may be absent from the current `presets` list. Clients must accept that and draw a neutral placeholder.
+
+`form` is `masculine`, `feminine` or `neutral`. It selects Polish grammatical variants and is independent of the preset look.
+
+Name rule, local decision 2026-09-26:
+
+1. Trim Unicode whitespace at both ends, then normalize to NFC.
+2. Require 2 to 20 code points.
+3. Require letters (`\p{L}` with following `\p{M}` marks), with at most one separator between two letters. Separators are space U+0020, hyphen U+002D, apostrophe U+0027 and right single quotation mark U+2019. iOS smart punctuation types U+2019 for an apostrophe.
+
+The normalized name is stored and returned. There is no uniqueness check and no word filter in MVP. Examples: `Mira`, `Żaneta`, `Anne-Marie`, `O'Brien`, `O’Brien` and `Jan Kowalski` are valid. `A`, `Anna  Maria`, `Anna-`, `R2D2`, 21 letters and emoji are invalid.
+
+### Endpoints
+
+`GET /api/characters` has no query or body and returns 200:
+
+```json
+{
+  "characters": [
+    {"id": "<UUID>", "name": "Mira", "presetId": "dummy_braid", "form": "feminine", "createdAt": "<UTC>"}
+  ],
+  "activeCharacterId": "<UUID>",
+  "limit": 3,
+  "presets": ["dummy_braid", "dummy_cropped", "dummy_curly", "dummy_tied"],
+  "serverTime": "<UTC>"
+}
+```
+
+`activeCharacterId` is null until the first character exists.
+
+`POST /api/characters` accepts exactly:
+
+```json
+{"requestId": "<UUID>", "name": "Mira", "presetId": "dummy_braid", "form": "feminine"}
+```
+
+The client creates and stores `requestId` before the first send and reuses it for every retry of that creation. Shape, form and the name rule are validated before the transaction. Order inside the locked transaction:
+
+1. Look up the account's `requestId`. The same normalized name, preset and form return 200 `{"character":{...},"activeCharacterId":"<UUID>","serverTime":"<UTC>"}` with the original character and the current active ID. A replay never changes the active character. A different payload returns 409 `idempotency_conflict`.
+2. Require a preset ID from the current catalog, otherwise 400 `invalid_preset`. A replay in step 1 skips this check, so a stored creation still resolves after the catalog changes.
+3. Require completed onboarding, otherwise 409 `onboarding_incomplete`.
+4. Require fewer than 3 characters, otherwise 409 `character_limit_reached`.
+5. Insert the character in the next slot, make it active and return 201 in the same shape.
+
+A name error returns 400 `invalid_character_name` with no write. An unknown form value is 400 `invalid_request`.
+
+`PUT /api/characters/active` accepts exactly `{"characterId":"<UUID>"}` and returns 200 in the GET shape. An unknown ID or another account's character returns 404 `not_found`. Choosing the already active character returns 200 with no change.
+
+Creating or switching characters grants no XP, reward or unlock and writes nothing outside the character rows and the account's active character.
+
+### Character-owned Oaths
+
+Status: planned in MVP-17, not implemented. When implemented, these rules replace the account-scoped wording in the [original Oath contract](#original-oath-contract).
+
+- `oath_preview` and `oath` carry a required `character_id` of the same account. An Oath also references its preview together with that preview's character, so it cannot move to another character. Local test Oaths, previews and acceptance requests are deleted by the migration because no production data exists.
+- Without an active character, `POST /api/oath-previews`, `GET /api/oaths`, `GET /api/oaths/{id}`, `GET /api/oath-pause` and `POST /api/oath-pause` return 409 `character_required` after authentication. Preview creation checks onboarding first.
+- A new preview belongs to the active character. Preview envelopes and the Oath representation gain `"characterId":"<UUID>"`.
+- `POST /api/oaths` creates the Oath for the preview's character, even if the active character changed after the preview. The preview character's pause state gates a new commitment. Replay rules are unchanged.
+- `GET /api/oath-previews/{id}` stays account-scoped, so a pending acceptance can be recovered after a switch.
+- The list envelope and the pause envelope gain `"characterId":"<UUID>"` of the active character, so a device with a stale active character can notice the difference.
+- Lists and detail show only the active character's Oaths. Another character's Oath in the same account returns 404 `not_found`. The list cursor also binds the character, so a cursor from one character returns 400 `invalid_request` for another.
+- Pause belongs to the active character. The revision binds the character, its pause state and its affected commitments. Pause withdraws only that character's scheduled and active Oaths. `POST /api/oath-pause` also requires `"characterId"`, for example `{"characterId":"<UUID>","paused":true,"revision":"<opaque>"}` or `{"characterId":"<UUID>","paused":false}`. If it differs from the active character, the answer is 409 `character_changed` with no effect. The migration drops `account.gameplay_paused`, and `player_character.paused` becomes the only pause source. The error code and withdrawal reason `account_paused` become `character_paused`.
+- Due reconciliation still locks and reconciles all Oaths of the account, because the account remains the serialization unit.
+
+Mobile storage choices, local decision 2026-09-26: a pending acceptance is stored per account and character as `{version:2, accountId, characterId, previewId, requestId}`. Older version 1 records are ignored. A pending character creation is stored per account as `{version:1, accountId, requestId, name, presetId, form}` before the first send and cleared after a decisive answer.
 
 ## Original Oath contract
 
