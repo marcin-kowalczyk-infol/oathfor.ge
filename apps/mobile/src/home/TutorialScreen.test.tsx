@@ -3,6 +3,7 @@ import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Locale } from '../localization/locale';
 import en from '../localization/locales/en/messages.json';
 import pl from '../localization/locales/pl/messages.json';
+import { bindShortWords } from '../localization/typography';
 import { tokens } from '../ui/tokens';
 import { TutorialScreen } from './TutorialScreen';
 
@@ -15,11 +16,12 @@ async function setup(locale: Locale = 'pl') {
 
 const chapters = (copy: typeof pl | typeof en) => {
   const { titles, hearth, seals, chronicle, door } = copy.room.tutorial;
+  const lines = (chapter: Record<string, string>) => Object.values(chapter).map(line => bindShortWords(line, copy === pl ? 'pl' : 'en'));
   return [
-    [titles.hearth, ...Object.values(hearth)],
-    [titles.seals, ...Object.values(seals)],
-    [titles.chronicle, ...Object.values(chronicle)],
-    [titles.door, ...Object.values(door)],
+    [titles.hearth, ...lines(hearth)],
+    [titles.seals, ...lines(seals)],
+    [titles.chronicle, ...lines(chronicle)],
+    [titles.door, ...lines(door)],
   ];
 };
 
@@ -34,6 +36,7 @@ test.each([['pl', pl], ['en', en]] as const)('the %s screen shows the intro and 
   expect(order.every(index => index >= 0)).toBe(true);
   expect(order).toEqual([...order].sort((a, b) => a - b));
   expect(expected.flat().length - expected.length).toBe(13);
+  if (locale === 'pl') expect(texts).toContain('O\u00A0stanie decyduje Kuźnia, nie zegar w\u00A0telefonie. Gdy minie ostatni termin z\u00A0zasad, Przysięga czeka na rozpatrzenie. To nie jest niewykonanie.');
 });
 
 test('back to menu calls onBack once', async () => {

@@ -265,7 +265,8 @@ describe('tutorial', () => {
     }));
     await render(room({ tutorial: 1 }));
     await press(hear('hearth'));
-    expect(walkTimers()).toHaveLength(1);
+    // The first walk brings Żaromir to his tutorial place, the second to the hearth.
+    expect(walkTimers()).toHaveLength(2);
     expect(screen.queryByText(tut.hearth['1'])).toBeNull();
     await act(async () => finishes[finishes.length - 1]({ finished: true }));
     expect(screen.getByText(tut.hearth['1'])).toBeOnTheScreen();
@@ -369,6 +370,7 @@ describe('tutorial', () => {
     const content = 200;
     await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 343, content);
     const bubble = flat(screen.getByTestId('room-bubble'));
+    // The whole line shows without scrolling. Native SE 3 check: a bubble held below Żaromir's feet hid half of seals.3.
     expect(bubble.top + content + 4 + 44).toBeLessThanOrEqual(se.height - 20);
     const bottoms = (['hearth', 'seals', 'chronicle'] as const).map(station => {
       const style = StyleSheet.flatten(screen.getByRole('button', { name: hear(station) }).props.style) as { top: number; marginTop: number; height: number };
@@ -395,7 +397,8 @@ describe('tutorial after review', () => {
     const walks = captureWalks();
     await render(room({ tutorial: 1 }));
     await press(hear('door'));
-    expect(walks[walks.length - 1].to).toEqual({ x: 0.27, y: 0.58 });
+    // Native check: the first point (0.27, 0.58) stood him on the seal pedestals, the threshold is in the doorway.
+    expect(walks[walks.length - 1].to).toEqual({ x: 0.19, y: 0.50 });
   });
 
   // Native geometry: a walk back to the start point would hide Żaromir behind the choice bubble.
@@ -407,7 +410,7 @@ describe('tutorial after review', () => {
     expect(screen.getByTestId('hero-pose-chronicle', { includeHiddenElements: true })).toBeTruthy();
     await press(tut.next);
     await press(tut.another);
-    expect(walks).toHaveLength(1);
+    expect(walks.map(walk => walk.to)).toEqual([{ x: 0.5, y: 0.66 }, { x: 0.72, y: 0.65 }]);
     expect(screen.getByText(tut.again)).toBeOnTheScreen();
     expect(screen.getByTestId('hero-idle', { includeHiddenElements: true })).toBeTruthy();
   });
@@ -427,13 +430,13 @@ describe('tutorial after review', () => {
     expect(screen.getByText(tut.intro)).toBeOnTheScreen();
   });
 
-  test('a tutorial restart sends Żaromir back to the start point', async () => {
+  test('a tutorial restart sends Żaromir back to his tutorial place', async () => {
     const walks = captureWalks();
     const view = await render(room({ tutorial: 1 }));
     await press(hear('seals'));
     await act(async () => walks[walks.length - 1].done({ finished: true }));
     await view.rerender(room({ tutorial: 2 }));
-    expect(walks[walks.length - 1].to).toEqual({ x: 0.5, y: 0.82 });
+    expect(walks[walks.length - 1].to).toEqual({ x: 0.5, y: 0.66 });
   });
 });
 
@@ -451,4 +454,43 @@ test('closing or finishing the tutorial reports its end once', async () => {
   expect(onTutorialEnd).toHaveBeenCalledTimes(1);
   await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.finish }));
   expect(onTutorialEnd).toHaveBeenCalledTimes(2);
+});
+
+describe('tutorial after the native check', () => {
+  const tut = en.room.tutorial;
+  const hear = (place: 'hearth' | 'seals' | 'chronicle' | 'door') => tut.hear.replace('{{place}}', en.room[place]);
+
+  // iPhone 18 Pro: at the start point Żaromir stood behind the intro bubble.
+  test('the tutorial start walks Żaromir to his place in front of the hearth', async () => {
+    motion.mockReturnValue(true);
+    const targets: unknown[] = [];
+    jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
+      start: () => { if (value instanceof Animated.ValueXY) targets.push(config.toValue); }, stop: jest.fn(), reset: jest.fn(),
+    }));
+    await render(room({ tutorial: 1 }));
+    expect(targets).toEqual([{ x: 0.5, y: 0.66 }]);
+  });
+
+  test('Polish tutorial lines keep single-letter words with the next word', async () => {
+    await render(room({ tutorial: 1 }, 'pl'));
+    await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.hear.replace('{{place}}', pl.room.seals) }));
+    await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.next }));
+    await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.next }));
+    // The default text matcher folds the non-breaking space, so the rendered string is checked directly.
+    expect(screen.getByText(/nie zegar w.telefonie/).props.children).toContain('nie zegar w\u00A0telefonie');
+  });
+
+  // iPhone 18 Pro: a line that grew the bubble upward moved the next button between lines.
+  test('paging a chapter keeps the bubble bottom and its button in place', async () => {
+    await render(room({ tutorial: 1 }));
+    await fireEvent.press(screen.getByRole('button', { name: hear('seals') }));
+    await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 343, 110);
+    const first = flat(screen.getByTestId('room-bubble'));
+    expect(first.top + 110 + 4 + 44).toBeCloseTo(844 - 20);
+    await fireEvent.press(screen.getByRole('button', { name: tut.next }));
+    await fireEvent.press(screen.getByRole('button', { name: tut.next }));
+    await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 343, 160);
+    const last = flat(screen.getByTestId('room-bubble'));
+    expect(last.top + 160 + 4 + 44).toBeCloseTo(844 - 20);
+  });
 });

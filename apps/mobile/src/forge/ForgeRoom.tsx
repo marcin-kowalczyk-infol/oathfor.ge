@@ -3,10 +3,12 @@ import { Animated, Easing, Image, Pressable, StyleSheet, Text, useWindowDimensio
 import { useMotionAllowed } from '../ui/useMotion';
 import { tokens } from '../ui/tokens';
 import { StationEffect } from './StationEffect';
+import { SceneHotspot } from './SceneHotspot';
 import { BUBBLE_FOOTER, BubbleSteps, RoomBubble } from './RoomBubble';
 import { advanceTour, freshTour, hearPlace, tourControl, tourTextKey, type Tour, type TutorialPlace } from './tutorialChapters';
 import { HearthFire } from '../ui/HearthFire';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 
 export type ForgeStation = 'hearth' | 'seals' | 'chronicle';
 const stations: { id: ForgeStation; x: number; y: number; footX: number; footY: number }[] = [
@@ -29,11 +31,12 @@ const stationPose: Record<ForgeStation, number> = { hearth: 0, seals: 3, chronic
 const cell = 116;
 const start = { x: 0.5, y: 0.82 };
 const door = { x: 0.17, y: 0.37 };
-// Where Żaromir stands: next to each station, beside the door for the tutorial, and his idle place.
-type Spot = TutorialPlace | 'start';
+// Where Żaromir stands: next to each station, in the doorway and in front of the hearth for the tutorial, and his idle place.
+// Native check on iPhone 18 Pro: from the start point he stood behind the tutorial bubble, and a door point at (0.27, 0.58) stood him on the seals.
+type Spot = TutorialPlace | 'start' | 'tutor';
 const feet: Record<Spot, { x: number; y: number }> = {
   ...Object.fromEntries(stations.map(station => [station.id, { x: station.footX, y: station.footY }])) as Record<ForgeStation, { x: number; y: number }>,
-  door: { x: 0.27, y: 0.58 }, start,
+  door: { x: 0.19, y: 0.50 }, tutor: { x: 0.5, y: 0.66 }, start,
 };
 const isStation = (spot: Spot | null): spot is ForgeStation => stations.some(station => station.id === spot);
 type Direction = 'forward' | 'back' | 'left' | 'right';
@@ -44,42 +47,6 @@ export function walkDirection(from: { x: number; y: number }, to: { x: number; y
   const dy = (to.y - from.y) * 1774;
   if (Math.abs(dx) >= Math.abs(dy) * 0.5) return dx >= 0 ? 'right' : 'left';
   return dy < 0 ? 'back' : 'forward';
-}
-
-/** Light belongs to the scene; the stationary touch area never scales with it. */
-function SceneHotspot({ label, hint, selected, onPress, anchor, door = false, allowed, glow, heard }: {
-  label: string; hint?: string; selected?: boolean; onPress: () => void;
-  anchor: { left: number; top: number }; door?: boolean; allowed: boolean; glow: Animated.Value; heard?: string;
-}) {
-  const ripple = useRef(new Animated.Value(1)).current;
-  const animation = useRef<Animated.CompositeAnimation | null>(null);
-  const [touch, setTouch] = useState({ x: 38, y: 36 });
-  const color = door ? '#c2efff' : '#ffdb8c';
-  useEffect(() => {
-    if (!allowed) { animation.current?.stop(); ripple.setValue(1); }
-    return () => { animation.current?.stop(); };
-  }, [allowed, ripple]);
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint}
-    accessibilityState={{ selected }} onPress={onPress}
-    onPressIn={({ nativeEvent }) => {
-      if (!allowed) return;
-      setTouch({ x: nativeEvent.locationX, y: nativeEvent.locationY });
-      animation.current?.stop();
-      ripple.setValue(0);
-      animation.current = Animated.timing(ripple, { toValue: 1, duration: 520, isInteraction: false, useNativeDriver: true });
-      animation.current.start();
-    }}
-    style={[door ? styles.door : styles.station, anchor]}>
-    {({ pressed }) => <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.cueLayer}>
-      <Animated.View style={[styles.cueMote, { backgroundColor: color, shadowColor: color,
-        opacity: pressed || selected ? 1 : glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
-        transform: [{ translateY: glow.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }, { rotate: '45deg' }] }]} />
-      <Animated.View style={[styles.touchRing, { left: touch.x - 22, top: touch.y - 22, borderColor: color, shadowColor: color,
-        opacity: ripple.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.95, 0.75, 0] }),
-        transform: [{ scale: ripple.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1.8] }) }] }]} />
-      {heard && <Text testID={heard} allowFontScaling={false} style={styles.heard}>✓</Text>}
-    </View>}
-  </Pressable>;
 }
 
 /**
@@ -121,8 +88,8 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     if (!tutorial || tutorialRequest.current === tutorial) return;
     tutorialRequest.current = tutorial;
     setTour(freshTour); setGuideStep(null); setBubbleOpen(false);
-    // A restart in an open room starts from the idle place, like the first entry.
-    if (target) walkTo('start');
+    // Żaromir walks into the room from the start point to talk, above the bubble.
+    walkTo('tutor');
     onTutorialStart?.();
   }, [tutorial]);
   const guideRequest = useRef(showGuide);
@@ -275,7 +242,10 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     : null;
   const natural = contentHeight + 4 + (footer ? BUBBLE_FOOTER : 0);
   const stationEdge = Math.max(...stations.map(station => viewport.height * 0.45 + (hotspot(station.x, station.y).top + 36 - viewport.height * 0.45) * zoom));
-  const bubbleTop = largeText || contentHeight === 0 ? preferredTop : Math.min(preferredTop, Math.max(stationEdge, viewport.height - 20 - natural));
+  // Tutorial bubbles keep their bottom edge, so paging never moves the button under the finger.
+  // On iPhone SE 3 the longest lines rise over Żaromir's legs. Text stays whole instead of scrolling under a shorter bubble.
+  const bubbleTop = largeText || contentHeight === 0 ? preferredTop
+    : tour ? Math.max(stationEdge, viewport.height - 20 - natural) : Math.min(preferredTop, Math.max(stationEdge, viewport.height - 20 - natural));
   const sprite = walking
     ? { sheet: sheets[direction], index: frame, id: `hero-walk-${direction}` }
     : posed && isStation(arrived) ? { sheet: sheets.actions, index: stationPose[arrived], id: `hero-pose-${arrived}` }
@@ -311,9 +281,9 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
       onContentHeight={setContentHeight} dismissLabel={t(guidePlace ? 'room.guide.skip' : tour ? 'room.tutorial.close' : 'room.dismiss')}
       onDismiss={() => guidePlace ? finishGuide() : tour ? endTour() : setBubbleOpen(false)} footer={footer}>
       {!guidePlace && !tour && isStation(arrived) && <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.detailTitle}>{t(`room.${arrived}`)}</Text>}
-      <Text maxFontSizeMultiplier={2} style={styles.description}>{guidePlace ? t(`room.guide.${guidePlace}`)
+      <Text maxFontSizeMultiplier={2} style={styles.description}>{bindShortWords(guidePlace ? t(`room.guide.${guidePlace}`)
         : tour ? t(tourTextKey(tour))
-        : t(`room.descriptions.${arrived}`)}</Text>
+        : t(`room.descriptions.${arrived}`), i18n.language)}</Text>
       {!guidePlace && !tour && isStation(arrived) && <Pressable accessibilityRole="button" accessibilityLabel={t(`room.actions.${arrived}`)} onPress={() => onOpenStation(arrived)} style={({ pressed }) => [styles.stationAction, { opacity: pressed ? 0.6 : 1 }]}>
         <Text maxFontSizeMultiplier={2} style={styles.actionLabel}>{t(`room.actions.${arrived}`)} <Text accessibilityElementsHidden>→</Text></Text>
       </Pressable>}
@@ -322,7 +292,6 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
 }
 
 const styles = StyleSheet.create({
-  heard: { position: 'absolute', top: -6, right: 4, color: '#ffdb8c', fontSize: 15, fontWeight: '700', textShadowColor: 'rgba(0,0,0,0.85)', textShadowRadius: 3 },
   stationAction: { minHeight: 44, justifyContent: 'center', paddingVertical: 8 },
   actionLabel: { color: '#5d3616', fontSize: 17, fontWeight: '600' },
   root: { flex: 1, overflow: 'hidden', backgroundColor: '#111719' },
@@ -330,11 +299,6 @@ const styles = StyleSheet.create({
   objectGlow: { position: 'absolute', width: 180, height: 160, marginLeft: -90, marginTop: -85 },
   doorGlow: { position: 'absolute', width: 130, height: 180, marginLeft: -65, marginTop: -95, tintColor: '#bfe8f0' },
   spark: { position: 'absolute', width: 3, height: 5, backgroundColor: '#ffc775', borderRadius: 3 },
-  station: { position: 'absolute', width: 76, height: 72, marginLeft: -38, marginTop: -36, borderRadius: 30, zIndex: 2 },
-  cueLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
-  cueMote: { position: 'absolute', width: 5, height: 5, top: 4, alignSelf: 'center', shadowOpacity: 1, shadowRadius: 7, shadowOffset: { width: 0, height: 0 } },
-  touchRing: { position: 'absolute', width: 44, height: 44, borderRadius: 22, borderWidth: 2, shadowOpacity: 1, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-  door: { position: 'absolute', width: 60, height: 96, marginLeft: -30, marginTop: -48, zIndex: 2 },
   hero: { position: 'absolute', width: cell, height: cell, zIndex: 3 },
   heroShadow: { position: 'absolute', width: 76, height: 18, top: cell * 0.95 - 10, left: cell / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
   spriteCell: { width: cell, height: cell, overflow: 'hidden' },

@@ -1,6 +1,6 @@
 # Żaromir tutorial: the Forge rules
 
-Status: proposed specification, owner decisions of 2026-09-27 during brainstorming (sub-project 3 after the [main menu](main-menu.md)). Copy below awaits owner review. Nothing here is implemented.
+Status: accepted specification, owner decisions of 2026-09-27 during brainstorming (sub-project 3 after the [main menu](main-menu.md)). Implemented locally in MVP-19 on 2026-09-27 and checked natively in the development demo, see [tutorial acceptance](../engineering/testing.md#tutorial-acceptance-mvp-19-2026-09-27). Pending: owner visual acceptance and VoiceOver (deferred by the owner).
 
 ## Purpose
 
@@ -30,9 +30,9 @@ The four-step room guide only names the places. The player also needs the rules 
 
 **Tutorial mode.** Every place and the door glow as selectable. Touching the door plays its chapter and does not leave the room. The station actions ("Shape an Oath" and the others) do not appear in tutorial mode. After the tutorial ends the room behaves as usual and the door leads to the menu.
 
-**Choice bubble.** Żaromir stands in his idle place. The first choice uses the intro line. A return after a chapter uses the "again" line. Heard places show a small gold check and their accessibility label adds "heard". A heard place can be played again.
+**Choice bubble.** When the tutorial starts, Żaromir walks into the room from the entrance to a place in front of the hearth, above the bubble. After a chapter he waits at that chapter's place without its station pose. The first choice uses the intro line. A return after a chapter uses the "again" line. Heard places show a small gold check and their accessibility label adds "heard". A heard place can be played again.
 
-**Chapter bubble.** It keeps the existing room bubble: speaker name, text, a step counter such as "2 / 4", a next button and ×. The last bubble replaces next with "Another place". When it is the fourth distinct heard chapter, the button is "Finish" and leads to the closing bubble.
+**Chapter bubble.** It keeps the existing room bubble: speaker name, text, a step counter such as "2 / 4", a next button and ×. The last bubble replaces next with "Another place". When it is the fourth distinct heard chapter, the button is "Finish" and leads to the closing bubble. Touching the place being told keeps the current line. At the door Żaromir stands in the doorway.
 
 **Progress.** Heard marks live only for the current tutorial run. Nothing is stored, locally or on the server. A new start from the menu begins with no marks.
 
@@ -97,7 +97,9 @@ Rule sources for the chapters: [creating and tracking Oaths](oaths.md), [first-l
 
 - `apps/mobile/src/forge/tutorialChapters.ts` lists the chapters in order with their place and bubble count. The room and the simple screen both read it, so the copy has one source.
 - The home route drops the `guide` restart id, because the guide now starts only on the first room entry. `openTutorial` receives the layout: room layout gives `{ kind: 'forge', tutorial: id }`, simple layout gives `{ kind: 'tutorial' }`. Back from the tutorial screen returns to the menu. Route resets on account or character change stay as they are.
-- `ForgeRoom` gets a `tutorial?: number` prop, a new id restarts the tutorial. The room holds one mode: guide, tutorial or none. The existing walking, lights and Reduce Motion equivalent are reused.
+- `ForgeRoom` gets a `tutorial?: number` prop, a new id restarts the tutorial. The room holds one mode: guide, tutorial or none. The existing walking, lights and Reduce Motion equivalent are reused. The room reports the start (the parent marks the guide seen) and the end (the parent clears the id, so a remount after a background return does not start a closed tutorial again).
+- Tutorial bubbles keep their bottom edge while paging, so the button stays under the finger. On iPhone SE 3 the longest lines raise the bubble over Żaromir's legs rather than hiding text behind a scroll (local decision, native check 2026-09-27, open for owner visual acceptance).
+- Polish text in the room bubble and on the tutorial screen keeps single-letter words (a, i, o, u, w, z) with the next word through a non-breaking space (`apps/mobile/src/localization/typography.ts`, local decision, native check 2026-09-27).
 - The room bubble moves to `apps/mobile/src/forge/RoomBubble.tsx`, because `ForgeRoom.tsx` already has 307 lines and gains the tutorial footer and heard marks. Its layout rules stay: it grows upward when taller than the space below and never covers the station touch areas.
 - `apps/mobile/src/home/TutorialScreen.tsx` renders the simple layout with the existing `BackLink` and text caps from `tokens.maxScale`.
 - The menu shows the Tutorial tile in both layouts.

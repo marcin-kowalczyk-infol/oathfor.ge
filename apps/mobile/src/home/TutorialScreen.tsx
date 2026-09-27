@@ -1,6 +1,7 @@
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { tutorialChapters, tutorialLineKeys, tutorialTitleKey } from '../forge/tutorialChapters';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import { BackLink } from '../ui/BackLink';
 import { CompanionBubble } from '../ui/CompanionBubble';
 import { SceneSurface } from '../ui/SceneSurface';
@@ -10,17 +11,18 @@ const gold = { line: 'rgba(214,170,105,0.55)', name: '#f6e6c8' };
 
 /** The Forge rules for simple layout: the room tutorial's chapters as one text screen, with the same copy. */
 export function TutorialScreen({ onBack }: { onBack(): void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const text = (key: string) => bindShortWords(t(key), i18n.language);
   return <SceneSurface place="room">
     <SafeAreaView style={styles.root}>
       <View pointerEvents="none" style={styles.vignette} />
       <ScrollView testID="tutorial-scroll" contentContainerStyle={styles.content}>
         <BackLink label={t('forge.returnMenu')} onPress={onBack} />
         <Text accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('tutorial.title')}</Text>
-        <CompanionBubble message={t('room.tutorial.intro')} />
+        <CompanionBubble message={text('room.tutorial.intro')} />
         {tutorialChapters.map(chapter => <View key={chapter.place} style={styles.card}>
           <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.chapter}>{t(tutorialTitleKey(chapter.place))}</Text>
-          {tutorialLineKeys(chapter).map(key => <Text key={key} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.line}>{t(key)}</Text>)}
+          {tutorialLineKeys(chapter).map(key => <Text key={key} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.line}>{text(key)}</Text>)}
         </View>)}
       </ScrollView>
     </SafeAreaView>

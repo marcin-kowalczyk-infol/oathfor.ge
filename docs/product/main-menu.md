@@ -6,7 +6,7 @@ Status: accepted specification, owner decisions of 2026-09-26 during brainstormi
 
 After sign-in the player needs one calm home screen. It shows who they play as and leads to the three things they do: work with Oaths in the Forge, learn the place with Żaromir and change settings. The menu replaces the temporary character badge in the Oath header. Pause and sign-out leave the Oath screens and move to Settings. The Forge room, earlier only in the development demo, is the real entrance to the Oath screens.
 
-The Żaromir tutorial with its own content is a separate specification, see [tutorial](tutorial.md) (sub-project 3, proposed). Account deletion, data export and support belong to MVP-14.
+The Żaromir tutorial with its own content is a separate specification, see [tutorial](tutorial.md) (sub-project 3, implemented in MVP-19). Account deletion, data export and support belong to MVP-14.
 
 ## Flow
 
@@ -17,7 +17,7 @@ Sign-in, onboarding and a first character come before the menu, as in [player ch
 | From | Action | To |
 | --- | --- | --- |
 | Menu | Enter the Forge | Forge room. In simple layout, the Today list. |
-| Menu | Tutorial | Forge room with the guide started from the first step |
+| Menu | Tutorial | Forge room in tutorial mode, Żaromir's rules conversation. In simple layout, the tutorial screen with the same chapters. |
 | Menu | Settings | Settings |
 | Menu | Change character | Change character, back returns to the menu |
 | Forge room | Hearth | New Oath (current creation flow) |
@@ -30,9 +30,9 @@ Sign-in, onboarding and a first character come before the menu, as in [player ch
 
 Every route belongs to one account and one active character. A sign-out, an account change or a character change resets the route to the menu. The Oath screens stay mounted and hidden under the menu, the room and Settings, so their tab, drafts and handled room requests survive a return, as they already do under the change-character screen. The route belongs to the signed-in account, so a session check keeps it. The app checks the session again only after a return from the background, not after a short inactive moment such as a permission alert.
 
-**Simple layout.** When the window is narrower than 350 pt or the text scale exceeds 1.3, the room is not interactive (the existing rule in the Oath screens). Then "Enter the Forge" opens the Today list directly, the Oath header and Oath creation show a plain "Back to menu" button instead of the door, and the Tutorial tile is hidden while Settings takes the full width.
+**Simple layout.** When the window is narrower than 350 pt or the text scale exceeds 1.3, the room is not interactive (the existing rule in the Oath screens). Then "Enter the Forge" opens the Today list directly, the Oath header and Oath creation show a plain "Back to menu" button instead of the door, and the Tutorial tile is a full-width row like Settings that opens the tutorial screen (MVP-19).
 
-**First visit.** The first entry into the room on a device starts the four-step guide automatically. The Tutorial tile starts it again at any time. The "seen" flag is local device storage per account, never sent to the server. Losing it only shows the guide again.
+**First visit.** The first entry into the room on a device starts the four-step guide automatically. Its last step points to the Tutorial. The Tutorial tile starts Żaromir's rules conversation instead of the guide (MVP-19). A tutorial started before the first room entry replaces the guide, which then counts as seen. The "seen" flag is local device storage per account, never sent to the server. Losing it only shows the guide again.
 
 **Pending acceptance.** When the active character has an interrupted Oath acceptance, the Forge tile replaces its subtitle with "An Oath awaits confirmation". Entering the Forge then resumes that acceptance directly, like the current list does.
 
@@ -96,4 +96,4 @@ The room art stays provisional, as recorded in the [stations prototype](../art/f
 
 ## Out of scope
 
-Żaromir tutorial content (sub-project 3), account deletion and data controls (MVP-14), scheduled notifications, XP and rewards on the menu, final room and preset artwork, Android.
+Account deletion and data controls (MVP-14), scheduled notifications, XP and rewards on the menu, final room and preset artwork, Android.

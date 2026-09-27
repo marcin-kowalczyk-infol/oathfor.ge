@@ -18,7 +18,7 @@ export function RoomBubble({ frame, reveal, pointX, contentKey, fill, onContentH
   return <Animated.View testID="room-bubble" style={[styles.bubble, frame, {
     opacity: reveal ?? 1, transform: [{ translateY: reveal ? reveal.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) : 0 }] }]}>
     <View pointerEvents="none" accessible={false} style={[styles.bubbleTail, { left: Math.max(24, Math.min(frame.width - 40, pointX - frame.left - 9)) }]} />
-    <ScrollView key={contentKey} style={fill ? { flex: 1 } : { flexGrow: 0, flexShrink: 1 }} testID="room-bubble-content" onContentSizeChange={(_, measured) => onContentHeight(measured)} contentContainerStyle={styles.bubbleContent} accessibilityLiveRegion="polite">
+    <ScrollView key={contentKey} style={fill ? { flex: 1 } : { flexGrow: 0, flexShrink: 1 }} testID="room-bubble-content" onContentSizeChange={(_, measured) => onContentHeight(measured)} contentContainerStyle={[styles.bubbleContent, footer ? styles.aboveFooter : null]} accessibilityLiveRegion="polite">
       <View style={styles.speakerRow}>
         <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.avatar}>
           <Image source={require('../../assets/companion/zharomir-wanderer-v01.png')} resizeMode="stretch" style={styles.avatarImage} />
@@ -53,6 +53,8 @@ const styles = StyleSheet.create({
   bubble: { position: 'absolute', zIndex: 4, backgroundColor: '#f0dfb9', borderColor: '#6c4c2f', borderWidth: 2, borderRadius: 22, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
   bubbleTail: { position: 'absolute', width: 18, height: 18, top: -10, backgroundColor: '#f0dfb9', borderLeftWidth: 2, borderTopWidth: 2, borderColor: '#6c4c2f', transform: [{ rotate: '45deg' }] },
   bubbleContent: { padding: 12, paddingRight: 40 },
+  // The footer row brings its own space under the text.
+  aboveFooter: { paddingBottom: 0 },
   speakerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
   avatar: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: '#44372c', flexShrink: 0 },
   avatarImage: { position: 'absolute', width: 180.224, height: 270.336, left: -73.92, top: -3.52 },

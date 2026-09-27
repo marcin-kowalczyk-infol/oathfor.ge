@@ -221,3 +221,32 @@ Image defect, fixed on 2026-09-27 (MVP-18-T11): on the 18 Pro the Oath creation 
 Results were read from screenshots and a pixel comparison of the backdrop and avatar areas against the first correct run. Apart from the Expo Go overlay button and the animated hearth sparks, the patched screen showed no difference from the Expo Go screen above a small per-pixel threshold. The development build shows a LogBox notice for the deprecated `SafeAreaView`, which is development-only. `scripts/reactNativePatch.test.js` failed 5 of 5 before the patch and passed after it. Not verified: a Release build with bundled images, because the demo rejects production bundles and the production app needs real sign-in, and physical devices.
 
 Not observed natively: VoiceOver (deferred by the owner on 2026-09-26), the real notification permission prompt and "Open iOS Settings", session re-validation after a background return, drafts and a language save across a background return, guide storage in SecureStore (the demo keeps it in memory), counts above 5 in Polish (tests only), real API, Apple sign-in and Keychain. Presets, room and menu art are provisional or DUMMY. Owner visual acceptance is pending.
+
+## Tutorial acceptance (MVP-19), 2026-09-27
+
+Automated: catalog tests compare every tutorial string with the accepted copy tables in both languages. Mobile tests cover the chapter data, the room tutorial (choice, walk, counter, another place, heard marks, the door chapter, finish after four places, ×, restart, priority over the guide, Reduce Motion, bubble limits), the tutorial screen, the home route reducer, the routing through `HomeRoutes` and `AuthScreen`, and Polish typesetting of single-letter words. The full mobile suite passed with 64 suites and 759 tests.
+
+Native checks used the demo development build (`npm run demo:build-ios`, ADR 0006) with its DUMMY runtime on iOS 27.0. Images were correct in every run.
+
+| Device and setting | Observed |
+| --- | --- |
+| iPhone 18 Pro, Polish | Menu subtitle "Żaromir wyjaśni zasady". Tutorial: Żaromir walks into the room and stands above the intro bubble, every chapter of the hearth, seals, chronicle and door with counter and stable button, heard badges, "Inne miejsce", "Zakończ" and the closing bubble, × and the door back to the menu. |
+| iPhone 18 Pro, English | Menu subtitle on two lines beside Settings, the longest line `seals.3` and "Another place". |
+| iPhone SE 3, Polish and English | Tutorial intro, the longest seals line, door chapter in the doorway. First-visit guide with the new door line. |
+| iPhone SE 3, Polish, largest accessibility text | Tutorial row in the simple menu, tutorial screen with all chapters, no word broken inside, middle dot at a line end. |
+| iPhone SE 3, Polish, Reduce Motion on | No camera move, Żaromir placed at once, door chapter, × and the door to the menu, then a room entry without the guide. |
+
+Defects found and fixed, each with a failing test first unless noted:
+
+| Defect | Fix | Evidence |
+| --- | --- | --- |
+| At the tutorial start Żaromir stood at the room entrance behind the intro bubble, and the tail pointed at empty floor. | He walks to a tutorial place in front of the hearth (0.5, 0.66). | Walk target test failed, then passed. Rechecked on both devices. |
+| The door foot point (0.27, 0.58) stood Żaromir on the seal pedestals and covered the seals heard mark. | Door foot point in the doorway (0.19, 0.50). | Walk target test failed, then passed. Rechecked. |
+| The heard check mark faded into the hearth glow. | A gold badge beside the place mote. | Visual only, rechecked on the 18 Pro. |
+| Polish lines ended with a single-letter word ("nie zegar w", "termin z"). | Non-breaking space after a, i, o, u, w, z in Polish, in the room bubble and on the tutorial screen. | Typography, room and screen tests failed, then passed. Rechecked on both devices. |
+| A line that raised the bubble moved the next button between lines, so a quick tap skipped a line. | Tutorial bubbles keep their bottom edge. | Paging test failed, then passed. Rechecked. |
+| A closed tutorial started again when the routes remounted, for example after a background return. | The room reports the end, the route clears the id. | Reducer, room and remount tests failed, then passed. Found in the MVP-19-T05 review, not natively. |
+
+Open for owner visual acceptance: on iPhone SE 3 the longest lines (`seals.3`, `door.3`) raise the bubble over Żaromir's legs. Holding the bubble below his feet was tried and hid half of the text behind a scroll, so whole text was kept. The tutorial screen intro line asks the player to touch a place, which that screen does not offer, because the spec keeps the room copy.
+
+Not observed natively: VoiceOver (deferred by the owner), a background return during a tutorial, English at the largest text, a Release build and physical devices. Presets and room art are provisional or DUMMY.
