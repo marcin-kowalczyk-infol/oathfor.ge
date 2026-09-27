@@ -379,3 +379,35 @@ Before release, complete the signed-device/provider and native accessibility mat
 ### First-Oath simulator demo
 
 From `apps/mobile`, run `npm run demo -- --ios --localhost` using the repository Node version. The isolated development project on port 8082 starts at an empty Polish Forge; the small DEMO control opens PL/EN and synthetic returning/offline/lost-response scenarios. Production `index.ts` stays unchanged. See [demo instructions and limits](../../apps/mobile/demo/README.md). Production export of the demo is rejected; the ordinary application export remains separate. No Apple membership or live credentials are required for this UI-only simulator flow. A task worktree may link `apps/mobile/node_modules` to another checkout. The demo Metro config resolves that link to its real path and watches it, so the demo runs from such a worktree without a copy (local decision, MVP-18, 2026-09-26).
+
+### Demo development build and React Native patch
+
+Expo Go cannot show native fixes. React Native 0.86.3 on iOS applies a stale image response to a recycled image view ([react/react-native issue 58667](https://github.com/react/react-native/issues/58667)). The Oath creation backdrop then showed the state seal sheet. The upstream fix [53bf98b](https://github.com/react/react-native/commit/53bf98bf40713fad1bbe00a652d2aabce8b91eb1) (PR 58669, landed 2026-09-25) is backported as a patch. Image acceptance therefore needs this development build of the demo. See [ADR 0006](../decisions/0006-react-native-image-patch.md) and the [verification](testing.md#main-menu-acceptance-mvp-18-2026-09-26).
+
+Patch mechanism:
+
+- `apps/mobile/patches/react-native+0.86.3.patch` holds the upstream diff unchanged. [patch-package](https://github.com/ds300/patch-package) 8.0.1 applies it from the `postinstall` script with `--error-on-fail`, so `npm ci` fails on a mismatch. Regenerate it with `npx patch-package react-native` after editing the file in `node_modules`.
+- patch-package is a devDependency, so `npm ci --omit=dev` fails in `postinstall`. No pipeline installs that way today.
+- `scripts/reactNativePatch.test.js` fails when the patch, the pinned version, the installed fix, the source build setting or the scene setting is missing.
+- The patch lands in the `node_modules` the build uses. A worktree whose `node_modules` links to another checkout would patch that checkout. Give such a worktree its own `npm ci` before a native build (local decision, MVP-18-T11, 2026-09-27).
+- Drop the patch, its test and `ios.buildReactNativeFromSource` once the Expo SDK in use ships a React Native release containing 53bf98b. On 2026-09-27 it was in none of 0.86.3, 0.87.1 and 0.88.0-rc.2.
+
+Source build: React Native 0.86 links precompiled core binaries by default. `scripts/react_native_pods.rb` in the 0.86.3 package sets `RCT_USE_PREBUILT_RNCORE` and `RCT_USE_RN_DEP` to `1` unless they are `0`. The precompiled core does not contain the patched file. `expo-build-properties` therefore sets `ios.buildReactNativeFromSource` ([Expo build properties for SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/build-properties/)). The generated Podfile sets both variables to `0` only with `||=`, so a value exported in the shell wins.
+
+**An exported `RCT_USE_PREBUILT_RNCORE=1` or `RCT_USE_RN_DEP=1` silently links the unpatched prebuilt core.** Unset both before `pod install`. `pod install` must print `[ReactNativeCore] Building from source: true`. The build script below refuses to start when either variable is `1`, and it stops when `pod install` does not print that line. Expo modules are then built from source too.
+
+iOS 27 SDK: an app without the UIScene life cycle stops at launch. The Expo SDK 57 template still creates its window in the app delegate. `expo-build-properties` sets `ios.enableSceneSupport`, which Expo documents as adopting the scene life cycle in an SDK 57 project "as required by the iOS 27 SDK" ([Expo build properties for SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/build-properties/), expo-build-properties 57.0.22, expo/expo PR 50205 and 50221). It moves React Native startup to Expo's `ExpoAppSceneDelegate` and adds the scene manifest to `Info.plist`. It is a no-op on SDK 58, so remove it with that upgrade.
+
+Prerequisites: Xcode with an iOS simulator runtime and CocoaPods (`brew install cocoapods`, 1.17.0 verified on 2026-09-27). The build needs no Apple account or signing. Native folders are generated and ignored (`apps/mobile/ios`, `apps/mobile/demo/ios`). The demo uses the unregistered placeholder bundle identifier `com.placeholder.oathforge.demo` for simulators only.
+
+From `apps/mobile`, with the Node version from `.nvmrc` and the simulator booted:
+
+```sh
+npm ci
+npm run demo:build-ios -- --device "iPhone 18 Pro" --port 8083
+npm run demo -- --localhost --port 8083
+# in another shell, once Metro is ready:
+xcrun simctl launch "iPhone 18 Pro" com.placeholder.oathforge.demo
+```
+
+`scripts/demoIos.cjs` runs a clean `expo prebuild` of the demo, `pod install`, a Debug `xcodebuild` for the simulator and `simctl install`, with `NODE_ENV=development`, `OATHFORGE_DEMO=1` and `RCT_METRO_PORT` set. The Metro port is compiled into the binary, so `--port` must match in both commands. Port 8083 avoids a demo Metro that another worktree serves on 8082. `demo/package.json` declares `expo`, `react` and `react-native` with the app's ranges, so prebuild leaves it unchanged, and a test keeps the ranges equal. It also searches `../node_modules`, so autolinking links the same native modules as the app. `npx expo run:ios` is not used. On 2026-09-27 Expo CLI 57 treated a simulator listed by Xcode 27 `devicectl` as a physical device and stopped with "No code signing certificates are available to use". Metro serves the images in this Debug build, as in Expo Go. A Release build of the demo is impossible by design, because the demo rejects production bundles.

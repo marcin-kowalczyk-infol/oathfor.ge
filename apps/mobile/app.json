@@ -32,6 +32,15 @@
         {
           "faceIDPermission": false
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "buildReactNativeFromSource": true,
+            "enableSceneSupport": true
+          }
+        }
       ]
     ],
     "ios": {
