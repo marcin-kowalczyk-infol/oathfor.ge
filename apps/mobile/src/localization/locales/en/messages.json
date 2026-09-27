@@ -385,7 +385,7 @@
     "forgeDetail": "Hearth, seals and chronicle",
     "forgePending": "An Oath awaits confirmation",
     "tutorial": "Tutorial",
-    "tutorialDetail": "Zharomir guides you",
+    "tutorialDetail": "Zharomir explains the rules",
     "settings": "Settings",
     "settingsDetail": "Language, pause, account"
   },
@@ -447,7 +447,7 @@
       "hearth": "I’m Zharomir. Touch the glowing hearth. Oaths take shape here.",
       "seals": "These glowing seals hold your commitments.",
       "chronicle": "The chronicle holds the traces of your journey. Touch the book.",
-      "door": "The moonlit door takes you back. Explore whenever you wish.",
+      "door": "The moonlit door leads to the menu. I explain the Forge rules in the Tutorial.",
       "next": "Next place",
       "done": "Start exploring",
       "skip": "Skip introduction"
@@ -456,6 +456,47 @@
       "hearth": "Shape an Oath",
       "seals": "View current Oaths",
       "chronicle": "Read history"
-    }
+    },
+    "tutorial": {
+      "intro": "I will tell you how the Forge works. Touch the place you want to hear about.",
+      "again": "Touch another place or close our talk.",
+      "end": "That is everything the Forge follows today. The Tutorial waits in the menu whenever you want to return.",
+      "another": "Another place",
+      "finish": "Finish",
+      "close": "Close the tutorial",
+      "hear": "Hear about: {{place}}",
+      "heard": "heard",
+      "titles": {
+        "hearth": "Hearth · Making an Oath",
+        "seals": "Seals · Current Oaths",
+        "chronicle": "Chronicle · Finished Oaths",
+        "door": "Door · Characters and pause"
+      },
+      "hearth": {
+        "1": "At the hearth you choose a workout: running, strength training or mobility.",
+        "2": "You set the start, now or at a chosen time, and a later completion deadline.",
+        "3": "Before you make the Oath, you see all its rules. Only your explicit acceptance creates it.",
+        "4": "Once made, its rules never change, not even by the Forge. A different promise is a new Oath."
+      },
+      "seals": {
+        "1": "The seals are your current Oaths: scheduled, active and those awaiting review.",
+        "2": "Each Oath keeps its times in its own timezone. Changing your phone’s timezone does not move them.",
+        "3": "The Forge decides the state, not your phone’s clock. When the last deadline in its rules passes, the Oath awaits review. That is not a miss."
+      },
+      "chronicle": {
+        "1": "The chronicle keeps finished Oaths together with their outcome.",
+        "2": "Nobody rewrites the chronicle. Each Oath keeps the rules accepted when it was made."
+      },
+      "door": {
+        "1": "The door leads to the menu. There you can switch character or create a new one, up to three.",
+        "2": "Each character has its own Oaths, chronicle and pause.",
+        "3": "You can pause in Settings. It withdraws this character’s scheduled and active Oaths. Those under review keep waiting.",
+        "4": "While paused you cannot make a new Oath. Resuming lifts the pause but does not restore withdrawn Oaths."
+      }
+    },
+    "door": "Door"
+  },
+  "tutorial": {
+    "title": "Forge rules"
   }
 }

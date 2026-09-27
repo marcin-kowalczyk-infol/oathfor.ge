@@ -131,7 +131,7 @@ test('guide advances manually without walking or exiting', async () => {
   expect(screen.getByText('These glowing seals hold your commitments.')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
-  expect(screen.getByText('The moonlit door takes you back. Explore whenever you wish.')).toBeOnTheScreen();
+  expect(screen.getByText('The moonlit door leads to the menu. I explain the Forge rules in the Tutorial.')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Start exploring' }));
   expect(onGuideComplete).toHaveBeenCalledTimes(1);
   expect(onExit).not.toHaveBeenCalled();

@@ -481,7 +481,7 @@ test('the first room entry shows the guide and stores the flag, the next entry d
   await enterRoom();
   expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Leave the Forge' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Tutorial, Zharomir guides you' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Tutorial, Zharomir explains the rules' }));
   expect(await screen.findByRole('button', { name: 'Skip introduction' })).toBeOnTheScreen();
   expect(runtime.guideStorage.read).toHaveBeenCalledTimes(1);
 });
@@ -509,7 +509,7 @@ test('in simple layout the Forge opens Today and the header Menu button returns 
   const runtime = setup();
   await signIn(runtime);
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Tutorial, Zharomir guides you' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Tutorial, Zharomir explains the rules' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', forgeTile));
   expect(await screen.findByRole('button', { name: 'Today', selected: true })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Leave the Forge' })).toBeNull();

@@ -52,7 +52,7 @@ Copy (PL / EN):
 | Element | Polish | English |
 | --- | --- | --- |
 | Forge tile | Wejdź do Kuźni · Palenisko, pieczęcie i kronika | Enter the Forge · Hearth, seals and chronicle |
-| Tutorial tile | Samouczek · Żaromir oprowadzi | Tutorial · Zharomir guides you |
+| Tutorial tile | Samouczek · Żaromir wyjaśni zasady | Tutorial · Zharomir explains the rules |
 | Settings tile | Ustawienia · Język, pauza, konto | Settings · Language, pause, account |
 | Change character | Zmień postać | Change character |
 | Pending acceptance | Przysięga czeka na potwierdzenie | An Oath awaits confirmation |

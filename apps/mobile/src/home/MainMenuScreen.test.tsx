@@ -103,7 +103,7 @@ test('a pending acceptance replaces the Forge subtitle', async () => {
 
 test('the simple layout hides the Tutorial tile', async () => {
   await setup({ layout: 'simple' });
-  expect(screen.queryByRole('button', { name: 'Tutorial, Zharomir guides you' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Tutorial, Zharomir explains the rules' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Settings, Language, pause, account' })).toBeOnTheScreen();
 });
 
@@ -129,7 +129,7 @@ test('large text stacks the card', async () => {
 test('each tile and the pill call their handler once', async () => {
   const f = await setup();
   await fireEvent.press(screen.getByRole('button', { name: 'Enter the Forge, Hearth, seals and chronicle' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Tutorial, Zharomir guides you' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Tutorial, Zharomir explains the rules' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Settings, Language, pause, account' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Change character' }));
   for (const handler of [f.onForge, f.onTutorial, f.onSettings, f.onChangeCharacter]) expect(handler).toHaveBeenCalledTimes(1);
