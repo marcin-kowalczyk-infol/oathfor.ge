@@ -12,6 +12,7 @@ use App\Identity\SecureRandomSource;
 use App\Identity\RandomSource;
 use App\Identity\ChallengeUnavailable;
 use App\Tests\Fixtures\FixedClock;
+use App\Tests\Fixtures\LockWait;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -240,13 +241,14 @@ final class LoginChallengeTest extends WebTestCase
     {
         $this->clock->time = time();
         $challenge = $this->service->issue();
-        $expiry = time() + 2;
-        $this->connection->executeStatement('UPDATE login_challenge SET expires_at = ? WHERE id = ?', [$expiry, $challenge['challengeId']]);
         $this->connection->beginTransaction();
         $this->connection->fetchOne('SELECT id FROM login_challenge WHERE id = ? FOR UPDATE', [$challenge['challengeId']]);
         $process = $this->worker(['consume', $challenge['challengeId'], $challenge['nonce']]);
         try {
             $this->assertWaitingOnLock($process);
+            // Expire only after the worker waits, so a slow worker boot cannot expire it earlier.
+            $expiry = time() + 1;
+            $this->connection->executeStatement('UPDATE login_challenge SET expires_at = ? WHERE id = ?', [$expiry, $challenge['challengeId']]);
             while (time() < $expiry) {
                 usleep(10000);
             }
@@ -310,23 +312,14 @@ final class LoginChallengeTest extends WebTestCase
     private function worker(array $arguments): Process
     {
         $process = new Process([PHP_BINARY, 'tests/Fixtures/challenge_worker.php', ...$arguments], dirname(__DIR__, 2));
-        $process->setTimeout(10);
+        $process->setTimeout(LockWait::WORKER_TIMEOUT);
         $process->start();
         return $process;
     }
 
     private function assertWaitingOnLock(Process $process): void
     {
-        $deadline = microtime(true) + 5;
-        do {
-            $pid = (int) $process->getOutput();
-            if ($pid > 0 && 'Lock' === $this->connection->fetchOne('SELECT wait_event_type FROM pg_stat_activity WHERE pid = ?', [$pid])) {
-                self::assertTrue($process->isRunning());
-                return;
-            }
-            usleep(10000);
-        } while ($process->isRunning() && microtime(true) < $deadline);
-        self::fail('Worker did not contend on PostgreSQL row lock: '.$process->getErrorOutput());
+        LockWait::assertWorkerWaiting($this->connection, $process, 'Challenge worker');
     }
 
     /** @return array<string, mixed> */

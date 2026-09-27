@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Identity\{AppSessionRepository, IdentityMaintenance, IssuedAppSession, ProviderMaintenanceClient, ProviderMaintenanceFailure, ProviderRefreshResult, ProviderTokenCipher, ProviderTokenKeyring, SecureRandomSource, VerifiedAppleIdentity};
-use App\Tests\Fixtures\{AppleLoginFixture, AppleTokenFixture, FixedClock, MaintenanceProviderFake};
+use App\Tests\Fixtures\{AppleLoginFixture, AppleTokenFixture, FixedClock, LockWait, MaintenanceProviderFake};
 use App\Identity\AccountDeletionGate;
 use App\Command\MaintainIdentitiesCommand;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -191,17 +191,10 @@ final class IdentityMaintenanceTest extends KernelTestCase
         try {
             for ($i = 0; $i < 2; ++$i) {
                 $worker = new Process([PHP_BINARY, 'tests/Fixtures/identity_maintenance_worker.php', $this->fixture->keyringPath, (string) $this->clock->time], dirname(__DIR__, 2));
-                $worker->setTimeout(15);
+                $worker->setTimeout(LockWait::WORKER_TIMEOUT);
                 $worker->start();
                 $workers[] = $worker;
-                $deadline = microtime(true) + 5;
-                do {
-                    $pid = (int) $worker->getOutput();
-                    $this->connection->executeQuery('SELECT pg_stat_clear_snapshot()');
-                    if ($pid > 0 && 'Lock' === $this->connection->fetchOne('SELECT wait_event_type FROM pg_stat_activity WHERE pid = ?', [$pid])) { break; }
-                    usleep(10000);
-                } while ($worker->isRunning() && microtime(true) < $deadline);
-                self::assertSame('Lock', $this->connection->fetchOne('SELECT wait_event_type FROM pg_stat_activity WHERE pid = ?', [$pid]), $worker->getErrorOutput().$worker->getOutput());
+                LockWait::assertWorkerWaiting($this->connection, $worker, 'Maintenance worker');
             }
             $this->connection->commit();
             $processed = $calls = 0;

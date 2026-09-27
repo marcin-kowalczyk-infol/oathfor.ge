@@ -19,6 +19,7 @@ use App\Identity\ProviderTokenKeyring;
 use App\Identity\SecureRandomSource;
 use App\Identity\VerifiedAppleIdentity;
 use App\Tests\Fixtures\FixedClock;
+use App\Tests\Fixtures\LockWait;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Process\Process;
@@ -267,23 +268,14 @@ final class AccountSessionTest extends KernelTestCase
         $arguments = [PHP_BINARY, 'tests/Fixtures/account_session_worker.php', $mode, $this->keyPath, null !== $clockPath ? 'file:'.$clockPath : (string) $this->clock->time, $subjectOrAccount, (string) ($expiry ?? $this->clock->time + 300)];
         if (null !== $challenge) { $arguments[] = $challenge; }
         $worker = new Process($arguments, dirname(__DIR__, 2));
-        $worker->setTimeout(12);
+        $worker->setTimeout(LockWait::WORKER_TIMEOUT);
         $worker->start();
         return $worker;
     }
 
     private function assertWaitingOnLock(Process $worker): void
     {
-        $deadline = microtime(true) + 5;
-        do {
-            $pid = (int) $worker->getOutput();
-            if ($pid > 0 && 'Lock' === $this->connection->fetchOne('SELECT wait_event_type FROM pg_stat_activity WHERE pid = ?', [$pid])) {
-                self::assertTrue($worker->isRunning());
-                return;
-            }
-            usleep(10000);
-        } while ($worker->isRunning() && microtime(true) < $deadline);
-        self::fail('Worker did not contend on account/identity lock: '.$worker->getErrorOutput());
+        LockWait::assertWorkerWaiting($this->connection, $worker, 'Account worker');
     }
 
     /** @return array<string, mixed> */

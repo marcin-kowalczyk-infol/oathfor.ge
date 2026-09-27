@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Identity\{AppleLoginFailure, IssuedAppSession};
-use App\Tests\Fixtures\{AppleLoginFixture, AppleTokenFixture};
+use App\Tests\Fixtures\{AppleLoginFixture, AppleTokenFixture, LockWait};
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpClient\Response\MockResponse;
@@ -199,23 +199,14 @@ final class AppleLoginTest extends KernelTestCase
         $arguments = [PHP_BINARY, 'tests/Fixtures/apple_login_worker.php', $id];
         if (null !== $clockPath) { $arguments[] = $clockPath; }
         $worker = new Process($arguments, dirname(__DIR__, 2));
-        $worker->setTimeout(20);
+        $worker->setTimeout(LockWait::WORKER_TIMEOUT);
         $worker->start();
         return $worker;
     }
 
     private function assertWaitingOnLock(Process $worker): void
     {
-        $deadline = microtime(true) + 10;
-        do {
-            $pid = (int) $worker->getOutput();
-            if ($pid > 0 && 'Lock' === $this->connection->fetchOne('SELECT wait_event_type FROM pg_stat_activity WHERE pid = ?', [$pid])) {
-                self::assertTrue($worker->isRunning());
-                return;
-            }
-            usleep(10000);
-        } while ($worker->isRunning() && microtime(true) < $deadline);
-        self::fail('Exchange worker did not reach the expected database lock.');
+        LockWait::assertWorkerWaiting($this->connection, $worker, 'Exchange worker');
     }
 
     /** @return array<string, mixed> */

@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Identity\Clock;
-use App\Tests\Fixtures\{CharacterFixture, FixedClock};
+use App\Tests\Fixtures\{CharacterFixture, FixedClock, LockWait};
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -487,19 +487,12 @@ final class CharacterEndpointTest extends WebTestCase
         $data = ['time' => $this->clock->time, 'token' => self::TOKEN, 'input' => $input];
         file_put_contents($path, json_encode($data, JSON_THROW_ON_ERROR));
         $worker = new Process([PHP_BINARY, 'tests/Fixtures/'.(null === $switchTo ? 'character_creation_worker.php' : 'character_switch_worker.php'), $path], dirname(__DIR__, 2));
-        $worker->setTimeout(12); $worker->start();
+        $worker->setTimeout(LockWait::WORKER_TIMEOUT); $worker->start();
         return [$worker, $path, $data];
     }
     private function assertWaiting(Process $worker): void
     {
-        $limit = microtime(true) + 5;
-        do {
-            $pid = (int) $worker->getOutput();
-            $this->connection->executeQuery('SELECT pg_stat_clear_snapshot()');
-            if ($pid > 0 && 'Lock' === $this->connection->fetchOne('SELECT wait_event_type FROM pg_stat_activity WHERE pid = ?', [$pid])) { self::assertTrue($worker->isRunning()); return; }
-            usleep(10000);
-        } while ($worker->isRunning() && microtime(true) < $limit);
-        self::fail('Character worker did not reach lock: '.$worker->getErrorOutput());
+        LockWait::assertWorkerWaiting($this->connection, $worker, 'Character worker');
     }
     /** @return array<string, mixed> */
     private function workerResult(Process $worker): array

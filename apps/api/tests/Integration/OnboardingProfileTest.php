@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Identity\{AppSessionRepository, ProfileFailure, ProfileService};
-use App\Tests\Fixtures\{AppleLoginFixture, AppleTokenFixture};
+use App\Tests\Fixtures\{AppleLoginFixture, AppleTokenFixture, LockWait};
 use App\Tests\Fixtures\FixedClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -196,21 +196,14 @@ final class OnboardingProfileTest extends KernelTestCase
         $input = ['time' => $this->clock->time, 'mode' => $mode, 'token' => $this->token, 'changes' => $changes];
         file_put_contents($path, json_encode($input, JSON_THROW_ON_ERROR));
         $worker = new Process([PHP_BINARY, 'tests/Fixtures/onboarding_profile_worker.php', $path], dirname(__DIR__, 2));
-        $worker->setTimeout(12);
+        $worker->setTimeout(LockWait::WORKER_TIMEOUT);
         $worker->start();
         return [$worker, $path, $input];
     }
 
     private function assertWaiting(Process $worker): void
     {
-        $deadline = microtime(true) + 5;
-        do {
-            $pid = (int) $worker->getOutput();
-            $this->connection->executeQuery('SELECT pg_stat_clear_snapshot()');
-            if ($pid > 0 && 'Lock' === $this->connection->fetchOne('SELECT wait_event_type FROM pg_stat_activity WHERE pid = ?', [$pid])) { self::assertTrue($worker->isRunning()); return; }
-            usleep(10000);
-        } while ($worker->isRunning() && microtime(true) < $deadline);
-        self::fail('Profile worker did not reach the expected lock.');
+        LockWait::assertWorkerWaiting($this->connection, $worker, 'Profile worker');
     }
 
     /** @return array<string, mixed> */
