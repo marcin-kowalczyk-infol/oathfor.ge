@@ -8,17 +8,17 @@ test('initial state for an account and character is the menu', () => {
   expect(initialHome(A, X)).toMatchObject({ accountId: A, characterId: X, route: { kind: 'menu' } });
 });
 test('entering the Forge opens the room, or the Today list in simple layout', () => {
-  expect(run({ type: 'openForge', layout: 'room', pending: false }).route).toEqual({ kind: 'forge', guide: null });
+  expect(run({ type: 'openForge', layout: 'room', pending: false }).route).toEqual({ kind: 'forge', tutorial: null });
   expect(run({ type: 'openForge', layout: 'simple', pending: false }).route).toEqual({ kind: 'oaths', request: { id: 1, target: 'today' } });
 });
 test('a pending acceptance makes the Forge resume Oath creation in either layout', () => {
   expect(run({ type: 'openForge', layout: 'room', pending: true }).route).toEqual({ kind: 'oaths', request: { id: 1, target: 'create' } });
   expect(run({ type: 'openForge', layout: 'simple', pending: true }).route).toEqual({ kind: 'oaths', request: { id: 1, target: 'create' } });
 });
-test('menu tiles open the tutorial, Settings and the change screen', () => {
-  const tutorial = run({ type: 'openTutorial' });
-  expect(tutorial.route).toEqual({ kind: 'forge', guide: 1 });
-  expect(homeReducer(homeReducer(tutorial, { type: 'door' }), { type: 'openTutorial' }).route).toEqual({ kind: 'forge', guide: 2 });
+test('menu tiles open the room tutorial, Settings and the change screen', () => {
+  const tutorial = run({ type: 'openTutorial', layout: 'room' });
+  expect(tutorial.route).toEqual({ kind: 'forge', tutorial: 1 });
+  expect(homeReducer(homeReducer(tutorial, { type: 'door' }), { type: 'openTutorial', layout: 'room' }).route).toEqual({ kind: 'forge', tutorial: 2 });
   expect(run({ type: 'openSettings' }).route).toEqual({ kind: 'settings' });
   expect(run({ type: 'openChange' }).route).toEqual({ kind: 'change', origin: 'menu' });
 });
@@ -51,7 +51,7 @@ test('room stations open Oath screens with fresh requests and the door returns t
 });
 test('back from the Oath screens returns to the room, or to the menu in simple layout', () => {
   const oaths = run({ type: 'openForge', layout: 'room', pending: false }, { type: 'openStation', station: 'seals' });
-  expect(homeReducer(oaths, { type: 'back', layout: 'room' }).route).toEqual({ kind: 'forge', guide: null });
+  expect(homeReducer(oaths, { type: 'back', layout: 'room' }).route).toEqual({ kind: 'forge', tutorial: null });
   expect(homeReducer(oaths, { type: 'back', layout: 'simple' }).route).toEqual({ kind: 'menu' });
 });
 test('the room ignores a station action outside the room and the menu stays on back', () => {
@@ -79,4 +79,20 @@ test('only the room has the door to the menu', () => {
   const oaths = run({ type: 'openForge', layout: 'room', pending: false }, { type: 'openStation', station: 'seals' });
   expect(homeReducer(oaths, { type: 'door' })).toBe(oaths);
   expect(run({ type: 'openSettings' }, { type: 'door' }).route).toEqual({ kind: 'settings' });
+});
+test('simple layout tutorial opens the tutorial screen and back returns to the menu', () => {
+  const tutorial = run({ type: 'openTutorial', layout: 'simple' });
+  expect(tutorial.route).toEqual({ kind: 'tutorial' });
+  expect(homeReducer(tutorial, { type: 'back', layout: 'simple' }).route).toEqual({ kind: 'menu' });
+  expect(homeReducer(tutorial, { type: 'door' })).toBe(tutorial);
+});
+test('the tutorial screen stays when the layout becomes the room', () => {
+  const tutorial = run({ type: 'openTutorial', layout: 'simple' });
+  expect(resolveHome(tutorial, A, X, 'room')).toBe(tutorial);
+});
+test('an ended room tutorial clears its id so a remount does not start it again', () => {
+  const tutorial = run({ type: 'openTutorial', layout: 'room' });
+  expect(homeReducer(tutorial, { type: 'tutorialEnded' }).route).toEqual({ kind: 'forge', tutorial: null });
+  const settings = run({ type: 'openSettings' });
+  expect(homeReducer(settings, { type: 'tutorialEnded' })).toBe(settings);
 });

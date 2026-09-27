@@ -436,3 +436,19 @@ describe('tutorial after review', () => {
     expect(walks[walks.length - 1].to).toEqual({ x: 0.5, y: 0.82 });
   });
 });
+
+test('closing or finishing the tutorial reports its end once', async () => {
+  const onTutorialEnd = jest.fn();
+  const view = await render(room({ tutorial: 1, onTutorialEnd }));
+  await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.close }));
+  expect(onTutorialEnd).toHaveBeenCalledTimes(1);
+  await view.rerender(room({ tutorial: 2, onTutorialEnd }));
+  for (const [place, lines] of [['hearth', 4], ['seals', 3], ['chronicle', 2], ['door', 4]] as const) {
+    await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.hear.replace('{{place}}', en.room[place]) }));
+    for (let line = 1; line < lines; line++) await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.next }));
+    await fireEvent.press(screen.getByRole('button', { name: place === 'door' ? en.room.tutorial.finish : en.room.tutorial.another }));
+  }
+  expect(onTutorialEnd).toHaveBeenCalledTimes(1);
+  await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.finish }));
+  expect(onTutorialEnd).toHaveBeenCalledTimes(2);
+});

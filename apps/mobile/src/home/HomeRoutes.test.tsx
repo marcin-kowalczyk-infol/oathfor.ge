@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Dimensions } from 'react-native';
-import { act, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import type { Oath } from '../api/oathSchema';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { OathController, OathControllerState } from '../oaths/controller';
@@ -14,13 +14,18 @@ const mira = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetI
 const phone = { width: 390, height: 844, scale: 3, fontScale: 1 };
 beforeEach(() => Dimensions.set({ window: phone, screen: phone }));
 
-function Harness({ initial, oaths }: { initial: HomeState; oaths: OathController }) {
-  const [home, setHome] = useState<HomeState | null>(initial);
+function Harness({ initial, oaths, guideStorage = { read: jest.fn().mockResolvedValue(true), markSeen: jest.fn() }, route }: {
+  initial: HomeState; oaths: OathController; guideStorage?: HomeRoutesProps['guideStorage'];
+  /** Route state held by a parent that outlives these screens, as in AuthScreen. */
+  route?: [HomeState | null, HomeRoutesProps['onHome']];
+}) {
+  const own = useState<HomeState | null>(initial);
+  const [home, setHome] = route ?? own;
   const props: HomeRoutesProps = {
     accountId, character: mira, characterState: { kind: 'ready', characters: [mira], activeCharacterId: mira.id } as unknown as HomeRoutesProps['characterState'],
     characters: { switch: jest.fn(), clearError: jest.fn() }, oaths,
     profile: { locale: 'en', timezone: 'UTC', intention: 'regular_activity', companionIntroduced: true, notificationPreference: 'disabled' }, timezone: 'UTC',
-    guideStorage: { read: jest.fn().mockResolvedValue(true), markSeen: jest.fn() },
+    guideStorage,
     notifications: { state: { permission: { kind: 'checking', canAskAgain: false }, busy: false }, enable: jest.fn(), skip: jest.fn(), retryPermission: jest.fn(), settings: jest.fn() },
     home, onHome: setHome, language: { saving: false, error: false }, onLocale: jest.fn(), onSettingsOpened: jest.fn(),
     renderCreation: () => null, onSignOut: jest.fn(),
@@ -60,4 +65,84 @@ test('a newly confirmed Oath refreshes the menu summary', async () => {
   await act(async () => listeners.forEach(listener => listener()));
   expect(await screen.findByLabelText('3 current Oaths')).toBeOnTheScreen();
   expect(summaryLoads()).toBe(2);
+});
+
+const menu: HomeState = { accountId, characterId: mira.id, route: { kind: 'menu' }, sequence: 0 };
+const readyState: OathControllerState = { kind: 'ready', busy: false, preview: null, pending: null, oath: null, needsReview: false };
+const readyOaths = () => ({
+  getState: () => readyState, subscribe: () => () => {},
+  list: jest.fn(async () => ({ kind: 'success', value: { items: [], nextCursor: null, total: 0, serverTime: '2026-09-26T12:00:00Z', paused: false, characterId: mira.id } })),
+  detail: jest.fn(), getPause: jest.fn(), resetCreation: jest.fn(), recover: jest.fn(),
+  boundCharacter: () => ({ accountId, characterId: mira.id }),
+}) as unknown as OathController;
+const unseenGuide = () => ({ read: jest.fn().mockResolvedValue(false), markSeen: jest.fn().mockResolvedValue(undefined) });
+const tutorialTile = { name: 'Tutorial, Zharomir explains the rules' };
+const forgeTile = { name: 'Enter the Forge, Hearth, seals and chronicle' };
+
+test('the Tutorial tile opens the room tutorial instead of the first-visit guide and counts the guide as seen', async () => {
+  const guideStorage = unseenGuide();
+  await render(<Harness oaths={readyOaths()} initial={menu} guideStorage={guideStorage} />);
+  await fireEvent.press(await screen.findByRole('button', tutorialTile));
+  expect(await screen.findByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
+  expect(guideStorage.markSeen).toHaveBeenCalledTimes(1);
+  expect(guideStorage.markSeen).toHaveBeenCalledWith(accountId);
+  await fireEvent.press(screen.getByRole('button', { name: 'Close the tutorial' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Leave the Forge' }));
+  await fireEvent.press(await screen.findByRole('button', forgeTile));
+  expect(await screen.findByRole('button', { name: 'Leave the Forge' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
+});
+
+test('the Forge tile still starts the guide on the first visit', async () => {
+  await render(<Harness oaths={readyOaths()} initial={menu} guideStorage={unseenGuide()} />);
+  await fireEvent.press(await screen.findByRole('button', forgeTile));
+  expect(await screen.findByRole('button', { name: 'Skip introduction' })).toBeOnTheScreen();
+});
+
+test('in simple layout the Tutorial tile opens the rules screen and back returns to the menu', async () => {
+  const large = { ...phone, fontScale: 2 };
+  Dimensions.set({ window: large, screen: large });
+  await render(<Harness oaths={readyOaths()} initial={menu} />);
+  await fireEvent.press(await screen.findByRole('button', tutorialTile));
+  expect(await screen.findByRole('header', { name: 'Forge rules' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Back to menu' }));
+  expect(await screen.findByRole('button', tutorialTile)).toBeOnTheScreen();
+});
+
+test('a seen guide is not stored again when the tutorial starts', async () => {
+  const guideStorage = { read: jest.fn().mockResolvedValue(true), markSeen: jest.fn() };
+  await render(<Harness oaths={readyOaths()} initial={menu} guideStorage={guideStorage} />);
+  await fireEvent.press(await screen.findByRole('button', tutorialTile));
+  expect(await screen.findByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeOnTheScreen();
+  expect(guideStorage.markSeen).not.toHaveBeenCalled();
+});
+
+test('the tutorial as the first room entry waits for the guide flag and then replaces the guide', async () => {
+  let answer!: (seen: boolean) => void;
+  const guideStorage = { read: jest.fn(() => new Promise<boolean>(resolve => { answer = resolve; })), markSeen: jest.fn().mockResolvedValue(undefined) };
+  await render(<Harness oaths={readyOaths()} initial={menu} guideStorage={guideStorage} />);
+  await fireEvent.press(await screen.findByRole('button', tutorialTile));
+  expect(screen.getByTestId('forge-room-waiting')).toBeOnTheScreen();
+  expect(guideStorage.markSeen).not.toHaveBeenCalled();
+  await act(async () => answer(false));
+  expect(await screen.findByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
+  expect(guideStorage.markSeen).toHaveBeenCalledTimes(1);
+});
+
+// Review of MVP-19-T05: a foreground session check remounts the routes, and a closed tutorial must not start again.
+test('a closed tutorial stays closed when the routes remount', async () => {
+  const oaths = readyOaths();
+  function Remountable({ mounted }: { mounted: boolean }) {
+    const route = useState<HomeState | null>(menu);
+    return mounted ? <Harness oaths={oaths} initial={menu} route={route} /> : null;
+  }
+  const view = await render(<Remountable mounted />);
+  await fireEvent.press(await screen.findByRole('button', tutorialTile));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Close the tutorial' }));
+  await view.rerender(<Remountable mounted={false} />);
+  await view.rerender(<Remountable mounted />);
+  expect(await screen.findByRole('button', { name: 'Leave the Forge' })).toBeOnTheScreen();
+  expect(screen.queryByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeNull();
 });

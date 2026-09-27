@@ -17,6 +17,7 @@ import { layoutMode } from '../ui/layoutMode';
 import { MotionSuspended } from '../ui/useMotion';
 import { homeReducer, resolveHome, type HomeAction, type HomeState } from './homeRoute';
 import { MainMenuScreen } from './MainMenuScreen';
+import { TutorialScreen } from './TutorialScreen';
 import { useOathSummary } from './useOathSummary';
 
 type Ready = Extract<CharacterControllerState, { kind: 'ready' }>;
@@ -48,7 +49,7 @@ export type HomeRoutesProps = {
 };
 
 /**
- * Everything after a character exists: the menu, the Forge room, Settings, the pause review and the character screens.
+ * Everything after a character exists: the menu, the Forge room, the tutorial screen, Settings, the pause review and the character screens.
  * Mounted only while the Oath controller serves this account and character.
  * Only the visible screen is mounted, except the Oath screens, which stay mounted and hidden so their tab, drafts and handled room requests survive.
  */
@@ -115,14 +116,18 @@ export function HomeRoutes(props: HomeRoutesProps) {
   let front: ReactNode = null;
   switch (route.kind) {
     case 'menu':
-      front = <MainMenuScreen character={character} summary={current ?? (summary.state.kind === 'failed' ? summary.state : { kind: 'loading' })} pending={pending} layout={layout}
-        onForge={() => dispatch({ type: 'openForge', layout, pending })} onTutorial={() => dispatch({ type: 'openTutorial' })}
+      front = <MainMenuScreen character={character} summary={current ?? (summary.state.kind === 'failed' ? summary.state : { kind: 'loading' })} pending={pending}
+        onForge={() => dispatch({ type: 'openForge', layout, pending })} onTutorial={() => dispatch({ type: 'openTutorial', layout })}
         onSettings={() => { props.onSettingsOpened(); dispatch({ type: 'openSettings' }); }} onChangeCharacter={() => dispatch({ type: 'openChange' })} />;
       break;
     case 'forge':
       front = guideSeen === null ? <View testID="forge-room-waiting" style={styles.dark} />
-        : <ForgeRoom showGuide={route.guide ?? !guideSeen} onGuideComplete={guideDone}
+        // A tutorial started before the first room entry replaces the guide, which then counts as seen.
+        : <ForgeRoom showGuide={!guideSeen} onGuideComplete={guideDone} tutorial={route.tutorial} onTutorialStart={() => { if (!guideSeen) guideDone(); }} onTutorialEnd={() => dispatch({ type: 'tutorialEnded' })}
           onOpenStation={station => dispatch({ type: 'openStation', station })} onExit={() => dispatch({ type: 'door' })} />;
+      break;
+    case 'tutorial':
+      front = <TutorialScreen onBack={back} />;
       break;
     case 'settings': {
       const { notifications } = props;

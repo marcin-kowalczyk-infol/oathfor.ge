@@ -86,9 +86,10 @@ function SceneHotspot({ label, hint, selected, onPress, anchor, door = false, al
  * The Forge room entrance: visiting a station never mutates an Oath, only its named action leaves the room.
  * showGuide starts the four-step guide. A later change to a new truthy value (true or a restart id) starts it again.
  * tutorial starts the rules conversation, and a new id restarts it with no heard places. It takes priority over the guide.
+ * onTutorialEnd reports a close or finish, so the parent can drop the id and a remount does not start it again.
  */
-export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null, onTutorialStart, onOpenStation, onExit }: {
-  showGuide?: boolean | number; onGuideComplete?: () => void; tutorial?: number | null; onTutorialStart?: () => void;
+export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null, onTutorialStart, onTutorialEnd, onOpenStation, onExit }: {
+  showGuide?: boolean | number; onGuideComplete?: () => void; tutorial?: number | null; onTutorialStart?: () => void; onTutorialEnd?: () => void;
   onOpenStation: (station: ForgeStation) => void; onExit: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -239,6 +240,10 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     walkTo(place);
   }
   const control = tour && telling ? tourControl(tour) : null;
+  function endTour() {
+    setTour(null);
+    onTutorialEnd?.();
+  }
   function advance() {
     setTour(current => current && advanceTour(current));
   }
@@ -265,7 +270,7 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
   // The native SE 3 check clipped the guide text and the station action at the bottom edge.
   const footer = guidePlace ? <BubbleSteps count={`${guideStep! + 1} / 4`} label={t(guideStep === 3 ? 'room.guide.done' : 'room.guide.next')} mark={guideStep === 3 ? '✓' : '→'}
       onPress={() => guideStep === 3 ? finishGuide() : setGuideStep(value => value! + 1)} />
-    : tour?.ended ? <BubbleSteps count="" label={t('room.tutorial.finish')} text onPress={() => setTour(null)} />
+    : tour?.ended ? <BubbleSteps count="" label={t('room.tutorial.finish')} text onPress={() => endTour()} />
     : control ? <BubbleSteps count={`${control.line} / ${control.lines}`} label={t(`room.tutorial.${control.action}`)} mark="→" text={control.action !== 'next'} onPress={advance} />
     : null;
   const natural = contentHeight + 4 + (footer ? BUBBLE_FOOTER : 0);
@@ -304,7 +309,7 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
       reveal={centered ? null : bubble} pointX={centered ? centeredX : foot!.x} fill={largeText}
       contentKey={`${guidePlace ?? (tour ? `tour-${tour.place}-${tour.line}-${tour.ended}` : arrived)}-${i18n.language}-${fontScale}`}
       onContentHeight={setContentHeight} dismissLabel={t(guidePlace ? 'room.guide.skip' : tour ? 'room.tutorial.close' : 'room.dismiss')}
-      onDismiss={() => guidePlace ? finishGuide() : tour ? setTour(null) : setBubbleOpen(false)} footer={footer}>
+      onDismiss={() => guidePlace ? finishGuide() : tour ? endTour() : setBubbleOpen(false)} footer={footer}>
       {!guidePlace && !tour && isStation(arrived) && <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.detailTitle}>{t(`room.${arrived}`)}</Text>}
       <Text maxFontSizeMultiplier={2} style={styles.description}>{guidePlace ? t(`room.guide.${guidePlace}`)
         : tour ? t(tourTextKey(tour))

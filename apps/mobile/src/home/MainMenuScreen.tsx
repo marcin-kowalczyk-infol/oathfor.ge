@@ -3,14 +3,14 @@ import { Animated, Easing, Image, Pressable, SafeAreaView, ScrollView, StyleShee
 import type { Character } from '../api/characters';
 import { presetArt } from '../characters/presetArt';
 import { useTranslation } from '../localization/LocalizationProvider';
-import { layoutMode, type LayoutMode } from '../ui/layoutMode';
+import { layoutMode } from '../ui/layoutMode';
 import { StateSeal } from '../ui/StateSeal';
 import { tokens } from '../ui/tokens';
 import { useMotionAllowed } from '../ui/useMotion';
 import type { OathSummaryState } from './useOathSummary';
 
 export type MainMenuScreenProps = {
-  character: Character; summary: OathSummaryState; pending: boolean; layout: LayoutMode;
+  character: Character; summary: OathSummaryState; pending: boolean;
   onForge(): void; onTutorial(): void; onSettings(): void; onChangeCharacter(): void;
 };
 
@@ -31,7 +31,7 @@ const HALF_HEIGHT = 176;
 const DETAIL_LINE = 16;
 
 /** Home screen after a character exists. Presentational: the caller owns routes, the summary request and the pending acceptance. */
-export function MainMenuScreen({ character, summary, pending, layout, onForge, onTutorial, onSettings, onChangeCharacter }: MainMenuScreenProps) {
+export function MainMenuScreen({ character, summary, pending, onForge, onTutorial, onSettings, onChangeCharacter }: MainMenuScreenProps) {
   const { t } = useTranslation();
   const { width, fontScale } = useWindowDimensions();
   // The window rule for the simple layout also stacks the card and turns the tiles into full-width rows.
@@ -58,8 +58,8 @@ export function MainMenuScreen({ character, summary, pending, layout, onForge, o
         <View style={styles.tiles}>
           <ForgeTile {...forge} stacked={stacked} onPress={onForge} />
           <View testID="menu-tile-pair" style={[styles.pair, stacked && styles.column]}>
-            {layout !== 'simple' && <Tile testID="menu-tutorial" {...tutorial} stacked={stacked} detailLines={pairLines} onDetailLines={reportLines('tutorial')} onPress={onTutorial} art={size => <TutorialArt size={size} stacked={stacked} />} />}
-            <Tile testID="menu-settings" {...settings} stacked={stacked} detailLines={layout === 'simple' ? 0 : pairLines} onDetailLines={reportLines('settings')} onPress={onSettings} art={size => <CoverArt source={tools} art={TOOLS} size={size} />} />
+            <Tile testID="menu-tutorial" {...tutorial} stacked={stacked} detailLines={pairLines} onDetailLines={reportLines('tutorial')} onPress={onTutorial} art={size => <TutorialArt size={size} stacked={stacked} />} />
+            <Tile testID="menu-settings" {...settings} stacked={stacked} detailLines={pairLines} onDetailLines={reportLines('settings')} onPress={onSettings} art={size => <CoverArt source={tools} art={TOOLS} size={size} />} />
           </View>
         </View>
       </ScrollView>

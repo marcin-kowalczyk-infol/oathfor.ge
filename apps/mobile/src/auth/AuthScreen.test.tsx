@@ -465,7 +465,7 @@ test('the room leads to creation, Today and History, the Oath door returns to th
   expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
 });
 
-test('the first room entry shows the guide and stores the flag, the next entry does not, and Tutorial restarts it', async () => {
+test('the first room entry shows the guide and stores the flag, the next entry does not, and Tutorial starts the rules conversation', async () => {
   const runtime = setup();
   let answer!: (seen: boolean) => void;
   runtime.guideStorage.read.mockImplementationOnce(() => new Promise(resolve => { answer = resolve; }));
@@ -482,7 +482,8 @@ test('the first room entry shows the guide and stores the flag, the next entry d
   expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Leave the Forge' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Tutorial, Zharomir explains the rules' }));
-  expect(await screen.findByRole('button', { name: 'Skip introduction' })).toBeOnTheScreen();
+  expect(await screen.findByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
   expect(runtime.guideStorage.read).toHaveBeenCalledTimes(1);
 });
 
@@ -504,12 +505,14 @@ test('a guide flag read that does not answer within 1.5 s opens the room with th
   } finally { jest.useRealTimers(); }
 });
 
-test('in simple layout the Forge opens Today and the header Menu button returns to the menu', async () => {
+test('in simple layout the Tutorial tile opens the rules screen, the Forge opens Today and both return to the menu', async () => {
   Dimensions.set({ window: phone(2), screen: phone(2) });
   const runtime = setup();
   await signIn(runtime);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Tutorial, Zharomir explains the rules' }));
+  expect(await screen.findByRole('header', { name: 'Forge rules' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Back to menu' }));
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Tutorial, Zharomir explains the rules' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', forgeTile));
   expect(await screen.findByRole('button', { name: 'Today', selected: true })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Leave the Forge' })).toBeNull();

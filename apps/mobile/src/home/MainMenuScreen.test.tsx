@@ -18,7 +18,7 @@ afterEach(() => jest.restoreAllMocks());
 
 async function setup(patch: Partial<MainMenuScreenProps> = {}, locale: 'en' | 'pl' = 'en') {
   const handlers = { onForge: jest.fn(), onTutorial: jest.fn(), onSettings: jest.fn(), onChangeCharacter: jest.fn() };
-  const props: MainMenuScreenProps = { character: mira, summary: ready(2), pending: false, layout: 'room', ...handlers, ...patch };
+  const props: MainMenuScreenProps = { character: mira, summary: ready(2), pending: false, ...handlers, ...patch };
   await render(<LocalizationProvider initialLocale={locale}><MainMenuScreen {...props} /></LocalizationProvider>);
   await act(async () => {});
   return handlers;
@@ -101,10 +101,13 @@ test('a pending acceptance replaces the Forge subtitle', async () => {
   expect(screen.queryByText('Hearth, seals and chronicle')).toBeNull();
 });
 
-test('the simple layout hides the Tutorial tile', async () => {
-  await setup({ layout: 'simple' });
-  expect(screen.queryByRole('button', { name: 'Tutorial, Zharomir explains the rules' })).toBeNull();
-  expect(screen.getByRole('button', { name: 'Settings, Language, pause, account' })).toBeOnTheScreen();
+test('the simple layout shows the Tutorial tile as a full-width row above Settings', async () => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const f = await setup();
+  expect(screen.getByTestId('menu-tile-pair')).toHaveStyle({ flexDirection: 'column' });
+  for (const id of ['menu-tutorial', 'menu-settings']) expect(screen.getByTestId(id)).toHaveStyle({ flex: 0 });
+  await fireEvent.press(screen.getByRole('button', { name: 'Tutorial, Zharomir explains the rules' }));
+  expect(f.onTutorial).toHaveBeenCalledTimes(1);
 });
 
 test('the room layout shows the side-by-side card, half-width tiles and a one-line pill', async () => {
@@ -119,7 +122,7 @@ test('the room layout shows the side-by-side card, half-width tiles and a one-li
 
 test('large text stacks the card', async () => {
   Dimensions.set({ window: phone(2), screen: phone(2) });
-  await setup({ layout: 'simple' });
+  await setup();
   expect(screen.getByTestId('menu-card-stacked')).toBeOnTheScreen();
   expect(screen.queryByTestId('menu-card')).toBeNull();
   expect(screen.getByTestId('menu-tile-pair')).toHaveStyle({ flexDirection: 'column' });
