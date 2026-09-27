@@ -3,7 +3,7 @@ import { createSessionController, type Authentication } from '../src/auth/sessio
 import type { SessionEnvelope } from '../src/auth/sessionStorage';
 import type { ProfileClient, ProfileEnvelope } from '../src/api/profile';
 import type { OathClient, OathFailure } from '../src/api/oaths';
-import type { Character, CharacterClient } from '../src/api/characters';
+import { isCharacterBuild, type Character, type CharacterClient } from '../src/api/characters';
 import type { PendingCreation } from '../src/characters/creationStorage';
 import type { Activity, Oath, Preview, ResolvedTime, Snapshot, LocalTimeInput } from '../src/api/oathSchema';
 import type { PendingAcceptance } from '../src/oaths/pendingStorage';
@@ -13,7 +13,7 @@ import CATALOG from '../../api/resources/oath/workout_oath_v1.json';
 const accountId = '10000000-0000-4000-8000-000000000001';
 const characterId = '30000000-0000-4000-8000-000000000001';
 const characterIdAt = (slot: number) => `30000000-0000-4000-8000-${String(slot).padStart(12, '0')}`;
-const presets = ['dummy_braid', 'dummy_cropped', 'dummy_curly', 'dummy_tied'];
+const presets = ['starter_01', 'starter_02', 'starter_03', 'starter_04', 'starter_05', 'starter_06'];
 const token = 'A'.repeat(43);
 const success = <T,>(value: T) => ({ kind: 'success' as const, value });
 const unavailable = () => ({ kind: 'unavailable' as const, retry: 'request' as const });
@@ -62,7 +62,7 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     profile: { profile: { locale, timezone: 'Europe/Warsaw', intention: completed ? 'regular_activity' : null, companionIntroduced: completed, notificationPreference: completed ? 'disabled' : null }, onboardingStatus: completed ? 'complete' : 'pending' } as ProfileEnvelope,
     session: { version: 1, kind: 'active', session: { token, expiresAt: iso(initialNow + 86400000) } } as SessionEnvelope,
     // A returning player has two DUMMY characters to switch between, Radomir active. An empty or new account starts with creation.
-    characters: (populated ? [{ id: characterId, name: 'Radomir', presetId: 'dummy_cropped', form: 'masculine', createdAt: iso(initialNow - 172800000) }, { id: characterIdAt(2), name: 'Wiesna', presetId: 'dummy_curly', form: 'feminine', createdAt: iso(initialNow - 86400000) }] : []) as Character[],
+    characters: (populated ? [{ id: characterId, name: 'Radomir', presetId: 'starter_02', build: 'thin', form: 'masculine', createdAt: iso(initialNow - 172800000) }, { id: characterIdAt(2), name: 'Wiesna', presetId: 'starter_03', build: 'heavy', form: 'feminine', createdAt: iso(initialNow - 86400000) }] : []) as Character[],
     activeCharacterId: (populated ? characterId : null) as string | null,
     // The room guide flag per account. Interface restart keeps it, a scenario starts without it, so the guide shows on the first room entry.
     guideSeen: new Set<string>(),
@@ -168,15 +168,17 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     async list(bearer) { return guard(bearer) ?? listing(); },
     async create(bearer, input) {
       const denied = guard(bearer); if (denied) return denied;
+      // Like the API, a bad build is refused while parsing, before any replay lookup.
+      if (!isCharacterBuild(input.build)) return { kind: 'character_error', code: 'invalid_request' };
       const existing = state.characters.find(item => item.id === state.creations.get(input.requestId));
       if (existing) {
-        if (existing.name !== input.name.trim() || existing.presetId !== input.presetId || existing.form !== input.form) return { kind: 'character_error', code: 'idempotency_conflict' };
+        if (existing.name !== input.name.trim() || existing.presetId !== input.presetId || existing.build !== input.build || existing.form !== input.form) return { kind: 'character_error', code: 'idempotency_conflict' };
         return { kind: 'success', created: false, value: { character: clone(existing), activeCharacterId: state.activeCharacterId!, serverTime: iso(state.now) } };
       }
       if (!presets.includes(input.presetId)) return { kind: 'character_error', code: 'invalid_preset' };
       if (state.profile.onboardingStatus !== 'complete') return { kind: 'character_error', code: 'onboarding_incomplete' };
       if (state.characters.length >= 3) return { kind: 'character_error', code: 'character_limit_reached' };
-      const character: Character = { id: characterIdAt(state.characters.length + 1), name: input.name.trim().normalize('NFC'), presetId: input.presetId, form: input.form, createdAt: iso(state.now) };
+      const character: Character = { id: characterIdAt(state.characters.length + 1), name: input.name.trim().normalize('NFC'), presetId: input.presetId, build: input.build, form: input.form, createdAt: iso(state.now) };
       state.characters.push(character); state.creations.set(input.requestId, character.id); state.activeCharacterId = character.id;
       if (state.loseNext) { state.loseNext = false; return unavailable(); }
       return { kind: 'success', created: true, value: { character: clone(character), activeCharacterId: character.id, serverTime: iso(state.now) } };

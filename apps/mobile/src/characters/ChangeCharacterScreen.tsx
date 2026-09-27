@@ -59,7 +59,7 @@ export function ChangeCharacterScreen({ state, onChoose, onNew, onBack }: Change
             accessibilityLabel={t(active ? 'character.change.cardActive' : 'character.change.card', { name: character.name, title })}
             onPress={() => choose(character)} style={({ pressed }) => [styles.card, active && styles.activeCard, stacked && styles.stackedCard, pressed && styles.pressed]}>
             <View pointerEvents="none" style={[styles.glow, active && styles.activeGlow]} />
-            <CharacterPortrait id={character.id} presetId={character.presetId} name={character.name} size={72} active={active} />
+            <CharacterPortrait id={character.id} presetId={character.presetId} build={character.build} name={character.name} size={72} active={active} />
             <View style={[styles.identity, stacked && styles.stackedIdentity]}>
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={styles.name}>{character.name}</Text>
               <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.role, fontScale > 1.5 && styles.roleLarge]}>{title}</Text>
@@ -70,7 +70,7 @@ export function ChangeCharacterScreen({ state, onChoose, onNew, onBack }: Change
         })}
         {pending ? <Pressable accessibilityRole="button" accessibilityLabel={t('character.change.resume', { name: pending.name })} accessibilityState={{ disabled: state.busy }} disabled={state.busy}
             onPress={() => { if (!state.busy) onNew(); }} style={({ pressed }) => [styles.card, styles.newCard, stacked && styles.stackedCard, pressed && styles.pressed]}>
-            <CharacterPortrait id={pending.requestId} presetId={pending.presetId} name={pending.name} size={72} />
+            <CharacterPortrait id={pending.requestId} presetId={pending.presetId} build={pending.build} name={pending.name} size={72} />
             <View style={[styles.identity, stacked && styles.stackedIdentity]}>
               <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.newTitle}>{t('character.change.resume', { name: pending.name })}</Text>
               <Text style={styles.detail}>{t('character.change.resumeDetail')}</Text>

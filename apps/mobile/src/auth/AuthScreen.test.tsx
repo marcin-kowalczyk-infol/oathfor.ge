@@ -24,8 +24,8 @@ const account = { id: '01997aed-8950-7f7a-bda4-36b64697b562', onboardingStatus: 
 const session = { token: 'A'.repeat(43), expiresAt: '2026-10-24T12:00:00Z' };
 const challenge = { challengeId: 'B'.repeat(43), nonce: 'C'.repeat(43), state: 'D'.repeat(43), expiresAt: '2026-09-24T12:05:00Z' };
 let mockDeviceLanguage = 'en';
-const mira = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'dummy_braid', form: 'feminine' as const, createdAt: '2026-09-24T12:00:00Z' };
-const listing = (characters: Character[], activeCharacterId: string | null): CharacterList => ({ characters, activeCharacterId, limit: 3, presets: ['dummy_braid', 'dummy_cropped', 'dummy_curly', 'dummy_tied'], serverTime: '2026-09-24T12:00:00Z' });
+const mira = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'starter_01', build: 'heavy' as const, form: 'feminine' as const, createdAt: '2026-09-24T12:00:00Z' };
+const listing = (characters: Character[], activeCharacterId: string | null): CharacterList => ({ characters, activeCharacterId, limit: 3, presets: ['starter_01', 'starter_02', 'starter_03', 'starter_04', 'starter_05', 'starter_06'], serverTime: '2026-09-24T12:00:00Z' });
 const forgeTile = { name: 'Enter the Forge, Hearth, seals and chronicle' };
 const menuPl = { name: 'Wejdź do Kuźni, Palenisko, pieczęcie i kronika' };
 const completeProfile = { profile: { locale: 'en', timezone: 'UTC', intention: 'regular_activity', companionIntroduced: true, notificationPreference: 'disabled' }, onboardingStatus: 'complete' };
@@ -274,10 +274,11 @@ test('routes a completed account without a character to creation', async () => {
   expect(runtime.oathApi.list).not.toHaveBeenCalled();
   await fireEvent.changeText(screen.getByLabelText('Name'), 'Mira');
   await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Stout build' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Create character' }));
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
   expect(screen.getByText('Mira')).toBeOnTheScreen();
-  expect(runtime.characterApi.create.mock.calls[0][1]).toEqual({ requestId: '40000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'dummy_braid', form: 'feminine' });
+  expect(runtime.characterApi.create.mock.calls[0][1]).toEqual({ requestId: '40000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'starter_01', build: 'heavy', form: 'feminine' });
   expect(runtime.creationStorage.write).toHaveBeenCalledWith(account.id, expect.objectContaining({ requestId: '40000000-0000-4000-8000-00000000000a' }));
   expect(runtime.acceptanceStorage.read).toHaveBeenCalledWith(account.id, mira.id);
 });
@@ -359,7 +360,7 @@ test('a switch rebinds the Oath controller before the new character screen sends
 test('the menu card opens character change, and a switch or a new character lands on the menu with its card', async () => {
   const runtime = setup();
   const bor = { ...mira, id: '30000000-0000-4000-8000-00000000000b', name: 'Bor', form: 'masculine' as const };
-  const wit = { ...mira, id: '30000000-0000-4000-8000-00000000000c', name: 'Wit', form: 'neutral' as const, presetId: 'dummy_tied' };
+  const wit = { ...mira, id: '30000000-0000-4000-8000-00000000000c', name: 'Wit', form: 'neutral' as const, presetId: 'starter_04', build: 'thin' as const };
   let serverActive = mira.id; let roster: Character[] = [mira, bor];
   runtime.characterApi.list.mockImplementation(async () => ({ kind: 'success', value: listing(roster, serverActive) }));
   runtime.characterApi.activate.mockImplementation(async (_token: string, id: string) => { serverActive = id; return { kind: 'success', value: listing(roster, id) }; });

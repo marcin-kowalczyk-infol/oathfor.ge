@@ -10,7 +10,7 @@ jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 const id = '20000000-0000-4000-8000-000000000001';
 const serverTime = '2026-10-26T00:00:00Z';
 const characterId = '30000000-0000-4000-8000-000000000001';
-const character = { id: characterId, name: 'Mira', presetId: 'dummy_braid', form: 'feminine' as const, createdAt: '2026-09-24T12:00:00Z' };
+const character = { id: characterId, name: 'Mira', presetId: 'starter_01', build: 'thin' as const, form: 'feminine' as const, createdAt: '2026-09-24T12:00:00Z' };
 function oath(patch: Partial<Oath> = {}): Oath {
   const snapshot = JSON.parse(JSON.stringify(catalog)); snapshot.activity = 'running';
   snapshot.activation = { mode: 'now', time: { local: '2026-10-24T02:00:00', timezone: 'Europe/Warsaw', offset: '+02:00', explicitOffset: false, utc: '2026-10-24T00:00:00Z' } };

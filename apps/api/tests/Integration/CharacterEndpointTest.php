@@ -19,7 +19,7 @@ final class CharacterEndpointTest extends WebTestCase
     private const ACCOUNT = '00000000-0000-4000-8000-000000000001';
     private const OTHER = '00000000-0000-4000-8000-000000000009';
     private const TOKEN = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-    private const PRESETS = ['dummy_braid', 'dummy_cropped', 'dummy_curly', 'dummy_tied'];
+    private const PRESETS = ['starter_01', 'starter_02', 'starter_03', 'starter_04', 'starter_05', 'starter_06'];
     protected function setUp(): void
     {
         $this->client = self::createClient();
@@ -49,29 +49,46 @@ final class CharacterEndpointTest extends WebTestCase
         $body = $this->body();
         $id = $body['character']['id'];
         self::assertMatchesRegularExpression('/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/', $id);
-        $character = ['id' => $id, 'name' => 'Mira', 'presetId' => 'dummy_braid', 'form' => 'feminine', 'createdAt' => gmdate('Y-m-d\TH:i:s\Z', $this->clock->time)];
+        $character = ['id' => $id, 'name' => 'Mira', 'presetId' => 'starter_01', 'build' => 'thin', 'form' => 'feminine', 'createdAt' => gmdate('Y-m-d\TH:i:s\Z', $this->clock->time)];
         self::assertSame(['character' => $character, 'activeCharacterId' => $id, 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $this->clock->time)], $body);
-        self::assertSame([['slot' => 1, 'creation_request_id' => self::rid(1), 'name' => 'Mira', 'created_at' => $this->clock->time]], $this->connection->fetchAllAssociative('SELECT slot, creation_request_id, name, created_at FROM player_character'));
+        self::assertSame([['slot' => 1, 'creation_request_id' => self::rid(1), 'name' => 'Mira', 'build' => 'thin', 'created_at' => $this->clock->time]], $this->connection->fetchAllAssociative('SELECT slot, creation_request_id, name, build, created_at FROM player_character'));
         self::assertSame($id, $this->connection->fetchOne('SELECT active_character_id FROM account WHERE id = ?', [self::ACCOUNT]));
         $this->clock->time += 60;
         $this->request('GET', '/api/characters');
         self::assertSame(['characters' => [$character], 'activeCharacterId' => $id, 'limit' => 3, 'presets' => self::PRESETS, 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $this->clock->time)], $this->body());
     }
+    public function testCreationStoresChosenBuildAndListingReturnsIt(): void
+    {
+        $this->create(self::rid(1), 'Mira', 'starter_06', 'feminine', 'heavy');
+        self::assertSame(201, $this->client->getResponse()->getStatusCode());
+        $heavy = $this->body()['character'];
+        self::assertSame(['id', 'name', 'presetId', 'build', 'form', 'createdAt'], array_keys($heavy));
+        self::assertSame(['starter_06', 'heavy'], [$heavy['presetId'], $heavy['build']]);
+        $this->create(self::rid(2), 'Nora', 'starter_06', 'feminine', 'thin');
+        $thin = $this->body()['character'];
+        self::assertSame('thin', $thin['build']);
+        self::assertSame([['heavy'], ['thin']], array_map(fn (array $row): array => [$row['build']], $this->connection->fetchAllAssociative('SELECT build FROM player_character ORDER BY slot')));
+        $this->request('GET', '/api/characters');
+        self::assertSame([$heavy, $thin], $this->body()['characters']);
+        $this->switchTo($heavy['id']);
+        self::assertSame([$heavy, $thin], $this->body()['characters']);
+    }
     public function testIdenticalReplayReturnsOriginalCharacterAndCurrentActiveWithoutChange(): void
     {
-        $this->create(self::rid(1), "Zo\u{00E9}", 'dummy_curly', 'neutral');
+        $this->create(self::rid(1), "Zo\u{00E9}", 'starter_03', 'neutral', 'heavy');
         $first = $this->body()['character'];
+        self::assertSame('heavy', $first['build']);
         $created = $this->clock->time;
         foreach (["Zo\u{00E9}", " Zoe\u{0301}\u{00A0}"] as $name) {
             $this->clock->time += 10;
-            $this->create(self::rid(1), $name, 'dummy_curly', 'neutral');
+            $this->create(self::rid(1), $name, 'starter_03', 'neutral', 'heavy');
             self::assertSame(200, $this->client->getResponse()->getStatusCode());
             self::assertSame(['character' => $first, 'activeCharacterId' => $first['id'], 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $this->clock->time)], $this->body());
         }
         self::assertSame(gmdate('Y-m-d\TH:i:s\Z', $created), $first['createdAt']);
         $this->create(self::rid(2), 'Nora');
         $second = $this->body()['character']['id'];
-        $this->create(self::rid(1), "Zo\u{00E9}", 'dummy_curly', 'neutral');
+        $this->create(self::rid(1), "Zo\u{00E9}", 'starter_03', 'neutral', 'heavy');
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
         self::assertSame($first, $this->body()['character']);
         self::assertSame($second, $this->body()['activeCharacterId']);
@@ -82,11 +99,11 @@ final class CharacterEndpointTest extends WebTestCase
     {
         $this->create(self::rid(1));
         $id = $this->body()['character']['id'];
-        foreach ([['Nora', 'dummy_braid', 'feminine'], ['Mira', 'dummy_tied', 'feminine'], ['Mira', 'dummy_braid', 'neutral'], ['Mira', 'dummy_unknown', 'feminine']] as [$name, $preset, $form]) {
-            $this->create(self::rid(1), $name, $preset, $form);
+        foreach ([['Nora', 'starter_01', 'feminine', 'thin'], ['Mira', 'starter_04', 'feminine', 'thin'], ['Mira', 'starter_01', 'neutral', 'thin'], ['Mira', 'starter_unknown', 'feminine', 'thin'], ['Mira', 'starter_01', 'feminine', 'heavy']] as [$name, $preset, $form, $build]) {
+            $this->create(self::rid(1), $name, $preset, $form, $build);
             $this->assertError(409, 'idempotency_conflict');
         }
-        self::assertSame([['id' => $id, 'name' => 'Mira', 'preset_id' => 'dummy_braid', 'form' => 'feminine']], $this->connection->fetchAllAssociative('SELECT id, name, preset_id, form FROM player_character'));
+        self::assertSame([['id' => $id, 'name' => 'Mira', 'preset_id' => 'starter_01', 'build' => 'thin', 'form' => 'feminine']], $this->connection->fetchAllAssociative('SELECT id, name, preset_id, build, form FROM player_character'));
         self::assertSame($id, $this->connection->fetchOne('SELECT active_character_id FROM account'));
     }
     public function testReplaySkipsCatalogAndOnboardingChecks(): void
@@ -124,7 +141,7 @@ final class CharacterEndpointTest extends WebTestCase
     public function testNewCreationChecksPresetThenOnboarding(): void
     {
         $this->connection->executeStatement("UPDATE account SET onboarding_status = 'pending'");
-        $this->create(self::rid(1), 'Mira', 'dummy_unknown');
+        $this->create(self::rid(1), 'Mira', 'starter_unknown');
         $this->assertError(400, 'invalid_preset');
         $this->create(self::rid(1));
         $this->assertError(409, 'onboarding_incomplete');
@@ -134,14 +151,14 @@ final class CharacterEndpointTest extends WebTestCase
     /** @return iterable<string, array{string, int, string}> */
     public static function invalidBodies(): iterable
     {
-        $base = ['requestId' => self::rid(1), 'name' => 'Mira', 'presetId' => 'dummy_braid', 'form' => 'feminine'];
+        $base = ['requestId' => self::rid(1), 'name' => 'Mira', 'presetId' => 'starter_01', 'build' => 'thin', 'form' => 'feminine'];
         foreach (['A', 'Anna  Maria', 'Anna-', '-Anna', 'R2D2', str_repeat('a', 21), "Mira\u{1F600}", 'Anna--Maria', '', '   '] as $i => $name) {
             yield 'name-'.$i => [json_encode(array_replace($base, ['name' => $name]), JSON_THROW_ON_ERROR), 400, 'invalid_character_name'];
         }
-        yield 'unknown-preset' => [json_encode(array_replace($base, ['presetId' => 'dummy_unknown']), JSON_THROW_ON_ERROR), 400, 'invalid_preset'];
-        $changes = [['form' => 'other'], ['form' => null], ['form' => 'Feminine'], ['name' => 42], ['name' => ['Mira']], ['presetId' => 5], ['presetId' => ''], ['presetId' => 'Dummy-Braid'], ['presetId' => str_repeat('a', 65)], ['requestId' => strtoupper(self::rid(1))], ['requestId' => 'not-a-uuid'], ['requestId' => null], ['accountId' => self::ACCOUNT], ['slot' => 1]];
+        yield 'unknown-preset' => [json_encode(array_replace($base, ['presetId' => 'starter_unknown']), JSON_THROW_ON_ERROR), 400, 'invalid_preset'];
+        $changes = [['build' => 'medium'], ['build' => 'Thin'], ['build' => null], ['build' => ['thin']], ['builds' => 'thin'], ['form' => 'other'], ['form' => null], ['form' => 'Feminine'], ['name' => 42], ['name' => ['Mira']], ['presetId' => 5], ['presetId' => ''], ['presetId' => 'Starter-01'], ['presetId' => str_repeat('a', 65)], ['requestId' => strtoupper(self::rid(1))], ['requestId' => 'not-a-uuid'], ['requestId' => null], ['accountId' => self::ACCOUNT], ['slot' => 1]];
         foreach ($changes as $i => $change) { yield 'shape-'.$i => [json_encode(array_replace($base, $change), JSON_THROW_ON_ERROR), 400, 'invalid_request']; }
-        foreach (['requestId', 'name', 'presetId', 'form'] as $field) {
+        foreach (['requestId', 'name', 'presetId', 'build', 'form'] as $field) {
             $missing = $base; unset($missing[$field]);
             yield 'missing-'.$field => [json_encode($missing, JSON_THROW_ON_ERROR), 400, 'invalid_request'];
         }
@@ -157,7 +174,7 @@ final class CharacterEndpointTest extends WebTestCase
     }
     public function testTransportLimitsAndStrictGet(): void
     {
-        $valid = json_encode(['requestId' => self::rid(1), 'name' => 'Mira', 'presetId' => 'dummy_braid', 'form' => 'feminine'], JSON_THROW_ON_ERROR);
+        $valid = json_encode(['requestId' => self::rid(1), 'name' => 'Mira', 'presetId' => 'starter_01', 'build' => 'thin', 'form' => 'feminine'], JSON_THROW_ON_ERROR);
         foreach ([['text/plain', $valid, 415, 'unsupported_media_type'], ['application/json', str_repeat(' ', 16385), 413, 'request_too_large']] as [$type, $body, $status, $code]) {
             $this->client->request('POST', '/api/characters', server: ['HTTP_AUTHORIZATION' => 'Bearer '.self::TOKEN, 'CONTENT_TYPE' => $type], content: $body);
             $this->assertError($status, $code);
@@ -171,7 +188,7 @@ final class CharacterEndpointTest extends WebTestCase
     }
     public function testInvalidSessionsAreUnauthenticatedWithoutWrite(): void
     {
-        $valid = json_encode(['requestId' => self::rid(1), 'name' => 'Mira', 'presetId' => 'dummy_braid', 'form' => 'feminine'], JSON_THROW_ON_ERROR);
+        $valid = json_encode(['requestId' => self::rid(1), 'name' => 'Mira', 'presetId' => 'starter_01', 'build' => 'thin', 'form' => 'feminine'], JSON_THROW_ON_ERROR);
         $cases = [
             'missing' => [[], null],
             'malformed' => [['HTTP_AUTHORIZATION' => 'Bearer short'], null],
@@ -228,7 +245,7 @@ final class CharacterEndpointTest extends WebTestCase
     public function testCharactersAreAccountScopedAndCreationWritesNothingElse(): void
     {
         $this->connection->insert('account', ['id' => self::OTHER, 'created_at' => $this->clock->time, 'onboarding_status' => 'complete']);
-        $this->connection->insert('player_character', ['account_id' => self::OTHER, 'slot' => 1, 'creation_request_id' => self::rid(1), 'name' => 'Obca', 'preset_id' => 'dummy_tied', 'form' => 'feminine', 'created_at' => $this->clock->time]);
+        $this->connection->insert('player_character', ['account_id' => self::OTHER, 'slot' => 1, 'creation_request_id' => self::rid(1), 'name' => 'Obca', 'preset_id' => 'starter_04', 'build' => 'heavy', 'form' => 'feminine', 'created_at' => $this->clock->time]);
         $this->connection->insert('account_profile', ['account_id' => self::ACCOUNT, 'locale' => 'pl', 'timezone' => 'Europe/Warsaw']);
         $seeded = CharacterFixture::activate($this->connection, self::ACCOUNT);
         $this->request('POST', '/api/oath-previews', json_encode(['activity' => 'running', 'activation' => ['mode' => 'now'], 'deadline' => ['local' => gmdate('Y-m-d\TH:i:s', $this->clock->time + 7200), 'timezone' => 'UTC']], JSON_THROW_ON_ERROR));
@@ -327,7 +344,7 @@ final class CharacterEndpointTest extends WebTestCase
     {
         $this->create(self::rid(1));
         $first = $this->body()['character'];
-        $this->create(self::rid(2), 'Nora', 'dummy_tied', 'neutral');
+        $this->create(self::rid(2), 'Nora', 'starter_04', 'neutral', 'heavy');
         $second = $this->body()['character'];
         $characters = $this->connection->fetchAllAssociative('SELECT * FROM player_character ORDER BY slot');
         $before = $this->snapshot();
@@ -358,7 +375,7 @@ final class CharacterEndpointTest extends WebTestCase
         $this->create(self::rid(1));
         $id = $this->body()['character']['id'];
         $this->connection->insert('account', ['id' => self::OTHER, 'created_at' => $this->clock->time, 'onboarding_status' => 'complete']);
-        $foreign = $this->connection->fetchOne('INSERT INTO player_character (account_id, slot, creation_request_id, name, preset_id, form, created_at) VALUES (?, 1, ?, ?, ?, ?, ?) RETURNING id', [self::OTHER, self::rid(1), 'Obca', 'dummy_tied', 'feminine', $this->clock->time]);
+        $foreign = $this->connection->fetchOne('INSERT INTO player_character (account_id, slot, creation_request_id, name, preset_id, build, form, created_at) VALUES (?, 1, ?, ?, ?, ?, ?, ?) RETURNING id', [self::OTHER, self::rid(1), 'Obca', 'starter_04', 'thin', 'feminine', $this->clock->time]);
         foreach ([$foreign, '00000000-0000-4000-a000-999999999999'] as $target) {
             $this->switchTo($target);
             $this->assertError(404, 'not_found');
@@ -483,7 +500,7 @@ final class CharacterEndpointTest extends WebTestCase
         $path = tempnam(sys_get_temp_dir(), 'oathforge-DUMMY-character-');
         self::assertIsString($path);
         chmod($path, 0600);
-        $input = null === $switchTo ? ['requestId' => $requestId, 'name' => $name, 'presetId' => 'dummy_braid', 'form' => 'feminine'] : ['characterId' => $switchTo];
+        $input = null === $switchTo ? ['requestId' => $requestId, 'name' => $name, 'presetId' => 'starter_01', 'build' => 'thin', 'form' => 'feminine'] : ['characterId' => $switchTo];
         $data = ['time' => $this->clock->time, 'token' => self::TOKEN, 'input' => $input];
         file_put_contents($path, json_encode($data, JSON_THROW_ON_ERROR));
         $worker = new Process([PHP_BINARY, 'tests/Fixtures/'.(null === $switchTo ? 'character_creation_worker.php' : 'character_switch_worker.php'), $path], dirname(__DIR__, 2));
@@ -503,9 +520,9 @@ final class CharacterEndpointTest extends WebTestCase
         return json_decode(explode("\n", $worker->getOutput(), 2)[1], true, flags: JSON_THROW_ON_ERROR);
     }
     private static function rid(int $n): string { return sprintf('00000000-0000-4000-a000-%012d', $n); }
-    private function create(string $requestId, string $name = 'Mira', string $presetId = 'dummy_braid', string $form = 'feminine'): void
+    private function create(string $requestId, string $name = 'Mira', string $presetId = 'starter_01', string $form = 'feminine', string $build = 'thin'): void
     {
-        $this->request('POST', '/api/characters', json_encode(['requestId' => $requestId, 'name' => $name, 'presetId' => $presetId, 'form' => $form], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+        $this->request('POST', '/api/characters', json_encode(['requestId' => $requestId, 'name' => $name, 'presetId' => $presetId, 'build' => $build, 'form' => $form], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
     }
     private function switchTo(string $characterId): void { $this->request('PUT', '/api/characters/active', json_encode(['characterId' => $characterId], JSON_THROW_ON_ERROR)); }
     private function request(string $method, string $path, string $body = ''): void { $this->client->request($method, $path, server: ['HTTP_AUTHORIZATION' => 'Bearer '.self::TOKEN, 'CONTENT_TYPE' => 'application/json'], content: $body); }

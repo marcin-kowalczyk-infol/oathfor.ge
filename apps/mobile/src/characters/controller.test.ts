@@ -7,13 +7,13 @@ const otherAccount = '10000000-0000-4000-8000-00000000000b';
 const requestId = '40000000-0000-4000-8000-00000000000a';
 const secondRequest = '40000000-0000-4000-8000-00000000000b';
 const serverTime = '2026-09-26T12:00:00Z';
-const mira: Character = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'dummy_braid', form: 'feminine', createdAt: serverTime };
-const bor: Character = { id: '30000000-0000-4000-8000-00000000000b', name: 'Bor', presetId: 'dummy_tied', form: 'masculine', createdAt: serverTime };
-const presets = ['dummy_braid', 'dummy_cropped', 'dummy_curly', 'dummy_tied'];
+const mira: Character = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'starter_01', build: 'heavy', form: 'feminine', createdAt: serverTime };
+const bor: Character = { id: '30000000-0000-4000-8000-00000000000b', name: 'Bor', presetId: 'starter_04', build: 'thin', form: 'masculine', createdAt: serverTime };
+const presets = ['starter_01', 'starter_02', 'starter_03', 'starter_04', 'starter_05', 'starter_06'];
 const listing = (characters: Character[], activeCharacterId: string | null): CharacterList => ({ characters, activeCharacterId, limit: 3, presets, serverTime });
-const draft = { name: '  Mira ', presetId: 'dummy_braid', form: 'feminine' as const };
-const record: PendingCreation = { version: 1, accountId, requestId, name: 'Mira', presetId: 'dummy_braid', form: 'feminine' };
-const sent = { requestId, name: 'Mira', presetId: 'dummy_braid', form: 'feminine' };
+const draft = { name: '  Mira ', presetId: 'starter_01', build: 'heavy' as const, form: 'feminine' as const };
+const record: PendingCreation = { version: 2, accountId, requestId, name: 'Mira', presetId: 'starter_01', build: 'heavy', form: 'feminine' };
+const sent = { requestId, name: 'Mira', presetId: 'starter_01', build: 'heavy', form: 'feminine' };
 const created = (created = true, active = mira.id) => ({ kind: 'success' as const, created, value: { character: mira, activeCharacterId: active, serverTime } });
 const unavailable = { kind: 'unavailable' as const, retry: 'request' as const };
 function setup(initial: CharacterList = listing([], null)) {
@@ -64,7 +64,7 @@ test('a failed storage write sends nothing and reports storage', async () => {
 
 test('invalid drafts and a missing request ID generator send and store nothing', async () => {
   const f = setup(); const c = f.create(); c.start(); await flush();
-  for (const invalid of [{ ...draft, name: 'R2D2' }, { ...draft, presetId: 'Dummy' }, { ...draft, form: 'other' }]) {
+  for (const invalid of [{ ...draft, name: 'R2D2' }, { ...draft, presetId: 'Starter' }, { ...draft, build: 'broad' }, { ...draft, build: undefined }, { ...draft, form: 'other' }]) {
     await c.create(invalid as typeof draft);
     expect(ready(c.getState()).error).toEqual({ kind: 'invalid_request' });
   }

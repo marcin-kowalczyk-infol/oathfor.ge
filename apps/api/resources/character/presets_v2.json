@@ -1,0 +1,11 @@
+{
+  "version": "presets_v2",
+  "presets": [
+    {"id": "starter_01"},
+    {"id": "starter_02"},
+    {"id": "starter_03"},
+    {"id": "starter_04"},
+    {"id": "starter_05"},
+    {"id": "starter_06"}
+  ]
+}

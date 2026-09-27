@@ -303,16 +303,21 @@
   },
   "character": {
     "title": "Forge your character",
-    "intro": "Choose a look, a name and the title the Forge will call you by.",
+    "intro": "Choose a look, a build, a name and the title the Forge will call you by.",
     "preview": "Preview: {{name}}, {{title}}",
     "unnamed": "Unnamed",
     "untitled": "Title not chosen",
-    "dummy": "DUMMY",
-    "dummyLabel": "Placeholder art",
     "looks": "Look",
     "look": "Look {{index}} of {{count}}",
     "noLooks": "No looks can be shown right now. Reload the looks to continue.",
     "reloadLooks": "Reload looks",
+    "builds": "Build",
+    "build": {
+      "thin": "Slight",
+      "thinLabel": "Slight build",
+      "heavy": "Stout",
+      "heavyLabel": "Stout build"
+    },
     "name": "Name",
     "nameHint": "2 to 20 letters. A space, hyphen or apostrophe may sit between them.",
     "nameError": {

@@ -5,13 +5,14 @@ import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { CharacterCreationScreen, emptyCreationDraft, type CharacterCreationDraft } from './CharacterCreationScreen';
 import type { CharacterControllerState } from './controller';
 import type { PendingCreation } from './creationStorage';
+import { presetArt } from './presetArt';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 const accountId = '10000000-0000-4000-8000-00000000000a';
-const presets = ['dummy_braid', 'dummy_cropped', 'dummy_curly', 'dummy_tied'];
+const presets = ['starter_01', 'starter_02', 'starter_03', 'starter_04'];
 type Ready = Extract<CharacterControllerState, { kind: 'ready' }>;
 const ready = (patch: Partial<Ready> = {}): Ready => ({ kind: 'ready', characters: [], activeCharacterId: null, presets, limit: 3, busy: false, pendingCreation: null, activeRevision: 1, ...patch });
-const pending: PendingCreation = { version: 1, accountId, requestId: '40000000-0000-4000-8000-00000000000a', name: 'Zoya', presetId: 'dummy_curly', form: 'neutral' };
+const pending: PendingCreation = { version: 2, accountId, requestId: '40000000-0000-4000-8000-00000000000a', name: 'Zoya', presetId: 'starter_03', build: 'heavy', form: 'neutral' };
 
 async function setup(state: CharacterControllerState = ready(), locale: 'en' | 'pl' = 'en') {
   const handlers = { onCreate: jest.fn(), onRetry: jest.fn(), onReload: jest.fn() };
@@ -58,7 +59,7 @@ test('shows a specific live message for each name problem and clears it for a va
 });
 
 test('offers only presets the app can draw, preselects the first and submits the chosen one once', async () => {
-  const f = await setup(ready({ presets: ['owner_final_01', 'dummy_tied', 'dummy_braid'] })); await act(async () => {});
+  const f = await setup(ready({ presets: ['owner_final_01', 'starter_04', 'starter_01'] })); await act(async () => {});
   expect(screen.getAllByRole('radio', { name: /^Look / })).toHaveLength(2);
   expect(screen.getByRole('radio', { name: 'Look 1 of 2', selected: true })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('radio', { name: 'Look 2 of 2' }));
@@ -68,12 +69,51 @@ test('offers only presets the app can draw, preselects the first and submits the
   await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, they / them' }));
   await fireEvent.press(create()); await fireEvent.press(create());
   expect(f.onCreate).toHaveBeenCalledTimes(1);
-  expect(f.onCreate).toHaveBeenCalledWith({ name: 'Mira', presetId: 'dummy_braid', form: 'neutral' });
+  expect(f.onCreate).toHaveBeenCalledWith({ name: 'Mira', presetId: 'starter_01', build: 'thin', form: 'neutral' });
 });
 
-test('shows the name and chosen title on the preview card with a DUMMY marker', async () => {
+test('the build starts slight and draws the figure and every look in the chosen build', async () => {
   await setup(); await act(async () => {});
-  expect(screen.getByText('DUMMY')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Build').props.accessibilityRole).toBe('radiogroup');
+  expect(screen.getByRole('radio', { name: 'Slight build', selected: true })).toBeEnabled();
+  expect(screen.getByRole('radio', { name: 'Stout build', selected: false })).toBeEnabled();
+  const figure = () => screen.getByTestId('character-figure').props.source;
+  const look = (id: string) => screen.getByTestId(`look-${id}`).props.source;
+  expect(figure()).toBe(presetArt('starter_01', 'thin')!.figure);
+  for (const id of presets) expect(look(id)).toBe(presetArt(id, 'thin')!.portrait);
+  await fireEvent.press(screen.getByRole('radio', { name: 'Stout build' }));
+  expect(screen.getByRole('radio', { name: 'Stout build', selected: true })).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: 'Slight build', selected: false })).toBeOnTheScreen();
+  expect(figure()).toBe(presetArt('starter_01', 'heavy')!.figure);
+  for (const id of presets) expect(look(id)).toBe(presetArt(id, 'heavy')!.portrait);
+  await fireEvent.press(screen.getByRole('radio', { name: 'Look 2 of 4' }));
+  expect(figure()).toBe(presetArt('starter_02', 'heavy')!.figure);
+});
+
+test('submits the chosen build with the look, name and title', async () => {
+  const f = await setup(); await act(async () => {});
+  await fireEvent.press(screen.getByRole('radio', { name: 'Stout build' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Look 4 of 4' }));
+  await fireEvent.changeText(nameField(), 'Bor');
+  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, he / him' }));
+  await fireEvent.press(create());
+  expect(f.onCreate).toHaveBeenCalledWith({ name: 'Bor', presetId: 'starter_04', build: 'heavy', form: 'masculine' });
+});
+
+test('Polish names the build choice naturally', async () => {
+  await setup(ready(), 'pl'); await act(async () => {});
+  expect(screen.getByLabelText('Budowa').props.accessibilityRole).toBe('radiogroup');
+  expect(screen.getByText('Budowa')).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: 'Budowa wątła', selected: true })).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: 'Budowa tęga', selected: false })).toBeOnTheScreen();
+  expect(screen.getByText('Wątła')).toBeOnTheScreen();
+  expect(screen.getByText('Tęga')).toBeOnTheScreen();
+});
+
+test('shows the name and chosen title on the preview card without a placeholder marker', async () => {
+  await setup(); await act(async () => {});
+  expect(screen.queryByText('DUMMY')).toBeNull();
+  expect(screen.queryByLabelText('Placeholder art')).toBeNull();
   await fireEvent.changeText(nameField(), 'Mira');
   await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }));
   expect(screen.getByLabelText('Preview: Mira, Oathkeeper')).toBeOnTheScreen();
@@ -92,6 +132,8 @@ test('a stored creation prefills its values and retries it instead of creating a
   expect(nameField().props.editable).toBe(false);
   expect(screen.getByRole('radio', { name: 'Oathkeeper, they / them', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Look 3 of 4', selected: true })).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: 'Stout build', selected: true })).toBeDisabled();
+  expect(screen.getByTestId('character-figure').props.source).toBe(presetArt('starter_03', 'heavy')!.figure);
   expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device. Try again to finish.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Create character' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
@@ -115,7 +157,7 @@ test('a rejected look offers to reload the looks and the full roster blocks crea
   expect(screen.getByText('That look is no longer available. Reload the looks and choose again.')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Reload looks' }));
   expect(f.onReload).toHaveBeenCalledTimes(1);
-  await f.change(ready({ characters: [1, 2, 3].map(index => ({ id: `30000000-0000-4000-8000-00000000000${index}`, name: 'Mira', presetId: 'dummy_braid', form: 'feminine' as const, createdAt: '2026-09-26T12:00:00Z' })), activeCharacterId: '30000000-0000-4000-8000-000000000001' }));
+  await f.change(ready({ characters: [1, 2, 3].map(index => ({ id: `30000000-0000-4000-8000-00000000000${index}`, name: 'Mira', presetId: 'starter_01', build: 'thin' as const, form: 'feminine' as const, createdAt: '2026-09-26T12:00:00Z' })), activeCharacterId: '30000000-0000-4000-8000-000000000001' }));
   await fireEvent.changeText(nameField(), 'Mira');
   await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }));
   expect(create()).toBeDisabled();
@@ -155,6 +197,7 @@ test('a stored creation copies its choices into the draft so a later rejection k
   expect(nameField().props.editable).toBe(true);
   expect(screen.getByRole('radio', { name: 'Oathkeeper, they / them', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Look 3 of 4', selected: true })).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: 'Stout build', selected: true })).toBeEnabled();
   expect(screen.getByText('The Forge did not accept this name. Choose another one.')).toBeOnTheScreen();
   expect(nameField().props.accessibilityHint).toBe('The Forge did not accept this name. Choose another one.');
 });
@@ -196,7 +239,7 @@ test('busy with a pending creation disables Retry', async () => {
 
 test('a stored preset the app cannot draw shows a neutral figure and still retries', async () => {
   const f = await setup(ready({ pendingCreation: { ...pending, presetId: 'owner_final_01' }, error: { kind: 'unavailable', retry: 'request' } })); await act(async () => {});
-  expect(screen.queryByText('DUMMY')).toBeNull();
+  expect(screen.queryByTestId('character-figure')).toBeNull();
   expect(screen.getByTestId('character-placeholder')).toBeOnTheScreen();
   expect(screen.getAllByRole('radio', { name: /^Look / })).toHaveLength(4);
   expect(screen.queryAllByRole('radio', { name: /^Look /, selected: true })).toHaveLength(0);
@@ -265,6 +308,9 @@ test('at the largest text display words never break mid-word: capped display tex
     expect(screen.getByText('Obrończyni Przysięgi').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
     expect(screen.getByText('forma żeńska').props.maxFontSizeMultiplier).toBeUndefined();
     expect(screen.getByText('Od 2 do 20 liter. Między nimi może stać spacja, łącznik lub apostrof.').props.maxFontSizeMultiplier).toBeUndefined();
+    const build = screen.getByRole('radio', { name: 'Budowa tęga' });
+    expect(StyleSheet.flatten(build.props.style)).toMatchObject({ flexDirection: 'column' });
+    expect(screen.getByText('Tęga').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
   });
 });
 
@@ -272,6 +318,26 @@ test('at normal text size title choices keep the radio beside the text', async (
   await atFontScale(1, async () => {
     await setup(); await act(async () => {});
     expect(StyleSheet.flatten(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }).props.style)).toMatchObject({ flexDirection: 'row' });
+    expect(StyleSheet.flatten(screen.getByRole('radio', { name: 'Slight build' }).props.style)).toMatchObject({ flexDirection: 'row' });
+  });
+});
+
+test.each([[1, 'row'], [1.5, 'row'], [1.6, 'column'], [3.1, 'column']] as const)('at font scale %d the build cards sit in a %s', async (fontScale, direction) => {
+  await atFontScale(fontScale, async () => {
+    await setup(ready(), 'pl'); await act(async () => {});
+    expect(StyleSheet.flatten(screen.getByTestId('character-builds').props.style)).toMatchObject({ flexDirection: direction });
+    for (const name of ['Budowa wątła', 'Budowa tęga']) {
+      const card = StyleSheet.flatten(screen.getByRole('radio', { name }).props.style);
+      expect(card.minHeight).toBeGreaterThanOrEqual(48);
+      if (direction === 'row') expect(card).toMatchObject({ flex: 1, flexDirection: 'row' });
+      else { expect(card.flex).toBeUndefined(); expect(card.flexDirection).toBe('column'); }
+    }
+    for (const word of ['Wątła', 'Tęga']) {
+      const label = screen.getByText(word);
+      // Side by side a long word shrinks to fit its half of a 375pt screen instead of clipping or ellipsizing.
+      if (direction === 'row') expect(label.props).toMatchObject({ numberOfLines: 1, adjustsFontSizeToFit: true, maxFontSizeMultiplier: 1.5 });
+      else expect(label.props.numberOfLines).toBeUndefined();
+    }
   });
 });
 
