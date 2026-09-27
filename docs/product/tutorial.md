@@ -51,6 +51,7 @@ Rules for all lines: Żaromir speaks calmly in the first person and addresses th
 | `room.tutorial.intro` | Opowiem Ci o zasadach Kuźni. Dotknij miejsca, o którym chcesz posłuchać. | I will tell you how the Forge works. Touch the place you want to hear about. |
 | `room.tutorial.again` | Dotknij kolejnego miejsca albo zamknij rozmowę. | Touch another place or close our talk. |
 | `room.tutorial.end` | To wszystko, co dziś obowiązuje w Kuźni. Samouczek czeka w menu, gdy zechcesz wrócić. | That is everything the Forge follows today. The Tutorial waits in the menu whenever you want to return. |
+| `room.tutorial.next` | Dalej | Next |
 | `room.tutorial.another` | Inne miejsce | Another place |
 | `room.tutorial.finish` | Zakończ | Finish |
 | `room.tutorial.close` | Zamknij samouczek | Close the tutorial |

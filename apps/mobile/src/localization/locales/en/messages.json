@@ -461,6 +461,7 @@
       "intro": "I will tell you how the Forge works. Touch the place you want to hear about.",
       "again": "Touch another place or close our talk.",
       "end": "That is everything the Forge follows today. The Tutorial waits in the menu whenever you want to return.",
+      "next": "Next",
       "another": "Another place",
       "finish": "Finish",
       "close": "Close the tutorial",

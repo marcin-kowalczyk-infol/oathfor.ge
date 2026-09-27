@@ -234,3 +234,205 @@ test('a bubble that already fits keeps its place under the character', async () 
   await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 370, 120);
   expect(flat(screen.getByTestId('room-bubble')).top).toBeCloseTo(tall.height * 0.7);
 });
+
+describe('tutorial', () => {
+  const tut = en.room.tutorial;
+  type Place = 'hearth' | 'seals' | 'chronicle' | 'door';
+  const hear = (place: Place, heard = false) => `${tut.hear.replace('{{place}}', en.room[place])}${heard ? `, ${tut.heard}` : ''}`;
+  const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
+  const next = () => press(tut.next);
+  // Plays a whole chapter from the choice bubble and leaves its last line open.
+  async function play(place: Place, lines: number, heard = false) {
+    await press(hear(place, heard));
+    for (let line = 1; line < lines; line++) await next();
+  }
+
+  test('starts with the intro and no guide', async () => {
+    const onTutorialStart = jest.fn();
+    await render(room({ tutorial: 1, showGuide: true, onTutorialStart }));
+    expect(screen.getByText(tut.intro)).toBeOnTheScreen();
+    expect(screen.queryByText(en.room.guide.hearth)).toBeNull();
+    expect(screen.queryByRole('button', { name: en.room.actions.hearth })).toBeNull();
+    expect(screen.getByRole('button', { name: hear('door') })).toBeOnTheScreen();
+    expect(onTutorialStart).toHaveBeenCalledTimes(1);
+  });
+
+  test('a place walks there and pages its chapter with a counter', async () => {
+    motion.mockReturnValue(true);
+    const finishes: ((result: { finished: boolean }) => void)[] = [];
+    jest.spyOn(Animated, 'timing').mockImplementation((value) => ({
+      start: done => { if (done && value instanceof Animated.ValueXY) finishes.push(done); }, stop: jest.fn(), reset: jest.fn(),
+    }));
+    await render(room({ tutorial: 1 }));
+    await press(hear('hearth'));
+    expect(walkTimers()).toHaveLength(1);
+    expect(screen.queryByText(tut.hearth['1'])).toBeNull();
+    await act(async () => finishes[finishes.length - 1]({ finished: true }));
+    expect(screen.getByText(tut.hearth['1'])).toBeOnTheScreen();
+    expect(screen.getByText('1 / 4')).toBeOnTheScreen();
+    await next();
+    expect(screen.getByText(tut.hearth['2'])).toBeOnTheScreen();
+    expect(screen.getByText('2 / 4')).toBeOnTheScreen();
+    await next(); await next();
+    expect(screen.getByText(tut.hearth['4'])).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: tut.next })).toBeNull();
+    expect(screen.getByRole('button', { name: tut.another })).toBeOnTheScreen();
+  });
+
+  test('another place returns to the choice and marks the place as heard', async () => {
+    await render(room({ tutorial: 1 }));
+    await play('hearth', 4);
+    await press(tut.another);
+    expect(screen.getByText(tut.again)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: hear('hearth', true) })).toBeOnTheScreen();
+    expect(screen.getByTestId('heard-hearth', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.queryByTestId('heard-seals', { includeHiddenElements: true })).toBeNull();
+  });
+
+  test('the door plays its chapter instead of leaving the room', async () => {
+    const onExit = jest.fn();
+    await render(room({ tutorial: 1, onExit }));
+    await press(hear('door'));
+    expect(screen.getByText(tut.door['1'])).toBeOnTheScreen();
+    expect(screen.getByText('1 / 4')).toBeOnTheScreen();
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
+  test('the fourth distinct chapter finishes with the closing bubble, then the room works as usual', async () => {
+    const onOpenStation = jest.fn();
+    await render(room({ tutorial: 1, onOpenStation }));
+    await play('hearth', 4); await press(tut.another);
+    await play('seals', 3); await press(tut.another);
+    await play('chronicle', 2); await press(tut.another);
+    await play('door', 4);
+    expect(screen.queryByRole('button', { name: tut.another })).toBeNull();
+    await press(tut.finish);
+    expect(screen.getByText(tut.end)).toBeOnTheScreen();
+    await press(tut.finish);
+    expect(screen.queryByText(tut.end)).toBeNull();
+    await press(en.room.hearth);
+    await press(en.room.actions.hearth);
+    expect(onOpenStation).toHaveBeenCalledWith('hearth');
+  });
+
+  test('a replayed chapter plays again and does not count twice', async () => {
+    await render(room({ tutorial: 1 }));
+    await play('hearth', 4); await press(tut.another);
+    await play('hearth', 4, true);
+    expect(screen.getByText(tut.hearth['4'])).toBeOnTheScreen();
+    await press(tut.another);
+    await play('seals', 3); await press(tut.another);
+    await play('chronicle', 2);
+    expect(screen.getByRole('button', { name: tut.another })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: tut.finish })).toBeNull();
+  });
+
+  test('closing mid-chapter returns the stations and the door to their usual actions', async () => {
+    const onExit = jest.fn();
+    await render(room({ tutorial: 1, onExit }));
+    await press(hear('seals'));
+    await press(tut.close);
+    expect(screen.queryByText(tut.seals['1'])).toBeNull();
+    await press(en.room.seals);
+    expect(screen.getByText(en.room.descriptions.seals)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: en.room.actions.seals })).toBeOnTheScreen();
+    await press(en.room.exit);
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  test('a new tutorial id restarts the tutorial with no heard marks', async () => {
+    const onTutorialStart = jest.fn();
+    const view = await render(room({ tutorial: 1, onTutorialStart }));
+    await play('chronicle', 2); await press(tut.another);
+    await press(tut.close);
+    await view.rerender(room({ tutorial: 1, onTutorialStart }));
+    expect(screen.queryByText(tut.again)).toBeNull();
+    await view.rerender(room({ tutorial: 2, onTutorialStart }));
+    expect(screen.getByText(tut.intro)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: hear('chronicle') })).toBeOnTheScreen();
+    expect(onTutorialStart).toHaveBeenCalledTimes(2);
+  });
+
+  test('reduced motion shows the chapter at once without walking frames', async () => {
+    await render(room({ tutorial: 1 }));
+    await press(hear('chronicle'));
+    expect(screen.getByText(tut.chronicle['1'])).toBeOnTheScreen();
+    expect(walkTimers()).toHaveLength(0);
+  });
+
+  // The longest lines on a 375 × 667 screen with slightly larger text.
+  test.each([['seals', 3], ['chronicle', 2]] as const)('the last %s line fits above the bottom edge and below the places', async (place, lines) => {
+    const se = { width: 375, height: 667, scale: 2, fontScale: 1.3 };
+    Dimensions.set({ window: se, screen: se });
+    await render(room({ tutorial: 1 }));
+    await play(place, lines);
+    const content = 200;
+    await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 343, content);
+    const bubble = flat(screen.getByTestId('room-bubble'));
+    expect(bubble.top + content + 4 + 44).toBeLessThanOrEqual(se.height - 20);
+    const bottoms = (['hearth', 'seals', 'chronicle'] as const).map(station => {
+      const style = StyleSheet.flatten(screen.getByRole('button', { name: hear(station) }).props.style) as { top: number; marginTop: number; height: number };
+      return style.top + style.marginTop + style.height;
+    });
+    expect(bubble.top).toBeGreaterThanOrEqual(Math.max(...bottoms));
+  });
+});
+
+describe('tutorial after review', () => {
+  const tut = en.room.tutorial;
+  const hear = (place: 'hearth' | 'seals' | 'chronicle' | 'door', heard = false) => `${tut.hear.replace('{{place}}', en.room[place])}${heard ? `, ${tut.heard}` : ''}`;
+  const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
+  function captureWalks() {
+    motion.mockReturnValue(true);
+    const walks: { to: unknown; done: (result: { finished: boolean }) => void }[] = [];
+    jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
+      start: done => { if (done && value instanceof Animated.ValueXY) walks.push({ to: config.toValue, done }); }, stop: jest.fn(), reset: jest.fn(),
+    }));
+    return walks;
+  }
+
+  test('the door chapter walks Żaromir to the door foot point', async () => {
+    const walks = captureWalks();
+    await render(room({ tutorial: 1 }));
+    await press(hear('door'));
+    expect(walks[walks.length - 1].to).toEqual({ x: 0.27, y: 0.58 });
+  });
+
+  // Native geometry: a walk back to the start point would hide Żaromir behind the choice bubble.
+  test('after a chapter Żaromir stays at the place in his idle pose for the choice', async () => {
+    const walks = captureWalks();
+    await render(room({ tutorial: 1 }));
+    await press(hear('chronicle'));
+    await act(async () => walks[walks.length - 1].done({ finished: true }));
+    expect(screen.getByTestId('hero-pose-chronicle', { includeHiddenElements: true })).toBeTruthy();
+    await press(tut.next);
+    await press(tut.another);
+    expect(walks).toHaveLength(1);
+    expect(screen.getByText(tut.again)).toBeOnTheScreen();
+    expect(screen.getByTestId('hero-idle', { includeHiddenElements: true })).toBeTruthy();
+  });
+
+  test('touching the place being told keeps the current line', async () => {
+    await render(room({ tutorial: 1 }));
+    await press(hear('hearth'));
+    await press(tut.next);
+    await press(hear('hearth'));
+    expect(screen.getByText(tut.hearth['2'])).toBeOnTheScreen();
+  });
+
+  test('a guide restart during the tutorial stays hidden', async () => {
+    const view = await render(room({ tutorial: 1 }));
+    await view.rerender(room({ tutorial: 1, showGuide: 3 }));
+    expect(screen.queryByText(en.room.guide.hearth)).toBeNull();
+    expect(screen.getByText(tut.intro)).toBeOnTheScreen();
+  });
+
+  test('a tutorial restart sends Żaromir back to the start point', async () => {
+    const walks = captureWalks();
+    const view = await render(room({ tutorial: 1 }));
+    await press(hear('seals'));
+    await act(async () => walks[walks.length - 1].done({ finished: true }));
+    await view.rerender(room({ tutorial: 2 }));
+    expect(walks[walks.length - 1].to).toEqual({ x: 0.5, y: 0.82 });
+  });
+});

@@ -35,12 +35,16 @@ export function RoomBubble({ frame, reveal, pointX, contentKey, fill, onContentH
 /** Footer height counted by the room when it decides how far a bubble grows upward. */
 export const BUBBLE_FOOTER = 44;
 
-/** A step counter with a next control, used by the guide. */
-export function BubbleSteps({ count, label, mark, onPress }: { count: string; label: string; mark: string; onPress: () => void }) {
+/**
+ * A step counter with a next control. The control is a mark, or its label as text when `text` is set.
+ * Text stays within the fixed footer height at its largest size.
+ */
+export function BubbleSteps({ count, label, mark, text = false, onPress }: { count: string; label: string; mark?: string; text?: boolean; onPress: () => void }) {
   return <View style={styles.footer}>
     <Text accessible={false} allowFontScaling={false} style={styles.stepCount}>{count}</Text>
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.next}>
-      <Text accessible={false} allowFontScaling={false} style={styles.nextMark}>{mark}</Text>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [text ? styles.textNext : styles.next, pressed && { opacity: 0.6 }]}>
+      {text ? <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.display} numberOfLines={1} style={styles.nextLabel}>{label}</Text>
+        : <Text accessible={false} allowFontScaling={false} style={styles.nextMark}>{mark}</Text>}
     </Pressable>
   </View>;
 }
@@ -56,6 +60,8 @@ const styles = StyleSheet.create({
   footer: { height: BUBBLE_FOOTER, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 16, paddingRight: 6 },
   next: { width: 52, height: 44, alignItems: 'center', justifyContent: 'center' },
   nextMark: { color: '#69431e', fontSize: 30 },
+  textNext: { height: 44, flexShrink: 1, justifyContent: 'center', paddingHorizontal: 10 },
+  nextLabel: { color: '#5d3616', fontFamily: tokens.font.body, fontSize: 17, fontWeight: '600' },
   stepCount: { color: '#725339', fontSize: 12 },
   dismiss: { position: 'absolute', right: 0, top: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   dismissMark: { color: '#725339', fontSize: 28 },
