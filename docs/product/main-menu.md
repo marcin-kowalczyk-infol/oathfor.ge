@@ -1,6 +1,6 @@
 # Main menu, Settings and the Forge room
 
-Status: accepted specification, owner decisions of 2026-09-26 during brainstorming (sub-project 2 after [player characters](player-character.md)). Implemented locally in MVP-18 on 2026-09-26 and checked natively in the development demo, see [main menu acceptance](../engineering/testing.md#main-menu-acceptance-mvp-18-2026-09-26). Pending: owner visual acceptance, VoiceOver (deferred by the owner), final room and preset art, and the intermittent wrong image seen on the iPhone 18 Pro in the demo (see the acceptance record).
+Status: accepted specification, owner decisions of 2026-09-26 during brainstorming (sub-project 2 after [player characters](player-character.md)). Implemented locally in MVP-18 on 2026-09-26 and checked natively in the development demo, see [main menu acceptance](../engineering/testing.md#main-menu-acceptance-mvp-18-2026-09-26). Pending: owner visual acceptance, VoiceOver (deferred by the owner), and final room and preset art. The intermittent wrong image on the iPhone 18 Pro was a React Native defect, fixed by a patch on 2026-09-27 and verified in a development build (see the acceptance record).
 
 ## Purpose
 
