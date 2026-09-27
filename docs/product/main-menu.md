@@ -6,7 +6,7 @@ Status: accepted specification, owner decisions of 2026-09-26 during brainstormi
 
 After sign-in the player needs one calm home screen. It shows who they play as and leads to the three things they do: work with Oaths in the Forge, learn the place with Żaromir and change settings. The menu replaces the temporary character badge in the Oath header. Pause and sign-out leave the Oath screens and move to Settings. The Forge room, earlier only in the development demo, is the real entrance to the Oath screens.
 
-The Żaromir tutorial with its own content is a later, separate specification (sub-project 3). Account deletion, data export and support belong to MVP-14.
+The Żaromir tutorial with its own content is a separate specification, see [tutorial](tutorial.md) (sub-project 3, proposed). Account deletion, data export and support belong to MVP-14.
 
 ## Flow
 

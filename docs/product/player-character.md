@@ -57,7 +57,7 @@ Exact request and response shapes are recorded in the [API contract](../engineer
 
 ## Artwork
 
-The owner supplies 6 to 8 presets, each as a full figure and a portrait, varying presentation, skin tone, hair and everyday body type. Until then, the four figures from `player-starters-lineup-v01` are DUMMY presets, labelled in the manifest and never shipped as final. Presets follow the [art pipeline](../art/pipeline.md) and the [visual quality bar](../art/ui-system.md#visual-quality-bar).
+The owner supplies 6 to 8 presets, each as a full figure and a portrait, varying presentation, skin tone, hair and everyday body type. Starting presets are poorly dressed, in patched and worn clothing, with ordinary untrained bodies and no visible musculature. The character is meant to progress and change appearance over time, so the presets are its first stage and keep a simple, easily preserved identity. How the player character progresses is not yet specified. **Local decision: owner instruction, 2026-09-27.** Until then, the four figures from `player-starters-lineup-v01` are DUMMY presets, labelled in the manifest and never shipped as final. Presets follow the [art pipeline](../art/pipeline.md) and the [visual quality bar](../art/ui-system.md#visual-quality-bar).
 
 ## Acceptance
 
