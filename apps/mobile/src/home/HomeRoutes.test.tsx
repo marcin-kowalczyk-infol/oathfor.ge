@@ -10,7 +10,7 @@ jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 
 const accountId = '01997aed-8950-7f7a-bda4-36b64697b562';
-const mira = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'dummy_braid', form: 'feminine' as const, createdAt: '2026-09-24T12:00:00Z' };
+const mira = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'starter_01', build: 'thin' as const, form: 'feminine' as const, createdAt: '2026-09-24T12:00:00Z' };
 const phone = { width: 390, height: 844, scale: 3, fontScale: 1 };
 beforeEach(() => Dimensions.set({ window: phone, screen: phone }));
 

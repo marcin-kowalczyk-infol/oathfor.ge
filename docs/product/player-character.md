@@ -1,6 +1,6 @@
 # Player characters
 
-Status: accepted specification, owner decisions of 2026-09-26 during brainstorming. Implemented locally in MVP-17 on 2026-09-26 with four DUMMY presets. Owner preset artwork, owner visual acceptance and VoiceOver remain pending. Delivery epic: MVP-17 in the local backlog. Architectural decision: [ADR 0005](../decisions/0005-character-owned-oaths.md).
+Status: accepted specification, owner decisions of 2026-09-26 during brainstorming. Implemented locally in MVP-17 on 2026-09-26 with four DUMMY presets. MVP-17-T13 replaced them on 2026-09-27 with six owner-requested starters in two builds. Owner visual acceptance and VoiceOver remain pending. Delivery epic: MVP-17 in the local backlog. Architectural decision: [ADR 0005](../decisions/0005-character-owned-oaths.md).
 
 ## Purpose
 
@@ -17,6 +17,7 @@ This specification covers the character itself. The main menu, Settings and the 
 | Count | An account holds up to 3 characters. The first one is required. Characters cannot be deleted in MVP. |
 | Look | The player picks one preset. A preset is a complete illustration set, not layered parts. The server owns the list of valid preset IDs. |
 | Name | 2 to 20 characters after trimming and NFC normalization. Unicode letters, with a single space, hyphen or apostrophe allowed between letters. No uniqueness and no word filter in MVP. Only the player sees the name. |
+| Build | Thin or heavy, chosen at creation separately from the preset. Every preset has both builds. The server stores the build on the character. |
 | Polish form | Masculine, feminine or neutral. Chosen at creation, independent of the preset look. |
 | Title | PL: Obrońca Przysięgi, Obrończyni Przysięgi, Straż Przysięgi. EN: Oathkeeper. |
 | Editing | A created character cannot be changed. "Change character" switches the active character or creates a new one while below the limit. |
@@ -30,7 +31,7 @@ Creating or switching characters grants no XP, reward or unlock. Only explicit r
 
 After onboarding completes, an account without an active character sees full-screen character creation. The same rule applies to every account, so no separate invitation path exists. If an Oath endpoint reports `character_required`, the app returns to character creation.
 
-Creation shows a large illustration of the selected preset, a row of preset portraits, the name field with live validation, and three form choices showing their title. "Create character" submits once. Leaving or losing the connection keeps the draft and creates nothing. A lost reply is retried with the same request identity, so it can never create a duplicate.
+Creation shows a large illustration of the selected preset in the selected build, a row of preset portraits in that build, a build choice, the name field with live validation, and three form choices showing their title. "Create character" submits once. Leaving or losing the connection keeps the draft and creates nothing. A lost reply is retried with the same request identity, so it can never create a duplicate.
 
 "Change character" lists up to three character cards with the active one marked, plus a "New character" slot while below the limit. Choosing a card makes it active and reloads that character's Oaths. The entry is the "Change character" pill on the character card of the [main menu](main-menu.md). Back returns to the menu.
 
@@ -38,7 +39,7 @@ A pending acceptance belongs to the character of its preview. Switching characte
 
 ## Server behavior
 
-- A `player_character` record holds identity, account, name, preset, form, pause state with its revision, and creation time. The account stores its active character.
+- A `player_character` record holds identity, account, name, preset, build, form, pause state with its revision, and creation time. The account stores its active character.
 - `GET /api/characters` returns the characters and the active ID. `POST /api/characters` creates and activates a character, idempotent by client request ID. `PUT /api/characters/active` switches. Another account's character is not found.
 - The limit is enforced under the account row lock, the same serialization used by profile and Oath writes.
 - Oath list, detail and pause use the account's active character. A preview records its character. Acceptance creates the Oath for the preview's character even if the active character changed meanwhile.
@@ -57,7 +58,7 @@ Exact request and response shapes are recorded in the [API contract](../engineer
 
 ## Artwork
 
-The owner supplies 6 to 8 presets, each as a full figure and a portrait, varying presentation, skin tone, hair and everyday body type. Starting presets are poorly dressed, in patched and worn clothing, with no visible musculature. Each preset identity comes in two builds, thin and heavy, and the player chooses the build separately at character creation. This changes the preset model and API, which currently treat a preset as one full illustration, and needs its own task. The character is meant to progress and change over time, including its body, so the presets are its first stage and keep a simple, easily preserved identity. How the player character progresses is not yet specified. **Local decision: owner instruction, 2026-09-27.** Until then, the four figures from `player-starters-lineup-v01` are DUMMY presets, labelled in the manifest and never shipped as final. Presets follow the [art pipeline](../art/pipeline.md) and the [visual quality bar](../art/ui-system.md#visual-quality-bar).
+The owner supplies 6 to 8 presets, each as a full figure and a portrait, varying presentation, skin tone, hair and everyday body type. Starting presets are poorly dressed, in patched and worn clothing, with no visible musculature. Each preset identity comes in two builds, thin and heavy, and the player chooses the build separately at character creation. The API stores the build as a separate character field (MVP-17-T13). The character is meant to progress and change over time, including its body, so the presets are its first stage and keep a simple, easily preserved identity. How the player character progresses is not yet specified. **Local decision: owner instruction, 2026-09-27.** Six starters are selected, `starter_01` to `starter_06`, listed in the [preset manifest](../art/player-preset-assets.md). The four DUMMY presets are removed. Presets follow the [art pipeline](../art/pipeline.md) and the [visual quality bar](../art/ui-system.md#visual-quality-bar).
 
 ## Acceptance
 

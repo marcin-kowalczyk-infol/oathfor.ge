@@ -4,8 +4,9 @@ jest.mock('expo-secure-store', () => ({ getItemAsync: jest.fn(), setItemAsync: j
 const accountId = '10000000-0000-4000-8000-00000000000a';
 const otherAccount = '10000000-0000-4000-8000-00000000000b';
 const requestId = '40000000-0000-4000-8000-00000000000a';
-const record = { version: 1 as const, accountId, requestId, name: 'Mira', presetId: 'dummy_braid', form: 'feminine' as const };
-const key = `oathforge.character-creation.v1.${accountId}`;
+const record = { version: 2 as const, accountId, requestId, name: 'Mira', presetId: 'starter_01', build: 'heavy' as const, form: 'feminine' as const };
+const key = `oathforge.character-creation.v2.${accountId}`;
+const legacyKey = `oathforge.character-creation.v1.${accountId}`;
 beforeEach(() => jest.clearAllMocks());
 
 test('stores the creation identity per account with device-only protection and reads it back', async () => {
@@ -21,11 +22,13 @@ test.each([
   ['corrupt', '{'],
   ['another account', JSON.stringify({ ...record, accountId: otherAccount })],
   ['unexpected field', JSON.stringify({ ...record, token: 'secret' })],
-  ['other version', JSON.stringify({ ...record, version: 2 })],
+  ['other version', JSON.stringify({ ...record, version: 3 })],
+  ['missing build', JSON.stringify({ version: 2, accountId, requestId, name: 'Mira', presetId: 'starter_01', form: 'feminine' })],
+  ['unknown build', JSON.stringify({ ...record, build: 'broad' })],
   ['uppercase request ID', JSON.stringify({ ...record, requestId: requestId.toUpperCase() })],
   ['name failing the full rule', JSON.stringify({ ...record, name: 'R2D2' })],
   ['unnormalized name', JSON.stringify({ ...record, name: ' Mira' })],
-  ['malformed preset', JSON.stringify({ ...record, presetId: 'Dummy' })],
+  ['malformed preset', JSON.stringify({ ...record, presetId: 'Starter' })],
   ['unknown form', JSON.stringify({ ...record, form: 'other' })],
 ])('rejects a %s record', async (_label, encoded) => {
   jest.mocked(SecureStore.getItemAsync).mockResolvedValueOnce(encoded);
@@ -47,4 +50,14 @@ test('reports native failures, clears with a tombstone and never writes a foreig
     jest.mocked(SecureStore.getItemAsync).mockResolvedValueOnce(empty);
     await expect(secureCreationStorage.read(accountId)).resolves.toEqual({ kind: 'success', value: null });
   }
+});
+
+test('a record from before builds is never read, so the player starts without a stored creation', async () => {
+  const legacy = { version: 1, accountId, requestId, name: 'Mira', presetId: 'dummy_braid', form: 'feminine' };
+  jest.mocked(SecureStore.getItemAsync).mockImplementation(async name => name === legacyKey ? JSON.stringify(legacy) : null);
+  try {
+    await expect(secureCreationStorage.read(accountId)).resolves.toEqual({ kind: 'success', value: null });
+    expect(SecureStore.getItemAsync).not.toHaveBeenCalledWith(legacyKey, expect.anything());
+  } finally { jest.mocked(SecureStore.getItemAsync).mockReset(); }
+  await expect(secureCreationStorage.write(accountId, { ...record, version: 1 } as unknown as typeof record)).resolves.toEqual({ kind: 'unavailable' });
 });

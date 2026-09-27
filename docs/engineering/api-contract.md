@@ -116,19 +116,21 @@ All endpoints reuse HTTPS/Bearer/no-store and safe error envelope `{"error":{"co
 
 ## Player character contract
 
-Status: `GET` and `POST /api/characters` implemented in MVP-17-T02, `PUT /api/characters/active` in MVP-17-T03 and character-owned Oaths with per-character pause in MVP-17-T04 and T05, with integration and race coverage, 2026-09-26. The mobile client is planned. The runtime image has no `ext-intl`, so NFC uses the declared `symfony/polyfill-intl-normalizer`. Local engineering contract, 2026-09-26, implementing the accepted [player character specification](../product/player-character.md) and [ADR 0005](../decisions/0005-character-owned-oaths.md). Existing Bearer, HTTPS, no-store, 16 KiB JSON bound, 415 media type check and safe error envelope apply. Unknown fields and wrong types return 400 `invalid_request`. Infrastructure failure returns 503 `temporarily_unavailable` with no partial write. Invalid, expired or revoked sessions return 401 `unauthenticated`. IDs use canonical lowercase UUID text, and a malformed ID in a body returns 400 `invalid_request`.
+Status: `GET` and `POST /api/characters` implemented in MVP-17-T02, `PUT /api/characters/active` in MVP-17-T03 and character-owned Oaths with per-character pause in MVP-17-T04 and T05, with integration and race coverage, 2026-09-26. Owner starter presets and the `build` field implemented in the API and the mobile client in MVP-17-T13, 2026-09-27. The runtime image has no `ext-intl`, so NFC uses the declared `symfony/polyfill-intl-normalizer`. Local engineering contract, 2026-09-26, implementing the accepted [player character specification](../product/player-character.md) and [ADR 0005](../decisions/0005-character-owned-oaths.md). Existing Bearer, HTTPS, no-store, 16 KiB JSON bound, 415 media type check and safe error envelope apply. Unknown fields and wrong types return 400 `invalid_request`. Infrastructure failure returns 503 `temporarily_unavailable` with no partial write. Invalid, expired or revoked sessions return 401 `unauthenticated`. IDs use canonical lowercase UUID text, and a malformed ID in a body returns 400 `invalid_request`.
 
 ### Persistence and locking
 
-A `player_character` row holds `id`, `account_id`, `slot`, `creation_request_id`, `name`, `preset_id`, `form`, `paused` and `created_at`. `slot` is 1 to 3 and unique per account, a database backstop for the limit. `creation_request_id` is unique per account. `account.active_character_id` is nullable and references the account's own character through a composite key, so an account can never point at another account's character. Characters are listed in slot order. Deleting an account deletes its characters.
+A `player_character` row holds `id`, `account_id`, `slot`, `creation_request_id`, `name`, `preset_id`, `build`, `form`, `paused` and `created_at`. `build` is `thin` or `heavy`, enforced by a check constraint. Migration `Version20260927100000` made every existing character `thin`. `slot` is 1 to 3 and unique per account, a database backstop for the limit. `creation_request_id` is unique per account. `account.active_character_id` is nullable and references the account's own character through a composite key, so an account can never point at another account's character. Characters are listed in slot order. Deleting an account deletes its characters.
 
 Every character request and every Oath read or write locks the account row first, then the session, then Oath rows in ID order where the operation needs them. Character rows are protected by the account lock and need no separate row lock. Authorization is rechecked at the fresh clock time after the locks. This keeps the [ADR 0004](../decisions/0004-oath-acceptance-and-reconciliation.md) order with no new lock hierarchy.
 
-### Presets, forms and names
+### Presets, builds, forms and names
 
-The server owns the preset catalog in `apps/api/resources/character/presets_v1.json`. IDs match `^[a-z0-9_]{1,64}$`. The catalog holds four DUMMY presets, `dummy_braid`, `dummy_cropped`, `dummy_curly` and `dummy_tied`, marked `"dummy": true`. They are replaced by owner artwork later. A stored character keeps its preset ID, so a character's `presetId` may be absent from the current `presets` list. Clients must accept that and draw a neutral placeholder.
+The server owns the preset catalog in `apps/api/resources/character/presets_v2.json`, version `presets_v2`. IDs match `^[a-z0-9_]{1,64}$`. The catalog holds the owner's six starters, `starter_01` to `starter_06`, in that order. They replaced the four DUMMY presets of `presets_v1` in MVP-17-T13, 2026-09-27. A stored character keeps its preset ID, so a character's `presetId` may be absent from the current `presets` list, for example an old `dummy_braid`. Clients must accept that and draw a neutral placeholder.
 
-`form` is `masculine`, `feminine` or `neutral`. It selects Polish grammatical variants and is independent of the preset look.
+`build` is `thin` or `heavy`. Each preset identity comes in both builds, and the player chooses the build separately at creation. Like `form`, the build set is fixed and the server does not list it. **Local decision: owner instruction, 2026-09-27.**
+
+`form` is `masculine`, `feminine` or `neutral`. It selects Polish grammatical variants and is independent of the preset look and build.
 
 Name rule, local decision 2026-09-26:
 
@@ -145,32 +147,32 @@ The normalized name is stored and returned. There is no uniqueness check and no 
 ```json
 {
   "characters": [
-    {"id": "<UUID>", "name": "Mira", "presetId": "dummy_braid", "form": "feminine", "createdAt": "<UTC>"}
+    {"id": "<UUID>", "name": "Mira", "presetId": "starter_01", "build": "thin", "form": "feminine", "createdAt": "<UTC>"}
   ],
   "activeCharacterId": "<UUID>",
   "limit": 3,
-  "presets": ["dummy_braid", "dummy_cropped", "dummy_curly", "dummy_tied"],
+  "presets": ["starter_01", "starter_02", "starter_03", "starter_04", "starter_05", "starter_06"],
   "serverTime": "<UTC>"
 }
 ```
 
-`activeCharacterId` is null until the first character exists.
+`activeCharacterId` is null until the first character exists. Every character object in the create, list and switch answers is exactly `{id, name, presetId, build, form, createdAt}`.
 
 `POST /api/characters` accepts exactly:
 
 ```json
-{"requestId": "<UUID>", "name": "Mira", "presetId": "dummy_braid", "form": "feminine"}
+{"requestId": "<UUID>", "name": "Mira", "presetId": "starter_01", "build": "heavy", "form": "feminine"}
 ```
 
-The client creates and stores `requestId` before the first send and reuses it for every retry of that creation. Shape, form and the name rule are validated before the transaction. Order inside the locked transaction:
+The client creates and stores `requestId` before the first send and reuses it for every retry of that creation. Shape, build, form and the name rule are validated before the transaction. Order inside the locked transaction:
 
-1. Look up the account's `requestId`. The same normalized name, preset and form return 200 `{"character":{...},"activeCharacterId":"<UUID>","serverTime":"<UTC>"}` with the original character and the current active ID. A replay never changes the active character. A different payload returns 409 `idempotency_conflict`.
+1. Look up the account's `requestId`. The same normalized name, preset, build and form return 200 `{"character":{...},"activeCharacterId":"<UUID>","serverTime":"<UTC>"}` with the original character and the current active ID. A replay never changes the active character. A different payload returns 409 `idempotency_conflict`.
 2. Require a preset ID from the current catalog, otherwise 400 `invalid_preset`. A replay in step 1 skips this check, so a stored creation still resolves after the catalog changes.
 3. Require completed onboarding, otherwise 409 `onboarding_incomplete`.
 4. Require fewer than 3 characters, otherwise 409 `character_limit_reached`.
 5. Insert the character in the next slot, make it active and return 201 in the same shape.
 
-A name error returns 400 `invalid_character_name` with no write. An unknown form value is 400 `invalid_request`.
+A name error returns 400 `invalid_character_name` with no write. A missing, extra or unknown `build` and an unknown form value are 400 `invalid_request`.
 
 `PUT /api/characters/active` accepts exactly `{"characterId":"<UUID>"}` and returns 200 in the GET shape. An unknown ID or another account's character returns 404 `not_found`. Choosing the already active character returns 200 with no change.
 
@@ -190,7 +192,7 @@ Status: implemented in MVP-17-T04 and T05, 2026-09-26. These rules replace the a
 - Pause belongs to the active character. The revision binds the character, its pause state and its affected commitments. Pause withdraws only that character's scheduled and active Oaths. `POST /api/oath-pause` also requires `"characterId"`, for example `{"characterId":"<UUID>","paused":true,"revision":"<opaque>"}` or `{"characterId":"<UUID>","paused":false}`. If it differs from the active character, the answer is 409 `character_changed` with no effect. The migration drops `account.gameplay_paused`, and `player_character.paused` becomes the only pause source. Services read the character's pause flag in a separate query after the account lock, so a pause committed during a lock wait is never missed. The error code and withdrawal reason `account_paused` become `character_paused`.
 - Due reconciliation still locks and reconciles all Oaths of the account, because the account remains the serialization unit.
 
-Mobile storage choices, local decision 2026-09-26: a pending acceptance is stored per account and character as `{version:2, accountId, characterId, previewId, requestId}`. Older version 1 records are ignored. A pending character creation is stored per account as `{version:1, accountId, requestId, name, presetId, form}` before the first send and cleared after a decisive answer.
+Mobile storage choices, local decision 2026-09-26: a pending acceptance is stored per account and character as `{version:2, accountId, characterId, previewId, requestId}`. Older version 1 records are ignored. A pending character creation is stored per account as `{version:2, accountId, requestId, name, presetId, build, form}` before the first send and cleared after a decisive answer. Version 1 records use another key and are never read, local decision 2026-09-27.
 
 ## Original Oath contract
 

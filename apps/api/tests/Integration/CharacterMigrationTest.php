@@ -37,6 +37,7 @@ final class CharacterMigrationTest extends KernelTestCase
         $this->expectFailure('23514', fn () => $this->character(self::ACCOUNT, 4));
         $this->expectFailure('23514', fn () => $this->character(self::ACCOUNT, 1, null, 'A'));
         $this->expectFailure('23514', fn () => $this->character(self::ACCOUNT, 1, null, 'Mira', 'other'));
+        $this->expectFailure('23514', fn () => $this->character(self::ACCOUNT, 1, null, 'Mira', 'feminine', 'medium'));
         $own = $this->character(self::ACCOUNT, 1);
         $this->connection->executeStatement('UPDATE account SET active_character_id = ? WHERE id = ?', [$own, self::ACCOUNT]);
         $this->connection->executeStatement('UPDATE account SET active_character_id = ? WHERE id = ?', [$foreign, self::OTHER]);
@@ -48,14 +49,16 @@ final class CharacterMigrationTest extends KernelTestCase
     public function testMigrationIsReversible(): void
     {
         $this->connection->executeStatement('TRUNCATE account CASCADE');
+        $this->migration('Version20260927100000', '--down');
         $this->migration('Version20260926120000', '--down');
         $this->migration('Version20260926110000', '--down');
         $this->migration('Version20260926100000', '--down');
         try {
             self::assertFalse($this->connection->fetchOne("SELECT to_regclass('player_character') IS NOT NULL"));
             self::assertSame(0, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'active_character_id'"));
-        } finally { foreach (['Version20260926100000', 'Version20260926110000', 'Version20260926120000'] as $version) { $this->migration($version, '--up'); } }
+        } finally { foreach (['Version20260926100000', 'Version20260926110000', 'Version20260926120000', 'Version20260927100000'] as $version) { $this->migration($version, '--up'); } }
         self::assertSame(1, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'player_character' AND column_name = 'paused'"));
+        self::assertSame(1, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'player_character' AND column_name = 'build'"));
         self::assertSame(0, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'gameplay_paused'"));
         self::assertTrue($this->connection->fetchOne("SELECT to_regclass('player_character') IS NOT NULL"));
         self::assertSame(1, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'active_character_id'"));
@@ -100,9 +103,29 @@ final class CharacterMigrationTest extends KernelTestCase
         self::assertSame([[self::ACCOUNT, true], [self::OTHER, false]], array_map(fn (array $row): array => [$row['account_id'], $row['paused']], $this->connection->fetchAllAssociative('SELECT account_id, paused FROM player_character ORDER BY account_id')));
         self::assertSame(0, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'gameplay_paused'"));
     }
-    private function character(string $account, int $slot, ?string $request = null, string $name = 'Mira', string $form = 'feminine'): string
+    private function character(string $account, int $slot, ?string $request = null, string $name = 'Mira', string $form = 'feminine', ?string $build = 'thin'): string
     {
-        return (string) $this->connection->fetchOne('INSERT INTO player_character (account_id, slot, creation_request_id, name, preset_id, form, created_at) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id', [$account, $slot, $request ?? sprintf('00000000-0000-4000-a000-%012d', $slot + 10 * (int) (self::OTHER === $account)), $name, 'dummy_braid', $form, 1800000000]);
+        $values = ['account_id' => $account, 'slot' => $slot, 'creation_request_id' => $request ?? sprintf('00000000-0000-4000-a000-%012d', $slot + 10 * (int) (self::OTHER === $account)), 'name' => $name, 'preset_id' => 'starter_01', 'form' => $form, 'created_at' => 1800000000];
+        if (null !== $build) { $values['build'] = $build; }
+        return (string) $this->connection->fetchOne('INSERT INTO player_character ('.implode(', ', array_keys($values)).') VALUES ('.implode(', ', array_fill(0, count($values), '?')).') RETURNING id', array_values($values));
+    }
+    public function testBuildMigrationMakesExistingCharactersThinAndConstrainsBuild(): void
+    {
+        $this->migration('Version20260927100000', '--down');
+        $restored = false;
+        try {
+            self::assertSame(0, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'player_character' AND column_name = 'build'"));
+            $this->character(self::ACCOUNT, 1, null, 'Mira', 'feminine', null);
+            $this->character(self::OTHER, 1, null, 'Nora', 'neutral', null);
+            $this->migration('Version20260927100000', '--up');
+            $restored = true;
+        } finally { if (!$restored) { $this->migration('Version20260927100000', '--up'); } }
+        self::assertSame([[self::ACCOUNT, 'thin'], [self::OTHER, 'thin']], array_map(fn (array $row): array => [$row['account_id'], $row['build']], $this->connection->fetchAllAssociative('SELECT account_id, build FROM player_character ORDER BY account_id')));
+        self::assertSame(['is_nullable' => 'NO', 'column_default' => null, 'data_type' => 'character varying', 'character_maximum_length' => 16], $this->connection->fetchAssociative("SELECT is_nullable, column_default, data_type, character_maximum_length FROM information_schema.columns WHERE table_name = 'player_character' AND column_name = 'build'"));
+        $this->expectFailure('23502', fn () => $this->character(self::ACCOUNT, 2, null, 'Mira', 'feminine', null));
+        foreach (['medium', 'Thin', ''] as $build) { $this->expectFailure('23514', fn () => $this->character(self::ACCOUNT, 2, null, 'Mira', 'feminine', $build)); }
+        $this->character(self::ACCOUNT, 2, null, 'Mira', 'feminine', 'heavy');
+        self::assertSame(['heavy', 'thin'], $this->connection->fetchFirstColumn('SELECT build FROM player_character WHERE account_id = ? ORDER BY build', [self::ACCOUNT]));
     }
     private function expectFailure(string $sqlState, \Closure $operation): void
     {

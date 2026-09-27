@@ -21,7 +21,7 @@ const ROOM = { width: 887, height: 1774 };
 // The Forge tile frames the room from the door to the lectern, centred on this share of the artwork height.
 const ROOM_TILE_CENTER = 0.463;
 const TOOLS = { width: 480, height: 600 };
-const FIGURE_RATIO = 400 / 984;
+const FIGURE_RATIO = 440 / 984;
 // Values follow the accepted mockup menu-card-v6 at 390 × 844 pt.
 const gold = { line: 'rgba(214,170,105,0.55)', faint: 'rgba(214,170,105,0.22)', tile: 'rgba(214,170,105,0.35)', mark: '#c9a46c', role: '#caa06a', name: '#f6e6c8', pill: '#e6c690' };
 const CARD_HEIGHT = 300;
@@ -84,7 +84,7 @@ function Backdrop() {
 function CharacterCard({ character, summary, stacked, onChangeCharacter }: { character: Character; summary: OathSummaryState; stacked: boolean; onChangeCharacter(): void }) {
   const { t } = useTranslation();
   const { fontScale } = useWindowDimensions();
-  const art = presetArt(character.presetId);
+  const art = presetArt(character.presetId, character.build);
   // A summary of the previous character is never shown after a switch.
   const current = summary.kind === 'ready' && summary.characterId === character.id ? summary : null;
   const label = current ? t('menu.currentOaths', { count: current.total }) : t('menu.currentOathsLabel');

@@ -40,16 +40,16 @@ final class CharacterService
     public function create(#[\SensitiveParameter] string $bearer, CharacterInput $input): CharacterResult|CharacterFailure
     {
         return $this->locked($bearer, function (string $accountId, array $account, int $now) use ($input): CharacterResult|CharacterFailure {
-            $existing = $this->connection->fetchAssociative('SELECT id, name, preset_id, form, created_at FROM player_character WHERE account_id = ? AND creation_request_id = ?', [$accountId, $input->requestId]);
+            $existing = $this->connection->fetchAssociative('SELECT id, name, preset_id, build, form, created_at FROM player_character WHERE account_id = ? AND creation_request_id = ?', [$accountId, $input->requestId]);
             if (false !== $existing) {
-                if ([$existing['name'], $existing['preset_id'], $existing['form']] !== [$input->name, $input->presetId, $input->form]) { return new CharacterFailure('idempotency_conflict', 409); }
+                if ([$existing['name'], $existing['preset_id'], $existing['build'], $existing['form']] !== [$input->name, $input->presetId, $input->build, $input->form]) { return new CharacterFailure('idempotency_conflict', 409); }
                 return new CharacterResult(['character' => self::character($existing), 'activeCharacterId' => $account['active_character_id'], 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now)], false);
             }
             if (!$this->presets->contains($input->presetId)) { return new CharacterFailure('invalid_preset'); }
             if ('complete' !== $account['onboarding_status']) { return new CharacterFailure('onboarding_incomplete', 409); }
             $count = (int) $this->connection->fetchOne('SELECT COUNT(*) FROM player_character WHERE account_id = ?', [$accountId]);
             if ($count >= self::LIMIT) { return new CharacterFailure('character_limit_reached', 409); }
-            $row = $this->connection->fetchAssociative('INSERT INTO player_character (account_id, slot, creation_request_id, name, preset_id, form, created_at) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id, name, preset_id, form, created_at', [$accountId, $count + 1, $input->requestId, $input->name, $input->presetId, $input->form, $now]);
+            $row = $this->connection->fetchAssociative('INSERT INTO player_character (account_id, slot, creation_request_id, name, preset_id, build, form, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, name, preset_id, build, form, created_at', [$accountId, $count + 1, $input->requestId, $input->name, $input->presetId, $input->build, $input->form, $now]);
             if (false === $row) { throw new \LogicException('Created character missing.'); }
             $this->connection->executeStatement('UPDATE account SET active_character_id = ? WHERE id = ?', [$row['id'], $accountId]);
             return new CharacterResult(['character' => self::character($row), 'activeCharacterId' => $row['id'], 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now)], true);
@@ -79,16 +79,16 @@ final class CharacterService
     /** @return array<string, mixed> */
     private function listing(string $accountId, ?string $activeId, int $now): array
     {
-        $rows = $this->connection->fetchAllAssociative('SELECT id, name, preset_id, form, created_at FROM player_character WHERE account_id = ? ORDER BY slot', [$accountId]);
+        $rows = $this->connection->fetchAllAssociative('SELECT id, name, preset_id, build, form, created_at FROM player_character WHERE account_id = ? ORDER BY slot', [$accountId]);
         return ['characters' => array_map(self::character(...), $rows), 'activeCharacterId' => $activeId, 'limit' => self::LIMIT, 'presets' => $this->presets->ids(), 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now)];
     }
 
     /**
      * @param array<string, mixed> $row
-     * @return array{id: string, name: string, presetId: string, form: string, createdAt: string}
+     * @return array{id: string, name: string, presetId: string, build: string, form: string, createdAt: string}
      */
     private static function character(array $row): array
     {
-        return ['id' => $row['id'], 'name' => $row['name'], 'presetId' => $row['preset_id'], 'form' => $row['form'], 'createdAt' => gmdate('Y-m-d\TH:i:s\Z', (int) $row['created_at'])];
+        return ['id' => $row['id'], 'name' => $row['name'], 'presetId' => $row['preset_id'], 'build' => $row['build'], 'form' => $row['form'], 'createdAt' => gmdate('Y-m-d\TH:i:s\Z', (int) $row['created_at'])];
     }
 }

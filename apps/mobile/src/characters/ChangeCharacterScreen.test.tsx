@@ -4,14 +4,15 @@ import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { ChangeCharacterScreen } from './ChangeCharacterScreen';
 import type { CharacterControllerState } from './controller';
 import type { Character } from '../api/characters';
+import { presetArt } from './presetArt';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 type Ready = Extract<CharacterControllerState, { kind: 'ready' }>;
 const at = '2026-09-26T12:00:00Z';
-const mira: Character = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'dummy_braid', form: 'feminine', createdAt: at };
-const bor: Character = { id: '30000000-0000-4000-8000-00000000000b', name: 'Bor', presetId: 'owner_final_01', form: 'masculine', createdAt: at };
-const wit: Character = { id: '30000000-0000-4000-8000-00000000000c', name: 'Wit', presetId: 'dummy_tied', form: 'neutral', createdAt: at };
-const ready = (patch: Partial<Ready> = {}): Ready => ({ kind: 'ready', characters: [mira, bor], activeCharacterId: mira.id, presets: ['dummy_braid'], limit: 3, busy: false, pendingCreation: null, activeRevision: 1, ...patch });
+const mira: Character = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'starter_01', build: 'heavy', form: 'feminine', createdAt: at };
+const bor: Character = { id: '30000000-0000-4000-8000-00000000000b', name: 'Bor', presetId: 'owner_final_01', build: 'thin', form: 'masculine', createdAt: at };
+const wit: Character = { id: '30000000-0000-4000-8000-00000000000c', name: 'Wit', presetId: 'starter_04', build: 'thin', form: 'neutral', createdAt: at };
+const ready = (patch: Partial<Ready> = {}): Ready => ({ kind: 'ready', characters: [mira, bor], activeCharacterId: mira.id, presets: ['starter_01'], limit: 3, busy: false, pendingCreation: null, activeRevision: 1, ...patch });
 afterEach(() => jest.restoreAllMocks());
 
 async function setup(state: Ready = ready(), locale: 'en' | 'pl' = 'en') {
@@ -73,7 +74,7 @@ test('an error from before opening the screen is not shown', async () => {
   expect(screen.queryByText('We could not change the character. Try again.')).toBeNull();
 });
 
-test('Polish uses the grammatical title of each character and a DUMMY-free placeholder for undrawable looks', async () => {
+test('Polish uses the grammatical title of each character and a placeholder for undrawable looks', async () => {
   await setup(ready(), 'pl');
   expect(screen.getByRole('header', { name: 'Zmień postać' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Mira, Obrończyni Przysięgi, aktywna postać' })).toBeOnTheScreen();
@@ -96,7 +97,7 @@ test('Reduce Motion shows the cards without an entrance offset', async () => {
 });
 
 test('an unresolved creation is shown as a card that returns to creation, and other characters wait', async () => {
-  const pending = { version: 1 as const, accountId: '10000000-0000-4000-8000-00000000000a', requestId: '40000000-0000-4000-8000-00000000000a', name: 'Zoya', presetId: 'dummy_curly', form: 'neutral' as const };
+  const pending = { version: 2 as const, accountId: '10000000-0000-4000-8000-00000000000a', requestId: '40000000-0000-4000-8000-00000000000a', name: 'Zoya', presetId: 'starter_03', build: 'heavy' as const, form: 'neutral' as const };
   const f = await setup(ready({ pendingCreation: pending }));
   expect(screen.queryByRole('button', { name: 'New character' })).toBeNull();
   expect(screen.getByText('Finish creating Zoya before changing character.')).toBeOnTheScreen();
@@ -107,6 +108,7 @@ test('an unresolved creation is shown as a card that returns to creation, and ot
   expect(f.onChoose).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('button', { name: 'Mira, Oathkeeper, active character' }));
   expect(f.onBack).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId(`portrait-${pending.requestId}`, { includeHiddenElements: true }).props.source).toBe(presetArt('starter_03', 'heavy')!.portrait);
 });
 
 test('card names stay on one line and display text is capped for the largest text', async () => {
@@ -118,4 +120,12 @@ test('card names stay on one line and display text is capped for the largest tex
   expect(screen.getByText('Straż Przysięgi').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
   expect(screen.getByRole('header', { name: 'Zmień postać' }).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
   expect(screen.getByText('Wybierz, kto niesie Twoje Przysięgi. Każda postać ma własne.').props.maxFontSizeMultiplier).toBeUndefined();
+});
+
+test('each card draws its preset in the saved build', async () => {
+  await setup(ready({ characters: [mira, wit] }));
+  const portrait = (id: string) => screen.getByTestId(`portrait-${id}`, { includeHiddenElements: true }).props.source;
+  expect(portrait(mira.id)).toBe(presetArt('starter_01', 'heavy')!.portrait);
+  expect(portrait(wit.id)).toBe(presetArt('starter_04', 'thin')!.portrait);
+  expect(portrait(mira.id)).not.toBe(presetArt('starter_01', 'thin')!.portrait);
 });

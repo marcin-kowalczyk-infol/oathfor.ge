@@ -6,11 +6,11 @@ const first = '30000000-0000-4000-8000-00000000000a';
 const second = '30000000-0000-4000-8000-00000000000b';
 const requestId = '40000000-0000-4000-8000-00000000000a';
 const serverTime = '2026-09-26T12:00:00Z';
-const mira = { id: first, name: 'Mira', presetId: 'dummy_braid', form: 'feminine', createdAt: '2026-09-26T11:00:00Z' };
-const zoe = { id: second, name: 'Zo\u00E9', presetId: 'retired_look', form: 'neutral', createdAt: serverTime };
-const presets = ['dummy_braid', 'dummy_cropped', 'dummy_curly', 'dummy_tied'];
+const mira = { id: first, name: 'Mira', presetId: 'starter_01', build: 'thin', form: 'feminine', createdAt: '2026-09-26T11:00:00Z' };
+const zoe = { id: second, name: 'Zo\u00E9', presetId: 'retired_look', build: 'heavy', form: 'neutral', createdAt: serverTime };
+const presets = ['starter_01', 'starter_02', 'starter_03', 'starter_04', 'starter_05', 'starter_06'];
 const listing = { characters: [mira, zoe], activeCharacterId: second, limit: 3, presets, serverTime };
-const input: CharacterCreationInput = { requestId, name: 'Mira', presetId: 'dummy_braid', form: 'feminine' };
+const input: CharacterCreationInput = { requestId, name: 'Mira', presetId: 'starter_01', build: 'thin', form: 'feminine' };
 function response(status: number, value: unknown) {
   const bytes = new TextEncoder().encode(JSON.stringify(value));
   let read = false;
@@ -41,6 +41,14 @@ test('lists, creates and switches with the exact protected requests', async () =
     ['https://api.example.test/api/characters', 'POST', JSON.stringify(input), `Bearer ${token}`],
     ['https://api.example.test/api/characters/active', 'PUT', JSON.stringify({ characterId: first }), `Bearer ${token}`],
   ]);
+});
+
+test('sends the chosen build and accepts a creation echoing it', async () => {
+  const { client, transport } = setup();
+  const heavy = { ...mira, build: 'heavy' };
+  transport.mockResolvedValueOnce(response(201, { character: heavy, activeCharacterId: first, serverTime }));
+  await expect(client.create(token, { ...input, build: 'heavy' })).resolves.toEqual({ kind: 'success', created: true, value: { character: heavy, activeCharacterId: first, serverTime } });
+  expect(JSON.parse(transport.mock.calls[0][1].body)).toEqual({ requestId, name: 'Mira', presetId: 'starter_01', build: 'heavy', form: 'feminine' });
 });
 
 test('a replayed creation succeeds with the current active character and reports it as not created', async () => {
@@ -87,7 +95,9 @@ test.each([
   ['active ID without characters', { ...listing, characters: [] }],
   ['uppercase character ID', { ...listing, characters: [{ ...mira, id: first.toUpperCase() }], activeCharacterId: first.toUpperCase() }],
   ['unknown form', { ...listing, characters: [{ ...mira, form: 'other' }, zoe] }],
-  ['malformed preset ID', { ...listing, characters: [{ ...mira, presetId: 'Dummy-Braid' }, zoe] }],
+  ['malformed preset ID', { ...listing, characters: [{ ...mira, presetId: 'Starter-01' }, zoe] }],
+  ['unknown build', { ...listing, characters: [{ ...mira, build: 'broad' }, zoe] }],
+  ['missing build', { ...listing, characters: [{ id: first, name: 'Mira', presetId: 'starter_01', form: 'feminine', createdAt: '2026-09-26T11:00:00Z' }, zoe] }],
   ['overlong preset ID', { ...listing, characters: [{ ...mira, presetId: 'a'.repeat(65) }, zoe] }],
   ['empty name', { ...listing, characters: [{ ...mira, name: '' }, zoe] }],
   ['control character in name', { ...listing, characters: [{ ...mira, name: 'Mi\u0000ra' }, zoe] }],
@@ -97,8 +107,8 @@ test.each([
   ['extra character key', { ...listing, characters: [{ ...mira, slot: 1 }, zoe] }],
   ['millisecond createdAt', { ...listing, characters: [{ ...mira, createdAt: '2026-09-26T11:00:00.000Z' }, zoe] }],
   ['offset serverTime', { ...listing, serverTime: '2026-09-26T12:00:00+00:00' }],
-  ['duplicate presets', { ...listing, presets: ['dummy_braid', 'dummy_braid'] }],
-  ['malformed preset in catalog', { ...listing, presets: ['dummy braid'] }],
+  ['duplicate presets', { ...listing, presets: ['starter_01', 'starter_01'] }],
+  ['malformed preset in catalog', { ...listing, presets: ['starter 01'] }],
   ['characters not an array', { ...listing, characters: {} }],
 ])('rejects a listing with %s', async (_label, value) => {
   const { client, transport } = setup();
@@ -112,7 +122,8 @@ test.each([
   ['null active ID', 200, { character: mira, activeCharacterId: null, serverTime }],
   ['extra key', 201, { character: mira, activeCharacterId: first, serverTime, characters: [] }],
   ['different name than requested', 201, { character: { ...mira, name: 'Mara' }, activeCharacterId: first, serverTime }],
-  ['different preset than requested', 200, { character: { ...mira, presetId: 'dummy_tied' }, activeCharacterId: first, serverTime }],
+  ['different preset than requested', 200, { character: { ...mira, presetId: 'starter_04' }, activeCharacterId: first, serverTime }],
+  ['different build than requested', 200, { character: { ...mira, build: 'heavy' }, activeCharacterId: first, serverTime }],
   ['different form than requested', 200, { character: { ...mira, form: 'neutral' }, activeCharacterId: first, serverTime }],
 ])('rejects a creation response with %s', async (_label, status, value) => {
   const { client, transport } = setup();
@@ -127,12 +138,14 @@ test('switching rejects a listing that does not activate the chosen character', 
 });
 
 test.each([
-  ['missing request ID', { name: 'Mira', presetId: 'dummy_braid', form: 'feminine' }],
+  ['missing request ID', { name: 'Mira', presetId: 'starter_01', build: 'thin', form: 'feminine' }],
+  ['missing build', { requestId, name: 'Mira', presetId: 'starter_01', form: 'feminine' }],
+  ['unknown build', { ...input, build: 'broad' }],
   ['uppercase request ID', { ...input, requestId: requestId.toUpperCase() }],
   ['invalid name', { ...input, name: 'A' }],
   ['byte order mark name', { ...input, name: '\uFEFFMira' }],
   ['non-string name', { ...input, name: 7 }],
-  ['malformed preset ID', { ...input, presetId: 'dummy-braid' }],
+  ['malformed preset ID', { ...input, presetId: 'starter-01' }],
   ['unknown form', { ...input, form: 'other' }],
   ['extra field', { ...input, accountId: first }],
   ['null input', null],

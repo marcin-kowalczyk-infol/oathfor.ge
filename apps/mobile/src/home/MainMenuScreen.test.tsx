@@ -8,7 +8,7 @@ jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 
 const hidden = { includeHiddenElements: true };
-const mira: Character = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'dummy_braid', form: 'feminine', createdAt: '2026-09-26T12:00:00Z' };
+const mira: Character = { id: '30000000-0000-4000-8000-00000000000a', name: 'Mira', presetId: 'starter_02', build: 'thin', form: 'feminine', createdAt: '2026-09-26T12:00:00Z' };
 
 const ready = (total: number, patch: { paused?: boolean; characterId?: string } = {}) => ({ kind: 'ready' as const, total, paused: false, characterId: mira.id, ...patch });
 const phone = (fontScale: number) => ({ width: 390, height: 844, scale: 3, fontScale });
@@ -28,7 +28,12 @@ test('shows the name, the form title and the preset figure', async () => {
   await setup({}, 'pl');
   expect(screen.getByText('Mira')).toBeOnTheScreen();
   expect(screen.getByText('Obrończyni Przysięgi')).toBeOnTheScreen();
-  expect(screen.getByTestId('menu-figure', hidden).props.source).toBe(presetArt('dummy_braid')?.figure);
+  expect(screen.getByTestId('menu-figure', hidden).props.source).toBe(presetArt('starter_02', 'thin')!.figure);
+});
+
+test('the figure follows the character build', async () => {
+  await setup({ character: { ...mira, build: 'heavy' } });
+  expect(screen.getByTestId('menu-figure', hidden).props.source).toBe(presetArt('starter_02', 'heavy')!.figure);
 });
 
 test('a preset the app cannot draw shows the placeholder figure', async () => {

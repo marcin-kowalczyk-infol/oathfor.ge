@@ -2,7 +2,7 @@ import { createDummy } from './runtime';
 const token = 'A'.repeat(43);
 async function character(dummy: ReturnType<typeof createDummy>) {
   if (dummy.state.activeCharacterId) return;
-  const created = await dummy.runtime().characterApi.create(token, { requestId: '40000000-0000-4000-8000-000000000001', name: 'Mira', presetId: 'dummy_braid', form: 'feminine' });
+  const created = await dummy.runtime().characterApi.create(token, { requestId: '40000000-0000-4000-8000-000000000001', name: 'Mira', presetId: 'starter_01', build: 'thin', form: 'feminine' });
   if (created.kind !== 'success') throw new Error('Character creation failed');
 }
 async function preview(dummy: ReturnType<typeof createDummy>) {
@@ -58,13 +58,19 @@ test('reusing an acceptance request for another preview is a conflict', async ()
 test('DUMMY characters: empty accounts start without one, creation replays and switching changes Oath ownership', async () => {
   const dummy = createDummy('en', true, false);
   const api = dummy.runtime().characterApi;
-  expect(await api.list(token)).toMatchObject({ kind: 'success', value: { characters: [], activeCharacterId: null, limit: 3, presets: ['dummy_braid', 'dummy_cropped', 'dummy_curly', 'dummy_tied'] } });
+  expect(await api.list(token)).toMatchObject({ kind: 'success', value: { characters: [], activeCharacterId: null, limit: 3, presets: ['starter_01', 'starter_02', 'starter_03', 'starter_04', 'starter_05', 'starter_06'] } });
   expect(await dummy.runtime().oathApi.list(token, { view: 'today' })).toEqual({ kind: 'oath_error', code: 'character_required' });
-  const input = { requestId: '40000000-0000-4000-8000-000000000001', name: 'Mira', presetId: 'dummy_braid', form: 'feminine' as const };
+  const input = { requestId: '40000000-0000-4000-8000-000000000001', name: 'Mira', presetId: 'starter_01', build: 'heavy' as const, form: 'feminine' as const };
   const first = await api.create(token, input);
-  expect(first).toMatchObject({ kind: 'success', created: true, value: { character: { id: '30000000-0000-4000-8000-000000000001', name: 'Mira' }, activeCharacterId: '30000000-0000-4000-8000-000000000001' } });
-  expect(await api.create(token, input)).toMatchObject({ kind: 'success', created: false });
+  expect(first).toMatchObject({ kind: 'success', created: true, value: { character: { id: '30000000-0000-4000-8000-000000000001', name: 'Mira', presetId: 'starter_01', build: 'heavy' }, activeCharacterId: '30000000-0000-4000-8000-000000000001' } });
+  expect(await api.create(token, input)).toMatchObject({ kind: 'success', created: false, value: { character: { build: 'heavy' } } });
   expect(await api.create(token, { ...input, name: 'Bor' })).toEqual({ kind: 'character_error', code: 'idempotency_conflict' });
+  expect(await api.create(token, { ...input, build: 'thin' })).toEqual({ kind: 'character_error', code: 'idempotency_conflict' });
+  expect(await api.create(token, { ...input, build: 'broad' as never })).toEqual({ kind: 'character_error', code: 'invalid_request' });
+  const fresh = { ...input, requestId: '40000000-0000-4000-8000-000000000009' };
+  expect(await api.create(token, { ...fresh, presetId: 'dummy_braid' })).toEqual({ kind: 'character_error', code: 'invalid_preset' });
+  expect(await api.create(token, { ...fresh, build: 'broad' as never })).toEqual({ kind: 'character_error', code: 'invalid_request' });
+  expect(dummy.state.characters).toHaveLength(1);
   await preview(dummy);
   await api.create(token, { ...input, requestId: '40000000-0000-4000-8000-000000000002', name: 'Bor' });
   expect(dummy.state.activeCharacterId).toBe('30000000-0000-4000-8000-000000000002');
@@ -78,11 +84,11 @@ test('the returning fixture already has an active character owning its Oaths', a
   const dummy = createDummy('pl', true);
   expect(dummy.state.activeCharacterId).toBe('30000000-0000-4000-8000-000000000001');
   expect(dummy.state.oaths.every(oath => oath.characterId === dummy.state.activeCharacterId)).toBe(true);
-  expect(dummy.state.characters.map(item => item.name)).toEqual(['Radomir', 'Wiesna']);
+  expect(dummy.state.characters.map(({ name, presetId, build }) => ({ name, presetId, build }))).toEqual([{ name: 'Radomir', presetId: 'starter_02', build: 'thin' }, { name: 'Wiesna', presetId: 'starter_03', build: 'heavy' }]);
   const api = dummy.runtime();
   await api.characterApi.activate(token, '30000000-0000-4000-8000-000000000002');
   expect(await api.oathApi.list(token, { view: 'today' })).toMatchObject({ kind: 'success', value: { items: [], characterId: '30000000-0000-4000-8000-000000000002' } });
-  const created = await api.characterApi.create(token, { requestId: '40000000-0000-4000-8000-000000000003', name: 'Wit', presetId: 'dummy_tied', form: 'neutral' });
+  const created = await api.characterApi.create(token, { requestId: '40000000-0000-4000-8000-000000000003', name: 'Wit', presetId: 'starter_04', build: 'thin', form: 'neutral' });
   expect(created).toMatchObject({ kind: 'success', value: { character: { id: '30000000-0000-4000-8000-000000000003' } } });
 });
 

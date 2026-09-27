@@ -1,13 +1,13 @@
 import type { SessionController } from '../auth/session';
-import type { Character, CharacterClient, CharacterForm, CharacterList, CharacterResult, CharacterCreationResult } from '../api/characters';
-import { isCharacterForm, isPresetId } from '../api/characters';
+import type { Character, CharacterBuild, CharacterClient, CharacterForm, CharacterList, CharacterResult, CharacterCreationResult } from '../api/characters';
+import { isCharacterBuild, isCharacterForm, isPresetId } from '../api/characters';
 import { validateCharacterName } from './name';
 import { createRequestId as nativeRequestId } from './requestId';
 import type { CreationStorage, PendingCreation } from './creationStorage';
 
 type Failure = Exclude<CharacterResult<never> | CharacterCreationResult, { kind: 'success' }>;
 export type CharacterError = Failure | { kind: 'storage' };
-export type CharacterDraft = { name: string; presetId: string; form: CharacterForm };
+export type CharacterDraft = { name: string; presetId: string; build: CharacterBuild; form: CharacterForm };
 export type CharacterControllerState = { kind: 'idle' | 'loading' | 'storage_unavailable' }
   | { kind: 'unavailable'; error: Failure }
   | { kind: 'ready'; characters: Character[]; activeCharacterId: string | null; presets: string[]; limit: number; busy: boolean;
@@ -84,8 +84,8 @@ export function createCharacterController(options: { session: SessionController;
   }
   async function send(epoch: number) {
     if (!pending || !current(epoch)) return;
-    const { requestId, name, presetId, form } = pending;
-    const result = await call((token, signal) => options.api.create(token, { requestId, name, presetId, form }, signal), epoch);
+    const { requestId, name, presetId, build, form } = pending;
+    const result = await call((token, signal) => options.api.create(token, { requestId, name, presetId, build, form }, signal), epoch);
     if (!current(epoch)) return;
     if (result.kind === 'success') {
       apply(result.value.character, result.value.activeCharacterId);
@@ -117,10 +117,10 @@ export function createCharacterController(options: { session: SessionController;
     if (state.kind !== 'ready' || state.busy || pending) return;
     const epoch = generation;
     const name = draft && typeof draft.name === 'string' ? validateCharacterName(draft.name) : undefined;
-    if (!name?.valid || !isPresetId(draft.presetId) || !isCharacterForm(draft.form)) { ready(false, { kind: 'invalid_request' }); return; }
+    if (!name?.valid || !isPresetId(draft.presetId) || !isCharacterBuild(draft.build) || !isCharacterForm(draft.form)) { ready(false, { kind: 'invalid_request' }); return; }
     const requestId = createRequestId();
     if (!requestId) { ready(false, { kind: 'configuration' }); return; }
-    const record: PendingCreation = { version: 1, accountId: binding!.accountId, requestId, name: name.name, presetId: draft.presetId, form: draft.form };
+    const record: PendingCreation = { version: 2, accountId: binding!.accountId, requestId, name: name.name, presetId: draft.presetId, build: draft.build, form: draft.form };
     ready(true);
     if (!await persist(record, epoch)) { if (current(epoch)) ready(false, { kind: 'storage' }); return; }
     pending = record; ready(true); await send(epoch);

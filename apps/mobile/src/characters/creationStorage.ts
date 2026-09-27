@@ -1,23 +1,26 @@
 import * as SecureStore from 'expo-secure-store';
 import { exact } from '../api/request';
 import { isUuid } from '../api/oathSchema';
-import { isCharacterForm, isPresetId, type CharacterForm } from '../api/characters';
+import { isCharacterBuild, isCharacterForm, isPresetId, type CharacterBuild, type CharacterForm } from '../api/characters';
 import { validateCharacterName } from './name';
 
-export type PendingCreation = { version: 1; accountId: string; requestId: string; name: string; presetId: string; form: CharacterForm };
+export type PendingCreation = { version: 2; accountId: string; requestId: string; name: string; presetId: string; build: CharacterBuild; form: CharacterForm };
 export type CreationStorage = {
   read(accountId: string): Promise<{ kind: 'success'; value: PendingCreation | null } | { kind: 'invalid' | 'unavailable' }>;
   write(accountId: string, value: PendingCreation | null): Promise<{ kind: 'success' | 'unavailable' }>;
 };
 // The stored name went through the full pre-send rule and is replayed byte for byte.
 export function isPendingCreation(value: unknown, accountId: string): value is PendingCreation {
-  if (!exact(value, ['version', 'accountId', 'requestId', 'name', 'presetId', 'form']) || value.version !== 1 || !isUuid(accountId)
-    || value.accountId !== accountId || !isUuid(value.requestId) || typeof value.name !== 'string' || !isPresetId(value.presetId) || !isCharacterForm(value.form)) return false;
+  if (!exact(value, ['version', 'accountId', 'requestId', 'name', 'presetId', 'build', 'form']) || value.version !== 2 || !isUuid(accountId)
+    || value.accountId !== accountId || !isUuid(value.requestId) || typeof value.name !== 'string' || !isPresetId(value.presetId)
+    || !isCharacterBuild(value.build) || !isCharacterForm(value.form)) return false;
   const check = validateCharacterName(value.name);
   return check.valid && check.name === value.name;
 }
 const options = { keychainService: 'oathforge.character-creation', keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY, requireAuthentication: false };
-const key = (accountId: string) => `oathforge.character-creation.v1.${accountId}`;
+// Version 1 records predate builds and named retired DUMMY presets. They sit under the old key and are never read,
+// so an old unresolved creation does not block the player and cannot replay.
+const key = (accountId: string) => `oathforge.character-creation.v2.${accountId}`;
 let queue: Promise<unknown> = Promise.resolve();
 function serial<T>(action: () => Promise<T>): Promise<T> {
   const result = queue.then(action); queue = result.catch(() => {}); return result;

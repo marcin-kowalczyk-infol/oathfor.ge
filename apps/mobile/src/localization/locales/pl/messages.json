@@ -307,16 +307,21 @@
   },
   "character": {
     "title": "Wykuj swoją postać",
-    "intro": "Wybierz wygląd, imię i tytuł, którym Kuźnia będzie się do Ciebie zwracać.",
+    "intro": "Wybierz wygląd, budowę, imię i tytuł, którym Kuźnia będzie się do Ciebie zwracać.",
     "preview": "Podgląd: {{name}}, {{title}}",
     "unnamed": "Bez imienia",
     "untitled": "Tytuł niewybrany",
-    "dummy": "DUMMY",
-    "dummyLabel": "Grafika zastępcza",
     "looks": "Wygląd",
     "look": "Wygląd {{index}} z {{count}}",
     "noLooks": "Nie można teraz pokazać żadnego wyglądu. Wczytaj wygląd ponownie, aby przejść dalej.",
     "reloadLooks": "Wczytaj wygląd ponownie",
+    "builds": "Budowa",
+    "build": {
+      "thin": "Wątła",
+      "thinLabel": "Budowa wątła",
+      "heavy": "Tęga",
+      "heavyLabel": "Budowa tęga"
+    },
     "name": "Imię",
     "nameHint": "Od 2 do 20 liter. Między nimi może stać spacja, łącznik lub apostrof.",
     "nameError": {

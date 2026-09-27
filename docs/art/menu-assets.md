@@ -27,7 +27,7 @@ These need no new file. Runtime code crops them.
 | Menu background and Forge tile | `apps/mobile/assets/forge/room-prototype-v03.png`, 887 × 1774 RGB | 2872061 | `a8994b16f6968caf15727f49f3ca5f6b62fe420f548fece17df5199dfd555ce3` | [Stations prototype](forge-stations-prototype.md#immersive-room-v03--2026-09-25) |
 | Tutorial tile | `apps/mobile/assets/companion/zharomir-wanderer-v01.png`, 1024 × 1536 RGB | 1807840 | `f3a23268a4ecdc8f2d3a750c212c7811dd5dbdfdff5f6ce8d9e9c4619f712e36` | [Companion assets](companion-assets.md#selected-five-level-exports) |
 
-The card figure uses the active character's preset figure, currently the DUMMY set in the [player preset manifest](player-preset-assets.md).
+The card figure uses the active character's preset figure, in the selected build, see the [player preset manifest](player-preset-assets.md).
 
 ## Open items
 

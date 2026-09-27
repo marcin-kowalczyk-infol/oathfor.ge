@@ -185,6 +185,20 @@ Native checks used the development demo with its DUMMY runtime, so no real API, 
 
 Not observed natively, covered by tests where noted: NFD composition on Hermes, a pending Oath acceptance surviving a switch (tests), pausing one character and checking another (tests), creating the third character up to the limit (tests), an app restart during creation (tests), English at the largest text size, iPhone 18 Pro in English or at the largest text size, Oath rules and detail screens at the largest text size, and VoiceOver, which the owner deferred on 2026-09-26. The presets are DUMMY art. Owner visual acceptance is pending.
 
+## Starter presets and build acceptance (MVP-17-T13), 2026-09-27
+
+Automated: API unit and integration tests cover the six-starter catalog, a missing, extra or unknown build as `invalid_request`, a replay with another build as `idempotency_conflict`, the build in create, list and activate, and the migration setting existing characters to `thin`. Mobile tests cover build validation in the client, pending creation version 2, the controller, the creation build choice in row and stacked layouts, and art lookup by preset and build.
+
+Native checks used the development demo with its DUMMY runtime in Expo Go on iOS 27.0.
+
+| Device and setting | Observed |
+| --- | --- |
+| iPhone 18 Pro, Polish | Creation shows starter 01 thin, switching to "Tęga" changes the figure and every portrait. Returning player menu card for Radomir (starter 02 thin) and Wiesna (starter 03 heavy), change screen portraits. |
+| iPhone SE 3, Polish and English | Build cards side by side fit ("Wątła", "Tęga", "Slight", "Stout"). Creating Mira with "Stout" reaches the menu with the heavy figure inside the card. |
+| iPhone SE 3, largest accessibility text | Build cards stack like the title cards without a word broken inside. Stacked menu card figure fits. |
+
+Owner visual acceptance of the starter art remains pending.
+
 ## Main menu acceptance (MVP-18), 2026-09-26
 
 Automated: API integration tests cover `total` for Today and History, per character, after reconciliation and unchanged by pagination. Mobile tests cover the strict `total` validation, the menu summary and its refreshes (menu entry, foreground, Oath confirmation, pause change), the home route reducer, the room with guide storage, the menu, Settings, the pause review and the routing through `AuthScreen`. The full mobile suite passed with 58 suites and 706 tests.

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
-import type { CharacterForm } from '../api/characters';
+import type { CharacterBuild, CharacterForm } from '../api/characters';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
@@ -9,8 +9,8 @@ import type { CharacterControllerState, CharacterDraft, CharacterError } from '.
 import { validateCharacterName } from './name';
 import { drawablePresets, presetArt } from './presetArt';
 
-export type CharacterCreationDraft = { name: string; presetId: string | null; form: CharacterForm | null };
-export const emptyCreationDraft: CharacterCreationDraft = { name: '', presetId: null, form: null };
+export type CharacterCreationDraft = { name: string; presetId: string | null; build: CharacterBuild; form: CharacterForm | null };
+export const emptyCreationDraft: CharacterCreationDraft = { name: '', presetId: null, build: 'thin', form: null };
 export type CharacterCreationScreenProps = {
   state: CharacterControllerState;
   draft: CharacterCreationDraft;
@@ -25,14 +25,14 @@ export type CharacterCreationScreenProps = {
 };
 
 const forms: CharacterForm[] = ['masculine', 'feminine', 'neutral'];
+const builds: CharacterBuild[] = ['thin', 'heavy'];
 const gold = { line: 'rgba(214,170,105,0.55)', faint: 'rgba(214,170,105,0.22)', bright: '#f0c987', role: '#caa06a', name: '#f6e6c8' };
-const FIGURE_RATIO = 400 / 984;
+const FIGURE_RATIO = 440 / 984;
 const STAGE_TOP = 24;
 const STAGE_BOTTOM = 10;
 const GLOW = 360;
 const POOL = 44;
 type Ready = Extract<CharacterControllerState, { kind: 'ready' }>;
-type Translate = ReturnType<typeof useTranslation>['t'];
 
 function errorKey(error: CharacterError | undefined, pendingName: string | null): { key: string; name?: string } | null {
   if (!error || error.kind === 'reauthenticate') return null;
@@ -92,17 +92,18 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
   useEffect(() => { submitted.current = false; }, [state]);
   const pending = state.pendingCreation;
   // The stored choices become the draft, so a later decisive rejection still shows them for editing.
-  useEffect(() => { if (pending) onDraft({ name: pending.name, presetId: pending.presetId, form: pending.form }); }, [pending?.requestId]);
+  useEffect(() => { if (pending) onDraft({ name: pending.name, presetId: pending.presetId, build: pending.build, form: pending.form }); }, [pending?.requestId]);
   const wait = useRateLimitWait(state.error);
   const looks = drawablePresets(state.presets);
   const name = pending?.name ?? draft.name;
   const presetId = pending?.presetId ?? (draft.presetId !== null && looks.includes(draft.presetId) ? draft.presetId : looks[0] ?? null);
+  const build = pending?.build ?? draft.build;
   const form = pending?.form ?? draft.form;
   const locked = state.busy || pending !== null;
   const check = validateCharacterName(name);
   const nameProblem = name !== '' && !check.valid ? check.reason : null;
   const full = state.characters.length >= state.limit;
-  const art = presetId === null ? null : presetArt(presetId);
+  const art = presetId === null ? null : presetArt(presetId, build);
   // Large text leaves more room for words, the figure is decorative and may shrink.
   const figureHeight = Math.round(Math.min(340, Math.max(200, height * (fontScale > 1.5 ? 0.28 : 0.36))));
   const stageHeight = figureHeight + STAGE_TOP + STAGE_BOTTOM;
@@ -122,7 +123,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
   function submit() {
     if (locked || reason || submitted.current || !check.valid || !form || presetId === null) return;
     submitted.current = true;
-    onCreate({ name: check.name, presetId, form });
+    onCreate({ name: check.name, presetId, build, form });
   }
   return <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets>
     {onCancel && !pending && <Pressable accessibilityRole="button" accessibilityLabel={t('character.cancel')} accessibilityState={{ disabled: state.busy }} disabled={state.busy}
@@ -141,7 +142,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
       <View testID="character-pool" pointerEvents="none" style={[styles.pool, { top: feet - POOL / 2 }]} />
       <View accessible accessibilityLabel={t('character.preview', { name: check.valid ? check.name : t('character.unnamed'), title })}>
         <View testID="character-stage" style={[styles.stage, { height: stageHeight }]}>
-          {art ? <Image source={art.figure} resizeMode="contain" accessibilityIgnoresInvertColors style={{ height: figureHeight, width: figureHeight * FIGURE_RATIO }} />
+          {art ? <Image testID="character-figure" source={art.figure} resizeMode="contain" accessibilityIgnoresInvertColors style={{ height: figureHeight, width: figureHeight * FIGURE_RATIO }} />
             : <View testID="character-placeholder" style={[styles.placeholder, { height: figureHeight * 0.8, width: figureHeight * 0.8 * FIGURE_RATIO }]} />}
         </View>
         <View style={styles.identity}>
@@ -150,9 +151,6 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
           <View style={styles.rule} />
         </View>
       </View>
-      {art?.dummy && <View style={styles.dummy} accessible accessibilityLabel={t('character.dummyLabel')}>
-        <Text allowFontScaling={false} style={styles.dummyText}>{t('character.dummy')}</Text>
-      </View>}
       <View pointerEvents="none" style={styles.innerFrame} />
     </Animated.View>
 
@@ -167,11 +165,21 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
           return <Pressable key={id} accessibilityRole="radio" accessibilityLabel={t('character.look', { index: index + 1, count: looks.length })}
             accessibilityState={{ selected, disabled: locked }} disabled={locked} onPress={() => { if (!locked) onDraft({ presetId: id }); }}
             style={({ pressed }) => [styles.portraitRing, selected && styles.portraitSelected, pressed && styles.pressed, locked && styles.locked]}>
-            <Image source={presetArt(id)!.portrait} style={styles.portrait} />
+            <Image testID={`look-${id}`} source={presetArt(id, build)!.portrait} style={styles.portrait} />
             {selected && <View style={styles.check}><Text allowFontScaling={false} style={styles.checkText}>✓</Text></View>}
           </Pressable>;
         })}
       </ScrollView>}
+    </View>
+
+    {/* The build redraws the figure and every look above, so it sits right under them. */}
+    <View style={styles.section} accessibilityRole="radiogroup" accessibilityLabel={t('character.builds')}>
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.label, large && styles.labelLarge]}>{t('character.builds')}</Text>
+      {/* One word each, so the two cards share a row until the largest text stacks them like the titles. */}
+      <View testID="character-builds" style={large ? styles.pairStacked : styles.pair}>
+        {builds.map(option => <Choice key={option} title={t(`character.build.${option}`)} label={t(`character.build.${option}Label`)} stacked={large} half={!large}
+          selected={build === option} disabled={locked} onPress={() => onDraft({ build: option })} />)}
+      </View>
     </View>
 
     <View style={styles.section}>
@@ -187,7 +195,12 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
 
     <View style={styles.section} accessibilityRole="radiogroup" accessibilityLabel={t('character.titles')}>
       <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.label, large && styles.labelLarge]}>{t('character.titles')}</Text>
-      {forms.map(option => <FormChoice key={option} t={t} stacked={fontScale > 1.5} form={option} selected={form === option} disabled={locked} onPress={() => onDraft({ form: option })} />)}
+      {forms.map(option => {
+        const title = t(`character.form.${option}`);
+        const detail = t(`character.form.${option}Detail`);
+        return <Choice key={option} title={title} detail={detail} label={t('character.formChoice', { title, detail })} stacked={large}
+          selected={form === option} disabled={locked} onPress={() => onDraft({ form: option })} />;
+      })}
       <Text style={styles.hint}>{t('character.titlesHint')}</Text>
     </View>
 
@@ -205,16 +218,15 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
   </ScrollView>;
 }
 
-function FormChoice({ t, form, selected, disabled, stacked, onPress }: { t: Translate; form: CharacterForm; selected: boolean; disabled: boolean; stacked: boolean; onPress(): void }) {
-  const title = t(`character.form.${form}`);
-  const detail = t(`character.form.${form}Detail`);
-  return <Pressable accessibilityRole="radio" accessibilityLabel={t('character.formChoice', { title, detail })} accessibilityState={{ selected, disabled }}
+/** One radio card of a choice group, used for the title and for the build. A half-width card shrinks its one-line title instead of clipping it. */
+function Choice({ title, detail, label, selected, disabled, stacked, half = false, onPress }: { title: string; detail?: string; label: string; selected: boolean; disabled: boolean; stacked: boolean; half?: boolean; onPress(): void }) {
+  return <Pressable accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ selected, disabled }}
     disabled={disabled} onPress={() => { if (!disabled) onPress(); }}
-    style={({ pressed }) => [styles.choice, stacked && styles.choiceStacked, selected && styles.choiceSelected, pressed && styles.pressed, disabled && styles.locked]}>
+    style={({ pressed }) => [styles.choice, half && styles.choiceHalf, stacked && styles.choiceStacked, selected && styles.choiceSelected, pressed && styles.pressed, disabled && styles.locked]}>
     <View style={[styles.radio, selected && styles.radioSelected]}>{selected && <Text allowFontScaling={false} style={styles.radioMark}>✓</Text>}</View>
     <View style={styles.choiceText}>
-      <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.choiceTitle}>{title}</Text>
-      <Text style={styles.choiceDetail}>{detail}</Text>
+      <Text {...(half ? { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.7, maxFontSizeMultiplier: tokens.maxScale.name } : { maxFontSizeMultiplier: tokens.maxScale.choice })} style={styles.choiceTitle}>{title}</Text>
+      {detail !== undefined && <Text style={styles.choiceDetail}>{detail}</Text>}
     </View>
   </Pressable>;
 }
@@ -252,8 +264,6 @@ const styles = StyleSheet.create({
   role: { color: gold.role, fontSize: 13, lineHeight: 18, letterSpacing: 2.5, textTransform: 'uppercase', fontWeight: '600', textAlign: 'center' },
   roleEmpty: { color: tokens.color.secondary },
   rule: { marginTop: 10, width: 140, height: 1, experimental_backgroundImage: 'linear-gradient(90deg, rgba(214,170,105,0) 0%, rgba(214,170,105,0.7) 50%, rgba(214,170,105,0) 100%)' },
-  dummy: { position: 'absolute', top: 16, right: 16, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: gold.line, backgroundColor: 'rgba(20,15,10,0.85)' },
-  dummyText: { color: gold.role, fontSize: 11, lineHeight: 14, letterSpacing: 1.5, fontWeight: '700' },
   section: { gap: 12 },
   label: { color: gold.role, fontSize: 13, lineHeight: 18, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '600' },
   // Padding keeps the selected glow inside the scroll bounds, the negative margin keeps the row aligned.
@@ -275,6 +285,9 @@ const styles = StyleSheet.create({
   problem: { color: tokens.color.missed, fontSize: 15, lineHeight: 22 },
   hint: { color: tokens.color.secondary, fontSize: 15, lineHeight: 22 },
   choice: { minHeight: 64, borderRadius: 20, borderWidth: 1, borderColor: gold.faint, backgroundColor: '#1b1714', paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  choiceHalf: { flex: 1 },
+  pair: { flexDirection: 'row', gap: 12 },
+  pairStacked: { flexDirection: 'column', gap: 12 },
   choiceSelected: { borderColor: gold.bright, backgroundColor: '#2e2318' },
   radio: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: gold.line, alignItems: 'center', justifyContent: 'center' },
   radioSelected: { backgroundColor: tokens.color.primary, borderColor: tokens.color.primary },

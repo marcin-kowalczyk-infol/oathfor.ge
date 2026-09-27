@@ -12,7 +12,7 @@ final class PresetCatalog
     public function ids(): array
     {
         if (null !== $this->ids) { return $this->ids; }
-        $json = file_get_contents(__DIR__.'/../../resources/character/presets_v1.json');
+        $json = file_get_contents(__DIR__.'/../../resources/character/presets_v2.json');
         if (false === $json) { throw new \LogicException('Preset catalog unavailable.'); }
         $catalog = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
         $ids = [];
