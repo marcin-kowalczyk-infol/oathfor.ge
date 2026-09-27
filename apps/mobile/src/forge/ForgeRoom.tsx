@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useMotionAllowed } from '../ui/useMotion';
 import { tokens } from '../ui/tokens';
 import { StationEffect } from './StationEffect';
+import { BUBBLE_FOOTER, BubbleSteps, RoomBubble } from './RoomBubble';
 import { HearthFire } from '../ui/HearthFire';
 import { useTranslation } from '../localization/LocalizationProvider';
 
@@ -217,7 +218,7 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, onOpenStation, o
   const preferredTop = foot && !largeText ? Math.min(viewport.height - 130, Math.max(foot.y + 18, floor)) : floor;
   // A bubble taller than the space below its place grows upward, as far as the lower edge of the station touch areas.
   // The native SE 3 check clipped the guide text and the station action at the bottom edge.
-  const natural = contentHeight + 4 + (guidePlace ? 44 : 0);
+  const natural = contentHeight + 4 + (guidePlace ? BUBBLE_FOOTER : 0);
   const stationEdge = Math.max(...stations.map(station => viewport.height * 0.45 + (hotspot(station.x, station.y).top + 36 - viewport.height * 0.45) * zoom));
   const bubbleTop = largeText || contentHeight === 0 ? preferredTop : Math.min(preferredTop, Math.max(stationEdge, viewport.height - 20 - natural));
   const sprite = walking
@@ -247,29 +248,18 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, onOpenStation, o
       </View>
     </Animated.View>
     </Animated.View>
-    {(guidePlace || (bubbleOpen && arrived)) && <Animated.View testID="room-bubble" style={[styles.bubble, { left: guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText ? bubbleHeight : undefined, opacity: guidePlace ? 1 : bubble, transform: [{ translateY: guidePlace ? 0 : bubble.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
-      <View pointerEvents="none" accessible={false} style={[styles.bubbleTail, { left: Math.max(24, Math.min(bubbleWidth - 40, (guidePlace ? guideX : foot!.x) - (guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft) - 9)) }]} />
-      <ScrollView key={`${guidePlace ?? arrived}-${i18n.language}-${fontScale}`} style={largeText ? { flex: 1 } : { flexGrow: 0, flexShrink: 1 }} testID="room-bubble-content" onContentSizeChange={(_, measured) => setContentHeight(measured)} contentContainerStyle={styles.bubbleContent} accessibilityLiveRegion="polite">
-        <View style={styles.speakerRow}>
-          <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.avatar}>
-            <Image source={require('../../assets/companion/zharomir-wanderer-v01.png')} resizeMode="stretch" style={styles.avatarImage} />
-          </View>
-          <Text maxFontSizeMultiplier={2} style={styles.speaker}>{t('room.speaker')}</Text>
-        </View>
-        {!guidePlace && arrived && <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.detailTitle}>{t(`room.${arrived}`)}</Text>}
-        <Text maxFontSizeMultiplier={2} style={styles.description}>{guidePlace ? t(`room.guide.${guidePlace}`) : t(`room.descriptions.${arrived}`)}</Text>
-        {!guidePlace && arrived && <Pressable accessibilityRole="button" accessibilityLabel={t(`room.actions.${arrived}`)} onPress={() => onOpenStation(arrived)} style={({ pressed }) => [styles.stationAction, { opacity: pressed ? 0.6 : 1 }]}>
-          <Text maxFontSizeMultiplier={2} style={styles.actionLabel}>{t(`room.actions.${arrived}`)} <Text accessibilityElementsHidden>→</Text></Text>
-        </Pressable>}
-      </ScrollView>
-      {guidePlace && <View style={styles.guideFooter}>
-        <Text accessible={false} allowFontScaling={false} style={styles.stepCount}>{guideStep! + 1} / 4</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={t(guideStep === 3 ? 'room.guide.done' : 'room.guide.next')} onPress={() => guideStep === 3 ? finishGuide() : setGuideStep(value => value! + 1)} style={styles.guideNext}>
-          <Text accessible={false} allowFontScaling={false} style={styles.nextMark}>{guideStep === 3 ? '✓' : '→'}</Text>
-        </Pressable>
-      </View>}
-      <Pressable accessibilityRole="button" accessibilityLabel={t(guidePlace ? 'room.guide.skip' : 'room.dismiss')} onPress={() => guidePlace ? finishGuide() : setBubbleOpen(false)} style={styles.dismiss}><Text accessible={false} allowFontScaling={false} style={styles.dismissMark}>×</Text></Pressable>
-    </Animated.View>}
+    {(guidePlace || (bubbleOpen && arrived)) && <RoomBubble
+      frame={{ left: guidePlace ? (viewport.width - bubbleWidth) / 2 : bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText ? bubbleHeight : undefined }}
+      reveal={guidePlace ? null : bubble} pointX={guidePlace ? guideX : foot!.x} contentKey={`${guidePlace ?? arrived}-${i18n.language}-${fontScale}`} fill={largeText}
+      onContentHeight={setContentHeight} dismissLabel={t(guidePlace ? 'room.guide.skip' : 'room.dismiss')} onDismiss={() => guidePlace ? finishGuide() : setBubbleOpen(false)}
+      footer={guidePlace && <BubbleSteps count={`${guideStep! + 1} / 4`} label={t(guideStep === 3 ? 'room.guide.done' : 'room.guide.next')} mark={guideStep === 3 ? '✓' : '→'}
+        onPress={() => guideStep === 3 ? finishGuide() : setGuideStep(value => value! + 1)} />}>
+      {!guidePlace && arrived && <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.detailTitle}>{t(`room.${arrived}`)}</Text>}
+      <Text maxFontSizeMultiplier={2} style={styles.description}>{guidePlace ? t(`room.guide.${guidePlace}`) : t(`room.descriptions.${arrived}`)}</Text>
+      {!guidePlace && arrived && <Pressable accessibilityRole="button" accessibilityLabel={t(`room.actions.${arrived}`)} onPress={() => onOpenStation(arrived)} style={({ pressed }) => [styles.stationAction, { opacity: pressed ? 0.6 : 1 }]}>
+        <Text maxFontSizeMultiplier={2} style={styles.actionLabel}>{t(`room.actions.${arrived}`)} <Text accessibilityElementsHidden>→</Text></Text>
+      </Pressable>}
+    </RoomBubble>}
   </View>;
 }
 
@@ -289,19 +279,6 @@ const styles = StyleSheet.create({
   hero: { position: 'absolute', width: cell, height: cell, zIndex: 3 },
   heroShadow: { position: 'absolute', width: 76, height: 18, top: cell * 0.95 - 10, left: cell / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
   spriteCell: { width: cell, height: cell, overflow: 'hidden' },
-  bubble: { position: 'absolute', zIndex: 4, backgroundColor: '#f0dfb9', borderColor: '#6c4c2f', borderWidth: 2, borderRadius: 22, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
-  bubbleTail: { position: 'absolute', width: 18, height: 18, top: -10, backgroundColor: '#f0dfb9', borderLeftWidth: 2, borderTopWidth: 2, borderColor: '#6c4c2f', transform: [{ rotate: '45deg' }] },
-  bubbleContent: { padding: 12, paddingRight: 40 },
-  speakerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
-  avatar: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: '#44372c', flexShrink: 0 },
-  avatarImage: { position: 'absolute', width: 180.224, height: 270.336, left: -73.92, top: -3.52 },
-  speaker: { color: '#47311e', fontFamily: tokens.font.body, fontSize: 15, fontWeight: '600', flexShrink: 1 },
-  guideFooter: { height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 16, paddingRight: 6 },
-  guideNext: { width: 52, height: 44, alignItems: 'center', justifyContent: 'center' },
-  nextMark: { color: '#69431e', fontSize: 30 },
-  stepCount: { color: '#725339', fontSize: 12 },
   detailTitle: { flexShrink: 0, color: '#47311e', fontFamily: tokens.font.display, fontSize: 19, fontWeight: '400' },
   description: { flexShrink: 0, color: '#523c29', fontFamily: tokens.font.body, fontSize: 16, lineHeight: 23, marginTop: 5 },
-  dismiss: { position: 'absolute', right: 0, top: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  dismissMark: { color: '#725339', fontSize: 28 },
 });
