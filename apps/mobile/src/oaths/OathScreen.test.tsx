@@ -152,11 +152,11 @@ async function selectDate(label: string, day: string) {
   await fireEvent.press(await screen.findByRole('button', { name: label }));
   await fireEvent.press(screen.getByRole('button', { name: day }));
 }
-async function selectTime(label: string, hour: string, minute: string) {
+async function selectTime(label: string, hour: string, minute: string, words = { hour: 'Hour', minute: 'Minute', done: 'Use this time' }) {
   await fireEvent.press(screen.getByRole('button', { name: label }));
-  await fireEvent.press(screen.getByRole('radio', { name: `Hour ${hour}` }));
-  await fireEvent.press(screen.getByRole('radio', { name: `Minute ${minute}` }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Use this time' }));
+  await fireEvent.press(screen.getByRole('radio', { name: `${words.hour} ${hour}` }));
+  await fireEvent.press(screen.getByRole('radio', { name: `${words.minute} ${minute}` }));
+  await fireEvent.press(screen.getByRole('button', { name: words.done }));
 }
 
 test('closing a time selection discards only unfinished picker changes', async () => {
@@ -221,4 +221,61 @@ test('a profile timezone missing from device data does not prevent choosing a da
 test('the serif Oath creation title is capped for the largest text', async () => {
   const f = setup(); f.controller.start(); await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   expect((await screen.findByRole('header', { name: 'Próba Iskry' })).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
+});
+
+function rulesGuide(seen: boolean | Promise<boolean>) {
+  return { read: jest.fn(() => Promise.resolve(seen)), markSeen: jest.fn(async () => {}) };
+}
+async function openReview(f: ReturnType<typeof setup>, storage: ReturnType<typeof rulesGuide>, locale: 'pl' | 'en' = 'pl') {
+  f.controller.start();
+  await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" rulesGuideStorage={storage} /></LocalizationProvider>);
+  await selectDate(locale === 'pl' ? 'Data ukończenia' : 'Completion date', locale === 'pl' ? '25 października 2026' : 'October 25, 2026');
+  await selectTime(locale === 'pl' ? 'Godzina ukończenia' : 'Completion time', '02', '30', locale === 'pl' ? { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' } : undefined);
+  await fireEvent.press(screen.getByRole('button', { name: locale === 'pl' ? 'Zobacz zasady' : 'View rules' }));
+  await screen.findByTestId('rule-cards');
+}
+test('the first review lets Żaromir explain the cards once, lighting each card he names', async () => {
+  const f = setup(); const storage = rulesGuide(false);
+  await openReview(f, storage);
+  expect(storage.read).toHaveBeenCalledWith(accountId);
+  expect(await screen.findByTestId('dialogue-panel')).toBeOnTheScreen();
+  const line = () => screen.getByTestId('dialogue-text').props.accessibilityLabel as string;
+  expect(line()).toContain('Zanim złożysz Przysięgę, poznaj jej zasady.');
+  const next = async () => { await fireEvent.press(screen.getByRole('button', { name: 'Dalej' })); };
+  await next();
+  expect(line()).toContain('Klepsydra to termin.');
+  expect(screen.getByTestId('rule-card-deadline')).toHaveStyle({ borderColor: '#e0a84f' });
+  await next();
+  expect(line()).toContain('Świeca to ostatni moment na dowód');
+  expect(screen.getByTestId('rule-card-cutoff')).toHaveStyle({ borderColor: '#e0a84f' });
+  expect(screen.getByTestId('rule-card-deadline')).not.toHaveStyle({ borderColor: '#e0a84f' });
+  await next();
+  expect(line()).toContain('Kowadło z\u00a0kłódką');
+  expect(screen.getByTestId('rule-card-fixed')).toHaveStyle({ borderColor: '#e0a84f' });
+  expect(storage.markSeen).not.toHaveBeenCalled();
+  await next();
+  expect(screen.queryByTestId('dialogue-panel')).toBeNull();
+  expect(storage.markSeen).toHaveBeenCalledTimes(1);
+});
+test('skipping marks the explanation seen, and the Żaromir button replays it without writing again', async () => {
+  const f = setup(); const storage = rulesGuide(false);
+  await openReview(f, storage, 'en');
+  await screen.findByTestId('dialogue-panel');
+  await fireEvent.press(screen.getByRole('button', { name: 'Skip introduction' }));
+  expect(screen.queryByTestId('dialogue-panel')).toBeNull();
+  expect(storage.markSeen).toHaveBeenCalledWith(accountId);
+  await fireEvent.press(screen.getByRole('button', { name: 'Zharomir explains the rules' }));
+  expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toContain('Before you make the Oath, meet its rules.');
+  await fireEvent.press(screen.getByRole('button', { name: 'Skip introduction' }));
+  expect(storage.markSeen).toHaveBeenCalledTimes(1);
+});
+test('a seen flag shows no explanation but offers the replay', async () => {
+  await openReview(setup(), rulesGuide(true), 'en');
+  expect(screen.queryByTestId('dialogue-panel')).toBeNull();
+  expect(screen.getByRole('button', { name: 'Zharomir explains the rules' })).toBeOnTheScreen();
+});
+test('a flag still being read shows nothing', async () => {
+  await openReview(setup(), rulesGuide(new Promise<boolean>(() => {})), 'en');
+  expect(screen.queryByTestId('dialogue-panel')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Zharomir explains the rules' })).toBeNull();
 });

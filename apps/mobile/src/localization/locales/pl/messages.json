@@ -306,7 +306,14 @@
         "line": "Pauza wycofuje Przysięgi bez dowodu."
       }
     },
-    "fullRules": "Pełne zasady"
+    "fullRules": "Pełne zasady",
+    "guide": {
+      "1": "Zanim złożysz Przysięgę, poznaj jej zasady. Każda karta to jedna z nich.",
+      "2": "Klepsydra to termin. Do niego wykonujesz zadanie.",
+      "3": "Świeca to ostatni moment na dowód, kwadrans po terminie.",
+      "4": "Kowadło z kłódką mówi, że po złożeniu nic tu się nie zmieni.",
+      "replay": "Żaromir objaśnia zasady"
+    }
   },
   "oathHome": {
     "today": "Dzisiaj",

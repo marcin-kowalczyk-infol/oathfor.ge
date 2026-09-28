@@ -3,11 +3,12 @@ import { isUuid } from '../api/oathSchema';
 
 type SecureStoreLike = Pick<typeof SecureStore, 'getItemAsync' | 'setItemAsync'>;
 export type GuideStorage = { read(accountId: string): Promise<boolean>; markSeen(accountId: string): Promise<void> };
-const options = { keychainService: 'oathforge.forge-guide', keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY, requireAuthentication: false };
-const key = (accountId: string) => `oathforge.forge-guide.v1.${accountId}`;
 
 // A device-local convenience flag, never sent to the server. Losing it only shows the guide again.
-export function createGuideStorage(store: SecureStoreLike = SecureStore): GuideStorage {
+// The name separates guides: 'forge-guide' for the first room visit, 'oath-rules-guide' for Żaromir's rule cards.
+export function createGuideStorage(store: SecureStoreLike = SecureStore, name: 'forge-guide' | 'oath-rules-guide' = 'forge-guide'): GuideStorage {
+  const options = { keychainService: `oathforge.${name}`, keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY, requireAuthentication: false };
+  const key = (accountId: string) => `oathforge.${name}.v1.${accountId}`;
   return {
     async read(accountId) {
       if (!isUuid(accountId)) return false;

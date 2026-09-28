@@ -38,7 +38,7 @@ const nativeApple: AppleAvailability = {
 };
 
 // The app owns this controller for its lifetime; account subtrees must not replace it.
-export function AuthScreen({ controller, authenticate, profileApi, oathApi, acceptanceStorage, characterApi, creationStorage, guideStorage, apple = nativeApple, permissions = nativeNotificationPermissions }: { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; oathApi: OathClient; acceptanceStorage: PendingStorage; characterApi: CharacterClient; creationStorage: CreationStorage; guideStorage: GuideStorage; apple?: AppleAvailability; permissions?: NotificationPermissions }) {
+export function AuthScreen({ controller, authenticate, profileApi, oathApi, acceptanceStorage, characterApi, creationStorage, guideStorage, rulesGuideStorage, apple = nativeApple, permissions = nativeNotificationPermissions }: { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; oathApi: OathClient; acceptanceStorage: PendingStorage; characterApi: CharacterClient; creationStorage: CreationStorage; guideStorage: GuideStorage; rulesGuideStorage?: GuideStorage; apple?: AppleAvailability; permissions?: NotificationPermissions }) {
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const { i18n } = useTranslation();
   const languageOwner = useRef(i18n);
@@ -132,7 +132,7 @@ export function AuthScreen({ controller, authenticate, profileApi, oathApi, acce
     // Routes belong to this account and character. A switch or a created character resets them to the menu.
     return <><StatusBar style="light" />
       <HomeRoutes key={state.account.id} accountId={state.account.id} character={active} characterState={characterState} characters={characters} oaths={oaths}
-        profile={profile.value.profile} timezone={profile.value.profile.timezone!} guideStorage={guideStorage}
+        profile={profile.value.profile} timezone={profile.value.profile.timezone!} guideStorage={guideStorage} rulesGuideStorage={rulesGuideStorage}
         home={home} onHome={setHome} language={languageState} onLocale={saveLocale}
         onSettingsOpened={() => setLanguage(current => current.saving ? current : { ...current, error: false })}
         notifications={{ state: notificationState, enable: () => { void notifications.enable(); }, skip: () => { void notifications.skip(); }, retryPermission: () => { void notifications.retryPermission(); }, settings: () => { void notifications.settings(); } }}

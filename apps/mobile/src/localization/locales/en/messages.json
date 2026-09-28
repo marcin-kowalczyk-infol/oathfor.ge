@@ -298,7 +298,14 @@
         "line": "A pause withdraws Oaths without proof."
       }
     },
-    "fullRules": "Full rules"
+    "fullRules": "Full rules",
+    "guide": {
+      "1": "Before you make the Oath, meet its rules. Each card is one of them.",
+      "2": "The hourglass is the deadline. Finish the task by then.",
+      "3": "The candle is the last moment for proof, a quarter hour after the deadline.",
+      "4": "The anvil with the lock says nothing here changes once you make it.",
+      "replay": "Zharomir explains the rules"
+    }
   },
   "oathHome": {
     "today": "Today",

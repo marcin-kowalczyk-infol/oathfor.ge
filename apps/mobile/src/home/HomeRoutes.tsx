@@ -33,6 +33,7 @@ export type HomeRoutesProps = {
   profile: Profile;
   timezone: string;
   guideStorage: GuideStorage;
+  rulesGuideStorage?: GuideStorage;
   notifications: { state: NotificationState; enable(): void; skip(): void; retryPermission(): void; settings(): void };
   /**
    * Route state owned by the parent for the account, so a session check that hides these screens returns to the same place.
@@ -160,7 +161,7 @@ export function HomeRoutes(props: HomeRoutesProps) {
     {front && <View style={styles.fill}>{front}</View>}
     <View style={hidden ? styles.hidden : styles.fill} accessibilityElementsHidden={hidden} importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}>
       <MotionSuspended suspended={hidden}>
-        <OathHomeScreen key={`${accountId}.${character.id}`} controller={oaths} timezone={props.timezone} reload={oathReload}
+        <OathHomeScreen key={`${accountId}.${character.id}`} controller={oaths} timezone={props.timezone} rulesGuideStorage={props.rulesGuideStorage} reload={oathReload}
           forgeNavigation={{ request: route.kind === 'oaths' ? route.request : null, onReturn: place => dispatch({ type: 'back', layout, from: place }) }} />
       </MotionSuspended>
     </View>

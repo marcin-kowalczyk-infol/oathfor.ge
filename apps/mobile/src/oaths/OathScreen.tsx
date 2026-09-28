@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Animated, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Pressable, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { isPreviewInput, type Activity, type LocalTimeInput, type PreviewInput } from '../api/oathSchema';
 import { Action } from '../ui/Action';
@@ -14,14 +14,23 @@ import { BackLink } from '../ui/BackLink';
 import { ActivityOffering } from './ActivityOffering';
 import { SnapshotRules } from './SnapshotRules';
 import { OathRuleCards } from './OathRuleCards';
+import type { RuleCardId } from './ruleCards';
+import { DialoguePanel } from '../forge/DialoguePanel';
+import type { GuideStorage } from '../forge/guideStorage';
+import { bindShortWords } from '../localization/typography';
+import { layoutMode } from '../ui/layoutMode';
+import { useMotionAllowed } from '../ui/useMotion';
 import type { OathController } from './controller';
 import { WallTimePicker, type TimeDraft } from './WallTimePicker';
+// Żaromir's four lines on the first review (docs/product/oath-screens.md section 2) and the card each one lights.
+const GUIDE_CARDS: (RuleCardId | null)[] = [null, 'deadline', 'cutoff', 'fixed'];
+const zharomir = require('../../assets/forge/scene/zharomir-bust-v01.png');
 export type OathCreationDraft = { activity: Activity; scheduled: boolean; activation: TimeDraft; deadline: TimeDraft };
 function emptyDraft(timezone: string): OathCreationDraft {
   return { activity: 'running', scheduled: false, activation: { date: '', time: '', zone: timezone }, deadline: { date: '', time: '', zone: timezone } };
 }
-export function OathScreen({ controller, timezone, onBack, backLabel, backPlain = false, initialDraft, onDraftChange, approach = null }: { controller: OathController; timezone: string; onBack?(): void; backLabel?: string; /** Simple layout: a plain back control instead of the room door picture. */ backPlain?: boolean; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void; approach?: number | null }) {
-  const { t } = useTranslation();
+export function OathScreen({ controller, timezone, onBack, backLabel, backPlain = false, initialDraft, onDraftChange, approach = null, rulesGuideStorage }: { controller: OathController; timezone: string; onBack?(): void; backLabel?: string; /** Simple layout: a plain back control instead of the room door picture. */ backPlain?: boolean; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void; approach?: number | null; /** The "seen" flag of Żaromir's rules explanation, per account on this device (owner decision Q4). */ rulesGuideStorage?: GuideStorage }) {
+  const { t, i18n } = useTranslation();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const [draft, setDraft] = useState<OathCreationDraft>(() => initialDraft ?? emptyDraft(timezone));
   const { activity, scheduled, activation, deadline } = draft;
@@ -50,6 +59,29 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const entrance = useSceneEntrance(scene);
   const scroll = useRef(new Animated.Value(0)).current;
   useEffect(() => { scroll.setValue(0); }, [scene, scroll]);
+  const window = useWindowDimensions();
+  const motion = useMotionAllowed() && layoutMode(window.width, window.fontScale) === 'room';
+  const accountId = rulesGuideStorage ? controller.boundCharacter()?.accountId : undefined;
+  const reviewing = !!review && !pending;
+  // Unknown until read. A pending read shows nothing, a failed read counts as unseen: showing the lines again is the safe loss.
+  const [guideSeen, setGuideSeen] = useState<boolean | null>(null);
+  const [guideLine, setGuideLine] = useState<number | null>(null);
+  const scrollView = useRef<{ scrollTo(options: { y: number; animated?: boolean }): void } | null>(null);
+  const cardsTop = useRef({ block: 0, grid: 0 });
+  useEffect(() => {
+    if (!reviewing || !rulesGuideStorage || !accountId || guideSeen !== null) return;
+    let live = true;
+    const settle = (seen: boolean) => { if (!live) return; setGuideSeen(seen); if (!seen) setGuideLine(0); };
+    rulesGuideStorage.read(accountId).then(settle, () => settle(false));
+    return () => { live = false; };
+  }, [reviewing, rulesGuideStorage, accountId, guideSeen]);
+  function closeGuide() {
+    setGuideLine(null);
+    if (guideSeen === false && accountId) { setGuideSeen(true); void rulesGuideStorage?.markSeen(accountId); }
+  }
+  const guideShown = reviewing && guideLine !== null;
+  // The cards come into view above the panel while Żaromir names them.
+  useEffect(() => { if (guideShown) scrollView.current?.scrollTo({ y: cardsTop.current.block + cardsTop.current.grid, animated: motion }); }, [guideShown, motion]);
   async function preview() {
     if (!valid || busy || pending) return;
     setSubmitted(true); await controller.preview(input);
@@ -77,7 +109,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
     else errorText = t(error.kind === 'invalid_request' ? 'oath.error.invalid_request' : 'oath.error.generic');
   }
   return <SceneSurface place="hearth" approach={approach} scroll={scroll}><SafeAreaView style={styles.safeArea}>
-    <Animated.ScrollView style={entrance} key={scene} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
+    <Animated.ScrollView ref={scrollView as never} style={entrance} key={scene} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
       {onBack && (backPlain ? <BackLink label={backLabel ?? t('oathHome.today')} onPress={onBack} /> : <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />)}
       {!review && !detail && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
       {!ready && <>
@@ -101,7 +133,14 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
       </>}
       {review && <>
         <CompanionBubble message={t('oath.reviewIntro')} />
-        <OathRuleCards snapshot={ready.preview!.snapshot} />
+        {rulesGuideStorage && guideSeen !== null && !guideShown && <Pressable accessibilityRole="button" accessibilityLabel={t('oath.guide.replay')} onPress={() => setGuideLine(0)} style={({ pressed }) => [styles.replay, pressed && styles.pressed]}>
+          <View style={styles.replayBust}><Image source={zharomir} resizeMode="cover" style={styles.replayImage} /></View>
+          <Text accessible={false} style={styles.replayText}>{t('oath.guide.replay')}</Text>
+        </Pressable>}
+        <View onLayout={event => { cardsTop.current.block = event.nativeEvent.layout.y; }}>
+          <OathRuleCards snapshot={ready.preview!.snapshot} highlight={guideShown ? GUIDE_CARDS[guideLine!] : null} onCardsLayout={y => { cardsTop.current.grid = y; }} />
+        </View>
+        {guideShown && <View style={{ height: 240 }} />}
         {!pending && <>
           <View style={styles.consent}><Text style={styles.body}>{t('oath.consent')}</Text></View>
           <Action label={t('oath.confirm')} busy={busy} onPress={() => { void controller.confirm(); }} />
@@ -129,6 +168,11 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
             ? { disabled: true, unavailableReason: !valid ? t('oath.formRequired') : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
       </>}
     </Animated.ScrollView>
+    {guideShown && <DialoguePanel frame={{ left: 12, width: Math.min(window.width - 24, 560), bottom: 24, maxHeight: Math.min(280, window.height * 0.45) }}
+      speaker="guide" lineId={`rules-${guideLine}`} text={bindShortWords(t(`oath.guide.${guideLine! + 1}`), i18n.language)} playerName="" portrait={null} allowed={motion} more={guideLine! < 3}
+      continueLabel={t('room.tutorial.next')} onContinue={() => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide()}
+      controls={{ step: { count: `${guideLine! + 1} / ${GUIDE_CARDS.length}`, label: t('room.tutorial.next'), text: true, onPress: () => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide() } }}
+      dismissLabel={t('room.guide.skip')} onDismiss={closeGuide} />}
   </SafeAreaView></SceneSurface>;
 }
 const styles = StyleSheet.create({
@@ -144,4 +188,9 @@ const styles = StyleSheet.create({
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
   choice: { minHeight: 64, padding: 18, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius },
   selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
+  replay: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 10, minHeight: 44, paddingRight: 14, borderRadius: 22, backgroundColor: 'rgba(28, 22, 16, 0.94)' },
+  replayBust: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: '#b58a52' },
+  replayImage: { width: 44, height: 44 },
+  replayText: { color: tokens.color.text, fontSize: 15, fontWeight: '600' },
+  pressed: { opacity: 0.75 },
 });

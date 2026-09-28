@@ -18,7 +18,7 @@ const HIGHLIGHT = '#e0a84f';
  * The accepted rules as the promise, the declaration and short cards, with the complete stored rules one touch away
  * (owner decision Q1: folded under "Pełne zasady"). The folded text is the unchanged SnapshotRules.
  */
-export function OathRuleCards({ snapshot, highlight = null }: { snapshot: Snapshot; highlight?: RuleCardId | null }) {
+export function OathRuleCards({ snapshot, highlight = null, onCardsLayout }: { snapshot: Snapshot; highlight?: RuleCardId | null; /** Top of the card grid inside this view. */ onCardsLayout?(y: number): void }) {
   const { t, i18n } = useTranslation();
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
@@ -36,7 +36,7 @@ export function OathRuleCards({ snapshot, highlight = null }: { snapshot: Snapsh
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t('oath.rules.declaration')}</Text>
       <Text style={styles.body}>{copy.declaration}</Text>
     </View>
-    <View testID="rule-cards" style={[styles.grid, { flexDirection: columns === 2 ? 'row' : 'column' }]}>
+    <View testID="rule-cards" onLayout={event => onCardsLayout?.(event.nativeEvent.layout.y)} style={[styles.grid, { flexDirection: columns === 2 ? 'row' : 'column' }]}>
       {ruleCards(snapshot, t, locale).map(card => <View key={card.id} testID={`rule-card-${card.id}`} accessible accessibilityLabel={`${card.title}. ${card.lines.join(' ')}`}
         style={[styles.card, columns === 2 && styles.half, card.id === highlight && styles.highlight]}>
         <SpriteFrame sheet={oathArt.ruleIcons} index={ruleIcon[card.icon]} width={40} />

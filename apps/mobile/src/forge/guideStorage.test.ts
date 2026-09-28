@@ -51,3 +51,12 @@ test('an invalid account never builds a key', async () => {
   expect(store.getItemAsync).not.toHaveBeenCalled();
   expect(store.setItemAsync).not.toHaveBeenCalled();
 });
+
+test('a named guide keeps its own key and leaves the forge guide alone', async () => {
+  const store = memoryStore();
+  const rules = createGuideStorage(store, 'oath-rules-guide');
+  await rules.markSeen(accountId);
+  expect(store.items.get(`oathforge.oath-rules-guide.v1.${accountId}`)).toBe('seen');
+  await expect(createGuideStorage(store).read(accountId)).resolves.toBe(false);
+  expect(store.setItemAsync).toHaveBeenCalledWith(expect.any(String), 'seen', expect.objectContaining({ keychainService: 'oathforge.oath-rules-guide' }));
+});

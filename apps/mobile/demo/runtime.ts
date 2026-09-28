@@ -66,6 +66,7 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     activeCharacterId: (populated ? characterId : null) as string | null,
     // The room guide flag per account. Interface restart keeps it, a scenario starts without it, so the guide shows on the first room entry.
     guideSeen: new Set<string>(),
+    rulesGuideSeen: new Set<string>(),
     creations: new Map<string, string>(), creation: null as PendingCreation | null, paused: new Set<string>(), previewOwners: new Map<string, string>(),
     pending: new Map<string, PendingAcceptance | null>(), previews: new Map<string, Preview>(), accepted: new Map<string, string>(), requests: new Map<string, string>(), oaths: [] as Oath[],
   };
@@ -200,6 +201,7 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
       acceptanceStorage: { async read(owner: string, character: string) { return success(clone(state.pending.get(`${owner}.${character}`) ?? null)); }, async write(owner: string, character: string, value: PendingAcceptance | null) { if (value && (value.accountId !== owner || value.characterId !== character)) return { kind: 'unavailable' as const }; state.pending.set(`${owner}.${character}`, clone(value)); return { kind: 'success' as const }; } },
       creationStorage: { async read(owner: string) { return success(state.creation?.accountId === owner ? clone(state.creation) : null); }, async write(owner: string, value: PendingCreation | null) { if (value && value.accountId !== owner) return { kind: 'unavailable' as const }; state.creation = clone(value); return { kind: 'success' as const }; } },
       guideStorage: { async read(owner: string) { return state.guideSeen.has(owner); }, async markSeen(owner: string) { state.guideSeen.add(owner); } },
+      rulesGuideStorage: { async read(owner: string) { return state.rulesGuideSeen.has(owner); }, async markSeen(owner: string) { state.rulesGuideSeen.add(owner); } },
       apple: { async isAvailable() { return true; }, onRevoked() { return () => {}; } },
       permissions: { async read() { return { kind: 'denied' as const, canAskAgain: false }; }, async request() { return { kind: 'denied' as const, canAskAgain: false }; }, async openSettings() { return false; } },
     };
