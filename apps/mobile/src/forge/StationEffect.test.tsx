@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react-native';
 import { Animated, StyleSheet } from 'react-native';
-import { StationEffect, sealTurns, responseDuration } from './StationEffect';
+import { StationEffect, sealTurns, responseDuration, responseWindows } from './StationEffect';
 
 const point = (x: number, y: number) => ({ left: x * 400, top: y * 800 });
 const effect = (station: 'hearth' | 'seals' | 'chronicle' | 'door', request: number, allowed: boolean) =>
@@ -56,11 +56,22 @@ test('the seal drums turn one after another, each with its own motif and sparks,
   expect(screen.queryByTestId('spark-star-0', hidden)).toBeNull();
 });
 
-test('the chronicle pages flutter over the book and signs rise from it', async () => {
+// Owner review 2026-09-28: the flutter looked like pages falling out. One leaf now turns over the book.
+test('the chronicle turns one page over the book, then signs rise from it', async () => {
   played();
   await render(effect('chronicle', 1, true));
-  expect(screen.getByTestId('fx-book-flutter', hidden)).toBeTruthy();
+  expect(screen.getByTestId('fx-book-page-turn', hidden)).toBeTruthy();
+  expect(screen.queryByTestId('fx-book-flutter', hidden)).toBeNull();
   expect(screen.getByTestId('fx-book-signs', hidden)).toBeTruthy();
+});
+
+test('the leaf turns in 400 to 500 ms and the signs rise after it lands', () => {
+  const windows = responseWindows('chronicle');
+  const frame = (windows['fx-book-page-turn'][1] - windows['fx-book-page-turn'][0]) / 8;
+  // Frames 2 to 5 carry the leaf over the spine.
+  expect(frame * 4).toBeGreaterThanOrEqual(400);
+  expect(frame * 4).toBeLessThanOrEqual(500);
+  expect(windows['fx-book-signs'][0]).toBeGreaterThanOrEqual(windows['fx-book-page-turn'][0] + frame * 5);
 });
 
 test('the door leaf swings from its hinge with the mist and returns to rest', async () => {

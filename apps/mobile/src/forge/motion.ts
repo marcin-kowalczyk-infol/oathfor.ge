@@ -61,7 +61,8 @@ export const effectSheets = {
   sealTree: sheet(require('../../assets/forge/scene/fx-seal-tree-v01.png'), 4, 2, [192, 256], [0.5, 0.4], 'screen'),
   sealWolf: sheet(require('../../assets/forge/scene/fx-seal-wolf-v01.png'), 4, 2, [192, 256], [0.5, 0.4], 'screen'),
   bookSigns: sheet(require('../../assets/forge/scene/fx-book-signs-v01.png'), 4, 2, [288, 384], [0.5, 0.94], 'screen'),
-  bookFlutter: sheet(require('../../assets/forge/scene/fx-book-flutter-v01.png'), 4, 2, [256, 256], [0.5, 0.8063], 'normal'),
+  // One leaf turns over the lectern book (export-feedback-v01.py, docs/art/forge-scene-assets.md "Demo feedback exports").
+  bookPageTurn: sheet(require('../../assets/forge/scene/fx-book-page-turn-v01.png'), 4, 2, [312, 227], [0.5064, 0.978], 'normal'),
 };
 
 export const frameCount = (value: Sheet) => value.cols * value.rows;

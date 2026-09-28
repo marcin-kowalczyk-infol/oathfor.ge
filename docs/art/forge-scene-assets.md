@@ -32,7 +32,7 @@ Boxes are in room artwork pixels of `room-prototype-v03` (887 × 1774) as x, y, 
 | `fx-seal-tree-v01.png` | `fx-seal-tree-v01` | 768 × 512 RGB | Tree motif lights, sparks fall | 4 × 2 of 192 × 256, anchor 0.5, 0.4 | `f8ab4c5bc3e373154505d48dda33f1cfdc21d893299358e05252bb317e686c90` |
 | `fx-seal-wolf-v01.png` | `fx-seal-wolf-v01` | 768 × 512 RGB | Wolf motif lights, sparks fall | 4 × 2 of 192 × 256, anchor 0.5, 0.4 | `779640453ed3117982552f87f31f46f2ede75e6a73e630b4e62fd1a25ea6b2e4` |
 | `fx-book-signs-v01.png` | `fx-book-signs-v01` | 1152 × 768 RGB | Signs rising from the book | 4 × 2 of 288 × 384, anchor 0.5, 0.94 | `0ec317aeedef14b93790f7a10059a08babc45b47164aef46bab62c9296e52e7e` |
-| `fx-book-flutter-v01.png` | `fx-book-flutter-v02` | 1024 × 512 RGBA | Pages flutter over the book | 4 × 2 of 256 × 256, anchor 0.5, 0.806 | `df3a1578859d500768f325ef6fc99d8bf0c16c105d78ba3ca7a89afaa22d51f3` |
+| `fx-book-flutter-v01.png` | `fx-book-flutter-v02` | 1024 × 512 RGBA | Removed from the app in MVP-20-T20, replaced by `fx-book-page-turn-v01.png` | 4 × 2 of 256 × 256, anchor 0.5, 0.806 | `df3a1578859d500768f325ef6fc99d8bf0c16c105d78ba3ca7a89afaa22d51f3` |
 | `room-seal-star-v01.png` | `room-prototype-v03` | 89 × 95 RGBA | Star drum layer | 62, 867, 89, 95 | `512832e6561a5f3658b0c2c4d9baf71a5f58ee64fe61a96f00330fb465705ace` |
 | `room-seal-tree-v01.png` | `room-prototype-v03` | 85 × 99 RGBA | Tree drum layer | 149, 861, 85, 99 | `94c83e8b7465dd6668368798d6b970f8262119b9e23ff3819ee9942453c80365` |
 | `room-seal-wolf-v01.png` | `room-prototype-v03` | 85 × 101 RGBA | Wolf drum layer | 231, 857, 85, 101 | `1d6df67b4efce0969c7cfdb9363012382d2054679c9ffb3de58004bba4e2b1d1` |
@@ -83,7 +83,7 @@ Each drum layer holds the face, the barrel side and the top knob. The stand stay
 - Owner visual acceptance and native checks are pending. Composites were inspected only as still images.
 - A moved or turned cut layer uncovers the same painted object in the room behind it. A turning drum or a swinging door needs a dark backing shape or a small turn, which code has to decide.
 - The seal glows follow the painted motifs closely for the star and tree. The wolf glow is the generator's own wolf shape and only approximates the painted one.
-- The flutter pages keep the generator's perspective, which is flatter than the room book. Registration is by book width and bottom centre, not by page corners.
+- The flutter pages kept the generator's perspective, which is flatter than the room book. The page turn of the demo feedback exports replaced it.
 - The book signs' size and height of rise are a proposal. The signs rise about 160 artwork pixels above the pages at their highest.
 - The edges are mirrored at runtime. Earlier native checks found blur with fractional transform scales. A flip by -1 was not checked on device.
 

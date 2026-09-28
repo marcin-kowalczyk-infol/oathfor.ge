@@ -31,15 +31,19 @@ const responses: Record<HeroPlace, Layer[]> = {
   // Each motif lights from its centre while its drum turns, then fades.
   seals: sealTurns.map(turn => ({ sheet: drums[turn.id].sheet, x: drums[turn.id].anchor[0] / ARTWORK.width, y: drums[turn.id].anchor[1] / ARTWORK.height,
     width: drums[turn.id].width, window: [turn.start / DURATION.seals, Math.min(1, (turn.end + 250) / DURATION.seals)] as [number, number], id: `fx-seal-${turn.id}` })),
-  // The pages flutter over the lectern book, then signs rise from it.
+  // One leaf turns over the lectern book, 110 ms a frame, then signs rise once it lands (end of frame 5, 550 ms).
   chronicle: [
-    { sheet: effectSheets.bookFlutter, x: 739 / ARTWORK.width, y: 932 / ARTWORK.height, width: 0.184, window: [0, 0.7], id: 'fx-book-flutter' },
-    { sheet: effectSheets.bookSigns, x: 735 / ARTWORK.width, y: 900 / ARTWORK.height, width: 0.1623, window: [0.25, 1], id: 'fx-book-signs' },
+    { sheet: effectSheets.bookPageTurn, x: 739 / ARTWORK.width, y: 932 / ARTWORK.height, width: 0.1759, window: [0, 0.8], id: 'fx-book-page-turn' },
+    { sheet: effectSheets.bookSigns, x: 735 / ARTWORK.width, y: 900 / ARTWORK.height, width: 0.1623, window: [0.5, 1], id: 'fx-book-signs' },
   ],
   // Moonlight and mist spill over the threshold.
   // Native check: at the threshold behind the seals the mist only lit the seal drums. It rises from the doorway floor instead.
   door: [{ sheet: effectSheets.doorMist, x: 0.19, y: 0.505, width: 0.28, window: [0, 1], id: 'fx-door' }],
 };
+
+/** When each sprite of a response plays, in milliseconds from its start. */
+export const responseWindows = (place: HeroPlace): Record<string, [number, number]> =>
+  Object.fromEntries(responses[place].map(layer => [layer.id, [layer.window[0] * DURATION[place], layer.window[1] * DURATION[place]]]));
 
 /**
  * Decorative responses never delay navigation or alter committed state. One progress value drives every part of a response.

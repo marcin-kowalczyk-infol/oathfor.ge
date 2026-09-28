@@ -67,7 +67,7 @@ Object layers are cut from the room image: the three seal drums, the book and th
 | --- | --- |
 | Hearth | The current flare, plus the coals brightening |
 | Seals | One after another, each drum turns on its axis, its motif lights from the centre and sparks fall |
-| Chronicle | The pages flutter over the book and glowing signs rise from it |
+| Chronicle | One page turns over the book, then glowing signs rise from it (owner demo review, 2026-09-28, the earlier flutter looked like falling pages) |
 | Door | The current mist, plus the door leaf swinging slightly |
 
 Touching the place again replays its response.
@@ -121,7 +121,7 @@ Lines with a gendered form:
 | Żaromir bust | 1 | Transparent, head and shoulders |
 | Panel frame, name plate, rune | 3 | Frame cut into corners and repeated braid edges, plate, rune with glow |
 | Seal motif glow | 3 | Star, tree and wolf, light only on black |
-| Book page flutter and rising signs | 2 | Flutter matched to the lectern book, signs on black |
+| Book page turn and rising signs | 2 | Page turn registered to the lectern book, signs on black |
 
 Masters stay in ignored `graphics/mvp-20/`. Exports follow the [art pipeline](../art/pipeline.md) and are recorded in a new manifest.
 
