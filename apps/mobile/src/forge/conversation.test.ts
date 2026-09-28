@@ -15,7 +15,6 @@ const lines = {
   door: ['Już mam wyjść?', 'Should I leave already?'],
   'tutorial.hearth': ['Pokaż mi, jak to się zaczyna.', 'Show me how it begins.'],
   'tutorial.seals': ['Co znaczą te znaki?', 'What do these marks mean?'],
-  talk: ['Jak mi idzie?', 'How am I doing?'],
 } as const;
 const gendered = {
   'tutorial.chronicle': [['Czy tu zostanie wszystko, co zrobiłem?', 'Czy tu zostanie wszystko, co zrobiłam?', 'Czy tu zostanie wszystko, co uda mi się zrobić?'], 'Will everything I did stay here?'],
@@ -33,15 +32,22 @@ test('every player line resolves by form in both languages', () => {
   });
 });
 
+// Owner decision D6 (2026-09-28): one touch on Żaromir answers at once, so the player's question is gone.
+test('the player has no talk line any more', () => {
+  expect(Object.keys((catalogs.en as { room: { player: object } }).room.player)).not.toContain('talk');
+  expect(Object.keys((catalogs.pl as { room: { player: object } }).room.player)).not.toContain('talk');
+});
+
 test('the hint lines match the specification', () => {
-  expect(pl.t('room.talk.hint.paused')).toBe('Twoja pauza trwa. Kiedy zechcesz wrócić, zajrzyj do Ustawień.');
-  expect(en.t('room.talk.hint.paused')).toBe('Your pause is on. When you want to return, look in Settings.');
-  expect(pl.t('room.talk.hint.none')).toBe('Ogień czeka. Przy palenisku ukształtujesz pierwszą Przysięgę.');
-  expect(en.t('room.talk.hint.none')).toBe('The fire is waiting. At the hearth you can shape your first Oath.');
-  expect(pl.t('room.talk.hint.current', { count: 3 })).toBe('Masz bieżące Przysięgi: 3. Zajrzyj do pieczęci.');
-  expect(en.t('room.talk.hint.current', { count: 3 })).toBe('You have 3 current Oaths. Take a look at the seals.');
-  expect(pl.t('room.talk.hint.unavailable')).toBe('Nie widzę dziś kroniki wyraźnie. Spróbuj za chwilę.');
-  expect(en.t('room.talk.hint.unavailable')).toBe('I cannot read the chronicle clearly right now. Try again in a moment.');
+  // Owner decision D4 (2026-09-28): one short sentence each, the counts sit in the counters.
+  expect(pl.t('room.talk.hint.paused')).toBe('Twoja pauza trwa, a powrót czeka w Ustawieniach.');
+  expect(en.t('room.talk.hint.paused')).toBe('Your pause is on, and Settings will bring you back.');
+  expect(pl.t('room.talk.hint.none')).toBe('Ogień czeka na Twoją pierwszą Przysięgę.');
+  expect(en.t('room.talk.hint.none')).toBe('The fire is waiting for your first Oath.');
+  expect(pl.t('room.talk.hint.current')).toBe('Twoje Przysięgi czekają przy pieczęciach.');
+  expect(en.t('room.talk.hint.current')).toBe('Your Oaths are waiting at the seals.');
+  expect(pl.t('room.talk.hint.unavailable')).toBe('Nie widzę teraz kroniki, zajrzyj za chwilę.');
+  expect(en.t('room.talk.hint.unavailable')).toBe('I cannot read the chronicle now, come back in a moment.');
   expect(pl.t('room.talk.label')).toBe('Żaromir, twoje postępy');
   expect(en.t('room.talk.label')).toBe('Zharomir, your progress');
 });

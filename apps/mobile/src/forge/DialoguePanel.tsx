@@ -44,7 +44,7 @@ export type PanelControls = { action?: { label: string; onPress: () => void }; s
 export function DialoguePanel({ frame, speaker, lineId, text, title, extra, playerName, portrait, allowed, more, continueLabel, onContinue, controls, dismissLabel, onDismiss }: {
   frame: { left: number; width: number; bottom: number; maxHeight: number };
   speaker: Speaker; lineId: string; text: string; title?: string;
-  /** Content under the line, for example Żaromir's statistics card. */
+  /** Content under the line, for example Żaromir's counters. */
   extra?: ReactNode; playerName: string; portrait: ImageSourcePropType | null;
   allowed: boolean;
   /** Another line follows, so a whole line shows the rune. */

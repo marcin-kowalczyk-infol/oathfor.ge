@@ -7,7 +7,7 @@ export type ScriptLine = { speaker: Speaker; key: string; values?: Record<string
 /** After a place visit the panel offers that place's action. */
 export type ScriptAction = { action: TutorialPlace };
 
-type PlayerLine = 'hearth' | 'seals' | 'chronicle' | 'door' | 'tutorial.hearth' | 'tutorial.seals' | 'talk' | 'tutorial.chronicle' | 'tutorial.door';
+type PlayerLine = 'hearth' | 'seals' | 'chronicle' | 'door' | 'tutorial.hearth' | 'tutorial.seals' | 'tutorial.chronicle' | 'tutorial.door';
 // Polish past tense agrees with the character's form in these lines. The catalogs repeat the English text under each form.
 const gendered: ReadonlySet<PlayerLine> = new Set(['tutorial.chronicle', 'tutorial.door']);
 

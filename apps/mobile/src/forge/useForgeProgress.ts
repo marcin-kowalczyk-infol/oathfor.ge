@@ -6,7 +6,7 @@ type ListResult = Awaited<ReturnType<OathController['list']>>;
 const empty: ForgeProgress = { today: null, history: null, loading: false };
 
 /**
- * Current Oaths and chronicle entries of the active character for Żaromir's statistics, from the same Oath list totals as the menu.
+ * Current Oaths and chronicle entries of the active character for Żaromir's counters, from the same Oath list totals as the menu.
  * Nothing loads until refresh. While a refresh runs the last answers stay, and only the newest refresh applies.
  */
 export function useForgeProgress(controller: Pick<OathController, 'list'>, characterId: string) {

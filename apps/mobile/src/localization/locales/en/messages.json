@@ -507,7 +507,6 @@
       "seals": "These seals are glowing. Whose promises are they?",
       "chronicle": "Who wrote all of this down?",
       "door": "Should I leave already?",
-      "talk": "How am I doing?",
       "tutorial": {
         "hearth": "Show me how it begins.",
         "seals": "What do these marks mean?",
@@ -526,14 +525,14 @@
     "talk": {
       "label": "Zharomir, your progress",
       "hint": {
-        "paused": "Your pause is on. When you want to return, look in Settings.",
-        "none": "The fire is waiting. At the hearth you can shape your first Oath.",
-        "current_one": "You have {{count}} current Oath. Take a look at the seals.",
-        "current_other": "You have {{count}} current Oaths. Take a look at the seals.",
-        "unavailable": "I cannot read the chronicle clearly right now. Try again in a moment."
+        "paused": "Your pause is on, and Settings will bring you back.",
+        "none": "The fire is waiting for your first Oath.",
+        "current": "Your Oaths are waiting at the seals.",
+        "unavailable": "I cannot read the chronicle now, come back in a moment."
       },
       "chronicle_one": "chronicle entry",
-      "chronicle_other": "chronicle entries"
+      "chronicle_other": "chronicle entries",
+      "chronicleUnknown": "Number of chronicle entries unknown"
     }
   },
   "tutorial": {

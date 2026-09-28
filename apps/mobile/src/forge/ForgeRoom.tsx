@@ -4,9 +4,9 @@ import { useMotionAllowed } from '../ui/useMotion';
 import { StationEffect } from './StationEffect';
 import { SceneHotspot } from './SceneHotspot';
 import { DialoguePanel, type PanelControls } from './DialoguePanel';
-import { TalkCard } from './TalkCard';
+import { TalkCounters } from './TalkCounters';
 import { progressHint, type ForgeProgress } from './progressHint';
-import { chapterScript, guideScript, playerLineKey, visitScript, type ScriptLine } from './conversation';
+import { chapterScript, guideScript, visitScript, type ScriptLine } from './conversation';
 import { presetArt } from '../characters/presetArt';
 import { advanceTour, freshTour, hearPlace, tourControl, tourTextKey, type Tour, type TutorialPlace } from './tutorialChapters';
 import { HearthFire } from '../ui/HearthFire';
@@ -64,7 +64,7 @@ const sealsCover = (position: Animated.ValueXY) => position.y.interpolate({ inpu
  */
 export function ForgeRoom({ character, progress, onTalk, from = null, onReturned, showGuide = false, onGuideComplete, tutorial = null, onTutorialStart, onTutorialEnd, onOpenStation, onExit }: {
   character: Pick<Character, 'name' | 'presetId' | 'build' | 'form'>;
-  /** Server counts for Żaromir's hint and card. onTalk asks the parent to refresh them. */
+  /** Server counts for Żaromir's hint and counters. onTalk asks the parent to refresh them. */
   progress: ForgeProgress; onTalk: () => void;
   /** The place a return from its screen flies back out of. The player stands there. */
   from?: ForgeStation | null; onReturned?: () => void; showGuide?: boolean | number; onGuideComplete?: () => void; tutorial?: number | null; onTutorialStart?: () => void; onTutorialEnd?: () => void;
@@ -102,13 +102,22 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   // The line shown in a place visit (0 the player's, 1 Żaromir's) and whether a chapter still shows the player's opening line.
   const [visitLine, setVisitLine] = useState(0);
   const [opening, setOpening] = useState(false);
-  // Talking to Żaromir: the player's question, then his hint once the counts arrive or HINT_WAIT_MS passed.
-  const [talk, setTalk] = useState<{ id: number; step: 'player' | 'hint'; waited: boolean } | null>(null);
+  // Talking to Żaromir (owner decisions D4 to D6, 2026-09-28): one touch, and he answers with one hint line.
+  // A known Today answer lets him speak at once. Otherwise he waits for the refresh the touch started, at most HINT_WAIT_MS.
+  // Once he speaks the hint follows the counts, so it never contradicts the counters. It types again only when it changes.
+  const [talk, setTalk] = useState<{ id: number; spoken: boolean; refreshing: boolean } | null>(null);
   useEffect(() => {
-    if (talk?.step !== 'hint' || talk.waited || !progress.loading) return;
-    const limit = setTimeout(() => setTalk(current => current && { ...current, waited: true }), HINT_WAIT_MS);
+    if (!talk || talk.spoken) return;
+    if (progress.today) setTalk(current => current && { ...current, spoken: true });
+    else if (progress.loading) { if (!talk.refreshing) setTalk(current => current && { ...current, refreshing: true }); }
+    else if (talk.refreshing) setTalk(current => current && { ...current, spoken: true });
+  }, [talk, progress]);
+  const waitingTalk = talk && !talk.spoken ? talk.id : null;
+  useEffect(() => {
+    if (waitingTalk === null) return;
+    const limit = setTimeout(() => setTalk(current => current && { ...current, spoken: true }), HINT_WAIT_MS);
     return () => clearTimeout(limit);
-  }, [talk?.step, talk?.waited, progress.loading]);
+  }, [waitingTalk]);
   const [guideStep, setGuideStep] = useState<number | null>(() => showGuide && !tutorial ? 0 : null);
   const [tour, setTour] = useState<Tour | null>(() => tutorial ? freshTour : null);
   const tutorialRequest = useRef<number | null>(null);
@@ -249,11 +258,8 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     else line = { speaker: 'guide', key: tourTextKey(tour), id: `tour-${tourTextKey(tour)}`, dismiss: endTour,
       controls: tour.ended ? { step: { count: '', label: t('room.tutorial.finish'), text: true, onPress: endTour } } : undefined };
   } else if (talk) {
-    const answered = talk.step === 'hint' && (!progress.loading || talk.waited);
-    const hint = progressHint(progress);
-    line = answered ? { speaker: 'guide', key: hint.key, values: hint.values, id: `talk-${talk.id}-1`, dismiss: () => setTalk(null) }
-      : { speaker: 'player', key: playerLineKey('talk', form), id: `talk-${talk.id}-0`, more: talk.step === 'player', dismiss: () => setTalk(null),
-        next: talk.step === 'player' ? () => setTalk({ ...talk, step: 'hint' }) : undefined };
+    // An empty line while Żaromir waits for the counts. The hint then types once.
+    line = { speaker: 'guide', key: talk.spoken ? progressHint(progress).key : '', id: `talk-${talk.id}`, dismiss: () => setTalk(null) };
   } else if (placeBubble) {
     const place = visited!;
     const script = visitScript(place, form);
@@ -320,7 +326,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
       <Animated.Image source={haze} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.objectGlow, styles.front, { ...point(seals.x, seals.y), opacity: Animated.multiply(stationGlow('seals'), sealsCover(walker.position)) }]} />
     </Fragment>)}
     {!tour && !guidePlace && !guide.walking && (guide.arrived ?? 'aside') === 'aside' && <Pressable accessibilityRole="button" accessibilityLabel={t('room.talk.label')}
-      onPress={still(() => { onTalk(); setBubbleOpen(false); setTalk(current => ({ id: (current?.id ?? 0) + 1, step: 'player', waited: false })); })}
+      onPress={still(() => { onTalk(); setBubbleOpen(false); setTalk(current => ({ id: (current?.id ?? 0) + 1, spoken: !!progress.today, refreshing: false })); })}
       style={[styles.talkTarget, talkBox]} />}
     </Animated.View>
     </Animated.View>
@@ -328,8 +334,8 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     {flight.busy && <View testID="flight-shield" style={styles.shield} onStartShouldSetResponder={() => true} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />}
     {/* The panel leaves with the camera, so the close-up is not covered during the flight. */}
     {line && !flight.busy && <DialoguePanel frame={{ left: (viewport.width - panelWidth) / 2, width: panelWidth, bottom: PANEL_BOTTOM, maxHeight: viewport.height - PANEL_BOTTOM - stationEdge }}
-      speaker={line.speaker} lineId={line.id} text={bindShortWords(t(line.key, line.values), i18n.language)} title={line.title}
-      extra={line.id === `talk-${talk?.id}-1` ? <TalkCard character={character} progress={progress} /> : undefined}
+      speaker={line.speaker} lineId={line.id} text={line.key ? bindShortWords(t(line.key, line.values), i18n.language) : ''} title={line.title}
+      extra={talk && line.id === `talk-${talk.id}` ? <TalkCounters progress={progress} waiting={!talk.spoken} /> : undefined}
       playerName={character.name} portrait={presetArt(character.presetId, character.build)?.portrait ?? null} allowed={allowed} more={!!line.more}
       continueLabel={t('room.tutorial.next')} onContinue={still(() => line?.next?.())} controls={line.controls}
       dismissLabel={t(guidePlace ? 'room.guide.skip' : tour ? 'room.tutorial.close' : 'room.dismiss')} onDismiss={still(line.dismiss)} />}

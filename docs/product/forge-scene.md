@@ -10,7 +10,7 @@ The owner found the room below the bar: the bubbles are plain, the book and seal
 
 - The player character walks in the Forge. Żaromir encourages the player to look at the places.
 - During the tutorial and the first-visit guide Żaromir moves to a spot near the place the player goes to, so his explanation feels natural.
-- After the tutorial Żaromir stands aside. Touching him opens a hint and the player's statistics.
+- After the tutorial Żaromir stands aside. One touch on him opens a hint and the player's counters.
 - The player gets the full animation set: eight walk directions, breathing and four place poses, for every preset and build.
 - The dialogue panel is a carved RPG panel with the speaker's bust.
 - The player speaks short lines, about one per place and one per tutorial chapter.
@@ -22,7 +22,7 @@ The owner found the room below the bar: the bubbles are plain, the book and seal
 | Mode | When | Żaromir |
 | --- | --- | --- |
 | Guided | The first-visit guide and the tutorial | Walks with the player to his own spot beside the chosen place, turns to the player and explains |
-| Normal | Every other room visit | Stands aside near the anvil, right of the hearth, breathing. Touching him opens the hint and statistics |
+| Normal | Every other room visit | Stands aside near the anvil, right of the hearth, breathing. One touch opens the hint and counters |
 
 Simple layout at large text keeps its current screens without the room or characters.
 
@@ -44,7 +44,7 @@ Until the player art is delivered the player is the static menu figure of the ch
 
 - Guided mode: in the tutorial he starts walking together with the player, to his spot beside the chosen place. In the first-visit guide only he walks, to his spot beside each step's place, and the player stays at the start (owner decision D3, 2026-09-28). On arrival he turns to the player and talks with the existing gestures. The tutorial chapter text stays as accepted.
 - Normal mode: he stands aside and breathes. He does not follow the player.
-- Touching him in normal mode turns him to the player and opens the panel with one hint and the statistics card. His touch target has a VoiceOver label, "Żaromir, your progress" / "Żaromir, twoje postępy".
+- One touch on him in normal mode turns him to the player and opens the panel with his hint and two counters, with no player line before it (owner decisions D4 to D6, 2026-09-28). His touch target has a VoiceOver label, "Żaromir, your progress" / "Żaromir, twoje postępy".
 
 ## Dialogue panel
 
@@ -74,22 +74,24 @@ Touching the place again replays its response.
 
 When the player picks the place action, the camera flies to the object, about 1.9 times over 650 ms, crossfades into the matching station close-up and opens the screen. Returning to the Forge plays it backward. The door pulls the camera back and opens the menu. Reduce Motion uses a crossfade only. The transition delays navigation by at most 700 ms and ignores a second touch while it runs.
 
-## Hint and statistics
+## Hint and counters
 
-Touching Żaromir in normal mode shows one hint line and a statistics card in the panel.
+One touch on Żaromir in normal mode shows one hint line and two counters in the panel (owner decisions D4 to D6, 2026-09-28, after the demo review).
 
 | Condition, first match | Polish | English |
 | --- | --- | --- |
-| Character paused | Twoja pauza trwa. Kiedy zechcesz wrócić, zajrzyj do Ustawień. | Your pause is on. When you want to return, look in Settings. |
-| No current Oaths | Ogień czeka. Przy palenisku ukształtujesz pierwszą Przysięgę. | The fire is waiting. At the hearth you can shape your first Oath. |
-| Current Oaths | Masz bieżące Przysięgi: {{count}}. Zajrzyj do pieczęci. | You have {{count}} current Oaths. Take a look at the seals. |
-| Counts unavailable | Nie widzę dziś kroniki wyraźnie. Spróbuj za chwilę. | I cannot read the chronicle clearly right now. Try again in a moment. |
+| Character paused | Twoja pauza trwa, a powrót czeka w Ustawieniach. | Your pause is on, and Settings will bring you back. |
+| No current Oaths | Ogień czeka na Twoją pierwszą Przysięgę. | The fire is waiting for your first Oath. |
+| Current Oaths | Twoje Przysięgi czekają przy pieczęciach. | Your Oaths are waiting at the seals. |
+| Counts unavailable | Nie widzę teraz kroniki, zajrzyj za chwilę. | I cannot read the chronicle now, come back in a moment. |
 
-The card shows the character name, the title of the character's form (existing `character.form` copy, for example "Obrońca Przysięgi", "Obrończyni Przysięgi" or "Straż Przysięgi", English "Oathkeeper"), the build ("Wątła" / "Tęga", "Slight" / "Stout"), the number of current Oaths and the number of chronicle entries ("wpis w kronice" / "wpisy w kronice" / "wpisów w kronice", "chronicle entry" / "chronicle entries", owner decision D2, 2026-09-28). When the Today count is unavailable the card keeps a known chronicle count (local decision, MVP-20-T09). Counts come from the Oath list `total` of the `today` and `history` views, the same source as the menu. XP and level do not appear until MVP-09 grants them. The Polish plural of the count follows the existing plural rules.
+The counters are a wax seal icon with the number of current Oaths and a chronicle icon with the number of chronicle entries, each with its plural label ("bieżące Przysięgi", "wpisów w kronice", "current Oaths", "chronicle entries", owner decision D2). The character's name, form and build are not repeated in the panel, the menu card shows them. A counter whose number is unknown shows "–". When the Today count is unavailable the chronicle counter keeps a known count (local decision, MVP-20-T09). Counts come from the Oath list `total` of the `today` and `history` views, the same source as the menu. XP and level do not appear until MVP-09 grants them.
+
+A known Today answer lets Żaromir speak at once, even while the touch refreshes the counts. Once he speaks, the hint and the counters follow the refreshed counts, so the line never contradicts a counter, and it types again only when it changes. Without a known answer the counters show "…" and Żaromir speaks when the refresh ends, or after 2 seconds with the unavailable line (local decision, MVP-20-T18). VoiceOver reads an unknown count as "Liczba bieżących Przysiąg nieznana" or "Liczba wpisów w kronice nieznana".
 
 ## Player lines
 
-One player line opens each place description and each tutorial chapter. Polish lines agree with the character's form (masculine, feminine or neutral). The neutral form avoids gendered past tense. The lines below are proposals for owner review, written without em dashes or semicolons.
+One player line opens each place description and each tutorial chapter. Żaromir's talk has no player line (owner decision D6, 2026-09-28). Polish lines agree with the character's form (masculine, feminine or neutral). The neutral form avoids gendered past tense. The lines below are proposals for owner review, written without em dashes or semicolons.
 
 Lines without a gendered form use one Polish text for all forms.
 
@@ -101,7 +103,6 @@ Lines without a gendered form use one Polish text for all forms.
 | `door` | Już mam wyjść? | Should I leave already? |
 | `tutorial.hearth` | Pokaż mi, jak to się zaczyna. | Show me how it begins. |
 | `tutorial.seals` | Co znaczą te znaki? | What do these marks mean? |
-| `talk` | Jak mi idzie? | How am I doing? |
 
 Lines with a gendered form:
 
@@ -127,7 +128,7 @@ Masters stay in ignored `graphics/mvp-20/`. Exports follow the [art pipeline](..
 ## Acceptance
 
 - The player walks to every place in the eight directions and plays its pose. Żaromir reaches his own spot in guided mode and never overlaps the player.
-- In normal mode Żaromir stays aside and his hint and statistics match the server counts and pause state.
+- In normal mode Żaromir stays aside and one touch gives his hint and counters, which match the server counts and pause state.
 - The panel shows both speakers, types the text, keeps its bottom edge and passes the existing bubble limits.
 - Every place responds on arrival and on a repeated touch. The camera transition opens the right screen within 700 ms.
 - Reduce Motion and simple layout keep static equivalents.

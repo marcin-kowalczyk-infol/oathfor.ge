@@ -11,8 +11,8 @@ test('no current Oaths sends the player to the hearth', () => {
   expect(progressHint(known(0))).toEqual({ key: 'room.talk.hint.none' });
 });
 
-test('current Oaths are counted', () => {
-  expect(progressHint(known(3))).toEqual({ key: 'room.talk.hint.current', values: { count: 3 } });
+test('current Oaths send the player to the seals, the counters carry the number', () => {
+  expect(progressHint(known(3))).toEqual({ key: 'room.talk.hint.current' });
 });
 
 test('without a Today answer the counts are unavailable', () => {
