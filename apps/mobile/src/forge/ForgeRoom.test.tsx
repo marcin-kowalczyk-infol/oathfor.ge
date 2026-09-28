@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Animated, Dimensions, StyleSheet } from 'react-native';
-import { ForgeRoom, walkDirection, walkDuration } from './ForgeRoom';
+import { ForgeRoom } from './ForgeRoom';
+import { walkDuration } from './sceneLayout';
 import { ACT_BEFORE_TURN_MS, TURN_FRAME_MS, WALK_FRAME_MS } from './HeroSprite';
 import { useMotionAllowed } from '../ui/useMotion';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
@@ -160,32 +161,6 @@ test('station discovery requires its named action before opening the matching sc
     await fireEvent.press(screen.getByRole('button', { name: label }));
     expect(open).toHaveBeenLastCalledWith(station);
   }
-});
-
-test('walking picks one of eight sheets that faces the travel direction and never mirrors', () => {
-  const start = { x: 0.5, y: 0.82 };
-  const hearth = { x: 0.515, y: 0.565 };
-  const seals = { x: 0.30, y: 0.635 };
-  const chronicle = { x: 0.72, y: 0.65 };
-  expect(walkDirection(start, chronicle)).toBe('back-right');
-  expect(walkDirection(start, seals)).toBe('back-left');
-  expect(walkDirection(start, hearth)).toBe('back');
-  expect(walkDirection(start, { x: 0.19, y: 0.50 })).toBe('back-left');
-  expect(walkDirection(hearth, start)).toBe('front');
-  expect(walkDirection(hearth, chronicle)).toBe('front-right');
-  expect(walkDirection(chronicle, { x: 0.5, y: 0.66 })).toBe('left');
-  expect(walkDirection(seals, chronicle)).toBe('right');
-  expect(walkDirection(seals, start)).toBe('front-right');
-  expect(walkDirection(chronicle, start)).toBe('front-left');
-});
-
-test('a longer walk takes longer, within a bounded time', () => {
-  const start = { x: 0.5, y: 0.82 };
-  const near = walkDuration(start, { x: 0.5, y: 0.78 });
-  const far = walkDuration(start, { x: 0.19, y: 0.50 });
-  expect(far).toBeGreaterThan(walkDuration(start, { x: 0.515, y: 0.565 }));
-  expect(near).toBeGreaterThanOrEqual(600);
-  expect(far).toBeLessThanOrEqual(1800);
 });
 
 test('touching the station Żaromir stands at replays its response', async () => {

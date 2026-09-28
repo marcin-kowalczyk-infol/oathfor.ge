@@ -13,53 +13,28 @@ import { SpriteLoop } from './Sprite';
 import { effectSheets, type Direction } from './motion';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { bindShortWords } from '../localization/typography';
+import { depth, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, SEALS_BOX, SEALS_FRONT_Y, tutor, walkDirection, walkDuration, walkPace } from './sceneLayout';
 
 export type ForgeStation = 'hearth' | 'seals' | 'chronicle';
 const stations: { id: ForgeStation; x: number; y: number; footX: number; footY: number }[] = [
-  { id: 'hearth', x: 0.515, y: 0.45, footX: 0.515, footY: 0.565 },
-  { id: 'seals', x: 0.22, y: 0.52, footX: 0.30, footY: 0.635 },
-  { id: 'chronicle', x: 0.82, y: 0.51, footX: 0.72, footY: 0.65 },
+  { id: 'hearth', ...places.hearth.anchor, footX: 0.515, footY: 0.565 },
+  { id: 'seals', ...places.seals.anchor, footX: 0.30, footY: 0.635 },
+  { id: 'chronicle', ...places.chronicle.anchor, footX: 0.72, footY: 0.65 },
 ];
 const room = require('../../assets/forge/room-prototype-v03.png');
-// The seal drums cut from the room (export-motion-v01.py), drawn over Żaromir while he stands behind them in the doorway.
 const sealsFront = require('../../assets/forge/motion/room-seals-front-v01.png');
-const SEALS_BOX = { x: 50 / 887, y: 850 / 1774, width: 280 / 887, height: 115 / 1774 };
-// Below this depth his feet are in front of the seal drums, so the cut no longer covers him.
-const SEALS_FRONT_Y = 957 / 1774;
 const haze = require('../../assets/forge/ember-haze-v01.png');
-// Sprite cells are 288 × 320 with the soles at 97.5 percent. 105 points keep his figure at the former 93 points.
-const HERO_HEIGHT = 105;
-const HERO_WIDTH = HERO_HEIGHT * 288 / 320;
-const HERO_FOOT = 312 / 320;
 const WISP = 22;
-/** A gentle start and stop around a steady pace, so the steps do not slide. HeroSprite uses the same curve for depth. */
-const walkPace = Easing.bezier(0.3, 0, 0.7, 1);
-/** Deeper into the room he is drawn a little smaller: full size at the start point, 86 percent near the back wall. */
-const depth = (y: number) => 0.86 + 0.14 * Math.min(1, Math.max(0, (y - 0.45) / (0.82 - 0.45)));
-const start = { x: 0.5, y: 0.82 };
-const door = { x: 0.17, y: 0.37 };
+const start = playerStart;
+const door = places.door.anchor;
 // Where Żaromir stands: next to each station, in the doorway and in front of the hearth for the tutorial, and his idle place.
 // Native check on iPhone 18 Pro: from the start point he stood behind the tutorial bubble, and a door point at (0.27, 0.58) stood him on the seals.
 type Spot = TutorialPlace | 'start' | 'tutor';
 const feet: Record<Spot, { x: number; y: number }> = {
   ...Object.fromEntries(stations.map(station => [station.id, { x: station.footX, y: station.footY }])) as Record<ForgeStation, { x: number; y: number }>,
-  door: { x: 0.19, y: 0.50 }, tutor: { x: 0.5, y: 0.66 }, start,
+  door: { x: 0.19, y: 0.50 }, tutor, start,
 };
 const isStation = (spot: Spot | null): spot is ForgeStation => stations.some(station => station.id === spot);
-// Counter-clockwise from the right, in 45 degree sectors of the artwork plane.
-const compass: Direction[] = ['right', 'back-right', 'back', 'back-left', 'left', 'front-left', 'front', 'front-right'];
-const artwork = (from: { x: number; y: number }, to: { x: number; y: number }) => ({ dx: (to.x - from.x) * 887, up: (from.y - to.y) * 1774 });
-/** Travel direction in artwork pixels, one of eight sheets. Sprites are never mirrored, so the lantern stays in his right hand. */
-export function walkDirection(from: { x: number; y: number }, to: { x: number; y: number }): Direction {
-  const { dx, up } = artwork(from, to);
-  const sector = Math.round(Math.atan2(up, dx) / (Math.PI / 4));
-  return compass[(sector + 8) % 8];
-}
-/** Walk time grows with the distance in artwork pixels, so the steps roughly match the ground covered. */
-export function walkDuration(from: { x: number; y: number }, to: { x: number; y: number }) {
-  const { dx, up } = artwork(from, to);
-  return Math.round(Math.min(1800, Math.max(600, Math.hypot(dx, up) * 3.3)));
-}
 
 /**
  * The Forge room entrance: visiting a station never mutates an Oath, only its named action leaves the room.
@@ -314,11 +289,11 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     {stations.map(station => <SceneHotspot key={station.id} cue={false} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : target === station.id}
       onPress={() => tour ? hear(station.id) : choose(station.id)} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} heard={heardMark(station.id)} />)}
     <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.hero, { left, top, transform: [
-      { translateX: position.x.interpolate({ inputRange: [0, 1], outputRange: [-HERO_WIDTH / 2, sceneWidth - HERO_WIDTH / 2] }) },
-      { translateY: position.y.interpolate({ inputRange: [0, 1], outputRange: [-HERO_HEIGHT * HERO_FOOT, sceneHeight - HERO_HEIGHT * HERO_FOOT] }) },
+      { translateX: position.x.interpolate({ inputRange: [0, 1], outputRange: [-FIGURE_WIDTH / 2, sceneWidth - FIGURE_WIDTH / 2] }) },
+      { translateY: position.y.interpolate({ inputRange: [0, 1], outputRange: [-FIGURE_HEIGHT * FIGURE_FOOT, sceneHeight - FIGURE_HEIGHT * FIGURE_FOOT] }) },
     ] }]}>
       <View style={styles.heroShadow} />
-      <HeroSprite run={walkId} pose={pose} allowed={allowed} height={HERO_HEIGHT}
+      <HeroSprite run={walkId} pose={pose} allowed={allowed} height={FIGURE_HEIGHT}
         scale={walking && allowed ? { from: depth(walkFrom.current.y), to: depth(lastDestination.current.y), duration: walkDuration(walkFrom.current, lastDestination.current) }
           : depth(lastDestination.current.y)} />
     </Animated.View>
@@ -351,9 +326,9 @@ const styles = StyleSheet.create({
   scenery: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden' },
   objectGlow: { position: 'absolute', width: 180, height: 160, marginLeft: -90, marginTop: -85 },
   doorGlow: { position: 'absolute', width: 130, height: 180, marginLeft: -65, marginTop: -95, tintColor: '#bfe8f0' },
-  hero: { position: 'absolute', width: HERO_WIDTH, height: HERO_HEIGHT, zIndex: 3 },
+  hero: { position: 'absolute', width: FIGURE_WIDTH, height: FIGURE_HEIGHT, zIndex: 3 },
   front: { position: 'absolute', zIndex: 4, pointerEvents: 'none' },
-  heroShadow: { position: 'absolute', width: 76, height: 18, top: HERO_HEIGHT * HERO_FOOT - 10, left: HERO_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
+  heroShadow: { position: 'absolute', width: 76, height: 18, top: FIGURE_HEIGHT * FIGURE_FOOT - 10, left: FIGURE_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
   detailTitle: { flexShrink: 0, color: '#47311e', fontFamily: tokens.font.display, fontSize: 19, fontWeight: '400' },
   description: { flexShrink: 0, color: '#523c29', fontFamily: tokens.font.body, fontSize: 16, lineHeight: 23, marginTop: 5 },
 });
