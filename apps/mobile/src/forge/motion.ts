@@ -14,10 +14,14 @@ export type Sheet = {
 
 const sheet = (source: number, cols: number, rows: number, cell: [number, number], anchor: [number, number], blend: Sheet['blend']): Sheet =>
   ({ source, cols, rows, aspect: cell[0] / cell[1], anchor: { x: anchor[0], y: anchor[1] }, blend });
-const hero = (source: number, cols: number) => sheet(source, cols, 2, [288, 320], [0.5, 312 / 320], 'normal');
+/** A character sheet: cells 288 × 320, torso centred, soles at 312. Used by Żaromir and the player sprites. */
+export const hero = (source: number, cols: number) => sheet(source, cols, 2, [288, 320], [0.5, 312 / 320], 'normal');
 
 export type Direction = 'back' | 'back-left' | 'back-right' | 'front' | 'front-left' | 'front-right' | 'left' | 'right';
 export type HeroPlace = 'hearth' | 'seals' | 'chronicle' | 'door';
+
+/** A figure's sheets. Turning and talking are Żaromir's only, other figures fall back to breathing. */
+export type FigureSheets = { walk: Record<Direction, Sheet>; idle: Sheet; act: Record<HeroPlace, Sheet>; turn?: Sheet; talk?: Sheet };
 
 export const heroSheets = {
   walk: {

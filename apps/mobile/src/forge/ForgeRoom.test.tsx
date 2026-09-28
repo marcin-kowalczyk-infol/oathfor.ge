@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Animated, Dimensions, StyleSheet } from 'react-native';
 import { ForgeRoom } from './ForgeRoom';
-import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, places, playerStart, tutor, walkDuration } from './sceneLayout';
+import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, places, playerStart, tutor, walkDirection, walkDuration } from './sceneLayout';
 import { presetArt } from '../characters/presetArt';
 import { ACT_BEFORE_TURN_MS, TURN_FRAME_MS, WALK_FRAME_MS } from './HeroSprite';
 import { useMotionAllowed } from '../ui/useMotion';
@@ -587,10 +587,29 @@ describe('player', () => {
 
   test('draws the character at the start point and Żaromir aside', async () => {
     await render(room());
-    expect(screen.getByTestId('player-dummy', hidden).props.source).toBe(presetArt('starter_02', 'thin')!.figure);
+    // The pilot starter_02 thin has sprites, other presets draw their still menu figure.
+    expect(screen.getByTestId('player-idle', hidden)).toBeTruthy();
     expectAt('room-player', playerStart);
     expectAt('room-guide', aside);
     expect(screen.getByTestId('hero-idle', hidden)).toBeTruthy();
+  });
+
+  test('another preset draws its still menu figure until its sprites exist', async () => {
+    await render(room({ character: { ...character, presetId: 'starter_04' } }));
+    expect(screen.getByTestId('player-dummy', hidden).props.source).toBe(presetArt('starter_04', 'thin')!.figure);
+  });
+
+  test('the pilot walks to the chronicle facing its direction and handles the book on arrival', async () => {
+    motion.mockReturnValue(true);
+    const walks: ((result: { finished: boolean }) => void)[] = [];
+    jest.spyOn(Animated, 'timing').mockImplementation((value) => ({
+      start: done => { if (done && value instanceof Animated.ValueXY) walks.push(done); }, stop: jest.fn(), reset: jest.fn(),
+    }));
+    await render(room());
+    await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
+    expect(screen.getByTestId(`player-walk-${walkDirection(playerStart, places.chronicle.player)}`, hidden)).toBeTruthy();
+    await act(async () => walks[0]({ finished: true }));
+    expect(screen.getByTestId('player-pose-chronicle', hidden)).toBeTruthy();
   });
 
   test('a touched place walks the player there while Żaromir stays aside', async () => {

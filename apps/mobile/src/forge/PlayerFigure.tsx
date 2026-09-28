@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import type { CharacterBuild } from '../api/characters';
 import { presetArt } from '../characters/presetArt';
-import { WALK_FRAME_MS, type HeroPose } from './HeroSprite';
+import { HeroSprite, WALK_FRAME_MS, type HeroPose } from './HeroSprite';
+import { playerSheets } from './playerMotion';
 import { FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, walkPace } from './sceneLayout';
 
 // Preset figures are 440 × 984 with the soles at 968 and the head at about 22. Żaromir's figure spans 284 of his 320 pixel cell,
@@ -12,10 +13,17 @@ const SOLES = 968 / 984;
 
 /**
  * The player character in the Forge room, inside the same box as Żaromir's sprite with the feet at the box's foot point.
- * DUMMY until player sprites exist (MVP-20): the static menu figure of the preset, without step animation.
+ * With sprites (the pilot starter_02 thin) it walks, breathes and plays the place poses like Żaromir.
+ * DUMMY for the other presets until their sprites exist (MVP-20 later slice): the static menu figure, without step animation.
  * scale is the depth size: a fixed number at rest, or from and to over a walk.
  */
-export function PlayerFigure({ presetId, build, allowed, scale, run = 0 }: {
+export function PlayerFigure(props: Parameters<typeof StillFigure>[0]) {
+  const sheets = playerSheets(props.presetId, props.build);
+  return sheets ? <HeroSprite sheets={sheets} name="player" pose={props.pose} allowed={props.allowed} height={FIGURE_HEIGHT} scale={props.scale} run={props.run} />
+    : <StillFigure {...props} />;
+}
+
+function StillFigure({ presetId, build, allowed, scale, run = 0 }: {
   presetId: string; build: CharacterBuild; pose: HeroPose; allowed: boolean;
   scale: number | { from: number; to: number; duration: number }; run?: number;
 }) {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Easing, StyleSheet, View } from 'react-native';
 import { SpriteFrame } from './Sprite';
-import { heroSheets, type Direction, type HeroPlace } from './motion';
+import { heroSheets, type Direction, type FigureSheets, type HeroPlace } from './motion';
 
 export const WALK_FRAME_MS = 90;
 const IDLE_FRAME_MS = 300;
@@ -22,13 +22,15 @@ export type HeroPose =
 // The export normalised every walk frame to one height. A small bob restores the step: contact, down, passing, up.
 const bob = [0, 1, -1, -2, 0, 1, -1, -2];
 
-const timing = (pose: HeroPose) => {
+const timing = (pose: HeroPose, sheets: FigureSheets, name: string) => {
+  const idle = { sheet: sheets.idle, frames: [0, 1, 2, 3, 4, 5, 6, 7], ms: IDLE_FRAME_MS, loop: true, id: `${name}-idle` };
   switch (pose.kind) {
-    case 'walk': return { sheet: heroSheets.walk[pose.direction], frames: [0, 1, 2, 3, 4, 5, 6, 7], ms: WALK_FRAME_MS, loop: true, id: `hero-walk-${pose.direction}` };
-    case 'idle': return { sheet: heroSheets.idle, frames: [0, 1, 2, 3, 4, 5, 6, 7], ms: IDLE_FRAME_MS, loop: true, id: 'hero-idle' };
-    case 'act': return { sheet: heroSheets.act[pose.place], frames: [0, 1, 2, 3], ms: ACT_FRAME_MS, loop: true, id: `hero-pose-${pose.place}` };
-    case 'turn': return { sheet: heroSheets.turn, frames: [0, 1, 2, 3], ms: TURN_FRAME_MS, loop: false, id: 'hero-turn' };
-    case 'talk': return { sheet: heroSheets.talk, frames: [...pose.gestures], ms: TALK_GESTURE_MS, loop: true, id: 'hero-talk' };
+    case 'walk': return { sheet: sheets.walk[pose.direction], frames: [0, 1, 2, 3, 4, 5, 6, 7], ms: WALK_FRAME_MS, loop: true, id: `${name}-walk-${pose.direction}` };
+    case 'idle': return idle;
+    case 'act': return { sheet: sheets.act[pose.place], frames: [0, 1, 2, 3], ms: ACT_FRAME_MS, loop: true, id: `${name}-pose-${pose.place}` };
+    // A figure without turning or talking sheets breathes instead.
+    case 'turn': return sheets.turn ? { sheet: sheets.turn, frames: [0, 1, 2, 3], ms: TURN_FRAME_MS, loop: false, id: `${name}-turn` } : idle;
+    case 'talk': return sheets.talk ? { sheet: sheets.talk, frames: [...pose.gestures], ms: TALK_GESTURE_MS, loop: true, id: `${name}-talk` } : idle;
   }
 };
 
@@ -40,14 +42,16 @@ const pace = Easing.bezier(0.3, 0, 0.7, 1);
  * scale is his depth in the room: a fixed number at rest, or from and to over a walk. Native check: a transform scale
  * blurred the sprite on iOS, so depth changes the drawn size, updated with each step, anchored at his feet.
  */
-export function HeroSprite({ pose, allowed, height, scale = 1, run = 0 }: {
+export function HeroSprite({ pose, allowed, height, scale = 1, run = 0, sheets = heroSheets, name = 'hero' }: {
   pose: HeroPose; allowed: boolean; height: number; scale?: number | { from: number; to: number; duration: number };
+  /** Another figure's sheets and test name, for example the player's. Żaromir's by default. */
+  sheets?: FigureSheets; name?: string;
   /** A new run restarts the frame timer and the depth change, for example each new walk. */
   run?: number;
 }) {
   const started = useRef({ run, at: Date.now() });
   if (started.current.run !== run) started.current = { run, at: Date.now() };
-  const { sheet, frames, ms, loop, id } = timing(pose);
+  const { sheet, frames, ms, loop, id } = timing(pose, sheets, name);
   const [step, setStep] = useState(0);
   const key = `${id}-${frames.join()}-${run}`;
   // A new pose or run starts at its first frame on its first render, not one render later.
