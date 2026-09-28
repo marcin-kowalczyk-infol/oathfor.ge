@@ -508,7 +508,37 @@
         "4": "W czasie pauzy nie złożysz nowej Przysięgi. Wznowienie zdejmuje pauzę, ale nie przywraca wycofanych."
       }
     },
-    "door": "Drzwi"
+    "door": "Drzwi",
+    "player": {
+      "hearth": "Ten ogień aż parzy. Co tu się wykuwa?",
+      "seals": "Te pieczęcie świecą. Czyje to obietnice?",
+      "chronicle": "Kto to wszystko zapisał?",
+      "door": "Już mam wyjść?",
+      "talk": "Jak mi idzie?",
+      "tutorial": {
+        "hearth": "Pokaż mi, jak to się zaczyna.",
+        "seals": "Co znaczą te znaki?",
+        "chronicle": {
+          "masculine": "Czy tu zostanie wszystko, co zrobiłem?",
+          "feminine": "Czy tu zostanie wszystko, co zrobiłam?",
+          "neutral": "Czy tu zostanie wszystko, co uda mi się zrobić?"
+        },
+        "door": {
+          "masculine": "A jeśli będę musiał przerwać?",
+          "feminine": "A jeśli będę musiała przerwać?",
+          "neutral": "A jeśli przyjdzie mi przerwać?"
+        }
+      }
+    },
+    "talk": {
+      "label": "Żaromir, twoje postępy",
+      "hint": {
+        "paused": "Twoja pauza trwa. Kiedy zechcesz wrócić, zajrzyj do Ustawień.",
+        "none": "Ogień czeka. Przy palenisku ukształtujesz pierwszą Przysięgę.",
+        "current": "Masz bieżące Przysięgi: {{count}}. Zajrzyj do pieczęci.",
+        "unavailable": "Nie widzę dziś kroniki wyraźnie. Spróbuj za chwilę."
+      }
+    }
   },
   "tutorial": {
     "title": "Zasady Kuźni"
