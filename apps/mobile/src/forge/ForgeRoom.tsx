@@ -10,10 +10,11 @@ import { HearthFire } from '../ui/HearthFire';
 import { HeroSprite, ACT_BEFORE_TURN_MS, TURN_FRAME_MS, type HeroPose } from './HeroSprite';
 import { CandleFlames } from './CandleFlames';
 import { SpriteLoop } from './Sprite';
-import { effectSheets, type Direction } from './motion';
+import { effectSheets } from './motion';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { bindShortWords } from '../localization/typography';
-import { depth, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, SEALS_BOX, SEALS_FRONT_Y, tutor, walkDirection, walkDuration, walkPace } from './sceneLayout';
+import { FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, SEALS_BOX, SEALS_FRONT_Y, tutor } from './sceneLayout';
+import { useWalker } from './useWalker';
 
 export type ForgeStation = 'hearth' | 'seals' | 'chronicle';
 const stations: { id: ForgeStation; x: number; y: number; footX: number; footY: number }[] = [
@@ -59,16 +60,9 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
   const point = (x: number, y: number) => ({ left: left + x * sceneWidth, top: top + y * sceneHeight });
   const hotspot = (x: number, y: number) => ({ left: Math.max(38, Math.min(viewport.width - 38, left + x * sceneWidth)), top: Math.max(48, Math.min(viewport.height - 48, top + y * sceneHeight)) });
   const allowed = useMotionAllowed();
-  const [target, setTarget] = useState<Spot | null>(null);
-  const [arrived, setArrived] = useState<Spot | null>(null);
-  const [direction, setDirection] = useState<Direction>('back');
-  // Each walk gets a new run id, so the sprite restarts its step timer and depth change.
-  const [walkId, setWalkId] = useState(0);
+  const hero = useWalker(feet, start, allowed);
+  const { target, arrived, walking, direction, position, walkTo } = hero;
   const [zoomed, setZoomed] = useState(false);
-  const lastDestination = useRef(start);
-  const walkFrom = useRef(start);
-  // When the current walk started, so a new target mid-walk can start from where he is.
-  const walkStarted = useRef<number | null>(null);
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [guideStep, setGuideStep] = useState<number | null>(() => showGuide && !tutorial ? 0 : null);
@@ -100,9 +94,6 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
   const [touchRequest, setTouchRequest] = useState(0);
   const glow = useRef(new Animated.Value(0)).current;
   const bubble = useRef(new Animated.Value(1)).current;
-  const position = useRef(new Animated.ValueXY(start)).current;
-  const generation = useRef(0);
-  const settled = useRef<Spot | null>(null);
 
   useEffect(() => {
     if (!allowed) { camera.setValue(entered.current ? 1 : 0); return; }
@@ -114,36 +105,6 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     return () => approach.stop();
   }, [allowed, camera]);
 
-  useEffect(() => {
-    const request = ++generation.current;
-    if (!target || settled.current === target) return;
-    const destination = feet[target];
-    const origin = walkFrom.current;
-    if (!allowed) {
-      position.setValue(destination);
-      settled.current = target;
-      setArrived(target);
-      return () => { generation.current++; };
-    }
-    settled.current = null;
-    setArrived(null);
-    walkStarted.current = Date.now();
-    const movement = Animated.timing(position, {
-      toValue: destination, duration: walkDuration(origin, destination), easing: walkPace, useNativeDriver: true,
-    });
-    movement.start(({ finished }) => {
-      if (!finished || generation.current !== request) return;
-      walkStarted.current = null;
-      settled.current = target;
-      setArrived(target);
-    });
-    return () => {
-      generation.current++;
-      movement.stop();
-    };
-  }, [allowed, position, target]);
-
-  const walking = !!target && !arrived;
   const telling = !!tour?.place && arrived === tour.place;
   // At a told place he first works facing it, then turns around and talks. Reduced motion keeps the facing pose.
   const [presence, setPresence] = useState<'act' | 'turn' | 'talk'>('act');
@@ -174,34 +135,11 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     return () => reveal.stop();
   }, [allowed, arrived, bubble, placeBubble]);
 
-  // The native walk cannot be read back synchronously, so his place is computed with the walk's own curve.
-  function currentFoot() {
-    const to = lastDestination.current;
-    if (walkStarted.current === null || !allowed) return to;
-    const from = walkFrom.current;
-    const done = walkPace(Math.min(1, (Date.now() - walkStarted.current) / walkDuration(from, to)));
-    return { x: from.x + (to.x - from.x) * done, y: from.y + (to.y - from.y) * done };
-  }
-  // Direction and walk id change in the same update as the target, so the first walking frame already faces the right way.
-  function head(spot: Spot) {
-    if (spot === target) return;
-    // Invalidate before React flushes effect cleanup, including a native completion in that gap.
-    generation.current++;
-    walkFrom.current = currentFoot();
-    lastDestination.current = feet[spot];
-    setDirection(walkDirection(walkFrom.current, feet[spot]));
-    setWalkId(value => value + 1);
-  }
   function choose(id: ForgeStation) {
     finishGuide();
-    head(id);
+    walkTo(id);
     setTouchRequest(value => value + 1);
     setBubbleOpen(true);
-    setTarget(id);
-  }
-  function walkTo(spot: Spot) {
-    head(spot);
-    setTarget(spot);
   }
   function hear(place: TutorialPlace) {
     if (tour?.place === place) return;
@@ -293,9 +231,7 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
       { translateY: position.y.interpolate({ inputRange: [0, 1], outputRange: [-FIGURE_HEIGHT * FIGURE_FOOT, sceneHeight - FIGURE_HEIGHT * FIGURE_FOOT] }) },
     ] }]}>
       <View style={styles.heroShadow} />
-      <HeroSprite run={walkId} pose={pose} allowed={allowed} height={FIGURE_HEIGHT}
-        scale={walking && allowed ? { from: depth(walkFrom.current.y), to: depth(lastDestination.current.y), duration: walkDuration(walkFrom.current, lastDestination.current) }
-          : depth(lastDestination.current.y)} />
+      <HeroSprite run={hero.run} pose={pose} allowed={allowed} height={FIGURE_HEIGHT} scale={hero.scale} />
     </Animated.View>
     <Animated.Image source={sealsFront} resizeMode="stretch" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
       style={[styles.front, { ...point(SEALS_BOX.x, SEALS_BOX.y), width: SEALS_BOX.width * sceneWidth, height: SEALS_BOX.height * sceneHeight, opacity: sealsCover }]} />
