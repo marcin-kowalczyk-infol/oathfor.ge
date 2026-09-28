@@ -2,6 +2,7 @@ import type { SessionController } from '../auth/session';
 import type { OathClient, OathResult, OathListQuery } from '../api/oaths';
 import type { PreviewInput, Preview, Oath } from '../api/oathSchema';
 import { isPendingAcceptance, type PendingStorage, type PendingAcceptance } from './pendingStorage';
+import { createServerClock, type ServerClock } from './serverClock';
 
 type Failure = Exclude<OathResult<never>, { kind: 'success' }>;
 export type OathControllerState = { kind: 'idle' | 'loading' | 'storage_unavailable' }
@@ -11,7 +12,8 @@ export type OathCharacter = { accountId: string; characterId: string };
 /** Pause input without a character: the controller always sends its bound character. */
 export type OathPauseChoice = { paused: true; revision: string } | { paused: false };
 const changed = { kind: 'oath_error' as const, code: 'character_changed' as const };
-export function createOathController(options: { session: SessionController; api: OathClient; storage: PendingStorage; onCharacterRequired?: () => void; onCharacterChanged?: () => void }) {
+export function createOathController(options: { session: SessionController; api: OathClient; storage: PendingStorage; onCharacterRequired?: () => void; onCharacterChanged?: () => void; clock?: ServerClock }) {
+  const clock = options.clock ?? createServerClock();
   let state: OathControllerState = { kind: 'idle' };
   // Oath content belongs to one character of one account. The owner names it, the session supplies the token.
   let character: OathCharacter | null = null;
@@ -50,6 +52,7 @@ export function createOathController(options: { session: SessionController; api:
     catch { result = { kind: 'unavailable', retry: 'request' }; }
     finally { requests.delete(controller); }
     if (!current(epoch)) return { kind: 'cancelled' };
+    if (result.kind === 'success' && result.value && typeof result.value === 'object' && 'serverTime' in result.value && typeof result.value.serverTime === 'string') clock.observe(result.value.serverTime);
     if (result.kind === 'reauthenticate') { await options.session.reauthenticate(); return result; }
     if (result.kind === 'oath_error' && result.code === 'character_required') options.onCharacterRequired?.();
     if (result.kind === 'oath_error' && result.code === 'character_changed') options.onCharacterChanged?.();
@@ -146,6 +149,8 @@ export function createOathController(options: { session: SessionController; api:
     invalidate(); publish({ kind: 'loading' }); await hydrate(generation);
   }
   return {
+    /** Server now from the latest current envelope. Display only, it never changes Oath state. */
+    clock,
     getState: () => state,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     start() { if (!disposed && !unsubscribe) { unsubscribe = options.session.subscribe(onSession); onSession(); } },

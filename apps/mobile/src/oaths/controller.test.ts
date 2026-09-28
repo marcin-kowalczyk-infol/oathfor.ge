@@ -218,3 +218,17 @@ test('pause always sends the bound character, never one from a response', async 
   await c.pause({ paused: false });
   expect(jest.mocked(f.api.pause).mock.calls.map(call => call[1])).toEqual([{ characterId, paused: true, revision: 'a'.repeat(64) }, { characterId, paused: false }]);
 });
+test('successful envelopes set the server clock, stale ones do not', async () => {
+  const f = setup(); const c = f.create(); c.start(); await flush();
+  expect(c.clock.now()).toBeNull();
+  jest.mocked(f.api.list).mockResolvedValueOnce({ kind: 'success', value: { items: [], nextCursor: null, total: 0, serverTime: '2030-01-01T00:00:00Z', paused: false, characterId } });
+  await c.list({ view: 'today' });
+  expect(Math.abs(c.clock.now()! - Date.parse('2030-01-01T00:00:00Z'))).toBeLessThan(1000);
+  const late = deferred<Awaited<ReturnType<OathClient['list']>>>();
+  jest.mocked(f.api.list).mockReturnValueOnce(late.promise);
+  const pending = c.list({ view: 'today' });
+  c.setCharacter({ accountId, characterId: otherCharacter });
+  late.resolve({ kind: 'success', value: { items: [], nextCursor: null, total: 0, serverTime: '2040-01-01T00:00:00Z', paused: false, characterId } });
+  await pending;
+  expect(c.clock.now()! < Date.parse('2031-01-01T00:00:00Z')).toBe(true);
+});
