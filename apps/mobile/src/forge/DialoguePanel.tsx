@@ -39,7 +39,7 @@ export type PanelControls = { action?: { label: string; onPress: () => void }; s
  * The carved dialogue panel of the Forge room (docs/product/forge-scene.md "Dialogue panel").
  * The room decides its frame: the bottom edge stays fixed and the panel grows upward to maxHeight.
  * A new lineId types its text again. The first touch shows the whole line, the next calls onContinue.
- * Until the painted frame is delivered, code draws the wood, the bronze lines, the plate and the rune.
+ * The frame, plate and rune are the painted exports of docs/art/forge-scene-assets.md. Both busts are drawn over the frame.
  */
 export function DialoguePanel({ frame, speaker, lineId, text, title, extra, playerName, portrait, allowed, more, continueLabel, onContinue, controls, dismissLabel, onDismiss }: {
   frame: { left: number; width: number; bottom: number; maxHeight: number };
@@ -125,9 +125,10 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
   </Text>;
 
   return <View testID="dialogue-panel" style={[styles.panel, { left: frame.left, width: frame.width, bottom: frame.bottom, maxHeight: frame.maxHeight }, largeText && { height: frame.maxHeight }]}>
+    <PaintedFrame width={frame.width} height={frame.maxHeight} />
+    {/* Owner review 2026-09-28: the frame hid the lower half of the player's medallion. Busts sit over it. */}
     {bust('guide')}
     {bust('player')}
-    <PaintedFrame width={frame.width} height={frame.maxHeight} />
     <View testID="dialogue-plate" pointerEvents="none" style={[styles.plate, speaker === 'guide' ? { left: BUST_INSET + BUST + 6 } : { right: BUST_INSET + BUST + 6 }]}>
       <Image testID="dialogue-plate-image" source={art.plate} resizeMode="stretch" style={[styles.plateImage, PLATE]} />
       <Text accessible={false} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={styles.plateName}>{name}</Text>
@@ -170,7 +171,7 @@ function PaintedFrame({ width, height }: { width: number; height: number }) {
     Array.from({ length: count }, (_, index) => <Image key={index} testID={id} source={source} resizeMode="stretch" style={size} />);
   const corner = (id: string, place: object, flip: object[]) =>
     <Image testID={`panel-corner-${id}`} source={art.corner} resizeMode="stretch" style={[styles.corner, place, { transform: flip }]} />;
-  return <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>
+  return <View testID="panel-frame" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>
     <Image testID="panel-fill" source={art.fill} resizeMode="cover" style={styles.wood} />
     <View style={[styles.edgeH, { top: 0 }]}>{tiles(across, 'panel-edge-top-tile', { width: TILE_H, height: EDGE }, art.edgeH)}</View>
     <View style={[styles.edgeH, { bottom: 0, transform: [{ scaleY: -1 }] }]}>{tiles(across, 'panel-edge-bottom-tile', { width: TILE_H, height: EDGE }, art.edgeH)}</View>

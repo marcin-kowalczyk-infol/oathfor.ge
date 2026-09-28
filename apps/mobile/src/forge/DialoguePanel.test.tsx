@@ -223,3 +223,15 @@ test('the counter and the close control sit inside the painted band', async () =
   const close = StyleSheet.flatten(screen.getByRole('button', { name: 'Close' }).props.style) as { top: number; right: number };
   expect(Math.min(close.top, close.right)).toBeGreaterThanOrEqual(band - 44 / 2 + 8);
 });
+
+// Owner review 2026-09-28: the player's bust hid behind the text field. Both busts are drawn over the painted frame.
+test.each(['player', 'guide'] as const)('draws the %s bust above the painted frame and clear of the text', async speaker => {
+  await render(panel({ speaker }));
+  const children = screen.getByTestId('dialogue-panel', hidden).children as { props: { testID?: string } }[];
+  const at = (id: string) => children.findIndex(child => child.props.testID === id);
+  expect(at('panel-frame')).toBeGreaterThanOrEqual(0);
+  expect(at('bust-guide')).toBeGreaterThan(at('panel-frame'));
+  expect(at('bust-player')).toBeGreaterThan(at('panel-frame'));
+  const bust = style(`bust-${speaker}`);
+  expect(Number(bust.top) + Number(bust.height)).toBeLessThanOrEqual(Number(style('dialogue-panel').paddingTop));
+});
