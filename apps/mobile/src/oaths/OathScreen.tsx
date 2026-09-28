@@ -4,7 +4,6 @@ import { useTranslation } from '../localization/LocalizationProvider';
 import { isPreviewInput, type Activity, type LocalTimeInput, type PreviewInput } from '../api/oathSchema';
 import { Action } from '../ui/Action';
 import { useSceneEntrance } from '../ui/useSceneEntrance';
-import { CommitMark } from '../ui/CommitMark';
 import { GameChoice } from '../ui/GameChoice';
 import { tokens } from '../ui/tokens';
 import { SceneSurface } from '../ui/SceneSurface';
@@ -12,6 +11,7 @@ import { CompanionBubble } from '../ui/CompanionBubble';
 import { SceneDoor } from '../ui/SceneDoor';
 import { BackLink } from '../ui/BackLink';
 import { ActivityOffering } from './ActivityOffering';
+import { SealedScroll, SealStamp } from './SealStamp';
 import { SnapshotRules } from './SnapshotRules';
 import { OathRuleCards } from './OathRuleCards';
 import type { RuleCardId } from './ruleCards';
@@ -25,6 +25,8 @@ import { WallTimePicker, type TimeDraft } from './WallTimePicker';
 // Żaromir's four lines on the first review (docs/product/oath-screens.md section 2) and the card each one lights.
 const GUIDE_CARDS: (RuleCardId | null)[] = [null, 'deadline', 'cutoff', 'fixed'];
 const zharomir = require('../../assets/forge/scene/zharomir-bust-v01.png');
+// Oaths whose seal was stamped in this app run. A remount or a replayed confirmation shows the sealed scroll without stamping again.
+const stamped = new Set<string>();
 export type OathCreationDraft = { activity: Activity; scheduled: boolean; activation: TimeDraft; deadline: TimeDraft };
 function emptyDraft(timezone: string): OathCreationDraft {
   return { activity: 'running', scheduled: false, activation: { date: '', time: '', zone: timezone }, deadline: { date: '', time: '', zone: timezone } };
@@ -60,6 +62,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const scroll = useRef(new Animated.Value(0)).current;
   useEffect(() => { scroll.setValue(0); }, [scene, scroll]);
   const window = useWindowDimensions();
+  const [, setSealed] = useState<string | null>(null);
   const motion = useMotionAllowed() && layoutMode(window.width, window.fontScale) === 'room';
   const accountId = rulesGuideStorage ? controller.boundCharacter()?.accountId : undefined;
   const reviewing = !!review && !pending;
@@ -122,9 +125,12 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.pending')}</Text>
         <Action label={t('oath.recover')} busy={busy} onPress={() => { void controller.recover(); }} />
       </>}
-      {detail && <>
+      {detail && !stamped.has(oath.id) && <View style={styles.confirmed}>
+        <SealStamp width={Math.min(300, window.width - 48)} onDone={() => { stamped.add(oath.id); setSealed(oath.id); }} />
+      </View>}
+      {detail && stamped.has(oath.id) && <>
         <View style={styles.confirmed}>
-          <CommitMark />
+          <SealedScroll width={Math.min(300, window.width - 48)} />
           <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.confirmed')}</Text>
           <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.state', { state: t(`oath.states.${oath.state}`) })}</Text>
         </View>
