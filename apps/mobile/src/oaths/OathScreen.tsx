@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Animated, Image, Pressable, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Animated, Image, Pressable, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { isPreviewInput, type Activity, type LocalTimeInput, type PreviewInput } from '../api/oathSchema';
 import { Action } from '../ui/Action';
@@ -12,6 +12,12 @@ import { SceneDoor } from '../ui/SceneDoor';
 import { BackLink } from '../ui/BackLink';
 import { ActivityOffering } from './ActivityOffering';
 import { SealedScroll, SealStamp } from './SealStamp';
+import { CountdownChip } from './CountdownChip';
+import { countdownTarget, formatCountdown } from './countdown';
+import { shortStoredTime } from './compactStoredTime';
+import { zoneLabel } from './zoneLabel';
+import { ActivityEmblem } from '../ui/ActivityEmblem';
+import { resolveLocale } from '../localization/locale';
 import { SnapshotRules } from './SnapshotRules';
 import { OathRuleCards } from './OathRuleCards';
 import type { RuleCardId } from './ruleCards';
@@ -31,7 +37,7 @@ export type OathCreationDraft = { activity: Activity; scheduled: boolean; activa
 function emptyDraft(timezone: string): OathCreationDraft {
   return { activity: 'running', scheduled: false, activation: { date: '', time: '', zone: timezone }, deadline: { date: '', time: '', zone: timezone } };
 }
-export function OathScreen({ controller, timezone, onBack, backLabel, backPlain = false, initialDraft, onDraftChange, approach = null, rulesGuideStorage }: { controller: OathController; timezone: string; onBack?(): void; backLabel?: string; /** Simple layout: a plain back control instead of the room door picture. */ backPlain?: boolean; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void; approach?: number | null; /** The "seen" flag of Żaromir's rules explanation, per account on this device (owner decision Q4). */ rulesGuideStorage?: GuideStorage }) {
+export function OathScreen({ controller, timezone, onBack, backLabel, backPlain = false, initialDraft, onDraftChange, approach = null, onViewOath, rulesGuideStorage }: { controller: OathController; timezone: string; onBack?(): void; backLabel?: string; /** Simple layout: a plain back control instead of the room door picture. */ backPlain?: boolean; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void; approach?: number | null; /** Opens the detail of a just made Oath. */ onViewOath?(id: string): void; /** The "seen" flag of Żaromir's rules explanation, per account on this device (owner decision Q4). */ rulesGuideStorage?: GuideStorage }) {
   const { t, i18n } = useTranslation();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const [draft, setDraft] = useState<OathCreationDraft>(() => initialDraft ?? emptyDraft(timezone));
@@ -85,6 +91,13 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const guideShown = reviewing && guideLine !== null;
   // The cards come into view above the panel while Żaromir names them.
   useEffect(() => { if (guideShown) scrollView.current?.scrollTo({ y: cardsTop.current.block + cardsTop.current.grid, animated: motion }); }, [guideShown, motion]);
+  const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
+  // VoiceOver hears once that the Oath was made and how long is left, when the stamp settles.
+  function announceMade(made: NonNullable<typeof oath>) {
+    const target = countdownTarget(made); const now = controller.clock.now();
+    const left = target && now !== null ? `${t(`countdown.${target.kind}`)} ${formatCountdown(target.at - now, t, target.kind === 'start' ? 'accusative' : 'nominative').spoken}` : '';
+    AccessibilityInfo.announceForAccessibility(left ? `${t('oath.made')}. ${left}` : t('oath.made'));
+  }
   async function preview() {
     if (!valid || busy || pending) return;
     setSubmitted(true); await controller.preview(input);
@@ -126,15 +139,19 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         <Action label={t('oath.recover')} busy={busy} onPress={() => { void controller.recover(); }} />
       </>}
       {detail && !stamped.has(oath.id) && <View style={styles.confirmed}>
-        <SealStamp width={Math.min(300, window.width - 48)} onDone={() => { stamped.add(oath.id); setSealed(oath.id); }} />
+        <SealStamp width={Math.min(300, window.width - 48)} onDone={() => { stamped.add(oath.id); setSealed(oath.id); announceMade(oath); }} />
       </View>}
       {detail && stamped.has(oath.id) && <>
         <View style={styles.confirmed}>
-          <SealedScroll width={Math.min(300, window.width - 48)} />
-          <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.confirmed')}</Text>
-          <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.state', { state: t(`oath.states.${oath.state}`) })}</Text>
+          <SealedScroll width={Math.min(260, window.width - 48)} />
+          <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={oath.snapshot.activity} size={56} /></View>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.made')}</Text>
+          <CountdownChip oath={oath} clock={controller.clock} size="large" />
+          <Text style={styles.body}>{t('oath.madeDeadline', { time: `${shortStoredTime(oath.snapshot.deadline.local, locale, true)} · ${zoneLabel(oath.snapshot.deadline.timezone, t)}` })}</Text>
+          <Text style={styles.body}>{t('oath.state', { state: t(`oath.states.${oath.state}`) })}</Text>
         </View>
-        <SnapshotRules snapshot={oath.snapshot} />
+        {onViewOath && <Action label={t('oath.viewOath')} onPress={() => onViewOath(oath.id)} />}
+        {onBack && <Action label={backLabel ?? t('oathHome.today')} variant="secondary" onPress={onBack} />}
         {!pending && <Action label={t('oath.newOath')} variant="secondary" onPress={() => { if (controller.resetCreation()) { const next = emptyDraft(timezone); setDraft(next); onDraftChange?.(null); setMode('form'); setSubmitted(false); } }} />}
       </>}
       {review && <>

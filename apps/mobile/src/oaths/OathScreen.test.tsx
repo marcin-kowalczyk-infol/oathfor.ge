@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { AccessibilityInfo } from 'react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { OathScreen } from './OathScreen';
@@ -324,4 +325,41 @@ test('a definitive rejection stamps nothing', async () => {
   await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
   expect(await screen.findByText('Choose and review the times again before committing.')).toBeOnTheScreen();
   expect(screen.queryByTestId('seal-stamp', { includeHiddenElements: true })).toBeNull();
+});
+
+test('after the seal a short card shows the countdown, the deadline and the next steps instead of the full rules', async () => {
+  const f = setup(); f.controller.start();
+  const oathId = '20000000-0000-4000-8000-0000000000b1';
+  jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(oathId, f.envelope.preview.snapshot));
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility'); announce.mockClear();
+  const onBack = jest.fn(); const onViewOath = jest.fn();
+  await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onBack={onBack} backLabel="Return to the Forge" onViewOath={onViewOath} /></LocalizationProvider>);
+  await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+  expect(await screen.findByRole('header', { name: 'Oath made' })).toBeOnTheScreen();
+  expect(screen.getByTestId('countdown-chip')).toHaveProp('accessibilityLabel', 'Until the deadline 1 day');
+  expect(screen.getByText('Deadline: Sun, Oct 25, 02:30 · Warsaw')).toBeOnTheScreen();
+  expect(screen.getByText('Status: Active')).toBeOnTheScreen();
+  expect(screen.queryByText(f.envelope.preview.snapshot.copy.en.sections.appeal)).toBeNull();
+  expect(announce).toHaveBeenCalledTimes(1);
+  expect(announce).toHaveBeenCalledWith('Oath made. Until the deadline 1 day');
+  await fireEvent.press(screen.getByRole('button', { name: 'View the Oath' }));
+  expect(onViewOath).toHaveBeenCalledWith(oathId);
+  expect(screen.getAllByRole('button', { name: 'Return to the Forge' }).length).toBeGreaterThan(0);
+  expect(screen.getByRole('button', { name: 'Create another Oath' })).toBeOnTheScreen();
+});
+test('Polish card and a scheduled Oath counting down to its start', async () => {
+  const f = setup(); f.controller.start();
+  const snapshot = { ...f.envelope.preview.snapshot, activation: { mode: 'scheduled', time: { local: '2026-10-24T22:00:00', timezone: 'Europe/Warsaw', offset: '+02:00', explicitOffset: false, utc: '2026-10-24T20:00:00Z' } } };
+  const value = confirmed('20000000-0000-4000-8000-0000000000b2', snapshot);
+  if (value.kind === 'success') value.value.oath.state = 'scheduled';
+  jest.mocked(f.api.confirm).mockResolvedValueOnce(value);
+  await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
+  await selectDate('Data ukończenia', '25 października 2026');
+  await selectTime('Godzina ukończenia', '02', '30', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' });
+  await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Złóż Przysięgę' }));
+  expect(await screen.findByRole('header', { name: 'Przysięga złożona' })).toBeOnTheScreen();
+  expect(screen.getByTestId('countdown-chip')).toHaveProp('accessibilityLabel', 'Start za 20 godzin');
+  expect(screen.getByRole('button', { name: 'Zobacz Przysięgę' })).toBeOnTheScreen();
 });

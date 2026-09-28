@@ -313,7 +313,10 @@
       "3": "Świeca to ostatni moment na dowód, kwadrans po terminie.",
       "4": "Kowadło z kłódką mówi, że po złożeniu nic tu się nie zmieni.",
       "replay": "Żaromir objaśnia zasady"
-    }
+    },
+    "made": "Przysięga złożona",
+    "madeDeadline": "Termin: {{time}}",
+    "viewOath": "Zobacz Przysięgę"
   },
   "oathHome": {
     "today": "Dzisiaj",

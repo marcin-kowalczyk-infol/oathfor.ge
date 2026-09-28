@@ -305,7 +305,10 @@
       "3": "The candle is the last moment for proof, a quarter hour after the deadline.",
       "4": "The anvil with the lock says nothing here changes once you make it.",
       "replay": "Zharomir explains the rules"
-    }
+    },
+    "made": "Oath made",
+    "madeDeadline": "Deadline: {{time}}",
+    "viewOath": "View the Oath"
   },
   "oathHome": {
     "today": "Today",
