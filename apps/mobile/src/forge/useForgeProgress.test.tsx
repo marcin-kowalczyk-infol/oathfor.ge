@@ -59,3 +59,16 @@ test('while loading the last answers stay and only the newest refresh applies', 
   await act(async () => { slow.resolve(page(9)); });
   expect(hook.result.current.progress.today).toEqual({ total: 4, paused: false });
 });
+
+// Review finding: after a character switch the previous character's counts stayed until the new answer arrived.
+test('a new active character never sees the previous character\'s counts', async () => {
+  const api = controller(); answers(api, page(7, false), page(9));
+  const hook = await renderHook(({ id }: { id: string }) => useForgeProgress(api as unknown as OathController, id), { initialProps: { id: characterId } });
+  await act(async () => { hook.result.current.refresh(); });
+  expect(hook.result.current.progress.today).toEqual({ total: 7, paused: false });
+  api.list.mockReturnValue(new Promise(() => undefined));
+  await hook.rerender({ id: other });
+  expect(hook.result.current.progress).toEqual({ today: null, history: null, loading: false });
+  await act(async () => { hook.result.current.refresh(); });
+  expect(hook.result.current.progress).toEqual({ today: null, history: null, loading: true });
+});

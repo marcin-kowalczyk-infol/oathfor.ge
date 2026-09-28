@@ -35,7 +35,10 @@ const ORDER_CHECK_MS = 100;
 const PANEL_BOTTOM = 20;
 const HINT_WAIT_MS = 2000;
 // Żaromir's touch target aside, around his body above the feet.
-const TALK_TARGET = { width: 60, height: 100 };
+// Kept narrow so it never covers the hearth or chronicle touch areas on 375 point wide screens.
+const TALK_TARGET = { width: 44, height: 88 };
+// SceneHotspot's station touch area.
+const STATION_TARGET = { width: 76, height: 72 };
 const RING = { width: 84, height: 24 };
 const door = places.door.anchor;
 // Where Żaromir stands: beside each place for the tutorial, in front of the hearth while the player chooses, and aside in normal mode.
@@ -116,7 +119,7 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
     if (guideRequest.current === showGuide) return;
     guideRequest.current = showGuide;
     // A restart replaces whatever station the player had open, so its bubble never returns after the guide.
-    if (showGuide && !tour) { setGuideStep(0); setBubbleOpen(false); }
+    if (showGuide && !tour) { setGuideStep(0); setBubbleOpen(false); setTalk(null); }
   }, [showGuide]);
   const guidePlace = guideStep === null ? null : (['hearth', 'seals', 'chronicle', 'door'] as const)[guideStep];
   function finishGuide() {
@@ -251,6 +254,14 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
   const speaker = line?.speaker === 'player' ? player : guide;
   const speakerFoot = line && !speaker.walking ? speaker.now() : null;
   const panelWidth = Math.min(viewport.width - 32, 420);
+  // Żaromir's touch target covers his body, but starts below any station touch area above him, so the places keep their full targets.
+  const asidePoint = point(aside.x, aside.y);
+  const talkLeft = asidePoint.left - TALK_TARGET.width / 2;
+  const talkTop = Math.max(asidePoint.top - TALK_TARGET.height, ...stations.map(station => {
+    const spot = hotspot(station.x, station.y);
+    return spot.left - STATION_TARGET.width / 2 < talkLeft + TALK_TARGET.width && talkLeft < spot.left + STATION_TARGET.width / 2 ? spot.top + STATION_TARGET.height / 2 : -Infinity;
+  }));
+  const talkBox = { left: talkLeft, top: talkTop, width: TALK_TARGET.width, height: Math.max(44, asidePoint.top + 10 - talkTop) };
   return <View style={styles.root} onLayout={({ nativeEvent }) => {
     const { width: nextWidth, height: nextHeight } = nativeEvent.layout;
     if (nextWidth > 0 && nextHeight > 0) setViewport({ width: nextWidth, height: nextHeight });
@@ -294,7 +305,7 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
     </Fragment>)}
     {!tour && !guidePlace && !guide.walking && (guide.arrived ?? 'aside') === 'aside' && <Pressable accessibilityRole="button" accessibilityLabel={t('room.talk.label')}
       onPress={() => { onTalk(); setBubbleOpen(false); setTalk(current => ({ id: (current?.id ?? 0) + 1, step: 'player', waited: false })); }}
-      style={[styles.talkTarget, { left: point(aside.x, aside.y).left - TALK_TARGET.width / 2, top: point(aside.x, aside.y).top - TALK_TARGET.height, width: TALK_TARGET.width, height: TALK_TARGET.height }]} />}
+      style={[styles.talkTarget, talkBox]} />}
     </Animated.View>
     {line && <DialoguePanel frame={{ left: (viewport.width - panelWidth) / 2, width: panelWidth, bottom: PANEL_BOTTOM, maxHeight: viewport.height - PANEL_BOTTOM - stationEdge }}
       speaker={line.speaker} lineId={line.id} text={bindShortWords(t(line.key, line.values), i18n.language)} title={line.title}

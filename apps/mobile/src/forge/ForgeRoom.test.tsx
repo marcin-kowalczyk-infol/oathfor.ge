@@ -898,6 +898,25 @@ describe('talking to Żaromir', () => {
     expect(screen.queryByRole('button', { name: en.room.talk.label })).toBeNull();
   });
 
+  // Review finding: on 375 point wide screens the talk target covered the edges of the hearth and chronicle touch areas.
+  test.each([[375, 667], [375, 812], [440, 956]])('at %i × %i the talk target stays clear of every place', async (width, height) => {
+    const window = { width, height, scale: 3, fontScale: 1 };
+    Dimensions.set({ window, screen: window });
+    await render(room());
+    const box = (name: string) => {
+      const style = StyleSheet.flatten(screen.getByRole('button', { name }).props.style) as { left: number; top: number; width: number; height: number; marginLeft?: number; marginTop?: number };
+      const left = style.left + (style.marginLeft ?? 0);
+      const top = style.top + (style.marginTop ?? 0);
+      return { left, top, right: left + style.width, bottom: top + style.height };
+    };
+    const talkBox = box(en.room.talk.label);
+    for (const place of [en.room.hearth, en.room.seals, en.room.chronicle, en.room.exit]) {
+      const other = box(place);
+      const overlap = talkBox.left < other.right && other.left < talkBox.right && talkBox.top < other.bottom && other.top < talkBox.bottom;
+      expect([place, overlap]).toEqual([place, false]);
+    }
+  });
+
   test('the guide hides the talk until it ends', async () => {
     await render(room({ showGuide: true }));
     expect(screen.queryByRole('button', { name: en.room.talk.label })).toBeNull();
@@ -918,6 +937,20 @@ describe('talking to Żaromir', () => {
     expect(card()).toHaveTextContent('Slight', { exact: false });
     expect(card()).toHaveTextContent('0 current Oaths', { exact: false });
     expect(card()).toHaveTextContent('5 chronicle entries', { exact: false });
+  });
+
+  test('one current Oath reads in the singular', async () => {
+    await render(room({ progress: { today: { total: 1, paused: false }, history: { total: 1 }, loading: false } }));
+    await talk(); await press(en.room.tutorial.next);
+    expect(screen.getByText('You have 1 current Oath. Take a look at the seals.')).toBeOnTheScreen();
+  });
+
+  test('a restarted guide closes an open talk for good', async () => {
+    const view = await render(room());
+    await talk();
+    await view.rerender(room({ showGuide: 2 }));
+    await press(en.room.guide.skip);
+    expect(screen.queryByText(en.room.player.talk)).toBeNull();
   });
 
   test('current Oaths are counted in the hint', async () => {

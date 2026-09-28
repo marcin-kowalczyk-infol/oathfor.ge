@@ -535,7 +535,10 @@
       "hint": {
         "paused": "Twoja pauza trwa. Kiedy zechcesz wrócić, zajrzyj do Ustawień.",
         "none": "Ogień czeka. Przy palenisku ukształtujesz pierwszą Przysięgę.",
-        "current": "Masz bieżące Przysięgi: {{count}}. Zajrzyj do pieczęci.",
+        "current_one": "Masz bieżące Przysięgi: {{count}}. Zajrzyj do pieczęci.",
+        "current_few": "Masz bieżące Przysięgi: {{count}}. Zajrzyj do pieczęci.",
+        "current_many": "Masz bieżące Przysięgi: {{count}}. Zajrzyj do pieczęci.",
+        "current_other": "Masz bieżące Przysięgi: {{count}}. Zajrzyj do pieczęci.",
         "unavailable": "Nie widzę dziś kroniki wyraźnie. Spróbuj za chwilę."
       },
       "chronicle_one": "wpis w kronice",
