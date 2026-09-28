@@ -19,10 +19,10 @@ import type { Character } from '../api/characters';
 import { useWalker } from './useWalker';
 
 export type ForgeStation = 'hearth' | 'seals' | 'chronicle';
-const stations: { id: ForgeStation; x: number; y: number; footX: number; footY: number }[] = [
-  { id: 'hearth', ...places.hearth.anchor, footX: 0.515, footY: 0.565 },
-  { id: 'seals', ...places.seals.anchor, footX: 0.30, footY: 0.635 },
-  { id: 'chronicle', ...places.chronicle.anchor, footX: 0.72, footY: 0.65 },
+const stations: { id: ForgeStation; x: number; y: number }[] = [
+  { id: 'hearth', ...places.hearth.anchor },
+  { id: 'seals', ...places.seals.anchor },
+  { id: 'chronicle', ...places.chronicle.anchor },
 ];
 const room = require('../../assets/forge/room-prototype-v03.png');
 const sealsFront = require('../../assets/forge/motion/room-seals-front-v01.png');
@@ -30,12 +30,11 @@ const haze = require('../../assets/forge/ember-haze-v01.png');
 const WISP = 22;
 const ORDER_CHECK_MS = 100;
 const door = places.door.anchor;
-// Where Żaromir stands: next to each station, in the doorway and in front of the hearth for the tutorial, and aside in normal mode.
-// Native check on iPhone 18 Pro: from the start point he stood behind the tutorial bubble, and a door point at (0.27, 0.58) stood him on the seals.
+// Where Żaromir stands: beside each place for the tutorial, in front of the hearth while the player chooses, and aside in normal mode.
+// Native check on iPhone 18 Pro: from the start point he stood behind the tutorial bubble.
 type GuideSpot = TutorialPlace | 'aside' | 'tutor';
 const guideFeet: Record<GuideSpot, Spot> = {
-  ...Object.fromEntries(stations.map(station => [station.id, { x: station.footX, y: station.footY }])) as Record<ForgeStation, Spot>,
-  door: { x: 0.19, y: 0.50 }, tutor, aside,
+  hearth: places.hearth.guide, seals: places.seals.guide, chronicle: places.chronicle.guide, door: places.door.guide, tutor, aside,
 };
 type PlayerSpot = ScenePlace | 'start';
 const playerFeet: Record<PlayerSpot, Spot> = {
@@ -123,7 +122,8 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
     return () => approach.stop();
   }, [allowed, camera]);
 
-  const telling = !!tour?.place && guide.arrived === tour.place;
+  // A chapter starts once both figures stand at the chosen place.
+  const telling = !!tour?.place && guide.arrived === tour.place && player.arrived === tour.place;
   // At a told place he first works facing it, then turns around and talks. Reduced motion keeps the facing pose.
   const [presence, setPresence] = useState<'act' | 'turn' | 'talk'>('act');
   useEffect(() => {
@@ -166,6 +166,7 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
     setTouchRequest(value => value + 1);
     setTour(current => current && hearPlace(current, place));
     guide.walkTo(place);
+    player.walkTo(place);
   }
   const control = tour && telling ? tourControl(tour) : null;
   function endTour() {
@@ -219,10 +220,10 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
     : { kind: 'idle' };
   // At a visited place the player handles it, facing it.
   const playerPose: HeroPose = player.walking ? { kind: 'walk', direction: player.direction }
+    : told ? { kind: 'act', place: told }
     : !tour && isStation(player.arrived) ? { kind: 'act', place: player.arrived } : { kind: 'idle' };
   // The place responds once the figure stands there and starts working. Touching it again while it is there replays it.
-  const reached = visitor.arrived === visitor.target ? visitor.arrived : null;
-  const effectPlace = reached && (isStation(reached) || (tour && reached === 'door')) ? reached as TutorialPlace : null;
+  const effectPlace = tour ? told : player.arrived === player.target && isStation(player.arrived) ? player.arrived : null;
   // Lower on screen is drawn in front. Each figure brings its own seal cut, so the drums cover only a figure behind them.
   const figures = ([
     { id: 'guide', walker: guide, node: <HeroSprite run={guide.run} pose={pose} allowed={allowed} height={FIGURE_HEIGHT} scale={guide.scale} /> },
