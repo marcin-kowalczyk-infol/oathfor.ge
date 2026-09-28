@@ -61,3 +61,5 @@ The wisp master has an irregular grid, so its eight wisps are cut around their m
 - Native checks covered the iPhone 18 Pro only (owner instruction, 2026-09-27).
 
 MVP-20 adds the player pilot sprites, the dialogue panel art, the seal and book light sheets and the room cut layers in the [Forge scene assets](forge-scene-assets.md).
+
+MVP-21 adds the rule card icons, the sealing stamp and sparks and the countdown hourglass in the [Oath screens assets](oath-screens-assets.md).

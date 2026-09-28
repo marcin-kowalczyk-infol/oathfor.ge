@@ -151,7 +151,7 @@ Candidates in ignored `graphics/mvp-21/incoming/` (review notes in `graphics/mvp
 | `oath-seal-sparks-v01.png` | Sealing sparks | Needs an alpha export |
 | `countdown-hourglass-v05.png` | Countdown | Subtle stream loop, and the list uses the first frame still |
 
-Exports get a new manifest `docs/art/oath-screens-assets.md` with provenance and SHA-256, following the [art pipeline](../art/pipeline.md). Decision Q2 needs two more icons for reward and consequence. Until they exist the cards use a marked DUMMY icon from the current sheet.
+Exports are listed in the manifest [Oath screens assets](../art/oath-screens-assets.md) with provenance and SHA-256, following the [art pipeline](../art/pipeline.md). Decision Q2 needs two more icons for reward and consequence. Until they exist the cards use a marked DUMMY icon from the current sheet.
 
 ## Acceptance
 

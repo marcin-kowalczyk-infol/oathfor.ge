@@ -25,6 +25,7 @@ All product and delivery documents live here except business plans, which belong
 | [Main-menu assets](art/menu-assets.md) | Settings tile export, provenance and reused menu art |
 | [Forge motion assets](art/forge-motion-assets.md) | Żaromir walk, poses and place responses in the Forge room |
 | [Forge scene assets](art/forge-scene-assets.md) | Żaromir's bust, dialogue panel pieces, seal and book responses and room cut layers for MVP-20 |
+| [Oath screens assets](art/oath-screens-assets.md) | Rule card icons, sealing stamp and sparks and countdown hourglass for MVP-21 |
 | [Roadmap](delivery/roadmap.md) | Engineering/product gates, without business forecasts |
 | [Decisions](decisions/0001-project-foundation.md) | Accepted foundation and provenance |
 | [Source register](references.md) | Primary references and verification date |
