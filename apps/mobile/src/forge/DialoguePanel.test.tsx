@@ -179,3 +179,34 @@ test('every control is at least 44 points', async () => {
   }
   expect(screen.getByText('2 / 4')).toBeOnTheScreen();
 });
+
+describe('painted frame', () => {
+  test('draws the painted corners, tiled braid edges, wood and plate', async () => {
+    await render(panel({ allowed: false }));
+    const corner = require('../../assets/forge/scene/panel-corner-v01.png');
+    for (const id of ['tl', 'tr', 'bl', 'br']) expect(screen.getByTestId(`panel-corner-${id}`, hidden).props.source).toBe(corner);
+    const edge = require('../../assets/forge/scene/panel-edge-h-v01.png');
+    const tiles = screen.getAllByTestId('panel-edge-top-tile', hidden);
+    // A 343 point panel minus two 32 point corners needs six 47 point tiles, never a stretched frame.
+    expect(tiles).toHaveLength(Math.ceil((343 - 64) / (142 / 3)));
+    for (const tile of tiles) expect(tile.props.source).toBe(edge);
+    expect(screen.getAllByTestId('panel-edge-left-tile', hidden).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('panel-fill', hidden).props.source).toBe(require('../../assets/forge/scene/panel-fill-v01.png'));
+    const plate = screen.getByTestId('dialogue-plate-image', hidden);
+    expect(plate.props.source).toBe(require('../../assets/forge/scene/panel-plate-v01.png'));
+    // The plate keeps its painted proportions, so its caps never stretch.
+    const box = StyleSheet.flatten(plate.props.style) as { width: number; height: number };
+    expect(box.width / box.height).toBeCloseTo(612 / 128);
+  });
+
+  test('Żaromir speaks with his painted bust', async () => {
+    await render(panel());
+    expect(screen.getByTestId('bust-guide-image', hidden).props.source).toBe(require('../../assets/forge/scene/zharomir-bust-v01.png'));
+  });
+
+  test('the rune is the painted pulse', async () => {
+    await render(panel({ allowed: false, more: true }));
+    expect(screen.getByTestId('dialogue-rune-mark', hidden)).toBeTruthy();
+    expect(screen.getByTestId('dialogue-rune-image', hidden).props.source).toBe(require('../../assets/forge/scene/panel-rune-v01.png'));
+  });
+});

@@ -11,7 +11,22 @@ const SLIDE = 24;
 const SWAP_MS = 220;
 // Busts sit inside the corners, clear of the × in the top right.
 const BUST_INSET = 50;
-const zharomir = require('../../assets/companion/zharomir-wanderer-v01.png');
+const zharomir = require('../../assets/forge/scene/zharomir-bust-v01.png');
+// The painted frame (docs/art/forge-scene-assets.md), exported for 3x screens: 1 point is 3 pixels.
+const art = {
+  corner: require('../../assets/forge/scene/panel-corner-v01.png'),
+  edgeH: require('../../assets/forge/scene/panel-edge-h-v01.png'),
+  edgeV: require('../../assets/forge/scene/panel-edge-v-v01.png'),
+  fill: require('../../assets/forge/scene/panel-fill-v01.png'),
+  plate: require('../../assets/forge/scene/panel-plate-v01.png'),
+  rune: require('../../assets/forge/scene/panel-rune-v01.png'),
+};
+const CORNER = 96 / 3;
+const EDGE = 80 / 3;
+const TILE_H = 142 / 3;
+const TILE_V = 127 / 3;
+const PLATE = { width: 612 / 3 * 0.8, height: 128 / 3 * 0.8 };
+const RUNE = 26;
 // Hermes may lack Intl.Segmenter. Code points then keep Polish letters whole, only joined emoji may split for a moment.
 const segmenter = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 const graphemesOf = (text: string) => segmenter ? Array.from(segmenter.segment(text), part => part.segment) : Array.from(text);
@@ -95,8 +110,8 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, playerName,
     const value = busts[who];
     const side = who === 'guide' ? -1 : 1;
     return <Animated.View testID={`bust-${who}`} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
-      style={[styles.bust, who === 'guide' ? { left: BUST_INSET } : { right: BUST_INSET }, { opacity: value, transform: [{ translateX: value.interpolate({ inputRange: [0, 1], outputRange: [side * SLIDE, 0] }) }] }]}>
-      {who === 'guide' ? <Image source={zharomir} resizeMode="stretch" style={styles.guideCrop} />
+      style={[styles.bust, who === 'guide' ? [styles.paintedBust, { left: BUST_INSET }] : { right: BUST_INSET }, { opacity: value, transform: [{ translateX: value.interpolate({ inputRange: [0, 1], outputRange: [side * SLIDE, 0] }) }] }]}>
+      {who === 'guide' ? <Image testID="bust-guide-image" source={zharomir} resizeMode="contain" style={styles.guideBust} />
         : portrait ? <Image testID="bust-player-image" source={portrait} resizeMode="cover" style={styles.portrait} /> : <View style={styles.noPortrait} />}
     </Animated.View>;
   };
@@ -109,9 +124,10 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, playerName,
   return <View testID="dialogue-panel" style={[styles.panel, { left: frame.left, width: frame.width, bottom: frame.bottom, maxHeight: frame.maxHeight }, largeText && { height: frame.maxHeight }]}>
     {bust('guide')}
     {bust('player')}
-    <View pointerEvents="none" style={styles.innerLine} />
-    <View testID="dialogue-plate" pointerEvents="none" style={[styles.plate, speaker === 'guide' ? { left: BUST_INSET + BUST + 12 } : { right: BUST_INSET + BUST + 12 }]}>
-      <Text accessible={false} allowFontScaling={false} numberOfLines={1} style={styles.plateName}>{name}</Text>
+    <PaintedFrame width={frame.width} height={frame.maxHeight} />
+    <View testID="dialogue-plate" pointerEvents="none" style={[styles.plate, speaker === 'guide' ? { left: BUST_INSET + BUST + 6 } : { right: BUST_INSET + BUST + 6 }]}>
+      <Image testID="dialogue-plate-image" source={art.plate} resizeMode="stretch" style={[styles.plateImage, PLATE]} />
+      <Text accessible={false} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={styles.plateName}>{name}</Text>
     </View>
     <Pressable testID="dialogue-panel-touch" accessible={false} onPress={press} style={[styles.touch, largeText ? styles.fill : styles.fit]}>
       {title ? <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.title}>{title}</Text> : null}
@@ -130,7 +146,9 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, playerName,
       </View>}
     </View>}
     {runeButton && <Pressable testID="dialogue-rune" accessibilityRole="button" accessibilityLabel={continueLabel} onPress={press} style={styles.runeTouch}>
-      {showRune && <Animated.View testID="dialogue-rune-mark" style={[styles.rune, { opacity: rune }]} />}
+      {showRune && <Animated.View testID="dialogue-rune-mark" style={[styles.rune, { opacity: rune }]}>
+        <Image testID="dialogue-rune-image" source={art.rune} resizeMode="stretch" style={styles.runeImage} />
+      </Animated.View>}
     </Pressable>}
     <Pressable accessibilityRole="button" accessibilityLabel={dismissLabel} onPress={onDismiss} style={styles.dismiss}>
       <Text accessible={false} allowFontScaling={false} style={styles.dismissMark}>×</Text>
@@ -138,21 +156,52 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, playerName,
   </View>;
 }
 
-const wood = '#2b1d13';
+/**
+ * Corners and repeated braid tiles, never a stretched frame, because a stretched braid distorts (agent review 2026-09-28).
+ * Tiles are counted for the panel's width and its height limit and clipped at the corners.
+ */
+function PaintedFrame({ width, height }: { width: number; height: number }) {
+  const across = Math.max(0, Math.ceil((width - 2 * CORNER) / TILE_H));
+  const down = Math.max(0, Math.ceil((height - 2 * CORNER) / TILE_V));
+  const tiles = (count: number, id: string, size: { width: number; height: number }, source: number) =>
+    Array.from({ length: count }, (_, index) => <Image key={index} testID={id} source={source} resizeMode="stretch" style={size} />);
+  const corner = (id: string, place: object, flip: object[]) =>
+    <Image testID={`panel-corner-${id}`} source={art.corner} resizeMode="stretch" style={[styles.corner, place, { transform: flip }]} />;
+  return <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>
+    <Image testID="panel-fill" source={art.fill} resizeMode="cover" style={styles.wood} />
+    <View style={[styles.edgeH, { top: 0 }]}>{tiles(across, 'panel-edge-top-tile', { width: TILE_H, height: EDGE }, art.edgeH)}</View>
+    <View style={[styles.edgeH, { bottom: 0, transform: [{ scaleY: -1 }] }]}>{tiles(across, 'panel-edge-bottom-tile', { width: TILE_H, height: EDGE }, art.edgeH)}</View>
+    <View style={[styles.edgeV, { left: 0 }]}>{tiles(down, 'panel-edge-left-tile', { width: EDGE, height: TILE_V }, art.edgeV)}</View>
+    <View style={[styles.edgeV, { right: 0, transform: [{ scaleX: -1 }] }]}>{tiles(down, 'panel-edge-right-tile', { width: EDGE, height: TILE_V }, art.edgeV)}</View>
+    {corner('tl', { left: 0, top: 0 }, [])}
+    {corner('tr', { right: 0, top: 0 }, [{ scaleX: -1 }])}
+    {corner('bl', { left: 0, bottom: 0 }, [{ scaleY: -1 }])}
+    {corner('br', { right: 0, bottom: 0 }, [{ scaleX: -1 }, { scaleY: -1 }])}
+  </View>;
+}
+
+const wood = '#31241d';
 const bronze = '#b58a52';
 const parchment = '#f0dfb9';
 const styles = StyleSheet.create({
-  panel: { position: 'absolute', zIndex: 5, backgroundColor: wood, borderColor: bronze, borderWidth: 2, borderRadius: 10, paddingTop: 36,
+  panel: { position: 'absolute', zIndex: 5, backgroundColor: wood, borderRadius: 6, paddingTop: 36, paddingBottom: 8,
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
-  // The second bronze line of the frame.
-  innerLine: { position: 'absolute', top: 4, right: 4, bottom: 4, left: 4, borderColor: bronze, borderWidth: 1, borderRadius: 7, opacity: 0.6 },
+  wood: { position: 'absolute', left: 4, top: 4, right: 4, bottom: 4 },
+  corner: { position: 'absolute', width: CORNER, height: CORNER },
+  edgeH: { position: 'absolute', left: CORNER, right: CORNER, height: EDGE, flexDirection: 'row', overflow: 'hidden' },
+  edgeV: { position: 'absolute', top: CORNER, bottom: CORNER, width: EDGE, overflow: 'hidden' },
   bust: { position: 'absolute', top: -BUST_RISE, width: BUST, height: BUST, borderRadius: BUST / 2, overflow: 'hidden', backgroundColor: '#44372c', borderColor: bronze, borderWidth: 2 },
-  guideCrop: { position: 'absolute', width: 311.3, height: 467, left: -127.7, top: -6.1 },
+  guideBust: { width: '100%', height: '100%' },
+  // Żaromir's bust is painted with a transparent background, so it rises free of a round frame.
+  paintedBust: { width: BUST + 8, height: BUST + 4, top: -BUST_RISE - 8, borderRadius: 0, borderWidth: 0, backgroundColor: 'transparent', overflow: 'visible' },
   portrait: { width: '100%', height: '100%' },
   noPortrait: { flex: 1, backgroundColor: '#3a2c20' },
-  plate: { position: 'absolute', top: -13, height: 26, maxWidth: 170, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 4, backgroundColor: '#8a6436', borderColor: '#d8b27a', borderWidth: 1 },
-  plateName: { color: '#241609', fontFamily: tokens.font.display, fontSize: 15 },
-  touch: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10, paddingRight: 44 },
+  // The name sits in the plate's text band, clear of its 64 pixel caps.
+  plate: { position: 'absolute', top: -PLATE.height / 2, width: PLATE.width, height: PLATE.height, justifyContent: 'center', paddingHorizontal: 64 / 3 * 0.8 + 4 },
+  plateImage: { position: 'absolute', left: 0, top: 0 },
+  plateName: { color: '#241609', fontFamily: tokens.font.display, fontSize: 15, textAlign: 'center' },
+  // The painted band ends 17 points in from the edge.
+  touch: { paddingHorizontal: 22, paddingTop: 6, paddingBottom: 10, paddingRight: 44 },
   fill: { flex: 1 },
   // At normal size the panel grows with its text and scrolls only once it reaches its height limit.
   fit: { flexGrow: 0, flexShrink: 1 },
@@ -170,7 +219,9 @@ const styles = StyleSheet.create({
   nextLabel: { color: '#e7b86e', fontFamily: tokens.font.body, fontSize: 17, fontWeight: '600' },
   pressed: { opacity: 0.6 },
   runeTouch: { position: 'absolute', right: 0, bottom: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  rune: { width: 12, height: 12, transform: [{ rotate: '45deg' }], backgroundColor: '#f2c37a', shadowColor: '#ffb45a', shadowOpacity: 0.9, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
+  // The rune is light on black, so it blends like the room's light sheets. Its first cell shows, the opacity pulses.
+  rune: { width: RUNE, height: RUNE, overflow: 'hidden', mixBlendMode: 'screen' },
+  runeImage: { position: 'absolute', left: 0, top: 0, width: RUNE * 4, height: RUNE * 2 },
   dismiss: { position: 'absolute', right: 0, top: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   dismissMark: { color: '#c9a77a', fontSize: 28 },
 });
