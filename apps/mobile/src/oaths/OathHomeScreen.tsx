@@ -9,7 +9,8 @@ import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import { SceneDoor } from '../ui/SceneDoor';
 import { BackLink } from '../ui/BackLink';
-import { compactStoredTime } from './compactStoredTime';
+import { compactStoredTime, shortStoredTime } from './compactStoredTime';
+import { CountdownChip } from './CountdownChip';
 import { SceneSurface, type ForgePlace } from '../ui/SceneSurface';
 import { StateSeal } from '../ui/StateSeal';
 import { CompanionBubble } from '../ui/CompanionBubble';
@@ -97,6 +98,13 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     if (!recover && !controller.resetCreation()) return false;
     generation.current++; setRoute('create'); return true;
   }
+  // A countdown reaching zero asks the server for Today once, however many chips show it. Only the answer changes state.
+  const elapsedAt = useRef<number | null>(null);
+  function elapsed() {
+    const now = controller.clock.now() ?? 0;
+    if (elapsedAt.current !== null && now - elapsedAt.current < 1000) return;
+    elapsedAt.current = now; void loadList('today');
+  }
   const handledRequest = useRef<number | null>(null);
   useEffect(() => {
     const request = forgeNavigation?.request;
@@ -148,7 +156,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       {route === 'list' && list?.paused && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.paused')} /></View>}
       {route === 'list' && busyNotice && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('forge.busy')} /></View>}
       {route === 'list' && view === 'today' && <>
-        <ForgeHub items={list?.items ?? []} onOpen={id => { void openDetail(id); }} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy} />
+        <ForgeHub items={list?.items ?? []} clock={controller.clock} onElapsed={elapsed} onOpen={id => { void openDetail(id); }} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy} />
       </>}
       {route === 'list' && (account.pending ? <>
         <CompanionBubble message={t('oath.pending')} />
@@ -169,7 +177,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
             <View style={styles.entryCopy}>
               <Text style={styles.activity}>{item.snapshot.copy[locale].activity}</Text>
               <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>
-              <Text style={styles.deadline}>{view === 'history' ? compactStoredTime(item.snapshot.deadline.local, locale) : storedTime(item.snapshot.deadline, locale)}</Text>
+              <Text style={styles.deadline}>{view === 'history' ? compactStoredTime(item.snapshot.deadline.local, locale) : shortStoredTime(item.snapshot.deadline.local, locale, false)}</Text>
+              {view === 'today' && <CountdownChip oath={item} clock={controller.clock} onElapsed={elapsed} />}
             </View>
           </Pressable>
         </View>)}

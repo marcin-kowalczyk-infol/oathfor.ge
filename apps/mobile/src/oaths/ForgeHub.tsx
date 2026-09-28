@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { CountdownChip } from './CountdownChip';
+import type { ServerClock } from './serverClock';
 import { Animated, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { Oath } from '../api/oathSchema';
 import { useTranslation } from '../localization/LocalizationProvider';
@@ -11,7 +13,7 @@ import { storedTime } from './SnapshotRules';
 
 const embers = [{ x: -35, y: 5, size: 3 }, { x: 17, y: 22, size: 4 }, { x: -8, y: 40, size: 2 }, { x: 36, y: 57, size: 3 }];
 
-function Seal({ item, onOpen, motion }: { item: Oath; onOpen(id: string): void; motion: boolean }) {
+function Seal({ item, onOpen, motion, clock, onElapsed }: { item: Oath; onOpen(id: string): void; motion: boolean; clock?: ServerClock; onElapsed?(): void }) {
   const { t, i18n } = useTranslation();
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const scale = useRef(new Animated.Value(1)).current;
@@ -26,7 +28,7 @@ function Seal({ item, onOpen, motion }: { item: Oath; onOpen(id: string): void; 
   const copy = item.snapshot.copy[locale];
   const deadline = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC' }).format(new Date(`${item.snapshot.deadline.local}Z`));
   return <View style={styles.branch}>
-    <Pressable accessibilityRole="button" accessibilityLabel={t('forge.seal', { activity: copy.activity, state: t(`oath.states.${item.state}`), deadline: storedTime(item.snapshot.deadline, locale) })}
+    <Pressable testID="forge-seal" accessibilityRole="button" accessibilityLabel={t('forge.seal', { activity: copy.activity, state: t(`oath.states.${item.state}`), deadline: storedTime(item.snapshot.deadline, locale) })}
       onPress={() => onOpen(item.id)} onPressIn={() => press(true)} onPressOut={() => press(false)} style={styles.sealTarget}>
       {({ pressed }) => <>
         <Animated.View style={{ transform: [{ scale }], opacity: pressed ? 0.8 : 1 }} accessible={false}>
@@ -36,14 +38,17 @@ function Seal({ item, onOpen, motion }: { item: Oath; onOpen(id: string): void; 
         <Text style={[styles.name, pressed && styles.highlight]}>{copy.activity}</Text>
         <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>
         <Text style={styles.deadline}>{deadline}</Text>
+        {clock && <View style={styles.chip}><CountdownChip oath={item} clock={clock} onElapsed={onElapsed} /></View>}
       </>}
     </Pressable>
   </View>;
 }
 
 /** Atmosphere never observes deadlines, changes Oath state or awards progression. */
-export function ForgeHub({ items, onOpen, onCreate, createDisabled = false }: {
+export function ForgeHub({ items, onOpen, onCreate, createDisabled = false, clock, onElapsed }: {
   items: Oath[]; onOpen(id: string): void; onCreate?: () => void; createDisabled?: boolean;
+  /** Server time for the countdown chips. A chip reaching zero asks the owner for a fresh list, it never changes state. */
+  clock?: ServerClock; onElapsed?(): void;
 }) {
   const { t } = useTranslation();
   const { fontScale, width } = useWindowDimensions();
@@ -88,7 +93,7 @@ export function ForgeHub({ items, onOpen, onCreate, createDisabled = false }: {
     </Pressable> : art}
     {items.length > 0 && <>
       <Text accessibilityRole="header" style={styles.caption}>{t('forge.seals')}</Text>
-      <View style={styles.seals}>{items.slice(0, 3).map(item => <Seal key={item.id} item={item} onOpen={onOpen} motion={motion} />)}</View>
+      <View style={styles.seals}>{items.slice(0, 3).map(item => <Seal key={item.id} item={item} onOpen={onOpen} motion={motion} clock={clock} onElapsed={onElapsed} />)}</View>
     </>}
   </View>;
 }
@@ -107,4 +112,5 @@ const styles = StyleSheet.create({
   name: { color: tokens.color.text, fontSize: 14, lineHeight: 19, fontWeight: '600', textAlign: 'center', marginTop: 3 },
   state: { color: tokens.color.secondary, fontSize: 12, lineHeight: 17, textAlign: 'center' },
   deadline: { color: '#bfa987', fontSize: 12, lineHeight: 17, textAlign: 'center' },
+  chip: { alignItems: 'center', marginTop: 4 },
 });

@@ -1,6 +1,6 @@
 import { Dimensions, StyleSheet } from 'react-native';
 import { createServerClock } from './serverClock';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { OathHomeScreen } from './OathHomeScreen';
@@ -358,4 +358,48 @@ test('the serif screen title, the tab labels and the detail state label are capp
   for (const tab of ['Dzisiaj', 'Historia']) expect(screen.getByText(tab).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
   await fireEvent.press(screen.getByRole('button', { name: /Otwórz Przysięgę/ }));
   expect((await screen.findAllByText('W trakcie rozpatrywania')).some(text => (text.props.maxFontSizeMultiplier ?? 99) <= 2)).toBe(true);
+});
+
+test('Today rows count down by state with a short deadline, the zone stays in the group header', async () => {
+  const scheduled = oath({ state: 'scheduled', activatedAt: null, reason: null, review: null, id: '20000000-0000-4000-8000-000000000002' });
+  scheduled.snapshot = { ...scheduled.snapshot, activation: { mode: 'scheduled', time: { local: '2026-10-27T00:00:00', utc: '2026-10-27T00:00:00Z', timezone: 'UTC', offset: '+00:00', explicitOffset: false } } };
+  const active = oath({ state: 'active', reason: null, review: null, id: '20000000-0000-4000-8000-000000000003' });
+  active.snapshot = { ...active.snapshot, deadline: { ...active.snapshot.deadline, local: '2026-10-29T02:30:00', offset: '+01:00', utc: '2026-10-29T01:30:00Z', receiptCutoff: '2026-10-29T01:45:00Z' } };
+  const proof = oath({ state: 'proof_pending', reason: null, review: null, id: '20000000-0000-4000-8000-000000000004' });
+  const f = setup([oath(), scheduled, active, proof]);
+  // A second before midnight, so milliseconds spent rendering never drop a whole unit.
+  f.controller.clock.observe('2026-10-25T23:59:59Z');
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  const rows = await screen.findAllByRole('button', { name: /Open Oath:/ });
+  const chip = (row: number) => within(rows[row]).queryByTestId('countdown-chip')?.props.accessibilityLabel ?? null;
+  expect([chip(0), chip(1), chip(2), chip(3)]).toEqual(['Review until 2 days', 'Starts in 1 day', 'Until the deadline 3 days 1 hour', null]);
+  expect(within(rows[2]).getByText('Thu 02:30')).toBeOnTheScreen();
+  expect(within(rows[2]).queryByText(/Europe\/Warsaw/)).toBeNull();
+  expect(screen.getAllByRole('header', { name: /Europe\/Warsaw/ }).length).toBeGreaterThan(0);
+});
+
+test('a countdown reaching zero on Today shows time is up and asks the server once, the state stays', async () => {
+  jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-10-25T00:29:30Z'));
+  try {
+    const active = oath({ state: 'active', reason: null, review: null });
+    const f = setup([active]);
+    f.controller.clock.observe('2026-10-25T00:29:30Z');
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+    await act(async () => { await Promise.resolve(); });
+    expect((await screen.findAllByText('< 1 min')).length).toBe(2);
+    const calls = jest.mocked(f.controller.list).mock.calls.length;
+    await act(async () => { jest.advanceTimersByTime(31000); });
+    expect(screen.getAllByText('Time is up')).toHaveLength(2);
+    expect(screen.getAllByText('Active').length).toBeGreaterThan(0);
+    expect(jest.mocked(f.controller.list).mock.calls.length).toBe(calls + 1);
+    await act(async () => { jest.advanceTimersByTime(180000); });
+    expect(jest.mocked(f.controller.list).mock.calls.length).toBe(calls + 1);
+  } finally { jest.useRealTimers(); }
+});
+
+test('the featured Forge seals carry the same countdown', async () => {
+  const f = setup([oath()]); f.controller.clock.observe(serverTime);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  const seals = await screen.findAllByTestId('forge-seal');
+  expect(within(seals[0]).getByTestId('countdown-chip')).toHaveProp('accessibilityLabel', 'Review until 2 days');
 });
