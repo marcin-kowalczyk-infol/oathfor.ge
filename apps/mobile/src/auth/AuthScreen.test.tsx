@@ -436,7 +436,9 @@ test('lands on the menu after a character exists', async () => {
 });
 
 const oathLists = (runtime: ReturnType<typeof setup>) => jest.mocked(runtime.oathApi.list).mock.calls.filter(([, query]) => query.limit !== 1).map(([, query]) => query.view);
-const summaries = (runtime: ReturnType<typeof setup>) => jest.mocked(runtime.oathApi.list).mock.calls.filter(([, query]) => query.limit === 1).length;
+// Menu summaries load Today with limit 1. Each room entry loads Today and history with limit 1 for Żaromir, so those pairs are left out.
+const limitOne = (runtime: ReturnType<typeof setup>, view: string) => jest.mocked(runtime.oathApi.list).mock.calls.filter(([, query]) => query.limit === 1 && query.view === view).length;
+const summaries = (runtime: ReturnType<typeof setup>) => limitOne(runtime, 'today') - limitOne(runtime, 'history');
 async function enterRoom() {
   await fireEvent.press(await screen.findByRole('button', forgeTile));
   expect(await screen.findByRole('button', { name: 'Leave the Forge' })).toBeOnTheScreen();

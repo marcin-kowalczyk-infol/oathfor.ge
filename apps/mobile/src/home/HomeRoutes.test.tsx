@@ -146,3 +146,18 @@ test('a closed tutorial stays closed when the routes remount', async () => {
   expect(await screen.findByRole('button', { name: 'Leave the Forge' })).toBeOnTheScreen();
   expect(screen.queryByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeNull();
 });
+
+test('entering the room and touching Żaromir load the Today and history totals for his statistics', async () => {
+  const oaths = readyOaths();
+  const loads = (view: 'today' | 'history') => jest.mocked(oaths.list).mock.calls.filter(([query]) => query.view === view && query.limit === 1).length;
+  await render(<Harness oaths={oaths} initial={menu} />);
+  await screen.findByRole('button', forgeTile);
+  expect(loads('history')).toBe(0);
+  await fireEvent.press(screen.getByRole('button', forgeTile));
+  await screen.findByRole('button', { name: 'Zharomir, your progress' });
+  expect(loads('history')).toBe(1);
+  const today = loads('today');
+  await fireEvent.press(screen.getByRole('button', { name: 'Zharomir, your progress' }));
+  expect(loads('history')).toBe(2);
+  expect(loads('today')).toBe(today + 1);
+});

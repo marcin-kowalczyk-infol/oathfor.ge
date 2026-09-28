@@ -537,7 +537,11 @@
         "none": "Ogień czeka. Przy palenisku ukształtujesz pierwszą Przysięgę.",
         "current": "Masz bieżące Przysięgi: {{count}}. Zajrzyj do pieczęci.",
         "unavailable": "Nie widzę dziś kroniki wyraźnie. Spróbuj za chwilę."
-      }
+      },
+      "chronicle_one": "wpis w kronice",
+      "chronicle_few": "wpisy w kronice",
+      "chronicle_many": "wpisów w kronice",
+      "chronicle_other": "wpisu w kronice"
     }
   },
   "tutorial": {
