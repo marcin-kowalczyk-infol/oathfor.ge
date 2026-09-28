@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useMotionAllowed } from '../ui/useMotion';
 import { tokens } from '../ui/tokens';
@@ -13,7 +13,9 @@ import { SpriteLoop } from './Sprite';
 import { effectSheets } from './motion';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { bindShortWords } from '../localization/typography';
-import { FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, SEALS_BOX, SEALS_FRONT_Y, tutor } from './sceneLayout';
+import { aside, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, SEALS_BOX, SEALS_FRONT_Y, tutor, type ScenePlace, type Spot } from './sceneLayout';
+import { PlayerFigure } from './PlayerFigure';
+import type { Character } from '../api/characters';
 import { useWalker } from './useWalker';
 
 export type ForgeStation = 'hearth' | 'seals' | 'chronicle';
@@ -26,16 +28,22 @@ const room = require('../../assets/forge/room-prototype-v03.png');
 const sealsFront = require('../../assets/forge/motion/room-seals-front-v01.png');
 const haze = require('../../assets/forge/ember-haze-v01.png');
 const WISP = 22;
-const start = playerStart;
+const ORDER_CHECK_MS = 100;
 const door = places.door.anchor;
-// Where Żaromir stands: next to each station, in the doorway and in front of the hearth for the tutorial, and his idle place.
+// Where Żaromir stands: next to each station, in the doorway and in front of the hearth for the tutorial, and aside in normal mode.
 // Native check on iPhone 18 Pro: from the start point he stood behind the tutorial bubble, and a door point at (0.27, 0.58) stood him on the seals.
-type Spot = TutorialPlace | 'start' | 'tutor';
-const feet: Record<Spot, { x: number; y: number }> = {
-  ...Object.fromEntries(stations.map(station => [station.id, { x: station.footX, y: station.footY }])) as Record<ForgeStation, { x: number; y: number }>,
-  door: { x: 0.19, y: 0.50 }, tutor, start,
+type GuideSpot = TutorialPlace | 'aside' | 'tutor';
+const guideFeet: Record<GuideSpot, Spot> = {
+  ...Object.fromEntries(stations.map(station => [station.id, { x: station.footX, y: station.footY }])) as Record<ForgeStation, Spot>,
+  door: { x: 0.19, y: 0.50 }, tutor, aside,
 };
-const isStation = (spot: Spot | null): spot is ForgeStation => stations.some(station => station.id === spot);
+type PlayerSpot = ScenePlace | 'start';
+const playerFeet: Record<PlayerSpot, Spot> = {
+  hearth: places.hearth.player, seals: places.seals.player, chronicle: places.chronicle.player, door: places.door.player, start: playerStart,
+};
+const isStation = (spot: string | null): spot is ForgeStation => stations.some(station => station.id === spot);
+/** Below the seal drums' front edge a figure is in front of them, so the cut drawn after it no longer covers it. */
+const sealsCover = (position: Animated.ValueXY) => position.y.interpolate({ inputRange: [SEALS_FRONT_Y - 0.005, SEALS_FRONT_Y], outputRange: [1, 0], extrapolate: 'clamp' });
 
 /**
  * The Forge room entrance: visiting a station never mutates an Oath, only its named action leaves the room.
@@ -43,8 +51,8 @@ const isStation = (spot: Spot | null): spot is ForgeStation => stations.some(sta
  * tutorial starts the rules conversation, and a new id restarts it with no heard places. It takes priority over the guide.
  * onTutorialEnd reports a close or finish, so the parent can drop the id and a remount does not start it again.
  */
-export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null, onTutorialStart, onTutorialEnd, onOpenStation, onExit }: {
-  showGuide?: boolean | number; onGuideComplete?: () => void; tutorial?: number | null; onTutorialStart?: () => void; onTutorialEnd?: () => void;
+export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutorial = null, onTutorialStart, onTutorialEnd, onOpenStation, onExit }: {
+  character: Pick<Character, 'name' | 'presetId' | 'build' | 'form'>; showGuide?: boolean | number; onGuideComplete?: () => void; tutorial?: number | null; onTutorialStart?: () => void; onTutorialEnd?: () => void;
   onOpenStation: (station: ForgeStation) => void; onExit: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -60,8 +68,18 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
   const point = (x: number, y: number) => ({ left: left + x * sceneWidth, top: top + y * sceneHeight });
   const hotspot = (x: number, y: number) => ({ left: Math.max(38, Math.min(viewport.width - 38, left + x * sceneWidth)), top: Math.max(48, Math.min(viewport.height - 48, top + y * sceneHeight)) });
   const allowed = useMotionAllowed();
-  const hero = useWalker(feet, start, allowed);
-  const { target, arrived, walking, direction, position, walkTo } = hero;
+  // Żaromir stands aside in normal mode. The player starts in the lower middle and walks to each touched place.
+  const guide = useWalker(guideFeet, aside, allowed);
+  const player = useWalker(playerFeet, playerStart, allowed);
+  // Which figure is lower on screen, so drawn in front. Walks cannot be read back, so it is checked at a coarse rate while one walks.
+  const lower = (): 'guide' | 'player' => guide.now().y > player.now().y ? 'guide' : 'player';
+  const [front, setFront] = useState(lower);
+  useEffect(() => {
+    setFront(lower());
+    if (!allowed || !(guide.walking || player.walking)) return;
+    const checks = setInterval(() => setFront(lower()), ORDER_CHECK_MS);
+    return () => clearInterval(checks);
+  }, [allowed, guide.walking, player.walking, guide.run, player.run]);
   const [zoomed, setZoomed] = useState(false);
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
@@ -73,7 +91,7 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     tutorialRequest.current = tutorial;
     setTour(freshTour); setGuideStep(null); setBubbleOpen(false);
     // Żaromir walks into the room from the start point to talk, above the bubble.
-    walkTo('tutor');
+    guide.walkTo('tutor');
     onTutorialStart?.();
   }, [tutorial]);
   const guideRequest = useRef(showGuide);
@@ -105,7 +123,7 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     return () => approach.stop();
   }, [allowed, camera]);
 
-  const telling = !!tour?.place && arrived === tour.place;
+  const telling = !!tour?.place && guide.arrived === tour.place;
   // At a told place he first works facing it, then turns around and talks. Reduced motion keeps the facing pose.
   const [presence, setPresence] = useState<'act' | 'turn' | 'talk'>('act');
   useEffect(() => {
@@ -114,8 +132,10 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     const turn = setTimeout(() => setPresence('turn'), ACT_BEFORE_TURN_MS);
     const talk = setTimeout(() => setPresence('talk'), ACT_BEFORE_TURN_MS + TURN_FRAME_MS * 4);
     return () => { clearTimeout(turn); clearTimeout(talk); };
-  }, [allowed, telling, arrived]);
-  const placeBubble = tour ? telling : bubbleOpen && isStation(arrived);
+  }, [allowed, telling, guide.arrived]);
+  const placeBubble = tour ? telling : bubbleOpen && isStation(player.arrived);
+  // The figure whose arrival opens the bubble and plays the place response.
+  const visitor = tour ? guide : player;
 
   useEffect(() => {
     if (!allowed) { glow.setValue(0.35); return; }
@@ -133,11 +153,11 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     const reveal = Animated.spring(bubble, { toValue: 1, damping: 18, stiffness: 180, mass: 0.7, useNativeDriver: true });
     reveal.start();
     return () => reveal.stop();
-  }, [allowed, arrived, bubble, placeBubble]);
+  }, [allowed, visitor.arrived, bubble, placeBubble]);
 
   function choose(id: ForgeStation) {
     finishGuide();
-    walkTo(id);
+    player.walkTo(id);
     setTouchRequest(value => value + 1);
     setBubbleOpen(true);
   }
@@ -145,11 +165,13 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     if (tour?.place === place) return;
     setTouchRequest(value => value + 1);
     setTour(current => current && hearPlace(current, place));
-    walkTo(place);
+    guide.walkTo(place);
   }
   const control = tour && telling ? tourControl(tour) : null;
   function endTour() {
     setTour(null);
+    // Normal mode: Żaromir stands aside again.
+    guide.walkTo('aside');
     onTutorialEnd?.();
   }
   function advance() {
@@ -159,18 +181,17 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     ? `${t('room.tutorial.hear', { place: t(`room.${place}`) })}${tour.heard.includes(place) ? `, ${t('room.tutorial.heard')}` : ''}`
     : t(place === 'door' ? 'room.exit' : `room.${place}`);
   const heardMark = (place: TutorialPlace) => tour?.heard.includes(place) ? `heard-${place}` : undefined;
-  const stationGlow = (id: ForgeStation) => glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === id || tour?.place === id ? [0.45, 0.75] : target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
-  const sealsCover = position.y.interpolate({ inputRange: [SEALS_FRONT_Y - 0.005, SEALS_FRONT_Y], outputRange: [1, 0], extrapolate: 'clamp' });
+  const stationGlow = (id: ForgeStation) => glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === id || tour?.place === id ? [0.45, 0.75] : player.target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
   const seals = stations.find(station => station.id === 'seals')!;
   const bubbleWidth = Math.min(viewport.width - 32, 340);
-  const footSpot = tour ? (telling ? arrived : null) : arrived === 'start' ? null : arrived;
   // The bubble sits outside the camera layer, so project scene points through the camera zoom.
   const zoom = zoomed ? 1.08 : 1;
+  const onScreenSpot = (spot: Spot) => onScreen(spot.x, spot.y);
   const onScreen = (x: number, y: number) => ({ x: viewport.width * 0.515 + (left + x * sceneWidth - viewport.width * 0.515) * zoom, y: viewport.height * 0.45 + (top + y * sceneHeight - viewport.height * 0.45) * zoom });
-  const foot = footSpot ? onScreen(feet[footSpot].x, feet[footSpot].y) : null;
+  const foot = tour ? (telling ? onScreenSpot(guideFeet[guide.arrived!]) : null) : isStation(player.arrived) ? onScreenSpot(playerFeet[player.arrived]) : null;
   // The guide tail points toward the place it describes, the tutorial choice toward Żaromir where he waits.
   const guideAnchor = guidePlace === 'door' ? door : stations.find(station => station.id === guidePlace);
-  const centeredX = guideAnchor ? onScreen(guideAnchor.x, guideAnchor.y).x : tour ? onScreen(feet[target ?? 'start'].x, feet[target ?? 'start'].y).x : viewport.width / 2;
+  const centeredX = guideAnchor ? onScreen(guideAnchor.x, guideAnchor.y).x : tour ? onScreenSpot(guideFeet[guide.target ?? 'aside']).x : viewport.width / 2;
   const centered = !!guidePlace || (!!tour && !telling);
   const bubbleLeft = foot ? Math.max(16, Math.min(viewport.width - bubbleWidth - 16, foot.x - bubbleWidth / 2)) : 16;
   // Large text gets a scrollable lower overlay, leaving all station targets available.
@@ -192,13 +213,21 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     : tour ? Math.max(stationEdge, viewport.height - 20 - natural) : Math.min(preferredTop, Math.max(stationEdge, viewport.height - 20 - natural));
   const told = telling ? tour!.place : null;
   // Between chapters Żaromir waits at the last place facing the player. While the player chooses he points at the places.
-  const pose: HeroPose = walking ? { kind: 'walk', direction }
+  const pose: HeroPose = guide.walking ? { kind: 'walk', direction: guide.direction }
     : told ? (presence === 'act' ? { kind: 'act', place: told } : presence === 'turn' ? { kind: 'turn' } : { kind: 'talk', gestures: [0, 3] })
-    : !tour && isStation(arrived) ? { kind: 'act', place: arrived }
-    : tour && !tour.place && arrived === 'tutor' ? { kind: 'talk', gestures: [0, 1, 0, 2] }
+    : tour && !tour.place && guide.arrived === 'tutor' ? { kind: 'talk', gestures: [0, 1, 0, 2] }
     : { kind: 'idle' };
-  // The place responds once Żaromir stands there and starts working. Touching it again while he is there replays it.
-  const effectPlace = arrived && arrived === target && (isStation(arrived) || (tour && arrived === 'door')) ? arrived as TutorialPlace : null;
+  // At a visited place the player handles it, facing it.
+  const playerPose: HeroPose = player.walking ? { kind: 'walk', direction: player.direction }
+    : !tour && isStation(player.arrived) ? { kind: 'act', place: player.arrived } : { kind: 'idle' };
+  // The place responds once the figure stands there and starts working. Touching it again while it is there replays it.
+  const reached = visitor.arrived === visitor.target ? visitor.arrived : null;
+  const effectPlace = reached && (isStation(reached) || (tour && reached === 'door')) ? reached as TutorialPlace : null;
+  // Lower on screen is drawn in front. Each figure brings its own seal cut, so the drums cover only a figure behind them.
+  const figures = ([
+    { id: 'guide', walker: guide, node: <HeroSprite run={guide.run} pose={pose} allowed={allowed} height={FIGURE_HEIGHT} scale={guide.scale} /> },
+    { id: 'player', walker: player, node: <PlayerFigure presetId={character.presetId} build={character.build} run={player.run} pose={playerPose} allowed={allowed} scale={player.scale} /> },
+  ] as const).slice().sort((one, two) => one.id === front ? 1 : two.id === front ? -1 : 0);
   const bubbleHeight = Math.max(100, viewport.height - bubbleTop - 20);
   return <View style={styles.root} onLayout={({ nativeEvent }) => {
     const { width: nextWidth, height: nextHeight } = nativeEvent.layout;
@@ -214,7 +243,7 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
       {stations.map(station => {
         // The ember wisp floats above each station's touch area, where its mote used to be.
         const spot = hotspot(station.x, station.y);
-        const lit = tour ? tour.place === station.id : target === station.id;
+        const lit = tour ? tour.place === station.id : player.target === station.id;
         return <SpriteLoop key={`wisp-${station.id}`} sheet={effectSheets.wisp} width={WISP} duration={1300} allowed={allowed}
           style={{ left: spot.left - WISP / 2, top: spot.top - 30 - WISP * 0.55 / effectSheets.wisp.aspect,
             opacity: lit ? 1 : glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
@@ -224,32 +253,34 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
       {effectPlace && <StationEffect key={touchRequest} station={effectPlace} request={touchRequest} allowed={allowed} point={point} sceneWidth={sceneWidth} />}
     </View>
     <SceneHotspot label={placeLabel('door')} onPress={() => { if (tour) { hear('door'); return; } finishGuide(); onExit(); }} anchor={hotspot(door.x, door.y)} door allowed={allowed} glow={glow} heard={heardMark('door')} selected={tour ? tour.place === 'door' : undefined} />
-    {stations.map(station => <SceneHotspot key={station.id} cue={false} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : target === station.id}
+    {stations.map(station => <SceneHotspot key={station.id} cue={false} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : player.target === station.id}
       onPress={() => tour ? hear(station.id) : choose(station.id)} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} heard={heardMark(station.id)} />)}
-    <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.hero, { left, top, transform: [
-      { translateX: position.x.interpolate({ inputRange: [0, 1], outputRange: [-FIGURE_WIDTH / 2, sceneWidth - FIGURE_WIDTH / 2] }) },
-      { translateY: position.y.interpolate({ inputRange: [0, 1], outputRange: [-FIGURE_HEIGHT * FIGURE_FOOT, sceneHeight - FIGURE_HEIGHT * FIGURE_FOOT] }) },
-    ] }]}>
-      <View style={styles.heroShadow} />
-      <HeroSprite run={hero.run} pose={pose} allowed={allowed} height={FIGURE_HEIGHT} scale={hero.scale} />
-    </Animated.View>
-    <Animated.Image source={sealsFront} resizeMode="stretch" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
-      style={[styles.front, { ...point(SEALS_BOX.x, SEALS_BOX.y), width: SEALS_BOX.width * sceneWidth, height: SEALS_BOX.height * sceneHeight, opacity: sealsCover }]} />
-    {/* Native check: the cut hid the seal glow, so the seals darkened as he stepped behind them. The glow is repeated over the cut. */}
-    <Animated.Image source={haze} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.objectGlow, styles.front, { ...point(seals.x, seals.y), opacity: Animated.multiply(stationGlow('seals'), sealsCover) }]} />
+    {figures.map(({ id, walker, node }) => <Fragment key={id}>
+      <Animated.View testID={`room-${id}`} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.figure, { left, top, transform: [
+        { translateX: walker.position.x.interpolate({ inputRange: [0, 1], outputRange: [-FIGURE_WIDTH / 2, sceneWidth - FIGURE_WIDTH / 2] }) },
+        { translateY: walker.position.y.interpolate({ inputRange: [0, 1], outputRange: [-FIGURE_HEIGHT * FIGURE_FOOT, sceneHeight - FIGURE_HEIGHT * FIGURE_FOOT] }) },
+      ] }]}>
+        <View style={styles.figureShadow} />
+        {node}
+      </Animated.View>
+      <Animated.Image testID={`seals-cut-${id}`} source={sealsFront} resizeMode="stretch" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+        style={[styles.front, { ...point(SEALS_BOX.x, SEALS_BOX.y), width: SEALS_BOX.width * sceneWidth, height: SEALS_BOX.height * sceneHeight, opacity: sealsCover(walker.position) }]} />
+      {/* Native check: the cut hid the seal glow, so the seals darkened as he stepped behind them. The glow is repeated over the cut. */}
+      <Animated.Image source={haze} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.objectGlow, styles.front, { ...point(seals.x, seals.y), opacity: Animated.multiply(stationGlow('seals'), sealsCover(walker.position)) }]} />
+    </Fragment>)}
     </Animated.View>
     {(guidePlace || (tour && (telling || !tour.place)) || placeBubble) && <RoomBubble
       frame={{ left: centered ? (viewport.width - bubbleWidth) / 2 : bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText ? bubbleHeight : undefined }}
       reveal={centered ? null : bubble} pointX={centered ? centeredX : foot!.x} fill={largeText}
-      contentKey={`${guidePlace ?? (tour ? `tour-${tour.place}-${tour.line}-${tour.ended}` : arrived)}-${i18n.language}-${fontScale}`}
+      contentKey={`${guidePlace ?? (tour ? `tour-${tour.place}-${tour.line}-${tour.ended}` : player.arrived)}-${i18n.language}-${fontScale}`}
       onContentHeight={setContentHeight} dismissLabel={t(guidePlace ? 'room.guide.skip' : tour ? 'room.tutorial.close' : 'room.dismiss')}
       onDismiss={() => guidePlace ? finishGuide() : tour ? endTour() : setBubbleOpen(false)} footer={footer}>
-      {!guidePlace && !tour && isStation(arrived) && <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.detailTitle}>{t(`room.${arrived}`)}</Text>}
+      {!guidePlace && !tour && isStation(player.arrived) && <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.detailTitle}>{t(`room.${player.arrived}`)}</Text>}
       <Text maxFontSizeMultiplier={2} style={styles.description}>{bindShortWords(guidePlace ? t(`room.guide.${guidePlace}`)
         : tour ? t(tourTextKey(tour))
-        : t(`room.descriptions.${arrived}`), i18n.language)}</Text>
-      {!guidePlace && !tour && isStation(arrived) && <Pressable accessibilityRole="button" accessibilityLabel={t(`room.actions.${arrived}`)} onPress={() => onOpenStation(arrived)} style={({ pressed }) => [styles.stationAction, { opacity: pressed ? 0.6 : 1 }]}>
-        <Text maxFontSizeMultiplier={2} style={styles.actionLabel}>{t(`room.actions.${arrived}`)} <Text accessibilityElementsHidden>→</Text></Text>
+        : t(`room.descriptions.${player.arrived}`), i18n.language)}</Text>
+      {!guidePlace && !tour && isStation(player.arrived) && <Pressable accessibilityRole="button" accessibilityLabel={t(`room.actions.${player.arrived}`)} onPress={() => onOpenStation(player.arrived as ForgeStation)} style={({ pressed }) => [styles.stationAction, { opacity: pressed ? 0.6 : 1 }]}>
+        <Text maxFontSizeMultiplier={2} style={styles.actionLabel}>{t(`room.actions.${player.arrived}`)} <Text accessibilityElementsHidden>→</Text></Text>
       </Pressable>}
     </RoomBubble>}
   </View>;
@@ -262,9 +293,10 @@ const styles = StyleSheet.create({
   scenery: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden' },
   objectGlow: { position: 'absolute', width: 180, height: 160, marginLeft: -90, marginTop: -85 },
   doorGlow: { position: 'absolute', width: 130, height: 180, marginLeft: -65, marginTop: -95, tintColor: '#bfe8f0' },
-  hero: { position: 'absolute', width: FIGURE_WIDTH, height: FIGURE_HEIGHT, zIndex: 3 },
-  front: { position: 'absolute', zIndex: 4, pointerEvents: 'none' },
-  heroShadow: { position: 'absolute', width: 76, height: 18, top: FIGURE_HEIGHT * FIGURE_FOOT - 10, left: FIGURE_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
+  // Figures and seal cuts share one layer above the touch areas, so their tree order is the drawing order.
+  figure: { position: 'absolute', width: FIGURE_WIDTH, height: FIGURE_HEIGHT, zIndex: 3 },
+  front: { position: 'absolute', zIndex: 3, pointerEvents: 'none' },
+  figureShadow: { position: 'absolute', width: 76, height: 18, top: FIGURE_HEIGHT * FIGURE_FOOT - 10, left: FIGURE_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
   detailTitle: { flexShrink: 0, color: '#47311e', fontFamily: tokens.font.display, fontSize: 19, fontWeight: '400' },
   description: { flexShrink: 0, color: '#523c29', fontFamily: tokens.font.body, fontSize: 16, lineHeight: 23, marginTop: 5 },
 });

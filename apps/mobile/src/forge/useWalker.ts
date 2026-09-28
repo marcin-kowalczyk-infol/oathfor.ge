@@ -76,5 +76,5 @@ export function useWalker<Name extends string>(spots: Record<Name, Spot>, start:
   const scale = walking && allowed
     ? { from: depth(walkFrom.current.y), to: depth(lastDestination.current.y), duration: walkDuration(walkFrom.current, lastDestination.current) }
     : depth(lastDestination.current.y);
-  return { target, arrived, walking, direction, run, position, scale, walkTo };
+  return { target, arrived, walking, direction, run, position, scale, now: currentFoot, walkTo };
 }

@@ -1,7 +1,8 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Animated, Dimensions, StyleSheet } from 'react-native';
 import { ForgeRoom } from './ForgeRoom';
-import { walkDuration } from './sceneLayout';
+import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, places, playerStart, walkDuration } from './sceneLayout';
+import { presetArt } from '../characters/presetArt';
 import { ACT_BEFORE_TURN_MS, TURN_FRAME_MS, WALK_FRAME_MS } from './HeroSprite';
 import { useMotionAllowed } from '../ui/useMotion';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
@@ -15,11 +16,37 @@ jest.mock('../ui/HearthFire', () => ({ HearthFire: () => null }));
 // Looping decorations (hotspot wisps) own their loops. The room glow test counts only the room's own loop.
 jest.mock('./Sprite', () => ({ ...jest.requireActual('./Sprite'), SpriteLoop: () => null }));
 type Props = Parameters<typeof ForgeRoom>[0];
+const character = { name: 'Mira', presetId: 'starter_02', build: 'thin', form: 'feminine' } as const;
 const room = (props: Partial<Props> = {}, locale: Locale = 'en') =>
-  <LocalizationProvider initialLocale={locale}><ForgeRoom onExit={jest.fn()} onOpenStation={jest.fn()} {...props} /></LocalizationProvider>;
+  <LocalizationProvider initialLocale={locale}><ForgeRoom character={character} onExit={jest.fn()} onOpenStation={jest.fn()} {...props} /></LocalizationProvider>;
 const motion = jest.mocked(useMotionAllowed);
 let intervals: jest.SpyInstance;
 let clear: jest.SpyInstance;
+const hidden = { includeHiddenElements: true };
+/** Where a figure's feet stand, as fractions of the room artwork, read from its drawn transform. */
+function footOf(testID: string) {
+  const style = StyleSheet.flatten(screen.getByTestId(testID, hidden).props.style) as { transform: [{ translateX: number }, { translateY: number }] };
+  const scene = cover(Dimensions.get('window'));
+  return { x: (style.transform[0].translateX + FIGURE_WIDTH / 2) / scene.width, y: (style.transform[1].translateY + FIGURE_HEIGHT * FIGURE_FOOT) / scene.height };
+}
+const expectAt = (testID: string, spot: { x: number; y: number }) => {
+  const foot = footOf(testID);
+  expect(foot.x).toBeCloseTo(spot.x, 3);
+  expect(foot.y).toBeCloseTo(spot.y, 3);
+};
+/** testIDs in drawing order, first drawn first. */
+function drawOrder(ids: string[]) {
+  const order: string[] = [];
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { node.forEach(visit); return; }
+    const element = node as { props?: { testID?: string }; children?: unknown };
+    if (element.props?.testID && ids.includes(element.props.testID)) order.push(element.props.testID);
+    visit(element.children);
+  };
+  visit(screen.toJSON());
+  return order;
+}
 const walkTimers = () => intervals.mock.calls.flatMap((args, index) => args[1] === WALK_FRAME_MS ? [intervals.mock.results[index].value] : []);
 
 beforeEach(() => {
@@ -163,7 +190,7 @@ test('station discovery requires its named action before opening the matching sc
   }
 });
 
-test('touching the station Żaromir stands at replays its response', async () => {
+test('touching the station the player stands at replays its response', async () => {
   motion.mockReturnValue(true);
   const finishes: ((result: { finished: boolean }) => void)[] = [];
   const responses: number[] = [];
@@ -181,31 +208,36 @@ test('touching the station Żaromir stands at replays its response', async () =>
   expect(responses).toHaveLength(2);
 });
 
-// Review finding: a new target mid-walk started from the old destination, not from where Żaromir was.
-test('a new target mid-walk starts from where Żaromir is', async () => {
+// Review finding: a new target mid-walk started from the old destination, not from where the figure was.
+test('a new target mid-walk starts from where the player is', async () => {
   motion.mockReturnValue(true);
-  jest.spyOn(Animated, 'timing').mockImplementation(() => ({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() }));
+  const durations: number[] = [];
+  jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
+    start: () => { if (value instanceof Animated.ValueXY) durations.push(config.duration!); }, stop: jest.fn(), reset: jest.fn(),
+  }));
   await render(room());
   await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
-  await act(async () => { jest.advanceTimersByTime(walkDuration({ x: 0.5, y: 0.82 }, { x: 0.72, y: 0.65 }) / 2); });
+  await act(async () => { jest.advanceTimersByTime(walkDuration(playerStart, places.chronicle.player) / 2); });
   await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
-  // From the chronicle foot point the seals are straight left. From halfway they are up and to the left.
-  expect(screen.getByTestId('hero-walk-back-left', { includeHiddenElements: true })).toBeTruthy();
+  // The walk curve is symmetric, so halfway in time is halfway along the way.
+  const halfway = { x: (playerStart.x + places.chronicle.player.x) / 2, y: (playerStart.y + places.chronicle.player.y) / 2 };
+  expect(durations[1]).toBe(walkDuration(halfway, places.seals.player));
 });
 
 test('a walk shows the sheet for its direction', async () => {
   motion.mockReturnValue(true);
   jest.spyOn(Animated, 'timing').mockImplementation(() => ({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() }));
-  await render(room());
-  await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
-  expect(screen.getByTestId('hero-walk-back-left', { includeHiddenElements: true })).toBeTruthy();
+  await render(room({ tutorial: 1 }));
+  // From aside, the tutorial place in front of the hearth is down and to the left.
+  expect(screen.getByTestId('hero-walk-front-left', { includeHiddenElements: true })).toBeTruthy();
 });
 
-test('arrival shows the station pose, including the static reduced-motion equivalent', async () => {
+test('Żaromir keeps breathing aside while the player handles a place', async () => {
   await render(room());
   expect(screen.getByTestId('hero-idle', { includeHiddenElements: true })).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
-  expect(screen.getByTestId('hero-pose-chronicle', { includeHiddenElements: true })).toBeTruthy();
+  expect(screen.getByTestId('hero-idle', { includeHiddenElements: true })).toBeTruthy();
+  expect(screen.queryByTestId('hero-pose-chronicle', { includeHiddenElements: true })).toBeNull();
 });
 
 test.each([['pl', pl], ['en', en]] as const)('the %s door leaves the room and names every station from the main catalog', async (locale, copy) => {
@@ -558,5 +590,75 @@ describe('tutorial after the native check', () => {
     await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 343, 160);
     const last = flat(screen.getByTestId('room-bubble'));
     expect(last.top + 160 + 4 + 44).toBeCloseTo(844 - 20);
+  });
+});
+
+describe('player', () => {
+  function captureWalks() {
+    motion.mockReturnValue(true);
+    const walks: { to: unknown; done: (result: { finished: boolean }) => void }[] = [];
+    jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
+      start: done => { if (value instanceof Animated.ValueXY) walks.push({ to: config.toValue, done: done ?? (() => undefined) }); }, stop: jest.fn(), reset: jest.fn(),
+    }));
+    return walks;
+  }
+
+  test('draws the character at the start point and Żaromir aside', async () => {
+    await render(room());
+    expect(screen.getByTestId('player-dummy', hidden).props.source).toBe(presetArt('starter_02', 'thin')!.figure);
+    expectAt('room-player', playerStart);
+    expectAt('room-guide', aside);
+    expect(screen.getByTestId('hero-idle', hidden)).toBeTruthy();
+  });
+
+  test('a touched place walks the player there while Żaromir stays aside', async () => {
+    const walks = captureWalks();
+    await render(room());
+    await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
+    expect(walks.map(walk => walk.to)).toEqual([places.seals.player]);
+    expect(screen.queryByText(en.room.descriptions.seals)).toBeNull();
+    await act(async () => walks[0].done({ finished: true }));
+    expect(screen.getByText(en.room.descriptions.seals)).toBeOnTheScreen();
+    expect(screen.getByTestId('fx-seal-0', hidden)).toBeTruthy();
+    expect(screen.getByTestId('hero-idle', hidden)).toBeTruthy();
+    expectAt('room-guide', aside);
+  });
+
+  test('with reduced motion the player stands at the place at once', async () => {
+    await render(room());
+    await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
+    expectAt('room-player', places.chronicle.player);
+    expect(walkTimers()).toHaveLength(0);
+  });
+
+  test('the figure lower on screen is drawn in front', async () => {
+    await render(room());
+    expect(drawOrder(['room-guide', 'room-player'])).toEqual(['room-guide', 'room-player']);
+  });
+
+  test('the seal cut covers a figure standing behind the seal drums', async () => {
+    await render(room({ tutorial: 1 }));
+    await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.hear.replace('{{place}}', en.room.door) }));
+    const opacity = (id: string) => (StyleSheet.flatten(screen.getByTestId(id, hidden).props.style) as { opacity: number }).opacity;
+    expect(opacity('seals-cut-guide')).toBe(1);
+    expect(opacity('seals-cut-player')).toBe(0);
+    expect(drawOrder(['room-guide', 'seals-cut-guide', 'room-player'])).toEqual(['room-guide', 'seals-cut-guide', 'room-player']);
+  });
+
+  // Review finding: after the tutorial Żaromir stayed at his last tutorial spot, where the player could stand on him.
+  test('closing the tutorial sends Żaromir back aside', async () => {
+    const walks = captureWalks();
+    await render(room({ tutorial: 1 }));
+    await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.hear.replace('{{place}}', en.room.seals) }));
+    await act(async () => walks[walks.length - 1].done({ finished: true }));
+    await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.close }));
+    expect(walks[walks.length - 1].to).toEqual(aside);
+  });
+
+  test('a character whose preset has no art gets a silhouette and the room still works', async () => {
+    await render(<LocalizationProvider initialLocale="en"><ForgeRoom character={{ ...character, presetId: 'starter_99' }} onExit={jest.fn()} onOpenStation={jest.fn()} /></LocalizationProvider>);
+    expect(screen.getByTestId('player-silhouette', hidden)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: en.room.hearth }));
+    expect(screen.getByText(en.room.descriptions.hearth)).toBeOnTheScreen();
   });
 });
