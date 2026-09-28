@@ -500,7 +500,37 @@
         "4": "While paused you cannot make a new Oath. Resuming lifts the pause but does not restore withdrawn Oaths."
       }
     },
-    "door": "Door"
+    "door": "Door",
+    "player": {
+      "hearth": "This fire burns hot. What is forged here?",
+      "seals": "These seals are glowing. Whose promises are they?",
+      "chronicle": "Who wrote all of this down?",
+      "door": "Should I leave already?",
+      "talk": "How am I doing?",
+      "tutorial": {
+        "hearth": "Show me how it begins.",
+        "seals": "What do these marks mean?",
+        "chronicle": {
+          "masculine": "Will everything I did stay here?",
+          "feminine": "Will everything I did stay here?",
+          "neutral": "Will everything I did stay here?"
+        },
+        "door": {
+          "masculine": "And if I have to stop?",
+          "feminine": "And if I have to stop?",
+          "neutral": "And if I have to stop?"
+        }
+      }
+    },
+    "talk": {
+      "label": "Zharomir, your progress",
+      "hint": {
+        "paused": "Your pause is on. When you want to return, look in Settings.",
+        "none": "The fire is waiting. At the hearth you can shape your first Oath.",
+        "current": "You have {{count}} current Oaths. Take a look at the seals.",
+        "unavailable": "I cannot read the chronicle clearly right now. Try again in a moment."
+      }
+    }
   },
   "tutorial": {
     "title": "Forge rules"
