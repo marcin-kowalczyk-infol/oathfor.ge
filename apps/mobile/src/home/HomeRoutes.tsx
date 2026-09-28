@@ -5,6 +5,7 @@ import type { Profile } from '../api/profile';
 import { ChangeCharacterScreen } from '../characters/ChangeCharacterScreen';
 import type { CharacterController, CharacterControllerState } from '../characters/controller';
 import { ForgeRoom } from '../forge/ForgeRoom';
+import { useForgeProgress } from '../forge/useForgeProgress';
 import type { GuideStorage } from '../forge/guideStorage';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale, type Locale } from '../localization/locale';
@@ -94,6 +95,10 @@ export function HomeRoutes(props: HomeRoutesProps) {
   // A read without an answer counts as unseen after GUIDE_READ_LIMIT. Showing the guide again is the safe loss.
   const [guideSeen, setGuideSeen] = useState<boolean | null>(null);
   const inRoom = route.kind === 'forge';
+  // Żaromir's statistics load on each room entry and again when he is touched.
+  const forgeProgress = useForgeProgress(oaths, character.id);
+  const refreshProgress = forgeProgress.refresh;
+  useEffect(() => { if (inRoom) refreshProgress(); }, [inRoom, refreshProgress]);
   useEffect(() => {
     if (!inRoom || guideSeen !== null) return;
     let live = true;
@@ -123,7 +128,7 @@ export function HomeRoutes(props: HomeRoutesProps) {
     case 'forge':
       front = guideSeen === null ? <View testID="forge-room-waiting" style={styles.dark} />
         // A tutorial started before the first room entry replaces the guide, which then counts as seen.
-        : <ForgeRoom character={character} showGuide={!guideSeen} onGuideComplete={guideDone} tutorial={route.tutorial} onTutorialStart={() => { if (!guideSeen) guideDone(); }} onTutorialEnd={() => dispatch({ type: 'tutorialEnded' })}
+        : <ForgeRoom character={character} progress={forgeProgress.progress} onTalk={refreshProgress} showGuide={!guideSeen} onGuideComplete={guideDone} tutorial={route.tutorial} onTutorialStart={() => { if (!guideSeen) guideDone(); }} onTutorialEnd={() => dispatch({ type: 'tutorialEnded' })}
           onOpenStation={station => dispatch({ type: 'openStation', station })} onExit={() => dispatch({ type: 'door' })} />;
       break;
     case 'tutorial':

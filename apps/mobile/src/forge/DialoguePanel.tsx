@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
 import { tokens } from '../ui/tokens';
 import { useTranslation } from '../localization/LocalizationProvider';
@@ -40,9 +40,11 @@ export type PanelControls = { action?: { label: string; onPress: () => void }; s
  * A new lineId types its text again. The first touch shows the whole line, the next calls onContinue.
  * Until the painted frame is delivered, code draws the wood, the bronze lines, the plate and the rune.
  */
-export function DialoguePanel({ frame, speaker, lineId, text, title, playerName, portrait, allowed, more, continueLabel, onContinue, controls, dismissLabel, onDismiss }: {
+export function DialoguePanel({ frame, speaker, lineId, text, title, extra, playerName, portrait, allowed, more, continueLabel, onContinue, controls, dismissLabel, onDismiss }: {
   frame: { left: number; width: number; bottom: number; maxHeight: number };
-  speaker: Speaker; lineId: string; text: string; title?: string; playerName: string; portrait: ImageSourcePropType | null;
+  speaker: Speaker; lineId: string; text: string; title?: string;
+  /** Content under the line, for example Żaromir's statistics card. */
+  extra?: ReactNode; playerName: string; portrait: ImageSourcePropType | null;
   allowed: boolean;
   /** Another line follows, so a whole line shows the rune. */
   more: boolean;
@@ -131,7 +133,7 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, playerName,
     </View>
     <Pressable testID="dialogue-panel-touch" accessible={false} onPress={press} style={[styles.touch, largeText ? styles.fill : styles.fit]}>
       {title ? <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.title}>{title}</Text> : null}
-      <ScrollView testID="dialogue-scroll" style={largeText ? styles.fill : styles.fit} accessibilityLiveRegion="polite">{body}</ScrollView>
+      <ScrollView testID="dialogue-scroll" style={largeText ? styles.fill : styles.fit} accessibilityLiveRegion="polite">{body}{extra}</ScrollView>
     </Pressable>
     {(controls?.action || controls?.step) && <View style={styles.controls}>
       {controls.action && <Pressable accessibilityRole="button" accessibilityLabel={controls.action.label} onPress={controls.action.onPress} style={({ pressed }) => [styles.action, pressed && styles.pressed]}>

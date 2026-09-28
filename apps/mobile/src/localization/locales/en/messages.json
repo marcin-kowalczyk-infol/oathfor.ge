@@ -527,9 +527,12 @@
       "hint": {
         "paused": "Your pause is on. When you want to return, look in Settings.",
         "none": "The fire is waiting. At the hearth you can shape your first Oath.",
-        "current": "You have {{count}} current Oaths. Take a look at the seals.",
+        "current_one": "You have {{count}} current Oath. Take a look at the seals.",
+        "current_other": "You have {{count}} current Oaths. Take a look at the seals.",
         "unavailable": "I cannot read the chronicle clearly right now. Try again in a moment."
-      }
+      },
+      "chronicle_one": "chronicle entry",
+      "chronicle_other": "chronicle entries"
     }
   },
   "tutorial": {
