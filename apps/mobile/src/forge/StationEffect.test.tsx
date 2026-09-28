@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react-native';
+import { act, render, screen } from '@testing-library/react-native';
 import { Animated, StyleSheet } from 'react-native';
-import { StationEffect } from './StationEffect';
+import { StationEffect, sealTurns, responseDuration } from './StationEffect';
 
 const point = (x: number, y: number) => ({ left: x * 400, top: y * 800 });
 const effect = (station: 'hearth' | 'seals' | 'chronicle' | 'door', request: number, allowed: boolean) =>
@@ -30,19 +30,70 @@ test('a reduced-motion touch stays static even if animation is enabled later', a
   jest.restoreAllMocks();
 });
 
-test('the seal response lights all three seals from one timing', async () => {
-  const timing = jest.spyOn(Animated, 'timing').mockReturnValue({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() });
+const hidden = { includeHiddenElements: true };
+const played = () => {
+  const finishes: ((result: { finished: boolean }) => void)[] = [];
+  const timing = jest.spyOn(Animated, 'timing').mockImplementation(() => ({ start: done => { if (done) finishes.push(done); }, stop: jest.fn(), reset: jest.fn() }));
+  return { timing, finishes };
+};
+afterEach(() => jest.restoreAllMocks());
+
+test('the seal drums turn one after another, each with its own motif and sparks, from one timing', async () => {
+  const { timing, finishes } = played();
   await render(effect('seals', 1, true));
   expect(timing).toHaveBeenCalledTimes(1);
-  for (const seal of [0, 1, 2]) expect(screen.getByTestId(`fx-seal-${seal}`, { includeHiddenElements: true })).toBeTruthy();
-  jest.restoreAllMocks();
+  expect(sealTurns.map(turn => [turn.id, turn.start, turn.end])).toEqual([['star', 0, 450], ['tree', 200, 650], ['wolf', 400, 850]]);
+  for (const seal of ['star', 'tree', 'wolf']) {
+    expect(screen.getByTestId(`cut-seal-${seal}`, hidden)).toBeTruthy();
+    expect(screen.getByTestId(`fx-seal-${seal}`, hidden)).toBeTruthy();
+    expect(screen.getAllByTestId(new RegExp(`^spark-${seal}-`), hidden)).toHaveLength(2);
+  }
+  // Each drum turns once in plane around its own centre.
+  const star = StyleSheet.flatten(screen.getByTestId('cut-seal-star', hidden).props.style) as { transform: { rotate: string }[] };
+  expect(star.transform[0].rotate).toBe('0deg');
+  await act(async () => finishes[0]({ finished: true }));
+  expect(screen.queryByTestId('cut-seal-star', hidden)).toBeNull();
+  expect(screen.queryByTestId('spark-star-0', hidden)).toBeNull();
 });
 
-test.each([['hearth', 'fx-hearth'], ['chronicle', 'fx-chronicle'], ['door', 'fx-door']] as const)('%s has its own sprite response', async (station, id) => {
-  jest.spyOn(Animated, 'timing').mockReturnValue({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() });
-  await render(effect(station, 1, true));
-  expect(screen.getByTestId(id, { includeHiddenElements: true })).toBeTruthy();
-  jest.restoreAllMocks();
+test('the chronicle pages flutter over the book and signs rise from it', async () => {
+  played();
+  await render(effect('chronicle', 1, true));
+  expect(screen.getByTestId('fx-book-flutter', hidden)).toBeTruthy();
+  expect(screen.getByTestId('fx-book-signs', hidden)).toBeTruthy();
+});
+
+test('the door leaf swings from its hinge with the mist and returns to rest', async () => {
+  const { timing, finishes } = played();
+  await render(effect('door', 1, true));
+  expect(timing).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId('fx-door', hidden)).toBeTruthy();
+  const leaf = StyleSheet.flatten(screen.getByTestId('cut-door-leaf', hidden).props.style) as { transform: { scaleX: number }[]; transformOrigin: unknown[] };
+  expect(leaf.transform[0].scaleX).toBe(1);
+  // The hinge is on the left of the leaf.
+  expect(leaf.transformOrigin[0]).toBeCloseTo((34 - 31) * 400 / 887);
+  expect(screen.getByTestId('door-backing', hidden)).toBeTruthy();
+  await act(async () => finishes[0]({ finished: true }));
+  expect(screen.queryByTestId('cut-door-leaf', hidden)).toBeNull();
+  expect(screen.queryByTestId('door-backing', hidden)).toBeNull();
+});
+
+test('the hearth flares and its coals brighten and settle', async () => {
+  played();
+  await render(effect('hearth', 1, true));
+  expect(screen.getByTestId('fx-hearth', hidden)).toBeTruthy();
+  expect(screen.getByTestId('fx-coals', hidden)).toBeTruthy();
+});
+
+test('every response fits well inside the navigation limit', () => {
+  for (const station of ['hearth', 'seals', 'chronicle', 'door'] as const) expect(responseDuration(station)).toBeLessThanOrEqual(1200);
+});
+
+test.each(['seals', 'door'] as const)('with reduced motion the %s cut layers stay at rest and nothing turns', async station => {
+  const { timing } = played();
+  await render(effect(station, 1, false));
+  expect(timing).not.toHaveBeenCalled();
+  expect(screen.queryByTestId(/^cut-/, hidden)).toBeNull();
 });
 
 // Review finding: the last light frame ended half a frame after the effect and stayed at half opacity.

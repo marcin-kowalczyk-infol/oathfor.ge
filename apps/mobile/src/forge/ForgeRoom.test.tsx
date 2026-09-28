@@ -3,6 +3,7 @@ import { Animated, Dimensions, StyleSheet } from 'react-native';
 import { ForgeRoom } from './ForgeRoom';
 import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, places, playerStart, tutor, walkDirection, walkDuration } from './sceneLayout';
 import { presetArt } from '../characters/presetArt';
+import { responseDuration } from './StationEffect';
 import { ACT_BEFORE_TURN_MS, TURN_FRAME_MS, WALK_FRAME_MS } from './HeroSprite';
 import { useMotionAllowed } from '../ui/useMotion';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
@@ -199,7 +200,7 @@ test('touching the station the player stands at replays its response', async () 
   jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
     start: done => {
       if (value instanceof Animated.ValueXY) { if (done) finishes.push(done); return; }
-      if (config.duration === 800) responses.push(1);
+      if (config.duration === responseDuration('chronicle')) responses.push(1);
     }, stop: jest.fn(), reset: jest.fn(),
   }));
   await render(room());
@@ -621,7 +622,7 @@ describe('player', () => {
     expect(screen.queryByText(en.room.player.seals)).toBeNull();
     await act(async () => walks[0].done({ finished: true }));
     expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
-    expect(screen.getByTestId('fx-seal-0', hidden)).toBeTruthy();
+    expect(screen.getByTestId('fx-seal-star', hidden)).toBeTruthy();
     expect(screen.getByTestId('hero-idle', hidden)).toBeTruthy();
     expectAt('room-guide', aside);
   });

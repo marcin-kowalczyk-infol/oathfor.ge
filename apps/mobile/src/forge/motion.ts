@@ -56,6 +56,12 @@ export const effectSheets = {
   candle: sheet(require('../../assets/forge/motion/fx-candle-loop-v01.png'), 4, 2, [96, 128], [0.5, 0.94], 'screen'),
   wisp: sheet(require('../../assets/forge/motion/fx-attract-wisp-v01.png'), 4, 2, [96, 128], [0.5, 0.55], 'screen'),
   chroniclePage: sheet(require('../../assets/forge/motion/fx-chronicle-page-v01.png'), 4, 2, [192, 256], [0.5, 0.87], 'normal'),
+  // MVP-20 scene responses (docs/art/forge-scene-assets.md).
+  sealStar: sheet(require('../../assets/forge/scene/fx-seal-star-v01.png'), 4, 2, [192, 256], [0.5, 0.4], 'screen'),
+  sealTree: sheet(require('../../assets/forge/scene/fx-seal-tree-v01.png'), 4, 2, [192, 256], [0.5, 0.4], 'screen'),
+  sealWolf: sheet(require('../../assets/forge/scene/fx-seal-wolf-v01.png'), 4, 2, [192, 256], [0.5, 0.4], 'screen'),
+  bookSigns: sheet(require('../../assets/forge/scene/fx-book-signs-v01.png'), 4, 2, [288, 384], [0.5, 0.94], 'screen'),
+  bookFlutter: sheet(require('../../assets/forge/scene/fx-book-flutter-v01.png'), 4, 2, [256, 256], [0.5, 0.8063], 'normal'),
 };
 
 export const frameCount = (value: Sheet) => value.cols * value.rows;
