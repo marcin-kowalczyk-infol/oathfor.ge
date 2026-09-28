@@ -537,5 +537,33 @@
   },
   "tutorial": {
     "title": "Forge rules"
+  },
+  "countdown": {
+    "start": "Starts in",
+    "deadline": "Until the deadline",
+    "review": "Review until",
+    "elapsed": "Time is up",
+    "less": "less than a minute",
+    "short": {
+      "days": "{{count}} d",
+      "hours": "{{count}} h",
+      "minutes": "{{count}} min",
+      "less": "< 1 min"
+    },
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "hours_one": "{{count}} hour",
+    "hours_other": "{{count}} hours",
+    "minutes_one": "{{count}} minute",
+    "minutes_other": "{{count}} minutes",
+    "accusative": {
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "hours_one": "{{count}} hour",
+      "hours_other": "{{count}} hours",
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes",
+      "less": "less than a minute"
+    }
   }
 }

@@ -547,5 +547,45 @@
   },
   "tutorial": {
     "title": "Zasady Kuźni"
+  },
+  "countdown": {
+    "start": "Start za",
+    "deadline": "Do terminu",
+    "review": "Przegląd do",
+    "elapsed": "Czas minął",
+    "less": "mniej niż minuta",
+    "short": {
+      "days": "{{count}} d",
+      "hours": "{{count}} h",
+      "minutes": "{{count}} min",
+      "less": "< 1 min"
+    },
+    "days_one": "{{count}} dzień",
+    "days_few": "{{count}} dni",
+    "days_many": "{{count}} dni",
+    "days_other": "{{count}} dnia",
+    "hours_one": "{{count}} godzina",
+    "hours_few": "{{count}} godziny",
+    "hours_many": "{{count}} godzin",
+    "hours_other": "{{count}} godziny",
+    "minutes_one": "{{count}} minuta",
+    "minutes_few": "{{count}} minuty",
+    "minutes_many": "{{count}} minut",
+    "minutes_other": "{{count}} minuty",
+    "accusative": {
+      "days_one": "{{count}} dzień",
+      "days_few": "{{count}} dni",
+      "days_many": "{{count}} dni",
+      "days_other": "{{count}} dnia",
+      "hours_one": "{{count}} godzinę",
+      "hours_few": "{{count}} godziny",
+      "hours_many": "{{count}} godzin",
+      "hours_other": "{{count}} godziny",
+      "minutes_one": "{{count}} minutę",
+      "minutes_few": "{{count}} minuty",
+      "minutes_many": "{{count}} minut",
+      "minutes_other": "{{count}} minuty",
+      "less": "mniej niż minutę"
+    }
   }
 }
