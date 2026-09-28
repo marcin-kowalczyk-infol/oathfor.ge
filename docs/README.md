@@ -22,6 +22,7 @@ All product and delivery documents live here except business plans, which belong
 | [Asset pipeline](art/pipeline.md) | Sources, continuity, local artwork and exports |
 | [Player preset assets](art/player-preset-assets.md) | Starter character preset exports, thin and heavy builds |
 | [Main-menu assets](art/menu-assets.md) | Settings tile export, provenance and reused menu art |
+| [Forge motion assets](art/forge-motion-assets.md) | Żaromir walk, poses and place responses in the Forge room |
 | [Roadmap](delivery/roadmap.md) | Engineering/product gates, without business forecasts |
 | [Decisions](decisions/0001-project-foundation.md) | Accepted foundation and provenance |
 | [Source register](references.md) | Primary references and verification date |

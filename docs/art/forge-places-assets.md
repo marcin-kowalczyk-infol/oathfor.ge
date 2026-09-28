@@ -12,6 +12,8 @@ Terms source checked 2026-09-26: [OpenAI Europe Terms of Use](https://openai.com
 
 ## Derived exports
 
+Update 2026-09-27: `hearth-fire-v01`, the four walk sheets, `zharomir-idle-v01` and `zharomir-station-actions-v01` are replaced by the [Forge motion assets](forge-motion-assets.md) and removed from the app. The rows below stay as the record of what shipped before.
+
 `graphics/mvp-05/export-t12-v01.py` produces every export deterministically from the masters. It does not modify masters.
 
 | Export in `apps/mobile/assets/forge/` | Master | Size / alpha | Derivation | SHA-256 |

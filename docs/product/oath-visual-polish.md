@@ -150,7 +150,7 @@ Every Oath row, featured seal and detail shows a shape-coded state seal next to 
 
 A looping flame burns in the room hearth and in the hearth close-up. Loops stop in the background, under Reduce Motion and while the functional app is hidden under the room. The demo marks the hidden subtree as motion-suspended, so its Forge hub, flame and entrance animations stay idle.
 
-Żaromir walks with a sheet facing the travel direction: side views for diagonal paths, back view toward the hearth, front view when returning. He breathes slowly while standing and takes a station pose on arrival. Sheets are pre-aligned in export and never mirrored. Reduce Motion places him at once with the same pose.
+Żaromir walks with a sheet facing the travel direction: side views for diagonal paths, back view toward the hearth, front view when returning. He breathes slowly while standing and takes a station pose on arrival. Sheets are pre-aligned in export and never mirrored. Reduce Motion places him at once with the same pose. Update 2026-09-27: eight directions replace the side views on diagonals, with 8-frame cycles and poses facing each place, see the [Forge motion assets](../art/forge-motion-assets.md).
 
 The companion bubble now projects its position through the room camera zoom, so its tail points at Żaromir's feet. A hearth request that meets a busy controller without a pending acceptance shows a notice asking the player to return in a moment. It does not open creation.
 

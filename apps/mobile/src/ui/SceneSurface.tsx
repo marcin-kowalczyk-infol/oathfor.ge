@@ -59,7 +59,8 @@ export function SceneSurface({ children, place = 'room', approach = null, drop =
         {/* The close-up scrolls with the content, so text never slides across the focal object. */}
         <Animated.View style={[styles.scroller, scroll && { transform: [{ translateY: scroll.interpolate({ inputRange: [0, 1], outputRange: [0, -1], extrapolateLeft: 'clamp' }) }] }]}>
         <Image source={closeUps[place]} resizeMode="stretch" style={[styles.layer, { left: 0, top: imageTop, width: size.width, height: imageHeight }]} />
-        {place === 'hearth' && <HearthFire anchor={{ left: size.width * 0.5, top: imageTop + imageHeight * 0.345 }} size={size.width * 0.4} opacity={0.85} />}
+        {/* Native check: the taller 8-frame flame at 0.4 of the width rose above the arch. 0.24 keeps it inside the opening. */}
+        {place === 'hearth' && <HearthFire anchor={{ left: size.width * 0.5, top: imageTop + imageHeight * 0.345 }} size={size.width * 0.24} opacity={0.85} />}
         <View style={[styles.layer, styles.fade, { left: 0, right: 0, top: imageTop, height: imageHeight }]} />
         {imageTop > 0 && <View style={[styles.layer, styles.rise, { left: 0, right: 0, top: 0, height: imageTop + imageHeight * 0.12 }]} />}
         <View style={[styles.layer, styles.floor, { left: 0, right: 0, top: imageTop + imageHeight - 1, height: 20000 }]} />

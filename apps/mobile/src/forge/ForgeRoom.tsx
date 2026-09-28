@@ -7,6 +7,10 @@ import { SceneHotspot } from './SceneHotspot';
 import { BUBBLE_FOOTER, BubbleSteps, RoomBubble } from './RoomBubble';
 import { advanceTour, freshTour, hearPlace, tourControl, tourTextKey, type Tour, type TutorialPlace } from './tutorialChapters';
 import { HearthFire } from '../ui/HearthFire';
+import { HeroSprite, ACT_BEFORE_TURN_MS, TURN_FRAME_MS, type HeroPose } from './HeroSprite';
+import { CandleFlames } from './CandleFlames';
+import { SpriteLoop } from './Sprite';
+import { effectSheets, type Direction } from './motion';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { bindShortWords } from '../localization/typography';
 
@@ -17,18 +21,21 @@ const stations: { id: ForgeStation; x: number; y: number; footX: number; footY: 
   { id: 'chronicle', x: 0.82, y: 0.51, footX: 0.72, footY: 0.65 },
 ];
 const room = require('../../assets/forge/room-prototype-v03.png');
-// Cells are pre-aligned in export: feet at 95% of the cell, head centred, one shared scale.
-const sheets = {
-  forward: require('../../assets/forge/zharomir-walk-forward-v01.png'),
-  back: require('../../assets/forge/zharomir-walk-back-v01.png'),
-  left: require('../../assets/forge/zharomir-walk-left-v01.png'),
-  right: require('../../assets/forge/zharomir-walk-right-v01.png'),
-  idle: require('../../assets/forge/zharomir-idle-v01.png'),
-  actions: require('../../assets/forge/zharomir-station-actions-v01.png'),
-};
-// Station poses: embers, open-hand presentation, reading. The raised-palm seal pose reads as "stop" and is unused.
-const stationPose: Record<ForgeStation, number> = { hearth: 0, seals: 3, chronicle: 2 };
-const cell = 116;
+// The seal drums cut from the room (export-motion-v01.py), drawn over Żaromir while he stands behind them in the doorway.
+const sealsFront = require('../../assets/forge/motion/room-seals-front-v01.png');
+const SEALS_BOX = { x: 50 / 887, y: 850 / 1774, width: 280 / 887, height: 115 / 1774 };
+// Below this depth his feet are in front of the seal drums, so the cut no longer covers him.
+const SEALS_FRONT_Y = 957 / 1774;
+const haze = require('../../assets/forge/ember-haze-v01.png');
+// Sprite cells are 288 × 320 with the soles at 97.5 percent. 105 points keep his figure at the former 93 points.
+const HERO_HEIGHT = 105;
+const HERO_WIDTH = HERO_HEIGHT * 288 / 320;
+const HERO_FOOT = 312 / 320;
+const WISP = 22;
+/** A gentle start and stop around a steady pace, so the steps do not slide. HeroSprite uses the same curve for depth. */
+const walkPace = Easing.bezier(0.3, 0, 0.7, 1);
+/** Deeper into the room he is drawn a little smaller: full size at the start point, 86 percent near the back wall. */
+const depth = (y: number) => 0.86 + 0.14 * Math.min(1, Math.max(0, (y - 0.45) / (0.82 - 0.45)));
 const start = { x: 0.5, y: 0.82 };
 const door = { x: 0.17, y: 0.37 };
 // Where Żaromir stands: next to each station, in the doorway and in front of the hearth for the tutorial, and his idle place.
@@ -39,14 +46,19 @@ const feet: Record<Spot, { x: number; y: number }> = {
   door: { x: 0.19, y: 0.50 }, tutor: { x: 0.5, y: 0.66 }, start,
 };
 const isStation = (spot: Spot | null): spot is ForgeStation => stations.some(station => station.id === spot);
-type Direction = 'forward' | 'back' | 'left' | 'right';
-
-/** Travel direction in artwork pixels. Diagonals favour the side view so the lantern hand stays readable. */
+// Counter-clockwise from the right, in 45 degree sectors of the artwork plane.
+const compass: Direction[] = ['right', 'back-right', 'back', 'back-left', 'left', 'front-left', 'front', 'front-right'];
+const artwork = (from: { x: number; y: number }, to: { x: number; y: number }) => ({ dx: (to.x - from.x) * 887, up: (from.y - to.y) * 1774 });
+/** Travel direction in artwork pixels, one of eight sheets. Sprites are never mirrored, so the lantern stays in his right hand. */
 export function walkDirection(from: { x: number; y: number }, to: { x: number; y: number }): Direction {
-  const dx = (to.x - from.x) * 887;
-  const dy = (to.y - from.y) * 1774;
-  if (Math.abs(dx) >= Math.abs(dy) * 0.5) return dx >= 0 ? 'right' : 'left';
-  return dy < 0 ? 'back' : 'forward';
+  const { dx, up } = artwork(from, to);
+  const sector = Math.round(Math.atan2(up, dx) / (Math.PI / 4));
+  return compass[(sector + 8) % 8];
+}
+/** Walk time grows with the distance in artwork pixels, so the steps roughly match the ground covered. */
+export function walkDuration(from: { x: number; y: number }, to: { x: number; y: number }) {
+  const { dx, up } = artwork(from, to);
+  return Math.round(Math.min(1800, Math.max(600, Math.hypot(dx, up) * 3.3)));
 }
 
 /**
@@ -74,11 +86,14 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
   const allowed = useMotionAllowed();
   const [target, setTarget] = useState<Spot | null>(null);
   const [arrived, setArrived] = useState<Spot | null>(null);
-  const [frame, setFrame] = useState(0);
   const [direction, setDirection] = useState<Direction>('back');
-  const [idleFrame, setIdleFrame] = useState(0);
+  // Each walk gets a new run id, so the sprite restarts its step timer and depth change.
+  const [walkId, setWalkId] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const lastDestination = useRef(start);
+  const walkFrom = useRef(start);
+  // When the current walk started, so a new target mid-walk can start from where he is.
+  const walkStarted = useRef<number | null>(null);
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [guideStep, setGuideStep] = useState<number | null>(() => showGuide && !tutorial ? 0 : null);
@@ -128,9 +143,7 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     const request = ++generation.current;
     if (!target || settled.current === target) return;
     const destination = feet[target];
-    setDirection(walkDirection(lastDestination.current, destination));
-    lastDestination.current = destination;
-    setFrame(0);
+    const origin = walkFrom.current;
     if (!allowed) {
       position.setValue(destination);
       settled.current = target;
@@ -139,35 +152,33 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     }
     settled.current = null;
     setArrived(null);
-    const ticks = setInterval(() => setFrame(value => (value + 1) % 4), 140);
+    walkStarted.current = Date.now();
     const movement = Animated.timing(position, {
-      toValue: destination, duration: 840, easing: Easing.inOut(Easing.quad), useNativeDriver: true,
+      toValue: destination, duration: walkDuration(origin, destination), easing: walkPace, useNativeDriver: true,
     });
     movement.start(({ finished }) => {
       if (!finished || generation.current !== request) return;
-      clearInterval(ticks);
-      setFrame(0);
+      walkStarted.current = null;
       settled.current = target;
       setArrived(target);
     });
     return () => {
       generation.current++;
-      clearInterval(ticks);
       movement.stop();
     };
   }, [allowed, position, target]);
 
   const walking = !!target && !arrived;
   const telling = !!tour?.place && arrived === tour.place;
-  // Between chapters Żaromir waits at the last place without its station pose.
-  const posed = isStation(arrived) && (!tour || telling);
-  const idle = !walking && !posed;
+  // At a told place he first works facing it, then turns around and talks. Reduced motion keeps the facing pose.
+  const [presence, setPresence] = useState<'act' | 'turn' | 'talk'>('act');
   useEffect(() => {
-    // A slow breathing loop only while standing without a station pose.
-    if (!allowed || !idle) { setIdleFrame(0); return; }
-    const breath = setInterval(() => setIdleFrame(value => (value + 1) % 4), 650);
-    return () => clearInterval(breath);
-  }, [allowed, idle]);
+    setPresence('act');
+    if (!telling || !allowed) return;
+    const turn = setTimeout(() => setPresence('turn'), ACT_BEFORE_TURN_MS);
+    const talk = setTimeout(() => setPresence('talk'), ACT_BEFORE_TURN_MS + TURN_FRAME_MS * 4);
+    return () => { clearTimeout(turn); clearTimeout(talk); };
+  }, [allowed, telling, arrived]);
   const placeBubble = tour ? telling : bubbleOpen && isStation(arrived);
 
   useEffect(() => {
@@ -188,21 +199,38 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     return () => reveal.stop();
   }, [allowed, arrived, bubble, placeBubble]);
 
+  // The native walk cannot be read back synchronously, so his place is computed with the walk's own curve.
+  function currentFoot() {
+    const to = lastDestination.current;
+    if (walkStarted.current === null || !allowed) return to;
+    const from = walkFrom.current;
+    const done = walkPace(Math.min(1, (Date.now() - walkStarted.current) / walkDuration(from, to)));
+    return { x: from.x + (to.x - from.x) * done, y: from.y + (to.y - from.y) * done };
+  }
+  // Direction and walk id change in the same update as the target, so the first walking frame already faces the right way.
+  function head(spot: Spot) {
+    if (spot === target) return;
+    // Invalidate before React flushes effect cleanup, including a native completion in that gap.
+    generation.current++;
+    walkFrom.current = currentFoot();
+    lastDestination.current = feet[spot];
+    setDirection(walkDirection(walkFrom.current, feet[spot]));
+    setWalkId(value => value + 1);
+  }
   function choose(id: ForgeStation) {
     finishGuide();
-    // Invalidate before React flushes effect cleanup, including a native completion in that gap.
-    if (id !== target) generation.current++;
+    head(id);
     setTouchRequest(value => value + 1);
     setBubbleOpen(true);
     setTarget(id);
   }
   function walkTo(spot: Spot) {
-    if (spot !== target) generation.current++;
+    head(spot);
     setTarget(spot);
   }
   function hear(place: TutorialPlace) {
     if (tour?.place === place) return;
-    if (isStation(place)) setTouchRequest(value => value + 1);
+    setTouchRequest(value => value + 1);
     setTour(current => current && hearPlace(current, place));
     walkTo(place);
   }
@@ -218,6 +246,9 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     ? `${t('room.tutorial.hear', { place: t(`room.${place}`) })}${tour.heard.includes(place) ? `, ${t('room.tutorial.heard')}` : ''}`
     : t(place === 'door' ? 'room.exit' : `room.${place}`);
   const heardMark = (place: TutorialPlace) => tour?.heard.includes(place) ? `heard-${place}` : undefined;
+  const stationGlow = (id: ForgeStation) => glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === id || tour?.place === id ? [0.45, 0.75] : target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
+  const sealsCover = position.y.interpolate({ inputRange: [SEALS_FRONT_Y - 0.005, SEALS_FRONT_Y], outputRange: [1, 0], extrapolate: 'clamp' });
+  const seals = stations.find(station => station.id === 'seals')!;
   const bubbleWidth = Math.min(viewport.width - 32, 340);
   const footSpot = tour ? (telling ? arrived : null) : arrived === 'start' ? null : arrived;
   // The bubble sits outside the camera layer, so project scene points through the camera zoom.
@@ -246,10 +277,15 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
   // On iPhone SE 3 the longest lines rise over Żaromir's legs. Text stays whole instead of scrolling under a shorter bubble.
   const bubbleTop = largeText || contentHeight === 0 ? preferredTop
     : tour ? Math.max(stationEdge, viewport.height - 20 - natural) : Math.min(preferredTop, Math.max(stationEdge, viewport.height - 20 - natural));
-  const sprite = walking
-    ? { sheet: sheets[direction], index: frame, id: `hero-walk-${direction}` }
-    : posed && isStation(arrived) ? { sheet: sheets.actions, index: stationPose[arrived], id: `hero-pose-${arrived}` }
-    : { sheet: sheets.idle, index: idleFrame, id: 'hero-idle' };
+  const told = telling ? tour!.place : null;
+  // Between chapters Żaromir waits at the last place facing the player. While the player chooses he points at the places.
+  const pose: HeroPose = walking ? { kind: 'walk', direction }
+    : told ? (presence === 'act' ? { kind: 'act', place: told } : presence === 'turn' ? { kind: 'turn' } : { kind: 'talk', gestures: [0, 3] })
+    : !tour && isStation(arrived) ? { kind: 'act', place: arrived }
+    : tour && !tour.place && arrived === 'tutor' ? { kind: 'talk', gestures: [0, 1, 0, 2] }
+    : { kind: 'idle' };
+  // The place responds once Żaromir stands there and starts working. Touching it again while he is there replays it.
+  const effectPlace = arrived && arrived === target && (isStation(arrived) || (tour && arrived === 'door')) ? arrived as TutorialPlace : null;
   const bubbleHeight = Math.max(100, viewport.height - bubbleTop - 20);
   return <View style={styles.root} onLayout={({ nativeEvent }) => {
     const { width: nextWidth, height: nextHeight } = nativeEvent.layout;
@@ -258,21 +294,38 @@ export function ForgeRoom({ showGuide = false, onGuideComplete, tutorial = null,
     <Animated.View style={[StyleSheet.absoluteFill, { transformOrigin: [viewport.width * 0.515, viewport.height * 0.45, 0], transform: [{ scale: camera.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }]}>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.scenery}>
       <Image source={room} resizeMode="stretch" style={{ position: 'absolute', left, top, width: sceneWidth, height: sceneHeight }} />
-      <HearthFire anchor={point(0.515, 0.463)} size={sceneWidth * 0.17} opacity={0.8} />
-      {stations.map(station => <Animated.Image source={require('../../assets/forge/ember-haze-v01.png')} key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === station.id || tour?.place === station.id ? [0.45, 0.75] : target === station.id || tour ? [0.30, 0.60] : [0.16, 0.48] }) }]} />)}
-      <Animated.Image source={require('../../assets/forge/ember-haze-v01.png')} style={[styles.doorGlow, { ...point(door.x, door.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === 'door' || tour?.place === 'door' ? [0.45, 0.72] : tour ? [0.30, 0.60] : [0.16, 0.48] }) }]} />
-      {isStation(target) && <StationEffect station={target} request={touchRequest} allowed={allowed} anchor={point(stations.find(item => item.id === target)!.x, stations.find(item => item.id === target)!.y)} />}
-      {target && !arrived && [0, 1, 2].map(spark => <View key={spark} style={[styles.spark, { ...point(0.44 + spark * 0.055, 0.46 - ((frame + spark) % 4) * 0.025), opacity: 0.25 + ((frame + spark) % 4) * 0.18 }]} />)}
+      <CandleFlames point={point} sceneWidth={sceneWidth} allowed={allowed} />
+      <HearthFire anchor={point(0.515, 0.466)} size={sceneWidth * 0.17} opacity={0.8} />
+      {stations.map(station => <Animated.Image source={haze} key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: stationGlow(station.id) }]} />)}
+      <Animated.Image source={haze} style={[styles.doorGlow, { ...point(door.x, door.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === 'door' || tour?.place === 'door' ? [0.45, 0.72] : tour ? [0.30, 0.60] : [0.16, 0.48] }) }]} />
+      {stations.map(station => {
+        // The ember wisp floats above each station's touch area, where its mote used to be.
+        const spot = hotspot(station.x, station.y);
+        const lit = tour ? tour.place === station.id : target === station.id;
+        return <SpriteLoop key={`wisp-${station.id}`} sheet={effectSheets.wisp} width={WISP} duration={1300} allowed={allowed}
+          style={{ left: spot.left - WISP / 2, top: spot.top - 30 - WISP * 0.55 / effectSheets.wisp.aspect,
+            opacity: lit ? 1 : glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
+            transform: [{ translateY: glow.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }} />;
+      })}
+      {/* Native check: replaying on the same animated value made a stepped sheet blink on iOS. Each touch mounts a fresh response. */}
+      {effectPlace && <StationEffect key={touchRequest} station={effectPlace} request={touchRequest} allowed={allowed} point={point} sceneWidth={sceneWidth} />}
     </View>
     <SceneHotspot label={placeLabel('door')} onPress={() => { if (tour) { hear('door'); return; } finishGuide(); onExit(); }} anchor={hotspot(door.x, door.y)} door allowed={allowed} glow={glow} heard={heardMark('door')} selected={tour ? tour.place === 'door' : undefined} />
-    {stations.map(station => <SceneHotspot key={station.id} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : target === station.id}
+    {stations.map(station => <SceneHotspot key={station.id} cue={false} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : target === station.id}
       onPress={() => tour ? hear(station.id) : choose(station.id)} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} heard={heardMark(station.id)} />)}
-    <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.hero, { left, top, transform: [{ translateX: position.x.interpolate({ inputRange: [0, 1], outputRange: [-cell / 2, sceneWidth - cell / 2] }) }, { translateY: position.y.interpolate({ inputRange: [0, 1], outputRange: [-cell * 0.95, sceneHeight - cell * 0.95] }) }] }]}>
+    <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.hero, { left, top, transform: [
+      { translateX: position.x.interpolate({ inputRange: [0, 1], outputRange: [-HERO_WIDTH / 2, sceneWidth - HERO_WIDTH / 2] }) },
+      { translateY: position.y.interpolate({ inputRange: [0, 1], outputRange: [-HERO_HEIGHT * HERO_FOOT, sceneHeight - HERO_HEIGHT * HERO_FOOT] }) },
+    ] }]}>
       <View style={styles.heroShadow} />
-      <View testID={sprite.id} style={[styles.spriteCell, { transform: [{ translateY: walking && allowed ? [0, -2, 0, -2][frame] : 0 }] }]}>
-        <Image source={sprite.sheet} resizeMode="stretch" style={{ position: 'absolute', width: cell * 2, height: cell * 2, left: -(sprite.index % 2) * cell, top: -Math.floor(sprite.index / 2) * cell }} />
-      </View>
+      <HeroSprite run={walkId} pose={pose} allowed={allowed} height={HERO_HEIGHT}
+        scale={walking && allowed ? { from: depth(walkFrom.current.y), to: depth(lastDestination.current.y), duration: walkDuration(walkFrom.current, lastDestination.current) }
+          : depth(lastDestination.current.y)} />
     </Animated.View>
+    <Animated.Image source={sealsFront} resizeMode="stretch" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+      style={[styles.front, { ...point(SEALS_BOX.x, SEALS_BOX.y), width: SEALS_BOX.width * sceneWidth, height: SEALS_BOX.height * sceneHeight, opacity: sealsCover }]} />
+    {/* Native check: the cut hid the seal glow, so the seals darkened as he stepped behind them. The glow is repeated over the cut. */}
+    <Animated.Image source={haze} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.objectGlow, styles.front, { ...point(seals.x, seals.y), opacity: Animated.multiply(stationGlow('seals'), sealsCover) }]} />
     </Animated.View>
     {(guidePlace || (tour && (telling || !tour.place)) || placeBubble) && <RoomBubble
       frame={{ left: centered ? (viewport.width - bubbleWidth) / 2 : bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText ? bubbleHeight : undefined }}
@@ -298,10 +351,9 @@ const styles = StyleSheet.create({
   scenery: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden' },
   objectGlow: { position: 'absolute', width: 180, height: 160, marginLeft: -90, marginTop: -85 },
   doorGlow: { position: 'absolute', width: 130, height: 180, marginLeft: -65, marginTop: -95, tintColor: '#bfe8f0' },
-  spark: { position: 'absolute', width: 3, height: 5, backgroundColor: '#ffc775', borderRadius: 3 },
-  hero: { position: 'absolute', width: cell, height: cell, zIndex: 3 },
-  heroShadow: { position: 'absolute', width: 76, height: 18, top: cell * 0.95 - 10, left: cell / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
-  spriteCell: { width: cell, height: cell, overflow: 'hidden' },
+  hero: { position: 'absolute', width: HERO_WIDTH, height: HERO_HEIGHT, zIndex: 3 },
+  front: { position: 'absolute', zIndex: 4, pointerEvents: 'none' },
+  heroShadow: { position: 'absolute', width: 76, height: 18, top: HERO_HEIGHT * HERO_FOOT - 10, left: HERO_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
   detailTitle: { flexShrink: 0, color: '#47311e', fontFamily: tokens.font.display, fontSize: 19, fontWeight: '400' },
   description: { flexShrink: 0, color: '#523c29', fontFamily: tokens.font.body, fontSize: 16, lineHeight: 23, marginTop: 5 },
 });

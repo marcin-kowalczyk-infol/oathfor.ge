@@ -266,3 +266,35 @@ Defects found and fixed, each with a failing test first unless noted:
 Open for owner visual acceptance: on iPhone SE 3 the longest lines (`seals.3`, `door.3`) raise the bubble over Żaromir's legs. Holding the bubble below his feet was tried and hid half of the text behind a scroll, so whole text was kept. The tutorial screen intro line asks the player to touch a place, which that screen does not offer, because the spec keeps the room copy.
 
 Not observed natively: VoiceOver (deferred by the owner), a background return during a tutorial, English at the largest text, a Release build and physical devices. Presets and room art are provisional or DUMMY.
+
+## Forge motion acceptance (MVP-18-T12), 2026-09-27
+
+Automated: tests cover the sprite cell math, crossfading loops and stepped sequences, the eight-direction choice and walk time, frame timers for walk, idle, pose, turn and talk, the depth size without a transform, the sheet handover while a new sheet loads, one timer for all candle flames, place responses on arrival and on a repeated touch, the three seals from one timing, the door response in the tutorial, and Reduce Motion stills. A new target mid-walk and a finished or reduced-motion response leaving nothing drawn are covered too. The full mobile suite passed with 67 suites and 811 tests.
+
+Native checks used the demo development build with its DUMMY runtime on iOS 27.0, on the iPhone 18 Pro only (owner instruction, 2026-09-27). Motion was read from screen recordings frame by frame.
+
+| Observed | Result |
+| --- | --- |
+| Walks start to seals, hearth, chronicle and door, returns and chronicle to seals | Direction sheet matches the path, steps visible, no empty or double frame at a sheet change |
+| Station poses | Back to the fire with the poker, lantern to the seals, reading at the lectern, lantern into the doorway |
+| Place responses | Hearth flare, three seals lit in turn, one page turning over the book, moonlight mist from the doorway |
+| Tutorial | Explain and point gestures while choosing, pose, turn and talk at a place, door chapter with mist |
+| Ambient | Candle and lamp flames blend with the room, wisps above the seals and the chronicle |
+| Hearth close-up | The 8-frame flame burns inside the arch opening |
+
+Defects found and fixed, each with a failing test first unless noted:
+
+| Defect | Fix | Evidence |
+| --- | --- | --- |
+| A screen blend on the clipping view drew black boxes around every flame. | The blend sits on an unclipped wrapper, and flames render without a group wrapper. | Visual only, rechecked. |
+| A transform scale for depth blurred Żaromir. | Depth changes the drawn size, anchored at his feet. | Depth size test failed, then passed. Rechecked sharp. |
+| The place response played while he was still walking. | It plays when he arrives. | Door response test failed, then passed. |
+| The page was smaller than the book and did not follow its tilt, and a runtime rotation made it blink. | Page 0.13 of the room width, tilt baked into the export, first and last frames fade. | Visual only, rechecked. |
+| A repeated touch made the page blink every other frame. | Each touch mounts a fresh response. | Replay test added, rechecked by recording. |
+| In the doorway he stood in front of the seal drums, and the door mist lit only the drums. | Seal drums cut from the room over him, mist moved to the doorway floor, seal glow repeated over the cut. | Visual only, rechecked. |
+| The last frame of the flare, the third seal and the mist stayed at half opacity after the response. | The last light frame fades out by the end of the response. | Four response tests failed, then passed. Found in review. |
+| A new target mid-walk started from the old destination, so size and direction jumped. | The new walk starts from his computed place on the walk curve. | Redirect test failed, then passed. Found in review. |
+| In the hearth close-up the taller flame rose above the arch. | Flame width 0.24 of the screen. | Visual only, rechecked. |
+| The first walking frame was empty, then showed two figures for one frame. | The last frame stays under a loading sheet, the new sheet shows when loaded or after 300 ms. | Handover and fallback tests failed, then passed. Rechecked at 30 fps. |
+
+Not observed natively: iPhone SE 3 and other sizes, English, Reduce Motion, the largest text, VoiceOver (deferred by the owner), a Release build and physical devices. The art is provisional and awaits owner visual acceptance.
