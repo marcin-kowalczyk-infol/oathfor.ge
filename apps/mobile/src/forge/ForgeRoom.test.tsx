@@ -62,7 +62,7 @@ test('reduced motion immediately reveals the selected station and exit is the on
   await render(room({ onExit }));
   await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
   expect(screen.getByRole('button', { name: en.room.seals, selected: true })).toBeOnTheScreen();
-  expect(screen.getByText(en.room.descriptions.seals)).toBeOnTheScreen();
+  expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
   expect(onExit).not.toHaveBeenCalled();
   expect(walkTimers()).toHaveLength(0);
   await fireEvent.press(screen.getByRole('button', { name: en.room.exit }));
@@ -85,10 +85,10 @@ test('a late interrupted walk cannot reveal the old station; leaving cancels mot
   await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
   const latestArrival = finishes[finishes.length - 1];
   await act(async () => firstArrival({ finished: true }));
-  expect(screen.queryByText(en.room.descriptions.hearth)).toBeNull();
-  expect(screen.queryByText(en.room.descriptions.chronicle)).toBeNull();
+  expect(screen.queryByText(en.room.player.hearth)).toBeNull();
+  expect(screen.queryByText(en.room.player.chronicle)).toBeNull();
   await act(async () => latestArrival({ finished: true }));
-  expect(screen.getByText(en.room.descriptions.chronicle)).toBeOnTheScreen();
+  expect(screen.getByText(en.room.player.chronicle)).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
   expect(walkTimers()).toHaveLength(3);
   await view.unmount();
@@ -103,7 +103,7 @@ test('turning motion off during a walk finishes at the requested station and cle
   await fireEvent.press(screen.getByRole('button', { name: en.room.hearth }));
   motion.mockReturnValue(false);
   await view.rerender(room());
-  expect(screen.getByText(en.room.descriptions.hearth)).toBeOnTheScreen();
+  expect(screen.getByText(en.room.player.hearth)).toBeOnTheScreen();
   for (const timer of walkTimers()) expect(clear).toHaveBeenCalledWith(timer);
 });
 
@@ -113,16 +113,16 @@ test('large text exposes one labelled control per station with a scrollable bubb
   await render(room());
   expect(screen.getAllByRole('button', { name: en.room.chronicle })).toHaveLength(1);
   await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
-  expect(screen.getByText(en.room.descriptions.chronicle)).toBeOnTheScreen();
+  expect(screen.getByText(en.room.player.chronicle)).toBeOnTheScreen();
 });
 
 test('restoring motion after arrival does not replay the walk or hide the station description', async () => {
   const view = await render(room());
   await fireEvent.press(screen.getByRole('button', { name: en.room.hearth }));
-  expect(screen.getByText(en.room.descriptions.hearth)).toBeOnTheScreen();
+  expect(screen.getByText(en.room.player.hearth)).toBeOnTheScreen();
   motion.mockReturnValue(true);
   await view.rerender(room());
-  expect(screen.getByText(en.room.descriptions.hearth)).toBeOnTheScreen();
+  expect(screen.getByText(en.room.player.hearth)).toBeOnTheScreen();
   expect(walkTimers()).toHaveLength(0);
 });
 
@@ -131,12 +131,12 @@ test('a dismissed bubble stays closed across motion changes and the station can 
   const view = await render(room());
   await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
   await fireEvent.press(screen.getByRole('button', { name: en.room.dismiss }));
-  expect(screen.queryByText(en.room.descriptions.seals)).toBeNull();
+  expect(screen.queryByText(en.room.player.seals)).toBeNull();
   motion.mockReturnValue(true);
   await view.rerender(room());
-  expect(screen.queryByText(en.room.descriptions.seals)).toBeNull();
+  expect(screen.queryByText(en.room.player.seals)).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
-  expect(screen.getByText(en.room.descriptions.seals)).toBeOnTheScreen();
+  expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
   expect(walkTimers()).toHaveLength(0);
 });
 
@@ -169,14 +169,14 @@ test('guide advances manually without walking or exiting', async () => {
   expect(walkTimers()).toHaveLength(0);
 });
 
-test('touching a station ends the introduction and arrival keeps its speaker', async () => {
+test('touching a station ends the introduction and the player opens the visit', async () => {
   const onGuideComplete = jest.fn();
   await render(room({ showGuide: true, onGuideComplete }));
   await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
   expect(onGuideComplete).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole('button', { name: 'Next place' })).toBeNull();
-  expect(screen.getByText('Zharomir')).toBeOnTheScreen();
-  expect(screen.getByText(en.room.descriptions.chronicle)).toBeOnTheScreen();
+  expect(screen.getByText('Mira')).toBeOnTheScreen();
+  expect(screen.getByText(en.room.player.chronicle)).toBeOnTheScreen();
 });
 
 test('station discovery requires its named action before opening the matching screen', async () => {
@@ -185,6 +185,7 @@ test('station discovery requires its named action before opening the matching sc
   for (const [station, label] of [['hearth', 'Shape an Oath'], ['seals', 'View current Oaths'], ['chronicle', 'Read history']] as const) {
     await fireEvent.press(screen.getByRole('button', { name: en.room[station] }));
     expect(open).toHaveBeenCalledTimes(['hearth', 'seals', 'chronicle'].indexOf(station));
+    await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.next }));
     await fireEvent.press(screen.getByRole('button', { name: label }));
     expect(open).toHaveBeenLastCalledWith(station);
   }
@@ -266,40 +267,28 @@ test('a later guide request starts the guide from the first place', async () => 
 test('a guide restart in an open room closes the station bubble', async () => {
   const view = await render(room());
   await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
-  expect(screen.getByText(en.room.descriptions.seals)).toBeOnTheScreen();
+  expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
   await view.rerender(room({ showGuide: 1 }));
   await fireEvent.press(screen.getByRole('button', { name: en.room.guide.skip }));
-  expect(screen.queryByText(en.room.descriptions.seals)).toBeNull();
+  expect(screen.queryByText(en.room.player.seals)).toBeNull();
 });
 
 // Native MVP-18 check on iPhone SE 3: the guide text and the station action were clipped at the bottom of the bubble.
-const flat = (element: { props: { style?: unknown } }) => StyleSheet.flatten(element.props.style as never) as { top: number; maxHeight: number };
 const stationBottoms = () => (['hearth', 'seals', 'chronicle'] as const).map(station => {
   const style = StyleSheet.flatten(screen.getByRole('button', { name: en.room[station] }).props.style) as { top: number; marginTop: number; height: number };
   return style.top + style.marginTop + style.height;
 });
 const small = { width: 375, height: 603, scale: 2, fontScale: 1 };
 test.each([
-  ['the guide', { showGuide: true }, null, 146],
-  ['a station bubble', {}, 'chronicle', 192],
-] as const)('on a small screen %s grows upward to show its whole text above the bottom edge', async (_name, props, station, content) => {
+  ['the guide', { showGuide: true }, null],
+  ['a station visit', {}, 'chronicle'],
+] as const)('on a small screen %s keeps the panel bottom and stays below the places', async (_name, props, station) => {
   Dimensions.set({ window: small, screen: small });
   await render(room(props));
   if (station) await fireEvent.press(screen.getByRole('button', { name: en.room[station] }));
-  await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 343, content);
-  const bubble = flat(screen.getByTestId('room-bubble'));
-  const chrome = 4 + (station ? 0 : 44);
-  expect(bubble.top + content + chrome).toBeLessThanOrEqual(small.height - 20);
-  expect(bubble.maxHeight).toBeGreaterThanOrEqual(content + chrome);
-  expect(bubble.top).toBeGreaterThanOrEqual(Math.max(...stationBottoms()));
-});
-
-test('a bubble that already fits keeps its place under the character', async () => {
-  const tall = { width: 402, height: 810, scale: 3, fontScale: 1 };
-  Dimensions.set({ window: tall, screen: tall });
-  await render(room({ showGuide: true }));
-  await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 370, 120);
-  expect(flat(screen.getByTestId('room-bubble')).top).toBeCloseTo(tall.height * 0.7);
+  const panel = StyleSheet.flatten(screen.getByTestId('dialogue-panel').props.style) as { bottom: number; maxHeight: number };
+  expect(panel.bottom).toBe(20);
+  expect(small.height - panel.bottom - panel.maxHeight).toBeGreaterThanOrEqual(Math.max(...stationBottoms()));
 });
 
 describe('tutorial', () => {
@@ -310,8 +299,13 @@ describe('tutorial', () => {
   const next = () => press(tut.next);
   // Plays a whole chapter from the choice bubble and leaves its last line open.
   async function play(place: Place, lines: number, heard = false) {
-    await press(hear(place, heard));
+    await open(place, heard);
     for (let line = 1; line < lines; line++) await next();
+  }
+  // A chapter opens with the player's line, the next touch brings Żaromir's first line.
+  async function open(place: Place, heard = false) {
+    await press(hear(place, heard));
+    await next();
   }
 
   test('starts with the intro and no guide', async () => {
@@ -334,8 +328,11 @@ describe('tutorial', () => {
     await press(hear('hearth'));
     // The first walk brings Żaromir to his tutorial place, then he and the player walk to the hearth.
     expect(walkTimers()).toHaveLength(3);
-    expect(screen.queryByText(tut.hearth['1'])).toBeNull();
+    expect(screen.queryByText(en.room.player.tutorial.hearth)).toBeNull();
     for (const finish of finishes) await act(async () => finish({ finished: true }));
+    expect(screen.getByText(en.room.player.tutorial.hearth)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
+    await next();
     expect(screen.getByText(tut.hearth['1'])).toBeOnTheScreen();
     expect(screen.getByText('1 / 4')).toBeOnTheScreen();
     await next();
@@ -360,7 +357,7 @@ describe('tutorial', () => {
   test('the door plays its chapter instead of leaving the room', async () => {
     const onExit = jest.fn();
     await render(room({ tutorial: 1, onExit }));
-    await press(hear('door'));
+    await open('door');
     expect(screen.getByText(tut.door['1'])).toBeOnTheScreen();
     expect(screen.getByText('1 / 4')).toBeOnTheScreen();
     expect(onExit).not.toHaveBeenCalled();
@@ -379,6 +376,7 @@ describe('tutorial', () => {
     await press(tut.finish);
     expect(screen.queryByText(tut.end)).toBeNull();
     await press(en.room.hearth);
+    await next();
     await press(en.room.actions.hearth);
     expect(onOpenStation).toHaveBeenCalledWith('hearth');
   });
@@ -398,11 +396,12 @@ describe('tutorial', () => {
   test('closing mid-chapter returns the stations and the door to their usual actions', async () => {
     const onExit = jest.fn();
     await render(room({ tutorial: 1, onExit }));
-    await press(hear('seals'));
+    await open('seals');
     await press(tut.close);
     expect(screen.queryByText(tut.seals['1'])).toBeNull();
     await press(en.room.seals);
-    expect(screen.getByText(en.room.descriptions.seals)).toBeOnTheScreen();
+    expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
+    await next();
     expect(screen.getByRole('button', { name: en.room.actions.seals })).toBeOnTheScreen();
     await press(en.room.exit);
     expect(onExit).toHaveBeenCalledTimes(1);
@@ -423,28 +422,11 @@ describe('tutorial', () => {
 
   test('reduced motion shows the chapter at once without walking frames', async () => {
     await render(room({ tutorial: 1 }));
-    await press(hear('chronicle'));
+    await open('chronicle');
     expect(screen.getByText(tut.chronicle['1'])).toBeOnTheScreen();
     expect(walkTimers()).toHaveLength(0);
   });
 
-  // The longest lines on a 375 × 667 screen with slightly larger text.
-  test.each([['seals', 3], ['chronicle', 2]] as const)('the last %s line fits above the bottom edge and below the places', async (place, lines) => {
-    const se = { width: 375, height: 667, scale: 2, fontScale: 1.3 };
-    Dimensions.set({ window: se, screen: se });
-    await render(room({ tutorial: 1 }));
-    await play(place, lines);
-    const content = 200;
-    await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 343, content);
-    const bubble = flat(screen.getByTestId('room-bubble'));
-    // The whole line shows without scrolling. Native SE 3 check: a bubble held below Żaromir's feet hid half of seals.3.
-    expect(bubble.top + content + 4 + 44).toBeLessThanOrEqual(se.height - 20);
-    const bottoms = (['hearth', 'seals', 'chronicle'] as const).map(station => {
-      const style = StyleSheet.flatten(screen.getByRole('button', { name: hear(station) }).props.style) as { top: number; marginTop: number; height: number };
-      return style.top + style.marginTop + style.height;
-    });
-    expect(bubble.top).toBeGreaterThanOrEqual(Math.max(...bottoms));
-  });
 });
 
 describe('tutorial after review', () => {
@@ -475,6 +457,8 @@ describe('tutorial after review', () => {
     await press(hear('chronicle'));
     for (const walk of walks) await act(async () => walk.done({ finished: true }));
     expect(screen.getByTestId('hero-pose-chronicle', { includeHiddenElements: true })).toBeTruthy();
+    // With motion the first touch completes the typed opening line, the second continues.
+    await press(tut.next); await press(tut.next);
     await press(tut.next);
     await press(tut.another);
     expect(walks.map(walk => walk.to)).toEqual([tutor, places.chronicle.guide, places.chronicle.player]);
@@ -492,7 +476,7 @@ describe('tutorial after review', () => {
     expect(screen.getByTestId('hero-turn', { includeHiddenElements: true })).toBeTruthy();
     await act(async () => { jest.advanceTimersByTime(TURN_FRAME_MS * 4); });
     expect(screen.getByTestId('hero-talk', { includeHiddenElements: true })).toBeTruthy();
-    expect(screen.getByText(tut.seals['1'])).toBeOnTheScreen();
+    expect(screen.getByText(en.room.player.tutorial.seals)).toBeOnTheScreen();
   });
 
   test('while the player chooses a place Żaromir talks and points at the places', async () => {
@@ -516,6 +500,7 @@ describe('tutorial after review', () => {
   test('touching the place being told keeps the current line', async () => {
     await render(room({ tutorial: 1 }));
     await press(hear('hearth'));
+    await press(tut.next);
     await press(tut.next);
     await press(hear('hearth'));
     expect(screen.getByText(tut.hearth['2'])).toBeOnTheScreen();
@@ -546,7 +531,7 @@ test('closing or finishing the tutorial reports its end once', async () => {
   await view.rerender(room({ tutorial: 2, onTutorialEnd }));
   for (const [place, lines] of [['hearth', 4], ['seals', 3], ['chronicle', 2], ['door', 4]] as const) {
     await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.hear.replace('{{place}}', en.room[place]) }));
-    for (let line = 1; line < lines; line++) await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.next }));
+    for (let line = 0; line < lines; line++) await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.next }));
     await fireEvent.press(screen.getByRole('button', { name: place === 'door' ? en.room.tutorial.finish : en.room.tutorial.another }));
   }
   expect(onTutorialEnd).toHaveBeenCalledTimes(1);
@@ -572,24 +557,21 @@ describe('tutorial after the native check', () => {
   test('Polish tutorial lines keep single-letter words with the next word', async () => {
     await render(room({ tutorial: 1 }, 'pl'));
     await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.hear.replace('{{place}}', pl.room.seals) }));
-    await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.next }));
-    await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.next }));
+    for (let line = 0; line < 3; line++) await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.next }));
     // The default text matcher folds the non-breaking space, so the rendered string is checked directly.
-    expect(screen.getByText(/nie zegar w.telefonie/).props.children).toContain('nie zegar w\u00A0telefonie');
+    expect(screen.getByText(/nie zegar w.telefonie/).props.children[0]).toContain('nie zegar w\u00A0telefonie');
   });
 
   // iPhone 18 Pro: a line that grew the bubble upward moved the next button between lines.
-  test('paging a chapter keeps the bubble bottom and its button in place', async () => {
+  test('paging a chapter keeps the panel bottom and its button in place', async () => {
     await render(room({ tutorial: 1 }));
     await fireEvent.press(screen.getByRole('button', { name: hear('seals') }));
-    await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 343, 110);
-    const first = flat(screen.getByTestId('room-bubble'));
-    expect(first.top + 110 + 4 + 44).toBeCloseTo(844 - 20);
-    await fireEvent.press(screen.getByRole('button', { name: tut.next }));
-    await fireEvent.press(screen.getByRole('button', { name: tut.next }));
-    await fireEvent(screen.getByTestId('room-bubble-content'), 'contentSizeChange', 343, 160);
-    const last = flat(screen.getByTestId('room-bubble'));
-    expect(last.top + 160 + 4 + 44).toBeCloseTo(844 - 20);
+    const bottom = () => (StyleSheet.flatten(screen.getByTestId('dialogue-panel').props.style) as { bottom: number }).bottom;
+    expect(bottom()).toBe(20);
+    for (let line = 0; line < 3; line++) {
+      await fireEvent.press(screen.getByRole('button', { name: tut.next }));
+      expect(bottom()).toBe(20);
+    }
   });
 });
 
@@ -616,9 +598,9 @@ describe('player', () => {
     await render(room());
     await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
     expect(walks.map(walk => walk.to)).toEqual([places.seals.player]);
-    expect(screen.queryByText(en.room.descriptions.seals)).toBeNull();
+    expect(screen.queryByText(en.room.player.seals)).toBeNull();
     await act(async () => walks[0].done({ finished: true }));
-    expect(screen.getByText(en.room.descriptions.seals)).toBeOnTheScreen();
+    expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
     expect(screen.getByTestId('fx-seal-0', hidden)).toBeTruthy();
     expect(screen.getByTestId('hero-idle', hidden)).toBeTruthy();
     expectAt('room-guide', aside);
@@ -650,7 +632,7 @@ describe('player', () => {
     await render(<LocalizationProvider initialLocale="en"><ForgeRoom character={{ ...character, presetId: 'starter_99' }} onExit={jest.fn()} onOpenStation={jest.fn()} /></LocalizationProvider>);
     expect(screen.getByTestId('player-silhouette', hidden)).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: en.room.hearth }));
-    expect(screen.getByText(en.room.descriptions.hearth)).toBeOnTheScreen();
+    expect(screen.getByText(en.room.player.hearth)).toBeOnTheScreen();
   });
 });
 
@@ -682,9 +664,9 @@ describe('tutorial with the player', () => {
     const chapter = walks.slice(1);
     expect(chapter.map(walk => walk.to).sort((a, b) => (a as { x: number }).x - (b as { x: number }).x)).toEqual([places.chronicle.guide, places.chronicle.player]);
     await act(async () => chapter[0].done({ finished: true }));
-    expect(screen.queryByText(tut.chronicle['1'])).toBeNull();
+    expect(screen.queryByText(en.room.player.tutorial.chronicle.feminine)).toBeNull();
     await act(async () => chapter[1].done({ finished: true }));
-    expect(screen.getByText(tut.chronicle['1'])).toBeOnTheScreen();
+    expect(screen.getByText(en.room.player.tutorial.chronicle.feminine)).toBeOnTheScreen();
   });
 
   test('at a told place the player handles it while Żaromir works, turns and talks', async () => {
@@ -715,14 +697,14 @@ describe('tutorial with the player', () => {
     await render(room({ tutorial: 1 }));
     for (const [place, lines] of [['hearth', 4], ['seals', 3], ['chronicle', 2], ['door', 4]] as const) {
       await press(hear(place));
-      for (let line = 1; line < lines; line++) await press(tut.next);
+      for (let line = 0; line < lines; line++) await press(tut.next);
       await press(place === 'door' ? tut.finish : tut.another);
     }
     await press(tut.finish);
     expectAt('room-guide', aside);
     await press(en.room.hearth);
     expectAt('room-player', places.hearth.player);
-    expect(screen.getByText(en.room.descriptions.hearth)).toBeOnTheScreen();
+    expect(screen.getByText(en.room.player.hearth)).toBeOnTheScreen();
   });
 
   test('with reduced motion both figures stand at the chapter place at once', async () => {
@@ -730,7 +712,116 @@ describe('tutorial with the player', () => {
     await press(hear('hearth'));
     expectAt('room-player', places.hearth.player);
     expectAt('room-guide', places.hearth.guide);
-    expect(screen.getByText(tut.hearth['1'])).toBeOnTheScreen();
+    expect(screen.getByText(en.room.player.tutorial.hearth)).toBeOnTheScreen();
     expect(walkTimers()).toHaveLength(0);
+  });
+});
+
+describe('dialogue panel', () => {
+  const tut = en.room.tutorial;
+  const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
+  const plate = () => screen.getByTestId('dialogue-plate', hidden);
+  const ring = () => StyleSheet.flatten(screen.getByTestId('speaking-ring', hidden).props.style) as { left: number; top: number; width: number; height: number };
+  const ringAt = (spot: { x: number; y: number }) => {
+    const scene = cover(Dimensions.get('window'));
+    const box = ring();
+    expect(box.left + box.width / 2).toBeCloseTo(scene.left + spot.x * scene.width);
+    expect(box.top + box.height / 2).toBeCloseTo(scene.top + spot.y * scene.height);
+  };
+
+  test('the player speaks first at a visited place, then Żaromir describes it and its action opens the screen', async () => {
+    const onOpenStation = jest.fn();
+    await render(room({ onOpenStation }));
+    await press(en.room.hearth);
+    expect(screen.getByText(en.room.player.hearth)).toBeOnTheScreen();
+    expect(plate()).toHaveTextContent('Mira');
+    expect(screen.queryByRole('button', { name: en.room.actions.hearth })).toBeNull();
+    ringAt(places.hearth.player);
+    await press(tut.next);
+    expect(screen.getByText(en.room.descriptions.hearth)).toBeOnTheScreen();
+    expect(plate()).toHaveTextContent('Zharomir');
+    ringAt(aside);
+    await press(en.room.actions.hearth);
+    expect(onOpenStation).toHaveBeenCalledWith('hearth');
+  });
+
+  test('a tutorial chapter opens with the player line, then counts only Żaromir\'s lines', async () => {
+    await render(room({ tutorial: 1 }));
+    await press(tut.hear.replace('{{place}}', en.room.seals));
+    expect(screen.getByText(en.room.player.tutorial.seals)).toBeOnTheScreen();
+    expect(screen.queryByText('1 / 3')).toBeNull();
+    await press(tut.next);
+    expect(screen.getByText(tut.seals['1'])).toBeOnTheScreen();
+    expect(screen.getByText('1 / 3')).toBeOnTheScreen();
+    await press(tut.next); await press(tut.next);
+    expect(screen.getByText('3 / 3')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: tut.another })).toBeOnTheScreen();
+  });
+
+  test('the chronicle chapter opens with the line for the character\'s form', async () => {
+    await render(room({ tutorial: 1 }, 'pl'));
+    await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.hear.replace('{{place}}', pl.room.chronicle) }));
+    expect(screen.getByText(pl.room.player.tutorial.chronicle.feminine)).toBeOnTheScreen();
+  });
+
+  test('in the first-visit guide only Żaromir speaks', async () => {
+    await render(room({ showGuide: true }));
+    expect(screen.getByText(en.room.guide.hearth)).toBeOnTheScreen();
+    expect(plate()).toHaveTextContent('Zharomir');
+    expect(screen.getByText('1 / 4')).toBeOnTheScreen();
+    ringAt(aside);
+  });
+
+  // Review finding: the ring glowed aside while Żaromir was still walking to his tutorial place.
+  test('the ring waits until the speaker stands still, then glows under the speaker', async () => {
+    motion.mockReturnValue(true);
+    const walks: ((result: { finished: boolean }) => void)[] = [];
+    jest.spyOn(Animated, 'timing').mockImplementation((value) => ({
+      start: done => { if (done && value instanceof Animated.ValueXY) walks.push(done); }, stop: jest.fn(), reset: jest.fn(),
+    }));
+    await render(room({ tutorial: 1 }));
+    expect(screen.getByTestId('dialogue-panel')).toBeTruthy();
+    expect(screen.queryByTestId('speaking-ring', hidden)).toBeNull();
+    await act(async () => walks[0]({ finished: true }));
+    ringAt(tutor);
+  });
+
+  test('closing the tutorial on the player\'s opening line ends it', async () => {
+    const onTutorialEnd = jest.fn();
+    await render(room({ tutorial: 1, onTutorialEnd }));
+    await press(tut.hear.replace('{{place}}', en.room.door));
+    await press(tut.close);
+    expect(onTutorialEnd).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('dialogue-panel')).toBeNull();
+  });
+
+  test('with motion allowed a line types and the first touch completes it', async () => {
+    motion.mockReturnValue(true);
+    jest.spyOn(Animated, 'timing').mockImplementation(() => ({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() }));
+    await render(room({ showGuide: true }));
+    const text = () => ((screen.getByTestId('dialogue-text').props.children as unknown[])[0] as string);
+    expect(text()).not.toBe(en.room.guide.hearth);
+    await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
+    expect(text()).toBe(en.room.guide.hearth);
+  });
+
+  // The longest Polish line on a 375 × 667 screen with slightly larger text.
+  test('the panel keeps its bottom edge and never rises above the places', async () => {
+    const se = { width: 375, height: 667, scale: 2, fontScale: 1.3 };
+    Dimensions.set({ window: se, screen: se });
+    await render(room({ tutorial: 1 }, 'pl'));
+    const tpl = pl.room.tutorial;
+    await fireEvent.press(screen.getByRole('button', { name: tpl.hear.replace('{{place}}', pl.room.seals) }));
+    const first = StyleSheet.flatten(screen.getByTestId('dialogue-panel').props.style) as { bottom: number; maxHeight: number };
+    for (let line = 0; line < 3; line++) await fireEvent.press(screen.getByRole('button', { name: tpl.next }));
+    expect(screen.getByText(tpl.seals['3'])).toBeOnTheScreen();
+    const last = StyleSheet.flatten(screen.getByTestId('dialogue-panel').props.style) as { bottom: number; maxHeight: number };
+    expect(last.bottom).toBe(20);
+    expect(first.bottom).toBe(20);
+    const bottoms = (['hearth', 'seals', 'chronicle'] as const).map(station => {
+      const style = StyleSheet.flatten(screen.getByRole('button', { name: tpl.hear.replace('{{place}}', pl.room[station]) }).props.style) as { top: number; marginTop: number; height: number };
+      return style.top + style.marginTop + style.height;
+    });
+    expect(se.height - last.bottom - last.maxHeight).toBeGreaterThanOrEqual(Math.max(...bottoms));
   });
 });

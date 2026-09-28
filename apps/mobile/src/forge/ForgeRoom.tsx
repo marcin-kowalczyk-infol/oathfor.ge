@@ -1,10 +1,11 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useMotionAllowed } from '../ui/useMotion';
-import { tokens } from '../ui/tokens';
 import { StationEffect } from './StationEffect';
 import { SceneHotspot } from './SceneHotspot';
-import { BUBBLE_FOOTER, BubbleSteps, RoomBubble } from './RoomBubble';
+import { DialoguePanel, type PanelControls } from './DialoguePanel';
+import { chapterScript, guideScript, visitScript, type ScriptLine } from './conversation';
+import { presetArt } from '../characters/presetArt';
 import { advanceTour, freshTour, hearPlace, tourControl, tourTextKey, type Tour, type TutorialPlace } from './tutorialChapters';
 import { HearthFire } from '../ui/HearthFire';
 import { HeroSprite, ACT_BEFORE_TURN_MS, TURN_FRAME_MS, type HeroPose } from './HeroSprite';
@@ -29,6 +30,8 @@ const sealsFront = require('../../assets/forge/motion/room-seals-front-v01.png')
 const haze = require('../../assets/forge/ember-haze-v01.png');
 const WISP = 22;
 const ORDER_CHECK_MS = 100;
+const PANEL_BOTTOM = 20;
+const RING = { width: 84, height: 24 };
 const door = places.door.anchor;
 // Where Żaromir stands: beside each place for the tutorial, in front of the hearth while the player chooses, and aside in normal mode.
 // Native check on iPhone 18 Pro: from the start point he stood behind the tutorial bubble.
@@ -55,8 +58,7 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
   onOpenStation: (station: ForgeStation) => void; onExit: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const { width, height, fontScale } = useWindowDimensions();
-  const largeText = fontScale > 1.3;
+  const { width, height } = useWindowDimensions();
   const [viewport, setViewport] = useState({ width, height });
   // Artwork and every interactive anchor share this exact cover transform.
   const scale = Math.max(viewport.width / 887, viewport.height / 1774);
@@ -81,7 +83,9 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
   }, [allowed, guide.walking, player.walking, guide.run, player.run]);
   const [zoomed, setZoomed] = useState(false);
   const [bubbleOpen, setBubbleOpen] = useState(false);
-  const [contentHeight, setContentHeight] = useState(0);
+  // The line shown in a place visit (0 the player's, 1 Żaromir's) and whether a chapter still shows the player's opening line.
+  const [visitLine, setVisitLine] = useState(0);
+  const [opening, setOpening] = useState(false);
   const [guideStep, setGuideStep] = useState<number | null>(() => showGuide && !tutorial ? 0 : null);
   const [tour, setTour] = useState<Tour | null>(() => tutorial ? freshTour : null);
   const tutorialRequest = useRef<number | null>(null);
@@ -110,7 +114,6 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
   const entered = useRef(false);
   const [touchRequest, setTouchRequest] = useState(0);
   const glow = useRef(new Animated.Value(0)).current;
-  const bubble = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (!allowed) { camera.setValue(entered.current ? 1 : 0); return; }
@@ -133,9 +136,7 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
     const talk = setTimeout(() => setPresence('talk'), ACT_BEFORE_TURN_MS + TURN_FRAME_MS * 4);
     return () => { clearTimeout(turn); clearTimeout(talk); };
   }, [allowed, telling, guide.arrived]);
-  const placeBubble = tour ? telling : bubbleOpen && isStation(player.arrived);
-  // The figure whose arrival opens the bubble and plays the place response.
-  const visitor = tour ? guide : player;
+  const placeBubble = !tour && bubbleOpen && isStation(player.arrived);
 
   useEffect(() => {
     if (!allowed) { glow.setValue(0.35); return; }
@@ -147,24 +148,18 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
     return () => { shimmer.stop(); glow.stopAnimation(); };
   }, [allowed, glow]);
 
-  useEffect(() => {
-    if (!placeBubble || !allowed) { bubble.setValue(1); return; }
-    bubble.setValue(0);
-    const reveal = Animated.spring(bubble, { toValue: 1, damping: 18, stiffness: 180, mass: 0.7, useNativeDriver: true });
-    reveal.start();
-    return () => reveal.stop();
-  }, [allowed, visitor.arrived, bubble, placeBubble]);
-
   function choose(id: ForgeStation) {
     finishGuide();
     player.walkTo(id);
     setTouchRequest(value => value + 1);
     setBubbleOpen(true);
+    setVisitLine(0);
   }
   function hear(place: TutorialPlace) {
     if (tour?.place === place) return;
     setTouchRequest(value => value + 1);
     setTour(current => current && hearPlace(current, place));
+    setOpening(true);
     guide.walkTo(place);
     player.walkTo(place);
   }
@@ -184,34 +179,9 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
   const heardMark = (place: TutorialPlace) => tour?.heard.includes(place) ? `heard-${place}` : undefined;
   const stationGlow = (id: ForgeStation) => glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === id || tour?.place === id ? [0.45, 0.75] : player.target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
   const seals = stations.find(station => station.id === 'seals')!;
-  const bubbleWidth = Math.min(viewport.width - 32, 340);
-  // The bubble sits outside the camera layer, so project scene points through the camera zoom.
+  // The panel and the ring sit relative to the camera zoom, so scene points are projected through it.
   const zoom = zoomed ? 1.08 : 1;
-  const onScreenSpot = (spot: Spot) => onScreen(spot.x, spot.y);
-  const onScreen = (x: number, y: number) => ({ x: viewport.width * 0.515 + (left + x * sceneWidth - viewport.width * 0.515) * zoom, y: viewport.height * 0.45 + (top + y * sceneHeight - viewport.height * 0.45) * zoom });
-  const foot = tour ? (telling ? onScreenSpot(guideFeet[guide.arrived!]) : null) : isStation(player.arrived) ? onScreenSpot(playerFeet[player.arrived]) : null;
-  // The guide tail points toward the place it describes, the tutorial choice toward Żaromir where he waits.
-  const guideAnchor = guidePlace === 'door' ? door : stations.find(station => station.id === guidePlace);
-  const centeredX = guideAnchor ? onScreen(guideAnchor.x, guideAnchor.y).x : tour ? onScreenSpot(guideFeet[guide.target ?? 'aside']).x : viewport.width / 2;
-  const centered = !!guidePlace || (!!tour && !telling);
-  const bubbleLeft = foot ? Math.max(16, Math.min(viewport.width - bubbleWidth - 16, foot.x - bubbleWidth / 2)) : 16;
-  // Large text gets a scrollable lower overlay, leaving all station targets available.
-  // Large text raises the overlay floor, still below the station touch areas.
-  const floor = viewport.height * (largeText ? 0.58 : 0.70);
-  const preferredTop = foot && !largeText ? Math.min(viewport.height - 130, Math.max(foot.y + 18, floor)) : floor;
-  // A bubble taller than the space below its place grows upward, as far as the lower edge of the station touch areas.
-  // The native SE 3 check clipped the guide text and the station action at the bottom edge.
-  const footer = guidePlace ? <BubbleSteps count={`${guideStep! + 1} / 4`} label={t(guideStep === 3 ? 'room.guide.done' : 'room.guide.next')} mark={guideStep === 3 ? '✓' : '→'}
-      onPress={() => guideStep === 3 ? finishGuide() : setGuideStep(value => value! + 1)} />
-    : tour?.ended ? <BubbleSteps count="" label={t('room.tutorial.finish')} text onPress={() => endTour()} />
-    : control ? <BubbleSteps count={`${control.line} / ${control.lines}`} label={t(`room.tutorial.${control.action}`)} mark="→" text={control.action !== 'next'} onPress={advance} />
-    : null;
-  const natural = contentHeight + 4 + (footer ? BUBBLE_FOOTER : 0);
   const stationEdge = Math.max(...stations.map(station => viewport.height * 0.45 + (hotspot(station.x, station.y).top + 36 - viewport.height * 0.45) * zoom));
-  // Tutorial bubbles keep their bottom edge, so paging never moves the button under the finger.
-  // On iPhone SE 3 the longest lines rise over Żaromir's legs. Text stays whole instead of scrolling under a shorter bubble.
-  const bubbleTop = largeText || contentHeight === 0 ? preferredTop
-    : tour ? Math.max(stationEdge, viewport.height - 20 - natural) : Math.min(preferredTop, Math.max(stationEdge, viewport.height - 20 - natural));
   const told = telling ? tour!.place : null;
   // Between chapters Żaromir waits at the last place facing the player. While the player chooses he points at the places.
   const pose: HeroPose = guide.walking ? { kind: 'walk', direction: guide.direction }
@@ -229,7 +199,32 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
     { id: 'guide', walker: guide, node: <HeroSprite run={guide.run} pose={pose} allowed={allowed} height={FIGURE_HEIGHT} scale={guide.scale} /> },
     { id: 'player', walker: player, node: <PlayerFigure presetId={character.presetId} build={character.build} run={player.run} pose={playerPose} allowed={allowed} scale={player.scale} /> },
   ] as const).slice().sort((one, two) => one.id === front ? 1 : two.id === front ? -1 : 0);
-  const bubbleHeight = Math.max(100, viewport.height - bubbleTop - 20);
+  // What the panel says now: the guide step, the tutorial choice or chapter, or the visited place.
+  const form = character.form;
+  let line: (ScriptLine & { id: string; title?: string; more?: boolean; controls?: PanelControls; next?: () => void; dismiss: () => void }) | null = null;
+  if (guidePlace) {
+    const last = guideStep === 3;
+    line = { ...guideScript(guidePlace)[0], id: `guide-${guideStep}`, dismiss: finishGuide, next: last ? undefined : () => setGuideStep(value => value! + 1),
+      controls: { step: { count: `${guideStep! + 1} / 4`, label: t(last ? 'room.guide.done' : 'room.guide.next'), mark: last ? '✓' : '→', onPress: () => last ? finishGuide() : setGuideStep(value => value! + 1) } } };
+  } else if (tour && (telling || !tour.place)) {
+    const script = told ? chapterScript(told, form) : null;
+    if (script && opening) line = { ...script[0], id: `tour-${told}-open`, more: true, next: () => setOpening(false), dismiss: endTour };
+    else if (script && control) line = { ...script[control.line], id: `tour-${told}-${control.line}`, dismiss: endTour, next: control.action === 'next' ? advance : undefined,
+      controls: { step: { count: `${control.line} / ${control.lines}`, label: t(`room.tutorial.${control.action}`), mark: '→', text: control.action !== 'next', onPress: advance } } };
+    else line = { speaker: 'guide', key: tourTextKey(tour), id: `tour-${tourTextKey(tour)}`, dismiss: endTour,
+      controls: tour.ended ? { step: { count: '', label: t('room.tutorial.finish'), text: true, onPress: endTour } } : undefined };
+  } else if (placeBubble) {
+    const place = player.arrived as ForgeStation;
+    const script = visitScript(place, form);
+    const said = script[visitLine] as ScriptLine;
+    line = visitLine === 0 ? { ...said, id: `visit-${touchRequest}-0`, more: true, next: () => setVisitLine(1), dismiss: () => setBubbleOpen(false) }
+      : { ...said, id: `visit-${touchRequest}-1`, title: t(`room.${place}`), dismiss: () => setBubbleOpen(false),
+        controls: { action: { label: t(`room.actions.${place}`), onPress: () => onOpenStation(place) } } };
+  }
+  // A soft ring of light under the speaking figure shows who speaks. It waits while that figure walks.
+  const speaker = line?.speaker === 'player' ? player : guide;
+  const speakerFoot = line && !speaker.walking ? speaker.now() : null;
+  const panelWidth = Math.min(viewport.width - 32, 420);
   return <View style={styles.root} onLayout={({ nativeEvent }) => {
     const { width: nextWidth, height: nextHeight } = nativeEvent.layout;
     if (nextWidth > 0 && nextHeight > 0) setViewport({ width: nextWidth, height: nextHeight });
@@ -256,6 +251,8 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
     <SceneHotspot label={placeLabel('door')} onPress={() => { if (tour) { hear('door'); return; } finishGuide(); onExit(); }} anchor={hotspot(door.x, door.y)} door allowed={allowed} glow={glow} heard={heardMark('door')} selected={tour ? tour.place === 'door' : undefined} />
     {stations.map(station => <SceneHotspot key={station.id} cue={false} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : player.target === station.id}
       onPress={() => tour ? hear(station.id) : choose(station.id)} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} heard={heardMark(station.id)} />)}
+    {speakerFoot && <View testID="speaking-ring" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+      style={[styles.ring, { left: point(speakerFoot.x, speakerFoot.y).left - RING.width / 2, top: point(speakerFoot.x, speakerFoot.y).top - RING.height / 2 }]} />}
     {figures.map(({ id, walker, node }) => <Fragment key={id}>
       <Animated.View testID={`room-${id}`} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.figure, { left, top, transform: [
         { translateX: walker.position.x.interpolate({ inputRange: [0, 1], outputRange: [-FIGURE_WIDTH / 2, sceneWidth - FIGURE_WIDTH / 2] }) },
@@ -270,26 +267,15 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
       <Animated.Image source={haze} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.objectGlow, styles.front, { ...point(seals.x, seals.y), opacity: Animated.multiply(stationGlow('seals'), sealsCover(walker.position)) }]} />
     </Fragment>)}
     </Animated.View>
-    {(guidePlace || (tour && (telling || !tour.place)) || placeBubble) && <RoomBubble
-      frame={{ left: centered ? (viewport.width - bubbleWidth) / 2 : bubbleLeft, top: bubbleTop, width: bubbleWidth, maxHeight: bubbleHeight, height: largeText ? bubbleHeight : undefined }}
-      reveal={centered ? null : bubble} pointX={centered ? centeredX : foot!.x} fill={largeText}
-      contentKey={`${guidePlace ?? (tour ? `tour-${tour.place}-${tour.line}-${tour.ended}` : player.arrived)}-${i18n.language}-${fontScale}`}
-      onContentHeight={setContentHeight} dismissLabel={t(guidePlace ? 'room.guide.skip' : tour ? 'room.tutorial.close' : 'room.dismiss')}
-      onDismiss={() => guidePlace ? finishGuide() : tour ? endTour() : setBubbleOpen(false)} footer={footer}>
-      {!guidePlace && !tour && isStation(player.arrived) && <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.detailTitle}>{t(`room.${player.arrived}`)}</Text>}
-      <Text maxFontSizeMultiplier={2} style={styles.description}>{bindShortWords(guidePlace ? t(`room.guide.${guidePlace}`)
-        : tour ? t(tourTextKey(tour))
-        : t(`room.descriptions.${player.arrived}`), i18n.language)}</Text>
-      {!guidePlace && !tour && isStation(player.arrived) && <Pressable accessibilityRole="button" accessibilityLabel={t(`room.actions.${player.arrived}`)} onPress={() => onOpenStation(player.arrived as ForgeStation)} style={({ pressed }) => [styles.stationAction, { opacity: pressed ? 0.6 : 1 }]}>
-        <Text maxFontSizeMultiplier={2} style={styles.actionLabel}>{t(`room.actions.${player.arrived}`)} <Text accessibilityElementsHidden>→</Text></Text>
-      </Pressable>}
-    </RoomBubble>}
+    {line && <DialoguePanel frame={{ left: (viewport.width - panelWidth) / 2, width: panelWidth, bottom: PANEL_BOTTOM, maxHeight: viewport.height - PANEL_BOTTOM - stationEdge }}
+      speaker={line.speaker} lineId={line.id} text={bindShortWords(t(line.key, line.values), i18n.language)} title={line.title}
+      playerName={character.name} portrait={presetArt(character.presetId, character.build)?.portrait ?? null} allowed={allowed} more={!!line.more}
+      continueLabel={t('room.tutorial.next')} onContinue={() => line?.next?.()} controls={line.controls}
+      dismissLabel={t(guidePlace ? 'room.guide.skip' : tour ? 'room.tutorial.close' : 'room.dismiss')} onDismiss={line.dismiss} />}
   </View>;
 }
 
 const styles = StyleSheet.create({
-  stationAction: { minHeight: 44, justifyContent: 'center', paddingVertical: 8 },
-  actionLabel: { color: '#5d3616', fontSize: 17, fontWeight: '600' },
   root: { flex: 1, overflow: 'hidden', backgroundColor: '#111719' },
   scenery: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden' },
   objectGlow: { position: 'absolute', width: 180, height: 160, marginLeft: -90, marginTop: -85 },
@@ -298,6 +284,6 @@ const styles = StyleSheet.create({
   figure: { position: 'absolute', width: FIGURE_WIDTH, height: FIGURE_HEIGHT, zIndex: 3 },
   front: { position: 'absolute', zIndex: 3, pointerEvents: 'none' },
   figureShadow: { position: 'absolute', width: 76, height: 18, top: FIGURE_HEIGHT * FIGURE_FOOT - 10, left: FIGURE_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
-  detailTitle: { flexShrink: 0, color: '#47311e', fontFamily: tokens.font.display, fontSize: 19, fontWeight: '400' },
-  description: { flexShrink: 0, color: '#523c29', fontFamily: tokens.font.body, fontSize: 16, lineHeight: 23, marginTop: 5 },
+  ring: { position: 'absolute', zIndex: 3, width: RING.width, height: RING.height, borderRadius: RING.height / 2,
+    experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(255,196,110,0.55) 0%, rgba(255,170,80,0.22) 60%, rgba(255,170,80,0) 100%)' },
 });

@@ -23,6 +23,7 @@ test('re-running demo effects keeps character creation, the menu, the room guide
   // A fresh scenario has no guide flag, so the first room entry starts the guide.
   await fireEvent.press(await screen.findByRole('button', { name: messages.room.guide.skip }));
   await fireEvent.press(screen.getByRole('button', { name: messages.room.seals }));
+  await fireEvent.press(screen.getByRole('button', { name: messages.room.tutorial.next }));
   await fireEvent.press(screen.getByRole('button', { name: messages.room.actions.seals }));
   expect(await screen.findByText(messages.oathHome.emptyToday)).toBeOnTheScreen();
   expect(screen.queryByText(messages.oathHome.loadError)).toBeNull();

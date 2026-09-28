@@ -443,6 +443,8 @@ async function enterRoom() {
 }
 async function useStation(station: 'Hearth' | 'Seals' | 'Chronicle', action: string) {
   await fireEvent.press(screen.getByRole('button', { name: station }));
+  // The player speaks first, the next touch brings Żaromir's line with the place action.
+  await fireEvent.press(screen.getByRole('button', { name: 'Next' }));
   await fireEvent.press(screen.getByRole('button', { name: action }));
 }
 
