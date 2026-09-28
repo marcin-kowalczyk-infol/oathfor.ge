@@ -95,10 +95,13 @@ Owner demo review of 2026-09-28 (MVP-20-T17 and later). Generated on 2026-09-28 
 | --- | --- | --- | --- | --- | --- |
 | `talk-seal-v01.png` | `talk-icons-v01`, cell 1 | 120 × 120 RGBA | Current Oaths counter in Żaromir's talk | 40 pt at 3x, 4 px margin | `2e6d30b0187c5f525998c0be36054bd056b42fdc53c74b134fd07150c04fad39` |
 | `talk-chronicle-v01.png` | `talk-icons-v01`, cell 2 | 120 × 120 RGBA | Chronicle entries counter in Żaromir's talk | 40 pt at 3x, 4 px margin | `a75f1848bb5782743878a0af8faf227048daaee3143d1becd3a2dfdead3d07dc` |
+| `fx-book-page-turn-v01.png` | `fx-book-page-turn-v01` | 1248 × 454 RGBA | One leaf turns over the lectern book, replaces the flutter | 4 × 2 of 312 × 227, anchor 0.5064, 0.978 | `dd10c86b44338a91f512b0b0bba8e87caecb7cd4940795dff9b6339644336117` |
 
-Master `talk-icons-v01.png` SHA-256 `0a6ff9a726f5d3c01bbf170c9a57608ec9e3defa9844feae2337a465b9a49f83`.
+Master `fx-book-page-turn-v01.png` SHA-256 `207176d6fd7ddf580ed0eb8bc183c15aa43ebbe79fc5f369ea77b9e23ed1e896`. Master `talk-icons-v01.png` SHA-256 `0a6ff9a726f5d3c01bbf170c9a57608ec9e3defa9844feae2337a465b9a49f83`.
 
-Known limits: the icons were checked as still images at 40 pt and 32 pt on the panel wood. The brown book has lower contrast on the wood than the red seal, its gold fittings carry the shape. Native legibility is checked in MVP-20-T21.
+Page turn placement: draw box 660.0, 821.0, 156.0, 113.5 in artwork pixels, width fraction 0.1759, room anchor 739, 932 (bottom centre of the book). The generator's cells sit on an even 443.5 pixel grid and the resting covers of all eight frames agree within 1 source pixel. One perspective transform maps the page block corners of frame 1 onto the painted book, fitted by gradient correlation on the room (two fits agree within 1 artwork pixel). The generated book has a thicker page block and cover, so every frame is clipped to the painted book outline and the space above it, with a soft edge. The hanging clasp is masked, the room keeps its own strap. The page drawings of the sheet differ from the painted pages, so the first frame fades in and the last fades out.
+
+Known limits: the icons were checked as still images at 40 pt and 32 pt on the panel wood. The brown book has lower contrast on the wood than the red seal, its gold fittings carry the shape. Native legibility and the page turn in motion are checked in MVP-20-T21.
 
 ## Player pilot sprites
 
