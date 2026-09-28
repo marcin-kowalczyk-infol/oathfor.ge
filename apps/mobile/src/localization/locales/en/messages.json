@@ -253,6 +253,50 @@
       "recovery": "Recovery Quest",
       "review": "Corrections and review",
       "appeal": "Appeals and deletion"
+    },
+    "cards": {
+      "or": " or ",
+      "evidence": {
+        "photo": "a photo",
+        "activity_record": "an activity record"
+      },
+      "start": {
+        "title": "Start",
+        "now": "Right after you make it"
+      },
+      "deadline": {
+        "title": "Deadline"
+      },
+      "cutoff": {
+        "title": "Last moment for proof",
+        "line_one": "{{time}}, {{count}} minute after the deadline",
+        "line_other": "{{time}}, {{count}} minutes after the deadline"
+      },
+      "proof": {
+        "title": "Proof"
+      },
+      "review": {
+        "title": "Review",
+        "line_one": "Review takes up to {{count}} day",
+        "line_other": "Review takes up to {{count}} days"
+      },
+      "reward": {
+        "title": "Reward",
+        "line": "{{photo}} XP for a photo, {{record}} XP for an activity record"
+      },
+      "consequence": {
+        "title": "If you miss it",
+        "keep": "You keep the XP you earned.",
+        "recovery": "You can take a Recovery Quest for {{recovery}} XP."
+      },
+      "fixed": {
+        "title": "The rules are fixed",
+        "line": "Once made, the rules do not change."
+      },
+      "pause": {
+        "title": "Pause",
+        "line": "A pause withdraws Oaths without proof."
+      }
     }
   },
   "oathHome": {

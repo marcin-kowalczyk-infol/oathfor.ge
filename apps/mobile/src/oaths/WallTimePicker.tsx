@@ -4,6 +4,7 @@ import { useTranslation } from '../localization/LocalizationProvider';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import timezoneIdentifiers from './timezoneIdentifiers.json';
+import { zoneLabel } from './zoneLabel';
 
 export type TimeDraft = { date: string; time: string; zone: string; offset?: string };
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -38,7 +39,7 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
   const [query, setQuery] = useState('');
   const locale = i18n.resolvedLanguage ?? 'en';
   const label = (part: string) => t(`oath.${field}${part[0].toUpperCase()}${part.slice(1)}`);
-  const zoneName = (zone: string) => zone === 'Europe/Warsaw' ? t('timePicker.warsaw') : zone === 'Europe/London' ? t('timePicker.london') : zone === 'UTC' ? t('timePicker.utc') : zone.split('/').slice(1).join(' / ').replaceAll('_', ' ');
+  const zoneName = (zone: string) => zoneLabel(zone, t);
   const dateName = (date: string) => new Intl.DateTimeFormat(locale, { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' }).format(calendarDate(date));
   const current = wallNow(value.zone, now());
   const isToday = value.date === current.date;

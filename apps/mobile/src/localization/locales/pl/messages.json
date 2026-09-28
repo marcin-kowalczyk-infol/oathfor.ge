@@ -257,6 +257,54 @@
       "recovery": "Zadanie Powrotu",
       "review": "Poprawki i rozpatrywanie",
       "appeal": "Odwołania i usuwanie"
+    },
+    "cards": {
+      "or": " albo ",
+      "evidence": {
+        "photo": "zdjęcie",
+        "activity_record": "zapis aktywności"
+      },
+      "start": {
+        "title": "Start",
+        "now": "Od razu po złożeniu"
+      },
+      "deadline": {
+        "title": "Termin"
+      },
+      "cutoff": {
+        "title": "Ostatni moment na dowód",
+        "line_one": "{{time}}, {{count}} minuta po terminie",
+        "line_few": "{{time}}, {{count}} minuty po terminie",
+        "line_many": "{{time}}, {{count}} minut po terminie",
+        "line_other": "{{time}}, {{count}} minuty po terminie"
+      },
+      "proof": {
+        "title": "Dowód"
+      },
+      "review": {
+        "title": "Przegląd",
+        "line_one": "Przegląd trwa do {{count}} dnia",
+        "line_few": "Przegląd trwa do {{count}} dni",
+        "line_many": "Przegląd trwa do {{count}} dni",
+        "line_other": "Przegląd trwa do {{count}} dnia"
+      },
+      "reward": {
+        "title": "Nagroda",
+        "line": "{{photo}} XP za zdjęcie, {{record}} XP za zapis aktywności"
+      },
+      "consequence": {
+        "title": "Jeśli nie zdążysz",
+        "keep": "Nie tracisz zdobytego XP.",
+        "recovery": "Możesz podjąć Zadanie Powrotu za {{recovery}} XP."
+      },
+      "fixed": {
+        "title": "Zasady są stałe",
+        "line": "Po złożeniu zasady się nie zmienią."
+      },
+      "pause": {
+        "title": "Pauza",
+        "line": "Pauza wycofuje Przysięgi bez dowodu."
+      }
     }
   },
   "oathHome": {

@@ -1,0 +1,53 @@
+import catalog from '../../../api/resources/oath/workout_oath_v1.json';
+import type { Snapshot } from '../api/oathSchema';
+import { createTranslation } from '../localization/createTranslation';
+import { ruleCards } from './ruleCards';
+
+function snapshot(patch: (value: Snapshot) => void = () => {}): Snapshot {
+  const value = JSON.parse(JSON.stringify(catalog));
+  value.activity = 'running'; value.activation = { mode: 'now', time: null };
+  value.deadline = { local: '2026-10-02T18:00:00', timezone: 'Europe/Warsaw', offset: '+02:00', explicitOffset: false, utc: '2026-10-02T16:00:00Z', receiptCutoff: '2026-10-02T16:15:00Z' };
+  for (const locale of ['pl', 'en']) { value.copy[locale].activity = value.copy[locale].activities.running; delete value.copy[locale].activities; }
+  patch(value);
+  return value;
+}
+const build = (value: Snapshot, locale: 'pl' | 'en') => { const i18n = createTranslation(locale); return ruleCards(value, i18n.t.bind(i18n), locale); };
+const line = (cards: ReturnType<typeof ruleCards>, id: string) => cards.find(card => card.id === id)!.lines.join(' ');
+
+test('Polish cards carry the snapshot values in order', () => {
+  const cards = build(snapshot(), 'pl');
+  expect(cards.map(card => card.id)).toEqual(['start', 'deadline', 'cutoff', 'proof', 'review', 'reward', 'consequence', 'fixed', 'pause']);
+  expect(cards.map(card => card.title)).toEqual(['Start', 'Termin', 'Ostatni moment na dowód', 'Dowód', 'Przegląd', 'Nagroda', 'Jeśli nie zdążysz', 'Zasady są stałe', 'Pauza']);
+  expect(line(cards, 'start')).toBe('Od razu po złożeniu');
+  expect(line(cards, 'deadline')).toBe('pt 2 paź 18:00 · Warszawa');
+  expect(line(cards, 'cutoff')).toBe('18:15, 15 minut po terminie');
+  expect(line(cards, 'proof')).toBe('Zdjęcie albo zapis aktywności');
+  expect(line(cards, 'review')).toBe('Przegląd trwa do 3 dni');
+  expect(line(cards, 'reward')).toBe('40 XP za zdjęcie, 50 XP za zapis aktywności');
+  expect(line(cards, 'consequence')).toBe('Nie tracisz zdobytego XP. Możesz podjąć Zadanie Powrotu za 15 XP.');
+  expect(line(cards, 'fixed')).toBe('Po złożeniu zasady się nie zmienią.');
+  expect(line(cards, 'pause')).toBe('Pauza wycofuje Przysięgi bez dowodu.');
+});
+
+test('English cards and a scheduled start in its own zone', () => {
+  const cards = build(snapshot(value => { value.activation = { mode: 'scheduled', time: { local: '2026-10-01T07:30:00', timezone: 'Europe/London', offset: '+01:00', explicitOffset: false, utc: '2026-10-01T06:30:00Z' } }; }), 'en');
+  expect(cards.map(card => card.title)).toEqual(['Start', 'Deadline', 'Last moment for proof', 'Proof', 'Review', 'Reward', 'If you miss it', 'The rules are fixed', 'Pause']);
+  expect(line(cards, 'start')).toBe('Thu, Oct 1, 07:30 · London');
+  expect(line(cards, 'deadline')).toBe('Fri, Oct 2, 18:00 · Warsaw');
+  expect(line(cards, 'cutoff')).toBe('18:15, 15 minutes after the deadline');
+  expect(line(cards, 'proof')).toBe('A photo or an activity record');
+  expect(line(cards, 'review')).toBe('Review takes up to 3 days');
+  expect(line(cards, 'reward')).toBe('40 XP for a photo, 50 XP for an activity record');
+  expect(line(cards, 'consequence')).toBe('You keep the XP you earned. You can take a Recovery Quest for 15 XP.');
+});
+
+test('numbers come from the snapshot, not from the current policy', () => {
+  const cards = build(snapshot(value => {
+    Object.assign(value.rewards, { photoTotal: 45, recordTotal: 55 });
+    Object.assign(value.review, { reviewWindowSeconds: 86400 });
+    Object.assign(value.recovery, { totalXp: 20 });
+  }), 'pl');
+  expect(line(cards, 'reward')).toBe('45 XP za zdjęcie, 55 XP za zapis aktywności');
+  expect(line(cards, 'review')).toBe('Przegląd trwa do 1 dnia');
+  expect(line(cards, 'consequence')).toContain('20 XP');
+});
