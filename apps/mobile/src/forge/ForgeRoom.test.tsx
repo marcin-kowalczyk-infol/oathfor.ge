@@ -1137,3 +1137,77 @@ describe('camera flight', () => {
     expect(screen.getByRole('button', { name: pl.room.exit })).toBeOnTheScreen();
   });
 });
+
+describe('camera flight after review', () => {
+  const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
+  function captureTimings() {
+    const timings: { duration?: number; to: unknown; done?: (result: { finished: boolean }) => void }[] = [];
+    jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
+      start: done => {
+        if (value instanceof Animated.ValueXY) { done?.({ finished: true }); return; }
+        timings.push({ duration: config.duration, to: config.toValue, done });
+      }, stop: jest.fn(), reset: jest.fn(),
+    }));
+    return timings;
+  }
+
+  // Review finding: motion is known only after mount, so the return always crossfaded and never flew back.
+  test('a return waits for the motion preference and then flies back', async () => {
+    const timings = captureTimings();
+    const view = await render(room({ from: 'seals' }));
+    expect(timings.filter(timing => timing.duration === 250)).toHaveLength(0);
+    motion.mockReturnValue(true);
+    await view.rerender(room({ from: 'seals' }));
+    expect(timings.filter(timing => timing.duration === 650).map(timing => timing.to)).toEqual([0]);
+    expect(timings.filter(timing => timing.duration === 250)).toHaveLength(0);
+  });
+
+  test('a return without motion crossfades once the preference is settled', async () => {
+    const timings = captureTimings();
+    const onReturned = jest.fn();
+    await render(room({ from: 'chronicle', onReturned }));
+    await act(async () => { jest.advanceTimersByTime(400); });
+    const fade = timings.find(timing => timing.duration === 250)!;
+    expect(fade.to).toBe(0);
+    await act(async () => fade.done!({ finished: true }));
+    expect(screen.queryByTestId('flight-closeup', hidden)).toBeNull();
+    expect(onReturned).toHaveBeenCalledTimes(1);
+  });
+
+  test('during a flight the room ignores other touches', async () => {
+    const timings = captureTimings();
+    const onOpenStation = jest.fn();
+    await render(room({ onOpenStation }));
+    await press(en.room.hearth);
+    await press(en.room.tutorial.next);
+    await press(en.room.actions.hearth);
+    expect(screen.getByTestId('flight-shield', hidden)).toBeTruthy();
+    await press(en.room.chronicle);
+    await press(en.room.dismiss);
+    expectAt('room-player', places.hearth.player);
+    await act(async () => timings.find(timing => timing.duration === 250)!.done!({ finished: true }));
+    expect(onOpenStation).toHaveBeenCalledWith('hearth');
+  });
+
+  test('the flight zooms around the place as it appears through the room camera', async () => {
+    motion.mockReturnValue(true);
+    captureTimings();
+    await render(room());
+    await press(en.room.seals);
+    await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
+    await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
+    await press(en.room.actions.seals);
+    const window = Dimensions.get('window');
+    const scene = cover(window);
+    const seen = (value: number, centre: number) => centre + 1.08 * (value - centre);
+    const style = StyleSheet.flatten(screen.getByTestId('flight-camera', hidden).props.style) as { transformOrigin: number[] };
+    expect(style.transformOrigin[0]).toBeCloseTo(seen(scene.left + places.seals.anchor.x * scene.width, window.width * 0.515));
+    expect(style.transformOrigin[1]).toBeCloseTo(seen(scene.top + places.seals.anchor.y * scene.height, window.height * 0.45));
+  });
+
+  test('the door reads as a place to discover', async () => {
+    await render(room());
+    const door = screen.getByRole('button', { name: en.room.door });
+    expect(door.props.accessibilityHint).toBe(en.room.inspect);
+  });
+});

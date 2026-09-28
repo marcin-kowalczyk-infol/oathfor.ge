@@ -128,7 +128,7 @@ export function HomeRoutes(props: HomeRoutesProps) {
     case 'forge':
       front = guideSeen === null ? <View testID="forge-room-waiting" style={styles.dark} />
         // A tutorial started before the first room entry replaces the guide, which then counts as seen.
-        : <ForgeRoom character={character} progress={forgeProgress.progress} onTalk={refreshProgress} from={route.from} showGuide={!guideSeen} onGuideComplete={guideDone} tutorial={route.tutorial} onTutorialStart={() => { if (!guideSeen) guideDone(); }} onTutorialEnd={() => dispatch({ type: 'tutorialEnded' })}
+        : <ForgeRoom character={character} progress={forgeProgress.progress} onTalk={refreshProgress} from={route.from} onReturned={() => dispatch({ type: 'returned' })} showGuide={!guideSeen} onGuideComplete={guideDone} tutorial={route.tutorial} onTutorialStart={() => { if (!guideSeen) guideDone(); }} onTutorialEnd={() => dispatch({ type: 'tutorialEnded' })}
           onOpenStation={station => dispatch({ type: 'openStation', station, flown: true })} onExit={() => dispatch({ type: 'door' })} />;
       break;
     case 'tutorial':
@@ -161,7 +161,7 @@ export function HomeRoutes(props: HomeRoutesProps) {
     <View style={hidden ? styles.hidden : styles.fill} accessibilityElementsHidden={hidden} importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}>
       <MotionSuspended suspended={hidden}>
         <OathHomeScreen key={`${accountId}.${character.id}`} controller={oaths} timezone={props.timezone} reload={oathReload}
-          forgeNavigation={{ request: route.kind === 'oaths' ? route.request : null, onReturn: back }} />
+          forgeNavigation={{ request: route.kind === 'oaths' ? route.request : null, onReturn: place => dispatch({ type: 'back', layout, from: place }) }} />
       </MotionSuspended>
     </View>
   </>;

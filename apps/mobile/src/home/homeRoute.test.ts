@@ -104,3 +104,9 @@ test('a flown station request skips the screen zoom and the way back flies out o
   const resumed = run({ type: 'openForge', layout: 'room', pending: true });
   expect(homeReducer(resumed, { type: 'back', layout: 'room' }).route).toEqual({ kind: 'forge', tutorial: null });
 });
+test('the way back flies out of the place on screen and the room forgets it after the return', () => {
+  const oaths = run({ type: 'openForge', layout: 'room', pending: false }, { type: 'openStation', station: 'seals', flown: true });
+  const back = homeReducer(oaths, { type: 'back', layout: 'room', from: 'chronicle' });
+  expect(back.route).toEqual({ kind: 'forge', tutorial: null, from: 'chronicle' });
+  expect(homeReducer(back, { type: 'returned' }).route).toEqual({ kind: 'forge', tutorial: null });
+});

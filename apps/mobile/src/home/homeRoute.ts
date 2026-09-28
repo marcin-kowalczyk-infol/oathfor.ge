@@ -13,8 +13,9 @@ export type HomeState = { accountId: string; characterId: string; route: HomeRou
 export type HomeAction =
   | { type: 'openForge'; layout: LayoutMode; pending: boolean }
   | { type: 'openTutorial'; layout: LayoutMode }
-  | { type: 'back'; layout: LayoutMode }
-  | { type: 'openSettings' | 'openChange' | 'openCreate' | 'openPause' | 'door' | 'tutorialEnded' }
+  /** from: the place on screen when leaving the Oath screens, which a flown return flies out of. */
+  | { type: 'back'; layout: LayoutMode; from?: Station }
+  | { type: 'openSettings' | 'openChange' | 'openCreate' | 'openPause' | 'door' | 'tutorialEnded' | 'returned' }
   | { type: 'openStation'; station: Station; flown?: boolean };
 const stationTarget: Record<Station, OathTarget> = { hearth: 'create', seals: 'today', chronicle: 'history' };
 const targetStation: Record<OathTarget, Station> = { create: 'hearth', today: 'seals', history: 'chronicle' };
@@ -26,13 +27,13 @@ export function resolveHome(state: HomeState | null, accountId: string, characte
   return layout === 'simple' && state.route.kind === 'forge' ? { ...state, route: { kind: 'menu' } } : state;
 }
 const origin = (route: HomeRoute): HomeOrigin => route.kind === 'settings' ? 'settings' : route.kind === 'change' || route.kind === 'create' ? route.origin : 'menu';
-function back(route: HomeRoute, layout: LayoutMode): HomeRoute {
+function back(route: HomeRoute, layout: LayoutMode, from?: Station): HomeRoute {
   switch (route.kind) {
     case 'pause': return { kind: 'settings' };
     case 'change': return { kind: route.origin };
     case 'create': return { kind: 'change', origin: route.origin };
     case 'oaths': return layout !== 'room' ? { kind: 'menu' }
-      : route.request.flown ? { kind: 'forge', tutorial: null, from: targetStation[route.request.target] } : { kind: 'forge', tutorial: null };
+      : route.request.flown ? { kind: 'forge', tutorial: null, from: from ?? targetStation[route.request.target] } : { kind: 'forge', tutorial: null };
     default: return { kind: 'menu' };
   }
 }
@@ -53,6 +54,8 @@ export function homeReducer(state: HomeState, action: HomeAction): HomeState {
     case 'door': return state.route.kind === 'forge' ? to({ kind: 'menu' }) : state;
     // A remounted room must not start a tutorial the player already closed.
     case 'tutorialEnded': return state.route.kind === 'forge' && state.route.tutorial !== null ? to({ kind: 'forge', tutorial: null }) : state;
-    case 'back': return to(back(state.route, action.layout));
+    case 'back': return to(back(state.route, action.layout, action.from));
+    // After the return flight a remounted room starts at rest.
+    case 'returned': return state.route.kind === 'forge' && state.route.from ? to({ kind: 'forge', tutorial: state.route.tutorial }) : state;
   }
 }

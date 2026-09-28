@@ -40,3 +40,13 @@ test('a request without a flight still zooms into the place', async () => {
   await settle();
   expect(zooms()).toBe(1);
 });
+
+test('returning to the room names the place on screen', async () => {
+  const onReturn = jest.fn();
+  const { fireEvent } = jest.requireActual('@testing-library/react-native') as typeof import('@testing-library/react-native');
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen controller={controller()} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'today', flown: true }, onReturn }} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'History' }));
+  // The label names the room or the menu, by layout.
+  await fireEvent.press(await screen.findByRole('button', { name: /^(Return to the Forge|Back to menu)$/ }));
+  expect(onReturn).toHaveBeenCalledWith('chronicle');
+});

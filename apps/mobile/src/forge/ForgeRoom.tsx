@@ -62,12 +62,12 @@ const sealsCover = (position: Animated.ValueXY) => position.y.interpolate({ inpu
  * tutorial starts the rules conversation, and a new id restarts it with no heard places. It takes priority over the guide.
  * onTutorialEnd reports a close or finish, so the parent can drop the id and a remount does not start it again.
  */
-export function ForgeRoom({ character, progress, onTalk, from = null, showGuide = false, onGuideComplete, tutorial = null, onTutorialStart, onTutorialEnd, onOpenStation, onExit }: {
+export function ForgeRoom({ character, progress, onTalk, from = null, onReturned, showGuide = false, onGuideComplete, tutorial = null, onTutorialStart, onTutorialEnd, onOpenStation, onExit }: {
   character: Pick<Character, 'name' | 'presetId' | 'build' | 'form'>;
   /** Server counts for Żaromir's hint and card. onTalk asks the parent to refresh them. */
   progress: ForgeProgress; onTalk: () => void;
   /** The place a return from its screen flies back out of. The player stands there. */
-  from?: ForgeStation | null; showGuide?: boolean | number; onGuideComplete?: () => void; tutorial?: number | null; onTutorialStart?: () => void; onTutorialEnd?: () => void;
+  from?: ForgeStation | null; onReturned?: () => void; showGuide?: boolean | number; onGuideComplete?: () => void; tutorial?: number | null; onTutorialStart?: () => void; onTutorialEnd?: () => void;
   onOpenStation: (station: ForgeStation) => void; onExit: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -85,7 +85,9 @@ export function ForgeRoom({ character, progress, onTalk, from = null, showGuide 
   // Żaromir stands aside in normal mode. The player starts in the lower middle and walks to each touched place.
   const guide = useWalker(guideFeet, aside, allowed);
   const player = useWalker(playerFeet, from ? playerFeet[from] : playerStart, allowed);
-  const flight = useCameraFlight({ allowed, from });
+  const flight = useCameraFlight({ allowed, from, onReturned });
+  // While the camera flies, every other touch in the room is ignored.
+  const still = <Args extends unknown[]>(handler: (...args: Args) => void) => (...args: Args) => { if (!flight.busy) handler(...args); };
   // Which figure is lower on screen, so drawn in front. Walks cannot be read back, so it is checked at a coarse rate while one walks.
   const lower = (): 'guide' | 'player' => guide.now().y > player.now().y ? 'guide' : 'player';
   const [front, setFront] = useState(lower);
@@ -209,6 +211,9 @@ export function ForgeRoom({ character, progress, onTalk, from = null, showGuide 
   const seals = stations.find(station => station.id === 'seals')!;
   // The panel and the ring sit relative to the camera zoom, so scene points are projected through it.
   const zoom = zoomed ? 1.08 : 1;
+  // A scene point as the room camera shows it, so the flight zooms around the object where the player sees it.
+  const onScreen = (spot: Spot) => ({ left: viewport.width * 0.515 + (left + spot.x * sceneWidth - viewport.width * 0.515) * zoom,
+    top: viewport.height * 0.45 + (top + spot.y * sceneHeight - viewport.height * 0.45) * zoom });
   const stationEdge = Math.max(...stations.map(station => viewport.height * 0.45 + (hotspot(station.x, station.y).top + 36 - viewport.height * 0.45) * zoom));
   const told = telling ? tour!.place : null;
   // Between chapters Żaromir waits at the last place facing the player. While the player chooses he points at the places.
@@ -275,7 +280,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, showGuide 
     const { width: nextWidth, height: nextHeight } = nativeEvent.layout;
     if (nextWidth > 0 && nextHeight > 0) setViewport({ width: nextWidth, height: nextHeight });
   }}>
-    <Animated.View style={[StyleSheet.absoluteFill, flight.place && flight.scale(point(places[flight.place].anchor.x, places[flight.place].anchor.y))]}>
+    <Animated.View testID="flight-camera" style={[StyleSheet.absoluteFill, flight.place && flight.scale(onScreen(places[flight.place].anchor))]}>
     <Animated.View style={[StyleSheet.absoluteFill, { transformOrigin: [viewport.width * 0.515, viewport.height * 0.45, 0], transform: [{ scale: camera.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }]}>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.scenery}>
       <Image source={room} resizeMode="stretch" style={{ position: 'absolute', left, top, width: sceneWidth, height: sceneHeight }} />
@@ -295,9 +300,9 @@ export function ForgeRoom({ character, progress, onTalk, from = null, showGuide 
       {/* Native check: replaying on the same animated value made a stepped sheet blink on iOS. Each touch mounts a fresh response. */}
       {effectPlace && <StationEffect key={touchRequest} station={effectPlace} request={touchRequest} allowed={allowed} point={point} sceneWidth={sceneWidth} />}
     </View>
-    <SceneHotspot label={placeLabel('door')} onPress={() => tour ? hear('door') : choose('door')} anchor={hotspot(door.x, door.y)} door allowed={allowed} glow={glow} heard={heardMark('door')} selected={tour ? tour.place === 'door' : undefined} />
+    <SceneHotspot label={placeLabel('door')} onPress={still(() => tour ? hear('door') : choose('door'))} hint={tour ? undefined : t('room.inspect')} anchor={hotspot(door.x, door.y)} door allowed={allowed} glow={glow} heard={heardMark('door')} selected={tour ? tour.place === 'door' : player.target === 'door'} />
     {stations.map(station => <SceneHotspot key={station.id} cue={false} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : player.target === station.id}
-      onPress={() => tour ? hear(station.id) : choose(station.id)} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} heard={heardMark(station.id)} />)}
+      onPress={still(() => tour ? hear(station.id) : choose(station.id))} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} heard={heardMark(station.id)} />)}
     {speakerFoot && <View testID="speaking-ring" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
       style={[styles.ring, { left: point(speakerFoot.x, speakerFoot.y).left - RING.width / 2, top: point(speakerFoot.x, speakerFoot.y).top - RING.height / 2 }]} />}
     {figures.map(({ id, walker, node }) => <Fragment key={id}>
@@ -314,17 +319,18 @@ export function ForgeRoom({ character, progress, onTalk, from = null, showGuide 
       <Animated.Image source={haze} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.objectGlow, styles.front, { ...point(seals.x, seals.y), opacity: Animated.multiply(stationGlow('seals'), sealsCover(walker.position)) }]} />
     </Fragment>)}
     {!tour && !guidePlace && !guide.walking && (guide.arrived ?? 'aside') === 'aside' && <Pressable accessibilityRole="button" accessibilityLabel={t('room.talk.label')}
-      onPress={() => { onTalk(); setBubbleOpen(false); setTalk(current => ({ id: (current?.id ?? 0) + 1, step: 'player', waited: false })); }}
+      onPress={still(() => { onTalk(); setBubbleOpen(false); setTalk(current => ({ id: (current?.id ?? 0) + 1, step: 'player', waited: false })); })}
       style={[styles.talkTarget, talkBox]} />}
     </Animated.View>
     </Animated.View>
     {flight.overlay(viewport)}
+    {flight.busy && <View testID="flight-shield" style={styles.shield} onStartShouldSetResponder={() => true} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />}
     {line && <DialoguePanel frame={{ left: (viewport.width - panelWidth) / 2, width: panelWidth, bottom: PANEL_BOTTOM, maxHeight: viewport.height - PANEL_BOTTOM - stationEdge }}
       speaker={line.speaker} lineId={line.id} text={bindShortWords(t(line.key, line.values), i18n.language)} title={line.title}
       extra={line.id === `talk-${talk?.id}-1` ? <TalkCard character={character} progress={progress} /> : undefined}
       playerName={character.name} portrait={presetArt(character.presetId, character.build)?.portrait ?? null} allowed={allowed} more={!!line.more}
-      continueLabel={t('room.tutorial.next')} onContinue={() => line?.next?.()} controls={line.controls}
-      dismissLabel={t(guidePlace ? 'room.guide.skip' : tour ? 'room.tutorial.close' : 'room.dismiss')} onDismiss={line.dismiss} />}
+      continueLabel={t('room.tutorial.next')} onContinue={still(() => line?.next?.())} controls={line.controls}
+      dismissLabel={t(guidePlace ? 'room.guide.skip' : tour ? 'room.tutorial.close' : 'room.dismiss')} onDismiss={still(line.dismiss)} />}
   </View>;
 }
 
@@ -338,6 +344,7 @@ const styles = StyleSheet.create({
   front: { position: 'absolute', zIndex: 3, pointerEvents: 'none' },
   figureShadow: { position: 'absolute', width: 76, height: 18, top: FIGURE_HEIGHT * FIGURE_FOOT - 10, left: FIGURE_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
   talkTarget: { position: 'absolute', zIndex: 3 },
+  shield: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 10 },
   ring: { position: 'absolute', zIndex: 3, width: RING.width, height: RING.height, borderRadius: RING.height / 2,
     experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(255,196,110,0.55) 0%, rgba(255,170,80,0.22) 60%, rgba(255,170,80,0) 100%)' },
 });
