@@ -82,13 +82,13 @@ test('scheduled start and deadline retain independently chosen zones, with all a
   await fillDeadline(); await fireEvent.press(screen.getByRole('radio', { name: 'Strength training' }));
   expect(screen.getByRole('radio', { name: 'Mobility' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('radio', { name: 'At a future time' }));
-  await selectDate('Start date', 'October 24, 2026');
-  await selectTime('Start time', '10', '00');
+  await selectDate('Start date', 'October 24, 2026, Today');
+  await selectTime('Start time', '20', '00');
   await fireEvent.press(screen.getByRole('button', { name: 'Start timezone' }));
   await fireEvent.changeText(screen.getByLabelText('Search by city or timezone'), 'London');
   await fireEvent.press(screen.getByRole('radio', { name: 'London · Europe/London' }));
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  expect(jest.mocked(f.api.preview).mock.calls[0][1]).toEqual({ activity: 'strength_training', activation: { mode: 'scheduled', time: { local: '2026-10-24T10:00:00', timezone: 'Europe/London' } }, deadline: { local: '2026-10-25T02:30:00', timezone: 'Europe/Warsaw' } });
+  expect(jest.mocked(f.api.preview).mock.calls[0][1]).toEqual({ activity: 'strength_training', activation: { mode: 'scheduled', time: { local: '2026-10-24T20:00:00', timezone: 'Europe/London' } }, deadline: { local: '2026-10-25T02:30:00', timezone: 'Europe/Warsaw' } });
 });
 test('a paused character explains the refusal', async () => {
   const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code: 'character_paused' });

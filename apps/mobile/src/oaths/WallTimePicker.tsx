@@ -9,15 +9,17 @@ export type TimeDraft = { date: string; time: string; zone: string; offset?: str
 const pad = (n: number) => String(n).padStart(2, '0');
 // UTC is used only as a Gregorian calendar container, never to resolve the player's wall time.
 function calendarDate(date: string) { return new Date(`${date}T12:00:00Z`); }
-function today(zone: string) {
+// Today's wall date and minute in the chosen zone, from server-corrected now. A convenience only, the server rejects past times.
+function wallNow(zone: string, instant: number) {
   try {
-    const parts = new Intl.DateTimeFormat('en', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(Date.now()));
+    const parts = new Intl.DateTimeFormat('en', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(instant));
     const get = (type: string) => parts.find(p => p.type === type)!.value;
-    return `${get('year')}-${get('month')}-${get('day')}`;
+    return { date: `${get('year')}-${get('month')}-${get('day')}`, time: `${get('hour')}:${get('minute')}` };
   } catch {
-    // Only the initially displayed calendar month falls back; keep the selected zone
+    // An unknown zone falls back to UTC for these limits only; keep the selected zone
     // and unmodified wall-time input for authoritative server resolution.
-    return new Date(Date.now()).toISOString().slice(0, 10);
+    const iso = new Date(instant).toISOString();
+    return { date: iso.slice(0, 10), time: iso.slice(11, 16) };
   }
 }
 
@@ -25,7 +27,7 @@ function availableZones(current: string) {
   const supported = (Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
   return [...new Set([current, 'UTC', 'Europe/Warsaw', 'Europe/London', ...(supported?.('timeZone') ?? timezoneIdentifiers)])];
 }
-export function WallTimePicker({ field, value, disabled, onChange }: { field: 'activation' | 'deadline'; value: TimeDraft; disabled: boolean; onChange(value: TimeDraft): void }) {
+export function WallTimePicker({ field, value, disabled, now, onChange }: { field: 'activation' | 'deadline'; value: TimeDraft; disabled: boolean; now(): number; onChange(value: TimeDraft): void }) {
   const { t, i18n } = useTranslation();
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1.3;
@@ -38,9 +40,13 @@ export function WallTimePicker({ field, value, disabled, onChange }: { field: 'a
   const label = (part: string) => t(`oath.${field}${part[0].toUpperCase()}${part.slice(1)}`);
   const zoneName = (zone: string) => zone === 'Europe/Warsaw' ? t('timePicker.warsaw') : zone === 'Europe/London' ? t('timePicker.london') : zone === 'UTC' ? t('timePicker.utc') : zone.split('/').slice(1).join(' / ').replaceAll('_', ' ');
   const dateName = (date: string) => new Intl.DateTimeFormat(locale, { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' }).format(calendarDate(date));
+  const current = wallNow(value.zone, now());
+  const isToday = value.date === current.date;
+  const [nowHour, nowMinute] = current.time.split(':');
+  const past = `${hour}:${minute}` <= current.time && isToday;
   function show(part: 'date' | 'time' | 'zone') {
     if (disabled) return;
-    if (part === 'date') setMonth((value.date || today(value.zone)).slice(0, 7));
+    if (part === 'date') setMonth((value.date && value.date >= current.date ? value.date : current.date).slice(0, 7));
     if (part === 'time') { setHour(value.time.slice(0, 2) || '18'); setMinute(value.time.slice(3, 5) || '00'); }
     setQuery(''); setOpen(part);
   }
@@ -62,19 +68,21 @@ export function WallTimePicker({ field, value, disabled, onChange }: { field: 'a
         <View style={styles.header}><Text accessibilityRole="header" style={styles.title}>{open ? label(open) : ''}</Text><Action label={t('timePicker.close')} variant="secondary" onPress={() => setOpen(null)} /></View>
         {open === 'date' && first && <ScrollView contentContainerStyle={styles.content}>
           <Text accessibilityRole="header" style={styles.title}>{new Intl.DateTimeFormat(locale, { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(first)}</Text>
-          <View style={styles.row}><View style={styles.flex}><Action label={t('timePicker.previousMonth')} variant="secondary" onPress={() => moveMonth(-1)} /></View><View style={styles.flex}><Action label={t('timePicker.nextMonth')} variant="secondary" onPress={() => moveMonth(1)} /></View></View>
+          <View style={styles.row}><View style={styles.flex}>{month <= current.date.slice(0, 7) ? <Action label={t('timePicker.previousMonth')} variant="secondary" disabled unavailableReason={t('timePicker.pastMonth')} onPress={() => {}} /> : <Action label={t('timePicker.previousMonth')} variant="secondary" onPress={() => moveMonth(-1)} />}</View><View style={styles.flex}><Action label={t('timePicker.nextMonth')} variant="secondary" onPress={() => moveMonth(1)} /></View></View>
           <View style={styles.grid}>{Array.from({ length: largeText ? 0 : blank }, (_, i) => <View key={`blank-${i}`} style={styles.day} />)}{Array.from({ length: days }, (_, i) => {
             const date = `${month}-${pad(i + 1)}`;
-            return <Pressable key={date} accessibilityRole="button" accessibilityLabel={dateName(date)} accessibilityState={{ selected: value.date === date }} onPress={() => change('date', date)} style={[largeText ? styles.wideDay : styles.day, styles.cell, value.date === date && styles.selected]}><Text style={styles.value}>{largeText ? dateName(date) : i + 1}</Text></Pressable>;
+            const gone = date < current.date; const marked = date === current.date;
+            return <Pressable key={date} accessibilityRole="button" accessibilityLabel={marked ? `${dateName(date)}, ${t('timePicker.today')}` : dateName(date)} accessibilityState={{ selected: value.date === date, disabled: gone }} disabled={gone} onPress={() => change('date', date)} style={[largeText ? styles.wideDay : styles.day, styles.cell, marked && styles.today, value.date === date && styles.selected, gone && styles.gone]}><Text style={[styles.value, gone && styles.goneText]}>{largeText ? dateName(date) : i + 1}</Text></Pressable>;
           })}</View>
         </ScrollView>}
         {open === 'time' && <><ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.clock}>{hour}:{minute}</Text>
           {(['hour', 'minute'] as const).map(part => <View key={part} style={styles.group}><Text accessibilityRole="header" style={styles.value}>{t(`timePicker.${part}`)}</Text><View style={styles.grid}>{Array.from({ length: part === 'hour' ? 24 : 60 }, (_, i) => {
             const number = pad(i); const selected = number === (part === 'hour' ? hour : minute);
-            return <Pressable key={number} accessibilityRole="radio" accessibilityLabel={`${t(`timePicker.${part}`)} ${number}`} accessibilityState={{ selected }} onPress={() => part === 'hour' ? setHour(number) : setMinute(number)} style={[styles.number, styles.cell, selected && styles.selected]}><Text style={styles.value}>{number}</Text></Pressable>;
+            const gone = isToday && (part === 'hour' ? number < nowHour : hour < nowHour || (hour === nowHour && number <= nowMinute));
+            return <Pressable key={number} accessibilityRole="radio" accessibilityLabel={`${t(`timePicker.${part}`)} ${number}`} accessibilityState={{ selected, disabled: gone }} disabled={gone} onPress={() => part === 'hour' ? setHour(number) : setMinute(number)} style={[styles.number, styles.cell, selected && styles.selected, gone && styles.gone]}><Text style={[styles.value, gone && styles.goneText]}>{number}</Text></Pressable>;
           })}</View></View>)}
-        </ScrollView><View style={styles.footer}><Action label={t('timePicker.done')} onPress={() => change('time', `${hour}:${minute}:00`)} /></View></>}
+        </ScrollView><View style={styles.footer}>{past ? <Action label={t('timePicker.done')} disabled unavailableReason={t('timePicker.pastTime')} onPress={() => {}} /> : <Action label={t('timePicker.done')} onPress={() => change('time', `${hour}:${minute}:00`)} />}</View></>}
         {open === 'zone' && <View style={styles.flex}><View style={styles.content}><Text style={styles.caption}>{t('timePicker.zoneHelp')}</Text><TextInput accessibilityLabel={t('timePicker.searchZone')} placeholder={t('timePicker.searchZone')} placeholderTextColor={tokens.color.secondary} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} style={styles.search} /></View><FlatList keyboardShouldPersistTaps="handled" data={zones} keyExtractor={zone => zone} contentContainerStyle={styles.content} ListEmptyComponent={<Text style={styles.value}>{t('timePicker.noZones')}</Text>} renderItem={({ item }) => <Pressable accessibilityRole="radio" accessibilityLabel={`${zoneName(item)} · ${item}`} accessibilityState={{ selected: value.zone === item }} onPress={() => change('zone', item)} style={[styles.field, item === value.zone && styles.selected]}><Text style={styles.value}>{zoneName(item)}</Text><Text style={styles.caption}>{item}</Text></Pressable>} /></View>}
       </SafeAreaView>
     </Modal>
@@ -87,5 +95,6 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 16 }, row: { flexDirection: 'row', gap: 12 }, flex: { flex: 1 }, grid: { flexDirection: 'row', flexWrap: 'wrap' },
   wideDay: { width: '100%', minHeight: 52 },
   day: { width: '14.2857%', minHeight: 52 }, number: { minWidth: 52, minHeight: 52, flexGrow: 1, margin: 3 }, cell: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12 }, selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
+  today: { borderWidth: 2, borderColor: '#b58a52' }, gone: { opacity: 0.35 }, goneText: { color: tokens.color.secondary },
   pressed: { opacity: 0.75 }, clock: { color: tokens.color.primary, fontSize: 36, fontWeight: '700' }, footer: { padding: 16 }, search: { color: tokens.color.text, backgroundColor: tokens.color.surface, borderRadius: 18, padding: 14, fontSize: 17, minHeight: 48 },
 });

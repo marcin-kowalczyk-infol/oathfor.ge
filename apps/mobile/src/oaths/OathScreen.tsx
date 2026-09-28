@@ -58,7 +58,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   function timeFields(field: 'activation' | 'deadline', draft: TimeDraft, setDraft: (value: TimeDraft) => void) {
     const occurrence = choices?.field === field ? choices : undefined;
     return <View style={styles.group}>
-      <WallTimePicker field={field} value={draft} disabled={busy} onChange={value => { if (!busy) { setDraft(value); setSubmitted(false); } }} />
+      <WallTimePicker field={field} value={draft} disabled={busy} now={() => controller.clock.now() ?? Date.now()} onChange={value => { if (!busy) { setDraft(value); setSubmitted(false); } }} />
       {occurrence && <View style={styles.group}>
         <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.offsetChoice', { field: t(`oath.${field}Time`) })}</Text>
         {occurrence.validOffsets?.map(offset => <Pressable key={offset} accessibilityRole="radio"

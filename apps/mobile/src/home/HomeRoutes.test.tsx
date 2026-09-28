@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createServerClock } from '../oaths/serverClock';
 import { Dimensions } from 'react-native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { Oath } from '../api/oathSchema';
@@ -36,7 +37,7 @@ function Harness({ initial, oaths, guideStorage = { read: jest.fn().mockResolved
 test('a pause route whose Oath controller serves another character goes back to Settings instead of a dead end', async () => {
   const idle = { kind: 'idle' as const };
   const oaths = {
-    getState: () => idle, subscribe: () => () => {},
+    clock: createServerClock(), getState: () => idle, subscribe: () => () => {},
     list: jest.fn().mockResolvedValue({ kind: 'cancelled' }), getPause: jest.fn(), detail: jest.fn(),
     boundCharacter: () => ({ accountId, characterId: '30000000-0000-4000-8000-00000000000b' }),
   } as unknown as OathController;
@@ -52,7 +53,7 @@ test('a newly confirmed Oath refreshes the menu summary', async () => {
   let total = 2;
   const summaryLoads = () => jest.mocked(oaths.list).mock.calls.filter(([query]) => query.limit === 1).length;
   const oaths = {
-    getState: () => state, subscribe: (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener); },
+    clock: createServerClock(), getState: () => state, subscribe: (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener); },
     list: jest.fn(async () => ({ kind: 'success', value: { items: [], nextCursor: null, total, serverTime: '2026-09-26T12:00:00Z', paused: false, characterId: mira.id } })),
     detail: jest.fn(), getPause: jest.fn(), resetCreation: jest.fn(), recover: jest.fn(),
     boundCharacter: () => ({ accountId, characterId: mira.id }),
@@ -76,7 +77,7 @@ async function leaveRoom() {
 const menu: HomeState = { accountId, characterId: mira.id, route: { kind: 'menu' }, sequence: 0 };
 const readyState: OathControllerState = { kind: 'ready', busy: false, preview: null, pending: null, oath: null, needsReview: false };
 const readyOaths = () => ({
-  getState: () => readyState, subscribe: () => () => {},
+  clock: createServerClock(), getState: () => readyState, subscribe: () => () => {},
   list: jest.fn(async () => ({ kind: 'success', value: { items: [], nextCursor: null, total: 0, serverTime: '2026-09-26T12:00:00Z', paused: false, characterId: mira.id } })),
   detail: jest.fn(), getPause: jest.fn(), resetCreation: jest.fn(), recover: jest.fn(),
   boundCharacter: () => ({ accountId, characterId: mira.id }),

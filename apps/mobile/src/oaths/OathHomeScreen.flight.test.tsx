@@ -1,4 +1,5 @@
 import { act, render, screen } from '@testing-library/react-native';
+import { createServerClock } from './serverClock';
 import { Animated } from 'react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { OathHomeScreen } from './OathHomeScreen';
@@ -13,7 +14,7 @@ const characterId = '30000000-0000-4000-8000-000000000001';
 
 function controller() {
   const state: OathControllerState = { kind: 'ready', busy: false, preview: null, pending: null, oath: null, needsReview: false };
-  return { getState: () => state, subscribe: () => () => undefined, detail: jest.fn(), getPause: jest.fn(), pause: jest.fn(), resetCreation: jest.fn().mockReturnValue(true), recover: jest.fn(),
+  return { clock: createServerClock(), getState: () => state, subscribe: () => () => undefined, detail: jest.fn(), getPause: jest.fn(), pause: jest.fn(), resetCreation: jest.fn().mockReturnValue(true), recover: jest.fn(),
     list: jest.fn().mockResolvedValue({ kind: 'success', value: { items: [], nextCursor: null, total: 0, serverTime: '2026-10-26T00:00:00Z', paused: false, characterId } }) } as unknown as OathController;
 }
 const screenFor = (request: { id: number; target: 'create' | 'today' | 'history'; flown?: boolean }) =>
