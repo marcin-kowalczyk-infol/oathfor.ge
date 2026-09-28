@@ -87,6 +87,19 @@ Each drum layer holds the face, the barrel side and the top knob. The stand stay
 - The book signs' size and height of rise are a proposal. The signs rise about 160 artwork pixels above the pages at their highest.
 - The edges are mirrored at runtime. Earlier native checks found blur with fractional transform scales. A flip by -1 was not checked on device.
 
+## Demo feedback exports
+
+Owner demo review of 2026-09-28 (MVP-20-T17 and later). Generated on 2026-09-28 with the built-in `image_gen` tool from the prompts in ignored `graphics/mvp-20/requests/chatgpt-prompts-2026-09-28-feedback.md`. Model version and seed were not exposed. Each master in `graphics/mvp-20/incoming/` has a `.prompt.txt` with the exact prompt, references and date. `feedback-review-2026-09-28.md` lists the candidates and known limits. The generator returned 1774 × 887 sheets instead of 1536 × 768, so ignored `graphics/mvp-20/export-feedback-v01.py` cuts every cell by its measured alpha bounds. It is deterministic, never modifies a master and writes `graphics/mvp-20/exports-feedback-v01.json`.
+
+| App file | Master | Size | Use | Layout | SHA-256 |
+| --- | --- | --- | --- | --- | --- |
+| `talk-seal-v01.png` | `talk-icons-v01`, cell 1 | 120 × 120 RGBA | Current Oaths counter in Żaromir's talk | 40 pt at 3x, 4 px margin | `2e6d30b0187c5f525998c0be36054bd056b42fdc53c74b134fd07150c04fad39` |
+| `talk-chronicle-v01.png` | `talk-icons-v01`, cell 2 | 120 × 120 RGBA | Chronicle entries counter in Żaromir's talk | 40 pt at 3x, 4 px margin | `a75f1848bb5782743878a0af8faf227048daaee3143d1becd3a2dfdead3d07dc` |
+
+Master `talk-icons-v01.png` SHA-256 `0a6ff9a726f5d3c01bbf170c9a57608ec9e3defa9844feae2337a465b9a49f83`.
+
+Known limits: the icons were checked as still images at 40 pt and 32 pt on the panel wood. The brown book has lower contrast on the wood than the red seal, its gold fittings carry the shape. Native legibility is checked in MVP-20-T21.
+
 ## Player pilot sprites
 
 Local selection, 2026-09-28 (MVP-20-T14). Motion sheets for the pilot figure `starter-02-thin` in the Forge room. They follow the cell layout of Żaromir's sheets in the [motion manifest](forge-motion-assets.md). Owner visual acceptance and native checks are pending. This is development art for review, not final production art.
