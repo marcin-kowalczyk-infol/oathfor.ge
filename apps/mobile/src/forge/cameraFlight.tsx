@@ -88,8 +88,11 @@ export function useCameraFlight({ allowed, from, onReturned }: { allowed: boolea
       transformOrigin: [origin.left, origin.top, 0],
       transform: [{ scale: zoom.interpolate({ inputRange: [0, 1], outputRange: [1, SCALE[place]] }) }],
     } : null,
-    /** The place's close-up, or darkness for the door, fading in over the room. */
-    overlay: (viewport: { width: number; height: number }) => place ? <Animated.View testID="flight-closeup" pointerEvents="none"
+    /** The place's close-up, or darkness for the door, fading in over the room. Every close-up is decoded early and kept invisible. */
+    overlay: (viewport: { width: number; height: number }) => <>
+      {(['hearth', 'seals', 'chronicle'] as const).map(id => <Image key={id} testID="flight-preload" source={closeUps[id]} resizeMode="stretch"
+        style={{ position: 'absolute', left: 0, top: 0, width: viewport.width, height: viewport.width * 1.5, opacity: 0 }} />)}
+      {place ? <Animated.View testID="flight-closeup" pointerEvents="none"
       accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[StyleSheet.absoluteFill, styles.dark, { opacity: visible }]}>
       {place !== 'door' && <>
         {/* The same close-up, shades and floor as SceneSurface, so the next screen starts on this very picture. */}
@@ -98,7 +101,8 @@ export function useCameraFlight({ allowed, from, onReturned }: { allowed: boolea
         {DROP[place] > 0 && <View style={[styles.rise, { top: 0, height: viewport.height * DROP[place] + viewport.width * 1.5 * 0.12 }]} />}
         <View style={[styles.floor, { top: viewport.height * DROP[place] + viewport.width * 1.5 - 1 }]} />
       </>}
-    </Animated.View> : null,
+    </Animated.View> : null}
+    </>,
   };
 }
 

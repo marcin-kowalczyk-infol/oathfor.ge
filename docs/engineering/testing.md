@@ -298,3 +298,34 @@ Defects found and fixed, each with a failing test first unless noted:
 | The first walking frame was empty, then showed two figures for one frame. | The last frame stays under a loading sheet, the new sheet shows when loaded or after 300 ms. | Handover and fallback tests failed, then passed. Rechecked at 30 fps. |
 
 Not observed natively: iPhone SE 3 and other sizes, English, Reduce Motion, the largest text, VoiceOver (deferred by the owner), a Release build and physical devices. The art is provisional and awaits owner visual acceptance.
+
+## Forge scene acceptance (MVP-20), 2026-09-28
+
+Automated: tests cover the stand spots and the no-overlap rule at 375 × 667 and 440 × 956, the start point above a short panel, routing around the seal pedestals, the walker's legs and mid-walk start, the player figure (pilot sprites and still DUMMY figure), live depth order and the per-figure seal cut, the tutorial and guide spots, the dialogue panel (typing by grapheme, first touch completes, rune, fixed bottom edge, large text scroll, bust swap, Reduce Motion, 44 pt controls, painted frame), player lines by form, the hint and statistics card with owner-bound counts, the place responses from one timing, the camera flight with its 700 ms limit and the return, the door visit, and the flown route fields. The full mobile suite passed with 75 suites and 938 tests.
+
+Native checks used the demo development build with its DUMMY runtime on iOS 27.0, on the iPhone 18 Pro only (owner instruction, 2026-09-27), in the returning player scenario (Radomir, pilot `starter_02` thin, 3 current Oaths, 22 chronicle entries).
+
+| Observed | Result |
+| --- | --- |
+| First-visit guide | Żaromir walks to his spot beside the hearth and talks, the player stands at the start above the panel |
+| Visit to the seals | The player walks back left, handles the seals, speaks first, then Żaromir's line and the action |
+| Flight into the seals | The room zooms, the close-up takes over, Today opens |
+| Return from Today | The room returns with the player at the seals and Żaromir aside |
+| Talk with Żaromir | "Masz bieżące Przysięgi: 3", card with Obrońca Przysięgi, Wątła, 3 bieżące Przysięgi, 22 wpisy w kronice, matching the menu and the demo data |
+| Door visit | The player walks around the pedestals, looks out of the doorway behind the drums, Żaromir's door line, the pull back opens the menu |
+| Tutorial | Żaromir at his tutorial place with the ring, both walk to the chronicle, the player reads at the lectern, masculine line "co zrobiłem" |
+| English | Menu, controls and the hearth visit ("This fire burns hot."), the player stirs the fire |
+
+Defects found and fixed, each with a failing test first unless noted:
+
+| Defect | Fix | Evidence |
+| --- | --- | --- |
+| At the start point the player stood behind the guide panel. | Start point (0.63, 0.74), clear of Żaromir's tutorial place. | Start point test failed at 402 × 769 and 402 × 874, then passed. Rechecked. |
+| The step counter and × sat on the painted braid. | Controls and × inside the painted band. | Placement test failed, then passed. Rechecked. |
+| The rune showed as a dark square. A screen blend inside the panel drew its black background. | Rune exported with alpha from its brightness (`export-rune-alpha-v01.py`), drawn without a blend. | Rune test failed, then passed. Rechecked. |
+| The panel stayed over the room during the camera flight. | The panel leaves when the flight starts. | Flight test failed, then passed. |
+| The return started on dark frames while its close-up decoded. | Every close-up is decoded early and kept invisible. | Preload test failed, then passed. |
+| From the seals to the door the player walked over the seal pedestals. | Walks that would cross them turn at a waypoint beside their right end. | Routing and two-leg walk tests failed, then passed. Rechecked. |
+| The speaking ring was invisible on the lit floor. | The ring is the warm haze image under the speaker. | Visual only, rechecked. |
+
+Not observed natively: Reduce Motion, the largest text and simple layout, hints for 0, 1 and 5 Oaths and the paused state, every walk direction in a recording, the 700 ms limit by frame count, the other 11 player figures (DUMMY still figures, later slice), iPhone SE 3 and other sizes, VoiceOver (deferred by the owner), a Release build and physical devices. The pilot sprites, the painted panel and the responses await owner visual acceptance.

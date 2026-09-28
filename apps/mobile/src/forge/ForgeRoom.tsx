@@ -40,7 +40,7 @@ const HINT_WAIT_MS = 2000;
 const TALK_TARGET = { width: 44, height: 88 };
 // SceneHotspot's station touch area.
 const STATION_TARGET = { width: 76, height: 72 };
-const RING = { width: 84, height: 24 };
+const RING = { width: 110, height: 34 };
 const door = places.door.anchor;
 // Where Żaromir stands: beside each place for the tutorial, in front of the hearth while the player chooses, and aside in normal mode.
 // Native check on iPhone 18 Pro: from the start point he stood behind the tutorial bubble.
@@ -303,7 +303,8 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     <SceneHotspot label={placeLabel('door')} onPress={still(() => tour ? hear('door') : choose('door'))} hint={tour ? undefined : t('room.inspect')} anchor={hotspot(door.x, door.y)} door allowed={allowed} glow={glow} heard={heardMark('door')} selected={tour ? tour.place === 'door' : player.target === 'door'} />
     {stations.map(station => <SceneHotspot key={station.id} cue={false} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : player.target === station.id}
       onPress={still(() => tour ? hear(station.id) : choose(station.id))} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} heard={heardMark(station.id)} />)}
-    {speakerFoot && <View testID="speaking-ring" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+    {/* Native check on iPhone 18 Pro (MVP-20-T15): a gradient ring was invisible on the lit floor. The warm haze reads clearly. */}
+    {speakerFoot && <Image testID="speaking-ring" source={haze} resizeMode="stretch" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
       style={[styles.ring, { left: point(speakerFoot.x, speakerFoot.y).left - RING.width / 2, top: point(speakerFoot.x, speakerFoot.y).top - RING.height / 2 }]} />}
     {figures.map(({ id, walker, node }) => <Fragment key={id}>
       <Animated.View testID={`room-${id}`} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.figure, { left, top, transform: [
@@ -325,7 +326,8 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     </Animated.View>
     {flight.overlay(viewport)}
     {flight.busy && <View testID="flight-shield" style={styles.shield} onStartShouldSetResponder={() => true} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />}
-    {line && <DialoguePanel frame={{ left: (viewport.width - panelWidth) / 2, width: panelWidth, bottom: PANEL_BOTTOM, maxHeight: viewport.height - PANEL_BOTTOM - stationEdge }}
+    {/* The panel leaves with the camera, so the close-up is not covered during the flight. */}
+    {line && !flight.busy && <DialoguePanel frame={{ left: (viewport.width - panelWidth) / 2, width: panelWidth, bottom: PANEL_BOTTOM, maxHeight: viewport.height - PANEL_BOTTOM - stationEdge }}
       speaker={line.speaker} lineId={line.id} text={bindShortWords(t(line.key, line.values), i18n.language)} title={line.title}
       extra={line.id === `talk-${talk?.id}-1` ? <TalkCard character={character} progress={progress} /> : undefined}
       playerName={character.name} portrait={presetArt(character.presetId, character.build)?.portrait ?? null} allowed={allowed} more={!!line.more}
@@ -345,6 +347,5 @@ const styles = StyleSheet.create({
   figureShadow: { position: 'absolute', width: 76, height: 18, top: FIGURE_HEIGHT * FIGURE_FOOT - 10, left: FIGURE_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
   talkTarget: { position: 'absolute', zIndex: 3 },
   shield: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 10 },
-  ring: { position: 'absolute', zIndex: 3, width: RING.width, height: RING.height, borderRadius: RING.height / 2,
-    experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(255,196,110,0.55) 0%, rgba(255,170,80,0.22) 60%, rgba(255,170,80,0) 100%)' },
+  ring: { position: 'absolute', zIndex: 3, width: RING.width, height: RING.height, tintColor: '#ffc46e', opacity: 0.9, pointerEvents: 'none' },
 });

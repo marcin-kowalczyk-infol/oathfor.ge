@@ -27,6 +27,7 @@ Boxes are in room artwork pixels of `room-prototype-v03` (887 × 1774) as x, y, 
 | `panel-fill-v01.png` | `panel-frame-v01` | 1020 × 332 RGB | Panel wood under the frame | Master centre at 0.8 | `5779617a60431cb3e9eae1593dd137ae5da1f1117132f930cc7e28cf54ef4bdb` |
 | `panel-plate-v01.png` | `panel-nameplate-v01` | 612 × 128 RGBA | Speaker name plate | Caps 64 px each side | `26c73d24e5774f5830074099f67f31efb32990d7641512b217df2ca6b8393c5a` |
 | `panel-rune-v01.png` | `panel-rune-v02` | 384 × 192 RGB | More-text rune, pulse loop | 4 × 2 of 96 × 96, anchor 0.5, 0.5 | `ae1e553559cf598e9f4da55b24b3ff79aabf62184fba2a2b3783f01f610e4ab9` |
+| `panel-rune-alpha-v01.png` | `panel-rune-v01.png` | 384 × 192 RGBA | The rune in the panel, alpha from brightness, drawn without a blend (native check MVP-20-T15) | 4 × 2 of 96 × 96 | `658cbfddb2f3d130e6c31e952c5c1942bf10aac04f87ea78fa748915e3ca5be3` |
 | `fx-seal-star-v01.png` | `fx-seal-star-v01` | 768 × 512 RGB | Star motif lights, sparks fall | 4 × 2 of 192 × 256, anchor 0.5, 0.4 | `30c7a3e48e708102bf1b310c7f1e5b1d62f1bfd3a52e6a9f65505b5827530cff` |
 | `fx-seal-tree-v01.png` | `fx-seal-tree-v01` | 768 × 512 RGB | Tree motif lights, sparks fall | 4 × 2 of 192 × 256, anchor 0.5, 0.4 | `f8ab4c5bc3e373154505d48dda33f1cfdc21d893299358e05252bb317e686c90` |
 | `fx-seal-wolf-v01.png` | `fx-seal-wolf-v01` | 768 × 512 RGB | Wolf motif lights, sparks fall | 4 × 2 of 192 × 256, anchor 0.5, 0.4 | `779640453ed3117982552f87f31f46f2ede75e6a73e630b4e62fd1a25ea6b2e4` |

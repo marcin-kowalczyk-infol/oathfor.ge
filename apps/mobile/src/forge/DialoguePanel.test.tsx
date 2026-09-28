@@ -207,6 +207,19 @@ describe('painted frame', () => {
   test('the rune is the painted pulse', async () => {
     await render(panel({ allowed: false, more: true }));
     expect(screen.getByTestId('dialogue-rune-mark', hidden)).toBeTruthy();
-    expect(screen.getByTestId('dialogue-rune-image', hidden).props.source).toBe(require('../../assets/forge/scene/panel-rune-v01.png'));
+    // Native check on iPhone 18 Pro (MVP-20-T15): a screen blend inside the panel drew a dark square, so the rune carries its own alpha.
+    expect(screen.getByTestId('dialogue-rune-image', hidden).props.source).toBe(require('../../assets/forge/scene/panel-rune-alpha-v01.png'));
+    const mark = StyleSheet.flatten(screen.getByTestId('dialogue-rune-mark', hidden).props.style) as { mixBlendMode?: string };
+    expect(mark.mixBlendMode).toBeUndefined();
   });
+});
+
+// Native check on iPhone 18 Pro (MVP-20-T15): the step counter and × sat on the painted braid.
+test('the counter and the close control sit inside the painted band', async () => {
+  await render(panel({ allowed: false, controls: { step: { count: '1 / 4', label: 'Next', mark: '→', onPress: jest.fn() } } }));
+  const band = 17;
+  const row = StyleSheet.flatten(screen.getByText('1 / 4').parent!.parent!.props.style) as { paddingLeft?: number; paddingHorizontal?: number };
+  expect((row.paddingLeft ?? 0) + (row.paddingHorizontal ?? 0)).toBeGreaterThanOrEqual(band);
+  const close = StyleSheet.flatten(screen.getByRole('button', { name: 'Close' }).props.style) as { top: number; right: number };
+  expect(Math.min(close.top, close.right)).toBeGreaterThanOrEqual(band - 44 / 2 + 8);
 });

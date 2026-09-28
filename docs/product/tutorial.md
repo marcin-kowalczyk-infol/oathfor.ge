@@ -10,7 +10,7 @@ The four-step room guide only names the places. The player also needs the rules 
 
 - The tutorial teaches the game rules, not a guided first Oath and not lore.
 - It covers only behavior that works in the app today. Evidence submission, AI assessment, XP, rewards and Recovery get their own chapters when those features exist. The player never reads a promise the app cannot keep.
-- It is a conversation in the room. The player touches a place, Żaromir walks there and explains it in a few speech bubbles.
+- It is a conversation in the room. The player touches a place, the player and Żaromir walk there, the player asks one question and Żaromir explains it in a few lines of the dialogue panel (MVP-20, [Forge scene](forge-scene.md)).
 - The first room entry keeps the short four-step guide. The Tutorial tile in the menu starts the full conversation.
 - In simple layout the same chapters appear as one plain text screen.
 
@@ -20,7 +20,7 @@ The four-step room guide only names the places. The player also needs the rules 
 | --- | --- | --- |
 | Menu | Tutorial, room layout | Forge room in tutorial mode, choice bubble |
 | Menu | Tutorial, simple layout | Tutorial screen |
-| Choice bubble | Touch the hearth, seals, chronicle or door | Żaromir walks there, chapter starts at bubble 1 |
+| Choice bubble | Touch the hearth, seals, chronicle or door | Both walk there, the player's question, then the chapter starts at line 1 |
 | Chapter bubble | Next | Next bubble of the chapter |
 | Last chapter bubble | Another place | Choice bubble, the place is marked as heard |
 | Last bubble of the fourth heard chapter | Finish | Closing bubble |
@@ -100,7 +100,7 @@ Rule sources for the chapters: [creating and tracking Oaths](oaths.md), [first-l
 - `ForgeRoom` gets a `tutorial?: number` prop, a new id restarts the tutorial. The room holds one mode: guide, tutorial or none. The existing walking, lights and Reduce Motion equivalent are reused. The room reports the start (the parent marks the guide seen) and the end (the parent clears the id, so a remount after a background return does not start a closed tutorial again).
 - Tutorial bubbles keep their bottom edge while paging, so the button stays under the finger. On iPhone SE 3 the longest lines raise the bubble over Żaromir's legs rather than hiding text behind a scroll (local decision, native check 2026-09-27, open for owner visual acceptance).
 - Polish text in the room bubble and on the tutorial screen keeps single-letter words (a, i, o, u, w, z) with the next word through a non-breaking space (`apps/mobile/src/localization/typography.ts`, local decision, native check 2026-09-27).
-- The room bubble moves to `apps/mobile/src/forge/RoomBubble.tsx`, because `ForgeRoom.tsx` already has 307 lines and gains the tutorial footer and heard marks. Its layout rules stay: it grows upward when taller than the space below and never covers the station touch areas.
+- MVP-20 replaced the room bubble (`RoomBubble.tsx`, removed) with the dialogue panel `apps/mobile/src/forge/DialoguePanel.tsx`. It keeps its bottom edge, grows upward and never covers the station touch areas. The step counter counts only Żaromir's lines.
 - `apps/mobile/src/home/TutorialScreen.tsx` renders the simple layout with the existing `BackLink` and text caps from `tokens.maxScale`.
 - The menu shows the Tutorial tile in both layouts.
 

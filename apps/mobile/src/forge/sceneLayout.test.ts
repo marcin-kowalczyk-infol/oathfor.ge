@@ -1,4 +1,4 @@
-import { aside, bodyBox, depth, places, playerStart, scenePlaces, SEALS_FRONT_Y, tutor, walkDirection, walkDuration, type Spot } from './sceneLayout';
+import { aside, bodyBox, depth, PEDESTAL_WAYPOINT, places, playerStart, route, scenePlaces, SEALS_FRONT_Y, tutor, walkDirection, walkDuration, type Spot } from './sceneLayout';
 
 const windows = [{ width: 375, height: 667 }, { width: 440, height: 956 }];
 const overlaps = (a: Spot, b: Spot, window: { width: number; height: number }) => {
@@ -69,4 +69,24 @@ test('a longer walk takes longer, within a bounded time', () => {
   expect(far).toBeGreaterThan(walkDuration(start, { x: 0.515, y: 0.565 }));
   expect(near).toBeGreaterThanOrEqual(600);
   expect(far).toBeLessThanOrEqual(1800);
+});
+
+// Native check on iPhone 18 Pro (MVP-20-T15): at (0.5, 0.82) the player stood behind the dialogue panel of a guide line.
+test.each([[402, 769], [402, 874]])('at %i × %i the player at the start point stands above a short dialogue panel', (width, height) => {
+  const shortPanel = 170;
+  expect(bodyBox(playerStart, { width, height }).bottom).toBeLessThanOrEqual(height - 20 - shortPanel);
+});
+
+// Native check on iPhone 18 Pro (MVP-20-T15): from the seals to the door the player walked over the seal pedestals.
+test('a walk that would cross the seal pedestals goes around their right end', () => {
+  expect(route(places.seals.player, places.door.player)).toEqual([PEDESTAL_WAYPOINT, places.door.player]);
+  expect(route(playerStart, places.door.player)).toEqual([PEDESTAL_WAYPOINT, places.door.player]);
+  expect(route(places.door.player, places.seals.player)).toEqual([PEDESTAL_WAYPOINT, places.seals.player]);
+});
+
+test('walks clear of the pedestals stay straight', () => {
+  expect(route(playerStart, places.seals.player)).toEqual([places.seals.player]);
+  expect(route(playerStart, places.hearth.player)).toEqual([places.hearth.player]);
+  expect(route(aside, places.door.guide)).toEqual([places.door.guide]);
+  expect(route(places.hearth.player, places.door.player)).toEqual([places.door.player]);
 });

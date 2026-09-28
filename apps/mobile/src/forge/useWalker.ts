@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated } from 'react-native';
 import type { Direction } from './motion';
-import { depth, walkDirection, walkDuration, walkPace, type Spot } from './sceneLayout';
+import { depth, route, walkDirection, walkDuration, walkPace, type Spot } from './sceneLayout';
 
 /**
  * One figure walking between named spots of the room. It owns the native position, the walk target and arrival.
  * A new target mid-walk starts from where the figure is. Without motion the figure is placed at once.
+ * A walk that would cross the seal pedestals goes around them in two legs, turning at the waypoint.
  */
 export function useWalker<Name extends string>(spots: Record<Name, Spot>, start: Spot, allowed: boolean) {
   const [target, setTarget] = useState<Name | null>(null);
@@ -20,6 +21,8 @@ export function useWalker<Name extends string>(spots: Record<Name, Spot>, start:
   const position = useRef(new Animated.ValueXY(start)).current;
   const generation = useRef(0);
   const settled = useRef<Name | null>(null);
+  // The legs still to walk, the first one under way.
+  const legs = useRef<Spot[]>([]);
 
   useEffect(() => {
     const request = ++generation.current;
@@ -34,19 +37,31 @@ export function useWalker<Name extends string>(spots: Record<Name, Spot>, start:
     }
     settled.current = null;
     setArrived(null);
-    walkStarted.current = Date.now();
-    const movement = Animated.timing(position, {
-      toValue: destination, duration: walkDuration(origin, destination), easing: walkPace, useNativeDriver: true,
-    });
-    movement.start(({ finished }) => {
-      if (!finished || generation.current !== request) return;
-      walkStarted.current = null;
-      settled.current = target;
-      setArrived(target);
-    });
+    let movement: Animated.CompositeAnimation | null = null;
+    const walk = (index: number) => {
+      const from = index === 0 ? origin : legs.current[index - 1];
+      const to = legs.current[index] ?? destination;
+      if (index > 0) {
+        // The next leg faces its own way and restarts the step cycle.
+        walkFrom.current = from;
+        lastDestination.current = to;
+        setDirection(walkDirection(from, to));
+        setRun(value => value + 1);
+      }
+      walkStarted.current = Date.now();
+      movement = Animated.timing(position, { toValue: to, duration: walkDuration(from, to), easing: walkPace, useNativeDriver: true });
+      movement.start(({ finished }) => {
+        if (!finished || generation.current !== request) return;
+        if (index + 1 < legs.current.length) { walk(index + 1); return; }
+        walkStarted.current = null;
+        settled.current = target;
+        setArrived(target);
+      });
+    };
+    walk(0);
     return () => {
       generation.current++;
-      movement.stop();
+      movement?.stop();
     };
   }, [allowed, position, target]);
 
@@ -64,8 +79,9 @@ export function useWalker<Name extends string>(spots: Record<Name, Spot>, start:
       // Invalidate before React flushes effect cleanup, including a native completion in that gap.
       generation.current++;
       walkFrom.current = currentFoot();
-      lastDestination.current = spots[spot];
-      setDirection(walkDirection(walkFrom.current, spots[spot]));
+      legs.current = route(walkFrom.current, spots[spot]);
+      lastDestination.current = legs.current[0];
+      setDirection(walkDirection(walkFrom.current, legs.current[0]));
       setRun(value => value + 1);
     }
     setTarget(spot);

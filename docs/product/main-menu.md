@@ -77,7 +77,7 @@ A full screen with a back button to the menu, on the same darkened room backgrou
 
 ## Forge room
 
-The room lives in the app as `apps/mobile/src/forge/ForgeRoom.tsx` with `StationEffect.tsx`, moved from the demo with its behavior: full-screen room `room-prototype-v03`, Żaromir walking to the chosen place, contextual speech bubbles, the four-step guide, diffuse object lights and the moonlit door. Each place responds with its own sprite effect when Żaromir arrives, see the [Forge motion assets](../art/forge-motion-assets.md). Its copy is in the main PL/EN catalogs under `room`. Reduce Motion keeps the existing static equivalent. A speech bubble taller than the space under its place grows upward, never above the station touch areas, so its text and action stay visible on a 375 × 667 pt screen. The demo keeps its controls and scenarios and renders the app room.
+The room lives in the app as `apps/mobile/src/forge/ForgeRoom.tsx` with `StationEffect.tsx`. Since MVP-20 it is the [Forge scene](forge-scene.md): the active character walks to each place and handles it, Żaromir guides in the first-visit guide and the tutorial and otherwise stands aside with a hint and statistics, the carved dialogue panel shows both speakers, places respond in the room and a place action flies the camera into its screen. The door is a visit whose action leads to the menu. Its copy is in the main PL/EN catalogs under `room`. Reduce Motion keeps static equivalents. The panel keeps its bottom edge and never rises above the station touch areas. The demo keeps its controls and scenarios and renders the app room.
 
 The room art stays provisional, as recorded in the [stations prototype](../art/forge-stations-prototype.md). Moving it into the app does not accept it as final art.
 

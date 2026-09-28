@@ -18,8 +18,8 @@ export const places: Record<ScenePlace, { anchor: Spot; player: Spot; guide: Spo
   chronicle: { anchor: { x: 0.82, y: 0.51 }, player: { x: 0.78, y: 0.66 }, guide: { x: 0.62, y: 0.66 } },
   door: { anchor: { x: 0.17, y: 0.37 }, player: { x: 0.19, y: 0.50 }, guide: { x: 0.36, y: 0.60 } },
 };
-/** The player's start point in the lower middle of the room. */
-export const playerStart: Spot = { x: 0.5, y: 0.82 };
+/** The player's start point in the lower middle of the room, above the dialogue panel (native check, MVP-20-T15). */
+export const playerStart: Spot = { x: 0.63, y: 0.74 };
 /** Żaromir in normal mode, near the anvil right of the hearth. */
 export const aside: Spot = { x: 0.66, y: 0.545 };
 /** Żaromir while the player chooses a tutorial chapter, in front of the hearth (MVP-19). */
@@ -74,4 +74,16 @@ export function walkDirection(from: Spot, to: Spot): Direction {
 export function walkDuration(from: Spot, to: Spot) {
   const { dx, up } = artwork(from, to);
   return Math.round(Math.min(1800, Math.max(600, Math.hypot(dx, up) * 3.3)));
+}
+
+// The seal pedestals as a floor box in artwork fractions (feet between y 0.54 and 0.59 left of x 0.36 stand on them).
+const PEDESTALS = { left: 0.02, right: 0.36, top: 0.54, bottom: 0.59 };
+/** Between the right end of the pedestals and the hearth steps. Native check on iPhone 18 Pro (MVP-20-T15). */
+export const PEDESTAL_WAYPOINT: Spot = { x: 0.43, y: 0.545 };
+const onPedestals = (spot: Spot) => spot.x > PEDESTALS.left && spot.x < PEDESTALS.right && spot.y > PEDESTALS.top && spot.y < PEDESTALS.bottom;
+const crossesPedestals = (from: Spot, to: Spot) => Array.from({ length: 41 }, (_, step) => step / 40)
+  .some(t => onPedestals({ x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }));
+/** The legs of a walk: straight, or around the right end of the seal pedestals when the straight line would cross them. */
+export function route(from: Spot, to: Spot): Spot[] {
+  return crossesPedestals(from, to) ? [PEDESTAL_WAYPOINT, to] : [to];
 }

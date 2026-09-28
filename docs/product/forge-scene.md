@@ -1,6 +1,6 @@
 # Forge scene: the player, Żaromir and the dialogue panel
 
-Status: accepted design, owner decisions of 2026-09-28 during brainstorming. Written for owner review before planning (MVP-20). Nothing below is implemented yet. It builds on the [main menu](main-menu.md) room, the [tutorial](tutorial.md) and the [Forge motion assets](../art/forge-motion-assets.md).
+Status: accepted design, owner decisions of 2026-09-28. Implemented in MVP-20 with a DUMMY still figure for 11 of the 12 player figures (only the pilot `starter_02` thin has sprites), native checks on the iPhone 18 Pro recorded in [testing](../engineering/testing.md#forge-scene-acceptance-mvp-20-2026-09-28). Owner visual acceptance is pending. It builds on the [main menu](main-menu.md) room, the [tutorial](tutorial.md) and the [Forge motion assets](../art/forge-motion-assets.md).
 
 ## Purpose
 
@@ -32,7 +32,8 @@ Simple layout at large text keeps its current screens without the room or charac
 - Touching a place walks the player to the player spot of that place. Walk direction, eight-frame cycle, distance-based time and depth size follow the rules already used for Żaromir.
 - On arrival the player plays the pose facing the place: stirring the fire, raising a light to the seals, reading at the lectern, looking out of the door. The place responds at the same moment.
 - The panel then shows the player's line, Żaromir's line and the place action.
-- At the door in normal mode the player looks out, then the camera pulls back and the menu opens. In the tutorial the door is a chapter, as today.
+- The door is a visit like the other places (owner decision D1, 2026-09-28). The player looks out, the panel shows the player's line and Żaromir's line "Drzwi prowadzą do menu. Kuźnia poczeka na Twój powrót." / "The door leads to the menu. The Forge will wait for your return.", and the action "Wyjdź z Kuźni" / "Leave the Forge" pulls the camera back and opens the menu. The door's touch area is named "Drzwi" / "Door". In the tutorial the door is a chapter, as today.
+- A walk that would cross the seal pedestals turns at a waypoint beside their right end (local decision, native check 2026-09-28).
 - Reduce Motion places both characters at once in the first frame of their pose.
 
 Each place has two stand spots, one for the player and one for Żaromir, chosen so the figures never overlap. Characters are drawn in depth order, lower on screen in front. The seal foreground cut covers either character standing behind the seals.
@@ -41,7 +42,7 @@ Until the player art is delivered the player is the static menu figure of the ch
 
 ## Żaromir
 
-- Guided mode: he starts walking together with the player, to his spot beside the chosen place. On arrival he turns to the player and talks with the existing gestures. The tutorial chapter text stays as accepted.
+- Guided mode: in the tutorial he starts walking together with the player, to his spot beside the chosen place. In the first-visit guide only he walks, to his spot beside each step's place, and the player stays at the start (owner decision D3, 2026-09-28). On arrival he turns to the player and talks with the existing gestures. The tutorial chapter text stays as accepted.
 - Normal mode: he stands aside and breathes. He does not follow the player.
 - Touching him in normal mode turns him to the player and opens the panel with one hint and the statistics card. His touch target has a VoiceOver label, "Żaromir, your progress" / "Żaromir, twoje postępy".
 
@@ -84,7 +85,7 @@ Touching Żaromir in normal mode shows one hint line and a statistics card in th
 | Current Oaths | Masz bieżące Przysięgi: {{count}}. Zajrzyj do pieczęci. | You have {{count}} current Oaths. Take a look at the seals. |
 | Counts unavailable | Nie widzę dziś kroniki wyraźnie. Spróbuj za chwilę. | I cannot read the chronicle clearly right now. Try again in a moment. |
 
-The card shows the character name, the title of the character's form (existing `character.form` copy, for example "Obrońca Przysięgi", "Obrończyni Przysięgi" or "Straż Przysięgi", English "Oathkeeper"), the build ("Wątła" / "Tęga", "Slight" / "Stout"), the number of current Oaths and the number of chronicle entries. Counts come from the Oath list `total` of the `today` and `history` views, the same source as the menu. XP and level do not appear until MVP-09 grants them. The Polish plural of the count follows the existing plural rules.
+The card shows the character name, the title of the character's form (existing `character.form` copy, for example "Obrońca Przysięgi", "Obrończyni Przysięgi" or "Straż Przysięgi", English "Oathkeeper"), the build ("Wątła" / "Tęga", "Slight" / "Stout"), the number of current Oaths and the number of chronicle entries ("wpis w kronice" / "wpisy w kronice" / "wpisów w kronice", "chronicle entry" / "chronicle entries", owner decision D2, 2026-09-28). When the Today count is unavailable the card keeps a known chronicle count (local decision, MVP-20-T09). Counts come from the Oath list `total` of the `today` and `history` views, the same source as the menu. XP and level do not appear until MVP-09 grants them. The Polish plural of the count follows the existing plural rules.
 
 ## Player lines
 
@@ -117,7 +118,7 @@ Lines with a gendered form:
 | Player breathing | 12 sheets | As Żaromir's idle |
 | Player place poses | 48 sheets | Hearth, seals, chronicle, door, each 4-frame 2 × 2 |
 | Żaromir bust | 1 | Transparent, head and shoulders |
-| Panel frame, name plate, rune | 3 | Nine-slice frame, plate, rune with glow |
+| Panel frame, name plate, rune | 3 | Frame cut into corners and repeated braid edges, plate, rune with glow |
 | Seal motif glow | 3 | Star, tree and wolf, light only on black |
 | Book page flutter and rising signs | 2 | Flutter matched to the lectern book, signs on black |
 

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Animated, Dimensions, Easing, StyleSheet } from 'react-native';
 import { ForgeRoom } from './ForgeRoom';
-import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, places, playerStart, tutor, walkDirection, walkDuration } from './sceneLayout';
+import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, PEDESTAL_WAYPOINT, places, playerStart, tutor, walkDirection, walkDuration } from './sceneLayout';
 import { presetArt } from '../characters/presetArt';
 import { responseDuration } from './StationEffect';
 import { ACT_BEFORE_TURN_MS, TURN_FRAME_MS, WALK_FRAME_MS } from './HeroSprite';
@@ -1054,7 +1054,7 @@ describe('camera flight', () => {
     await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
   }
 
-  test('the place action flies into the close-up and opens its screen within 700 ms, ignoring a second touch', async () => {
+  test('the place action flies into the close-up and opens its screen within 700 ms', async () => {
     motion.mockReturnValue(true);
     const timings = captureTimings();
     const onOpenStation = jest.fn();
@@ -1063,8 +1063,9 @@ describe('camera flight', () => {
     await press(en.room.actions.seals);
     expect(timings.filter(timing => timing.duration === 650)).toHaveLength(1);
     expect(screen.getByTestId('flight-closeup', hidden)).toBeTruthy();
+    // Native check on iPhone 18 Pro (MVP-20-T15): the panel stayed over the room during the flight.
+    expect(screen.queryByTestId('dialogue-panel')).toBeNull();
     expect(onOpenStation).not.toHaveBeenCalled();
-    await press(en.room.actions.seals);
     await act(async () => { jest.advanceTimersByTime(699); });
     expect(onOpenStation).not.toHaveBeenCalled();
     await act(async () => { jest.advanceTimersByTime(1); });
@@ -1122,7 +1123,6 @@ describe('camera flight', () => {
     expect(onExit).not.toHaveBeenCalled();
     await press(en.room.tutorial.next);
     expect(screen.getByText(en.room.descriptions.door)).toBeOnTheScreen();
-    await press(en.room.exit);
     await press(en.room.exit);
     expect(timings.map(timing => timing.duration)).toContain(250);
     await act(async () => { jest.advanceTimersByTime(700); });
@@ -1183,8 +1183,9 @@ describe('camera flight after review', () => {
     await press(en.room.actions.hearth);
     expect(screen.getByTestId('flight-shield', hidden)).toBeTruthy();
     await press(en.room.chronicle);
-    await press(en.room.dismiss);
+    await press(en.room.talk.label);
     expectAt('room-player', places.hearth.player);
+    expect(screen.queryByText(en.room.player.talk)).toBeNull();
     await act(async () => timings.find(timing => timing.duration === 250)!.done!({ finished: true }));
     expect(onOpenStation).toHaveBeenCalledWith('hearth');
   });
@@ -1210,4 +1211,32 @@ describe('camera flight after review', () => {
     const door = screen.getByRole('button', { name: en.room.door });
     expect(door.props.accessibilityHint).toBe(en.room.inspect);
   });
+});
+
+// Native check on iPhone 18 Pro (MVP-20-T15): the return started on dark frames while its close-up decoded.
+test('the room decodes every close-up early, so a flight never starts on a dark frame', async () => {
+  await render(room());
+  const preloads = screen.getAllByTestId('flight-preload', hidden);
+  expect(preloads).toHaveLength(3);
+  for (const image of preloads) expect(StyleSheet.flatten(image.props.style)).toMatchObject({ opacity: 0 });
+});
+
+test('from the seals to the door the player walks around the pedestals, turning at the waypoint', async () => {
+  motion.mockReturnValue(true);
+  const walks: { to: unknown; done: (result: { finished: boolean }) => void }[] = [];
+  jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
+    start: done => { if (value instanceof Animated.ValueXY) walks.push({ to: config.toValue, done: done ?? (() => undefined) }); }, stop: jest.fn(), reset: jest.fn(),
+  }));
+  await render(room());
+  await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
+  await act(async () => walks[0].done({ finished: true }));
+  await fireEvent.press(screen.getByRole('button', { name: en.room.door }));
+  expect(walks[1].to).toEqual(PEDESTAL_WAYPOINT);
+  expect(screen.getByTestId(`player-walk-${walkDirection(places.seals.player, PEDESTAL_WAYPOINT)}`, hidden)).toBeTruthy();
+  expect(screen.queryByText(en.room.player.door)).toBeNull();
+  await act(async () => walks[1].done({ finished: true }));
+  expect(walks[2].to).toEqual(places.door.player);
+  expect(screen.getByTestId(`player-walk-${walkDirection(PEDESTAL_WAYPOINT, places.door.player)}`, hidden)).toBeTruthy();
+  await act(async () => walks[2].done({ finished: true }));
+  expect(screen.getByText(en.room.player.door)).toBeOnTheScreen();
 });

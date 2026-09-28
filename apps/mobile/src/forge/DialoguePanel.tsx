@@ -19,7 +19,8 @@ const art = {
   edgeV: require('../../assets/forge/scene/panel-edge-v-v01.png'),
   fill: require('../../assets/forge/scene/panel-fill-v01.png'),
   plate: require('../../assets/forge/scene/panel-plate-v01.png'),
-  rune: require('../../assets/forge/scene/panel-rune-v01.png'),
+  // The rune with alpha from its brightness (export-rune-alpha-v01.py). A screen blend drew a dark square in the panel on iOS.
+  rune: require('../../assets/forge/scene/panel-rune-alpha-v01.png'),
 };
 const CORNER = 96 / 3;
 const EDGE = 80 / 3;
@@ -148,9 +149,9 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
       </View>}
     </View>}
     {runeButton && <Pressable testID="dialogue-rune" accessibilityRole="button" accessibilityLabel={continueLabel} onPress={press} style={styles.runeTouch}>
-      {showRune && <Animated.View testID="dialogue-rune-mark" style={[styles.rune, { opacity: rune }]}>
-        <Image testID="dialogue-rune-image" source={art.rune} resizeMode="stretch" style={styles.runeImage} />
-      </Animated.View>}
+      {showRune && <View testID="dialogue-rune-mark" style={styles.rune}>
+        <Animated.View style={[styles.runeCell, { opacity: rune }]}><Image testID="dialogue-rune-image" source={art.rune} resizeMode="stretch" style={styles.runeImage} /></Animated.View>
+      </View>}
     </Pressable>}
     <Pressable accessibilityRole="button" accessibilityLabel={dismissLabel} onPress={onDismiss} style={styles.dismiss}>
       <Text accessible={false} allowFontScaling={false} style={styles.dismissMark}>×</Text>
@@ -210,7 +211,8 @@ const styles = StyleSheet.create({
   title: { color: parchment, fontFamily: tokens.font.display, fontSize: 19, marginBottom: 4 },
   text: { color: parchment, fontFamily: tokens.font.body, fontSize: 16, lineHeight: 23 },
   untyped: { color: 'transparent' },
-  controls: { flexShrink: 0, paddingHorizontal: 10, paddingBottom: 6 },
+  // Inside the painted band, which ends 17 points in from the edge.
+  controls: { flexShrink: 0, paddingHorizontal: 18, paddingBottom: 10 },
   action: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 6 },
   actionLabel: { color: '#e7b86e', fontFamily: tokens.font.body, fontSize: 17, fontWeight: '600' },
   step: { height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 6 },
@@ -220,10 +222,11 @@ const styles = StyleSheet.create({
   textNext: { height: 44, flexShrink: 1, justifyContent: 'center', paddingHorizontal: 10 },
   nextLabel: { color: '#e7b86e', fontFamily: tokens.font.body, fontSize: 17, fontWeight: '600' },
   pressed: { opacity: 0.6 },
-  runeTouch: { position: 'absolute', right: 0, bottom: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  runeTouch: { position: 'absolute', right: 8, bottom: 8, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   // The rune is light on black, so it blends like the room's light sheets. Its first cell shows, the opacity pulses.
-  rune: { width: RUNE, height: RUNE, overflow: 'hidden', mixBlendMode: 'screen' },
+  rune: { width: RUNE, height: RUNE },
+  runeCell: { width: RUNE, height: RUNE, overflow: 'hidden' },
   runeImage: { position: 'absolute', left: 0, top: 0, width: RUNE * 4, height: RUNE * 2 },
-  dismiss: { position: 'absolute', right: 0, top: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  dismiss: { position: 'absolute', right: 6, top: 6, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   dismissMark: { color: '#c9a77a', fontSize: 28 },
 });
