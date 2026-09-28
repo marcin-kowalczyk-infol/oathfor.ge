@@ -325,7 +325,6 @@
     "loading": "Wczytywanie Przysiąg…",
     "loadError": "Nie udało się wczytać Przysiąg. Spróbuj ponownie.",
     "emptyToday": "Brak bieżących Przysiąg. Wybierz trening, gdy zechcesz zacząć.",
-    "emptyHistory": "Nie ma jeszcze zakończonych ani wycofanych Przysiąg.",
     "refresh": "Odśwież",
     "more": "Wczytaj więcej",
     "open": "Otwórz Przysięgę: {{activity}}, {{deadline}}",
@@ -348,7 +347,9 @@
     "future": "Zaplanowane",
     "current": "Aktywne zobowiązania",
     "pending": "Sprawy w toku",
-    "summary": "{{activity}} · {{deadline}}"
+    "summary": "{{activity}} · {{deadline}}",
+    "historyLine": "Każdy wpis to Twoja historia w Kuźni.",
+    "historyEmpty": "Kronika czeka na pierwszy wpis."
   },
   "forge": {
     "busy": "Kuźnia kończy jeszcze Twój poprzedni krok. Wróć do paleniska za chwilę.",

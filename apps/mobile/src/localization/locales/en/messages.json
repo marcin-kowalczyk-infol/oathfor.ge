@@ -317,7 +317,6 @@
     "loading": "Loading Oaths…",
     "loadError": "We could not load your Oaths. Try again.",
     "emptyToday": "No current Oaths. Choose a workout when you are ready.",
-    "emptyHistory": "No completed or withdrawn Oaths yet.",
     "refresh": "Refresh",
     "more": "Load more",
     "open": "Open Oath: {{activity}}, {{deadline}}",
@@ -340,7 +339,9 @@
     "future": "Scheduled",
     "current": "Active commitments",
     "pending": "Cases in progress",
-    "summary": "{{activity}} · {{deadline}}"
+    "summary": "{{activity}} · {{deadline}}",
+    "historyLine": "Every entry is part of your story in the Forge.",
+    "historyEmpty": "The chronicle is waiting for its first entry."
   },
   "forge": {
     "busy": "The Forge is still finishing your last step. Return to the hearth in a moment.",

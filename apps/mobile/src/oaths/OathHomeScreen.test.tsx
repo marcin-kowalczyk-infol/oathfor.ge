@@ -1,6 +1,6 @@
 import { Dimensions, StyleSheet } from 'react-native';
 import { createServerClock } from './serverClock';
-import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { OathHomeScreen } from './OathHomeScreen';
@@ -58,13 +58,13 @@ test('history paginates withdrawals and refresh begins with the first page', asy
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await screen.findByText('No current Oaths. Choose a workout when you are ready.');
   await fireEvent.press(screen.getByRole('button', { name: 'History' }));
-  expect(await screen.findByText('Withdrawn')).toBeOnTheScreen();
+  expect(await screen.findAllByTestId('state-seal-withdrawn', { includeHiddenElements: true })).toHaveLength(1);
   await fireEvent.press(screen.getByRole('button', { name: 'Load more' }));
-  expect(await screen.findAllByText('Withdrawn')).toHaveLength(2);
+  expect(await screen.findAllByTestId('state-seal-withdrawn', { includeHiddenElements: true })).toHaveLength(2);
   expect(jest.mocked(f.controller.list).mock.calls[2][0]).toEqual({ view: 'history', cursor: 'cursor1' });
   await fireEvent.press(screen.getByRole('button', { name: 'Refresh' }));
   expect(jest.mocked(f.controller.list).mock.calls[3][0]).toEqual({ view: 'history' });
-  expect(await screen.findAllByText('Withdrawn')).toHaveLength(1);
+  await waitFor(() => expect(screen.getAllByTestId('state-seal-withdrawn', { includeHiddenElements: true })).toHaveLength(1));
 });
 test('Today preserves server order across future, current and overdue pending commitments in different zones', async () => {
   const scheduled = oath({ state: 'scheduled', activatedAt: null, reason: null, review: null, id: '20000000-0000-4000-8000-000000000002' });
@@ -89,7 +89,7 @@ test('Today, History and detail render no pause control and no sign-out, which l
   await fireEvent.press(screen.getByRole('button', { name: /Open Oath: Running/ }));
   await screen.findByLabelText('Status: Under review'); absent();
   await fireEvent.press(screen.getByRole('button', { name: 'History' }));
-  await screen.findByText('Under review'); absent();
+  await screen.findByTestId('history-header'); absent();
   expect(f.controller.getPause).not.toHaveBeenCalled();
 });
 test('a character pause withdrawal explains that resuming does not restore it', async () => {
@@ -122,7 +122,7 @@ test('Polish history uses localized copy and offers neither pause nor sign-out',
   await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   expect(await screen.findByText('Brak bieżących Przysiąg. Wybierz trening, gdy zechcesz zacząć.')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Historia' }));
-  expect(await screen.findByText('Nie ma jeszcze zakończonych ani wycofanych Przysiąg.')).toBeOnTheScreen();
+  expect(await screen.findByText('Kronika czeka na pierwszy wpis.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Pauza i wznowienie' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Wyloguj się' })).toBeNull();
 });
@@ -131,7 +131,7 @@ test('late list and detail responses cannot replace the newly selected screen', 
   jest.mocked(f.controller.list).mockReturnValueOnce(late.promise).mockResolvedValueOnce(page([]));
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fireEvent.press(screen.getByRole('button', { name: 'History' }));
-  expect(await screen.findByText('No completed or withdrawn Oaths yet.')).toBeOnTheScreen();
+  expect(await screen.findByText('The chronicle is waiting for its first entry.')).toBeOnTheScreen();
   await act(async () => late.resolve(page([oath()])));
   expect(screen.queryByText('Under review')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Today' })); await screen.findByText('Under review');
@@ -259,7 +259,7 @@ test('each functional screen stands in its own Forge place', async () => {
   await screen.findAllByText('Under review');
   expect(place('seals')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'History' }));
-  await screen.findAllByText('Under review');
+  await screen.findByTestId('history-header');
   expect(place('chronicle')).toBeTruthy();
   await fireEvent.press(screen.getAllByRole('button', { name: /Open Oath: Running/ })[0]);
   await screen.findByLabelText('Status: Under review');
@@ -287,7 +287,7 @@ test('a newer room request replaces an unfinished hearth request and its place',
   const view = await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
   await view.rerender(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 2, target: 'history' }, onReturn: jest.fn() }} /></LocalizationProvider>);
   await act(async () => first.resolve(page([oath()])));
-  await screen.findAllByText('Under review');
+  await screen.findByTestId('history-header');
   expect(screen.getByTestId('forge-place-chronicle', { includeHiddenElements: true })).toBeTruthy();
 });
 
@@ -402,4 +402,28 @@ test('the featured Forge seals carry the same countdown', async () => {
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
   const seals = await screen.findAllByTestId('forge-seal');
   expect(within(seals[0]).getByTestId('countdown-chip')).toHaveProp('accessibilityLabel', 'Review until 2 days');
+});
+
+test('History opens with the chronicle total from the server and short rows', async () => {
+  const fulfilled = oath({ state: 'fulfilled', reason: null, review: null, terminalAt: '2026-10-25T21:30:00Z' });
+  const f = setup([]); jest.mocked(f.controller.list).mockResolvedValueOnce(page([])).mockResolvedValueOnce(page([fulfilled], 'cursor1', false, 22));
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Historia' }));
+  const header = await screen.findByTestId('history-header');
+  expect(within(header).getByText('22')).toBeOnTheScreen();
+  expect(within(header).getByText('Każdy wpis to Twoja historia w Kuźni.')).toBeOnTheScreen();
+  const row = screen.getByRole('button', { name: /Otwórz Przysięgę/ });
+  expect(within(row).getByTestId('state-seal-fulfilled', { includeHiddenElements: true })).toBeTruthy();
+  expect(within(row).getByText('25 paź 2026, 22:30')).toBeOnTheScreen();
+  expect(within(row).queryByText('Spełniona')).toBeNull();
+  expect(row.props.accessibilityValue).toEqual({ text: 'Spełniona' });
+});
+
+test('an empty chronicle says it waits for its first entry, once', async () => {
+  const f = setup([]); jest.mocked(f.controller.list).mockResolvedValueOnce(page([])).mockResolvedValueOnce(page([]));
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'History' }));
+  expect(await screen.findByText('The chronicle is waiting for its first entry.')).toBeOnTheScreen();
+  expect(within(screen.getByTestId('history-header')).getByText('0')).toBeOnTheScreen();
+  expect(screen.queryByText('No completed or withdrawn Oaths yet.')).toBeNull();
 });

@@ -22,3 +22,14 @@ export function shortStoredTime(local: string, locale: Locale, withDate: boolean
   const day = instant.getUTCDate(), month = part({ month: 'short' }).replace(/\.$/, '');
   return locale === 'en' ? `${weekday}, ${month} ${day}, ${time}` : `${weekday} ${day} ${month} ${time}`;
 }
+
+/** The wall time of an instant in a stored zone. Missing device zone data falls back to UTC rather than hiding it. */
+export function wallTimeIn(instant: string, zone: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat('en', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(instant));
+    const part = (name: Intl.DateTimeFormatPartTypes) => parts.find(item => item.type === name)!.value;
+    return `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}:${part('second')}`;
+  } catch {
+    return new Date(instant).toISOString().slice(0, 19);
+  }
+}

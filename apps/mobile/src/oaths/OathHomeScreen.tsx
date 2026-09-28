@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { bindShortWords } from '../localization/typography';
 import type { GuideStorage } from '../forge/guideStorage';
-import { Animated, Pressable, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Image, Pressable, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
 import { formatDeadline } from '../localization/format';
@@ -9,7 +10,7 @@ import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import { SceneDoor } from '../ui/SceneDoor';
 import { BackLink } from '../ui/BackLink';
-import { compactStoredTime, shortStoredTime } from './compactStoredTime';
+import { compactStoredTime, shortStoredTime, wallTimeIn } from './compactStoredTime';
 import { CountdownChip } from './CountdownChip';
 import { SceneSurface, type ForgePlace } from '../ui/SceneSurface';
 import { StateSeal } from '../ui/StateSeal';
@@ -163,6 +164,14 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         <Action label={t('oath.recover')} busy={account.busy} onPress={() => create(true)} />
       </> : !list?.paused && (view !== 'today' || !interactiveForge) && <Action label={t('oathHome.create')} busy={account.busy} onPress={() => create()} />)}
       {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
+      {route === 'list' && view === 'history' && list && <View testID="history-header" style={styles.historyHeader}>
+        <View accessible accessibilityLabel={`${list.total} ${t('room.talk.chronicle', { count: list.total })}`} style={styles.historyCount}>
+          <Image source={chronicleIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.historyIcon} />
+          <Text style={styles.historyTotal}>{list.total}</Text>
+          <Text style={styles.historyLabel}>{bindShortWords(t('room.talk.chronicle', { count: list.total }), locale)}</Text>
+        </View>
+        <CompanionBubble message={t(list.total > 0 ? 'oathHome.historyLine' : 'oathHome.historyEmpty')} />
+      </View>}
       {route === 'list' && <>
         {view === 'today' && !!list?.items.length && <Text accessibilityRole="header" style={styles.label}>{t('forge.all')}</Text>}
         {list?.items.map((item, index) => <View key={item.id} style={styles.entry}>
@@ -176,13 +185,14 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
             </View>
             <View style={styles.entryCopy}>
               <Text style={styles.activity}>{item.snapshot.copy[locale].activity}</Text>
-              <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>
-              <Text style={styles.deadline}>{view === 'history' ? compactStoredTime(item.snapshot.deadline.local, locale) : shortStoredTime(item.snapshot.deadline.local, locale, false)}</Text>
+              {view === 'today' && <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>}
+              {/* History rows show the result seal, the activity and when it closed, in the Oath's own zone. */}
+              <Text style={styles.deadline}>{view === 'history' ? compactStoredTime(item.terminalAt ? wallTimeIn(item.terminalAt, item.snapshot.deadline.timezone) : item.snapshot.deadline.local, locale) : shortStoredTime(item.snapshot.deadline.local, locale, false)}</Text>
               {view === 'today' && <CountdownChip oath={item} clock={controller.clock} onElapsed={elapsed} />}
             </View>
           </Pressable>
         </View>)}
-        {!loading && !failed && list?.items.length === 0 && <CompanionBubble message={t(view === 'today' ? 'oathHome.emptyToday' : 'oathHome.emptyHistory')} />}
+        {!loading && !failed && list?.items.length === 0 && view === 'today' && <CompanionBubble message={t('oathHome.emptyToday')} />}
         {failed && <><View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.loadError')} /></View><Action label={t('oath.retry')} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
         {list?.nextCursor && !failed && <Action label={t('oathHome.more')} busy={loading} onPress={() => { void loadList(view, true); }} />}
         <Action label={t('oathHome.refresh')} busy={loading} variant="secondary" onPress={() => { void loadList(view); }} />
@@ -204,8 +214,14 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     </>}
   </Animated.ScrollView></SafeAreaView></SceneSurface>;
 }
+const chronicleIcon = require('../../assets/forge/scene/talk-chronicle-v01.png');
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  historyHeader: { gap: 12 },
+  historyCount: { flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: '#8a6436', backgroundColor: 'rgba(28, 22, 16, 0.94)' },
+  historyIcon: { width: 48, height: 48 },
+  historyTotal: { color: tokens.color.primary, fontSize: 32, fontWeight: '700' },
+  historyLabel: { color: tokens.color.text, fontSize: 17, flexShrink: 1 },
   content: { flexGrow: 1, paddingHorizontal: tokens.space.card, paddingTop: 24, paddingBottom: 36, gap: tokens.space.section },
   entry: { gap: 10 },
   journalEntry: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, backgroundColor: 'rgba(32, 28, 23, 0.94)', borderRadius: 8, borderTopWidth: 1, borderTopColor: '#8d6941', borderBottomWidth: 3, borderBottomColor: '#080c0d', boxShadow: '0 6px 18px rgba(0,0,0,0.3)' },
