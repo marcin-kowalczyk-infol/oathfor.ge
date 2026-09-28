@@ -30,13 +30,19 @@ function cutoffTime(snapshot: Snapshot, locale: Locale): string {
   }
 }
 
+/** The stored promise with its activity and committed deadline filled in. */
+export function promiseText(snapshot: Snapshot, locale: Locale): string {
+  const copy = snapshot.copy[locale];
+  return copy.promise.replace('{activity}', copy.activity).replace('{deadline}', storedTime(snapshot.deadline, locale));
+}
+
 export function SnapshotRules({ snapshot }: { snapshot: Snapshot }) {
   const { t, i18n } = useTranslation();
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const copy = snapshot.copy[locale];
   const deadline = storedTime(snapshot.deadline, locale);
   const activation = snapshot.activation.time ? storedTime(snapshot.activation.time, locale) : t('oath.rules.now');
-  const promise = copy.promise.replace('{activity}', copy.activity).replace('{deadline}', deadline);
+  const promise = promiseText(snapshot, locale);
   const facts = [
     [t('oath.rules.activity'), copy.activity], [t('oath.rules.activation'), activation],
     [t('oath.rules.deadline'), deadline], [t('oath.rules.cutoff'), cutoffTime(snapshot, locale)],

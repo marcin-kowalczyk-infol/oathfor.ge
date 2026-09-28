@@ -194,7 +194,7 @@
     "retry": "Spróbuj ponownie",
     "formRequired": "Wybierz trening, prawidłowe daty i godziny oraz strefy czasowe, aby zobaczyć zasady.",
     "reviewIntro": "Przeczytaj zasady przed złożeniem Przysięgi. Termin ukończenia i termin przyjęcia dowodu są osobne.",
-    "consent": "Wybierając „Złóż Przysięgę”, akceptuję wyświetlone zasady i terminy.",
+    "consent": "Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady.",
     "pending": "Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.",
     "recover": "Sprawdź potwierdzenie",
     "storageError": "Nie udało się bezpiecznie zapisać lub odczytać potwierdzenia. Spróbuj ponownie przed kontynuowaniem.",
@@ -305,7 +305,8 @@
         "title": "Pauza",
         "line": "Pauza wycofuje Przysięgi bez dowodu."
       }
-    }
+    },
+    "fullRules": "Pełne zasady"
   },
   "oathHome": {
     "today": "Dzisiaj",

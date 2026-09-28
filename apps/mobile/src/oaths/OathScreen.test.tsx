@@ -37,7 +37,15 @@ test('chosen running deadline previews all rules before explicit acceptance can 
   await selectTime('Completion time', '02', '30');
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   expect(f.api.preview).toHaveBeenCalledWith(token, { activity: 'running', activation: { mode: 'now' }, deadline: { local: '2026-10-25T02:30:00', timezone: 'Europe/Warsaw' } }, expect.any(AbortSignal));
-  expect(await screen.findByText(f.envelope.preview.snapshot.copy.en.sections.appeal)).toBeOnTheScreen();
+  expect(await screen.findByText(f.envelope.preview.snapshot.copy.en.declaration)).toBeOnTheScreen();
+  expect(screen.getAllByTestId(/^rule-card-/).map(card => card.props.testID)).toEqual(['start', 'deadline', 'cutoff', 'proof', 'review', 'reward', 'consequence', 'fixed', 'pause'].map(id => `rule-card-${id}`));
+  expect(screen.getByText('By choosing “Commit to the Oath”, I accept the rules on the cards and the full rules.')).toBeOnTheScreen();
+  expect(screen.queryByText(f.envelope.preview.snapshot.copy.en.sections.appeal)).toBeNull();
+  const fold = screen.getByRole('button', { name: 'Full rules' });
+  expect(fold).toHaveProp('accessibilityState', expect.objectContaining({ expanded: false }));
+  await fireEvent.press(fold);
+  for (const text of Object.values(f.envelope.preview.snapshot.copy.en.sections) as string[]) expect(screen.getByText(text)).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Full rules' })).toHaveProp('accessibilityState', expect.objectContaining({ expanded: true }));
   expect(f.api.confirm).not.toHaveBeenCalled(); expect(f.storage.write).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('button', { name: 'Commit to the Oath' }));
   expect(f.api.confirm).toHaveBeenCalledWith(token, { previewId: id, requestId: id, accepted: true }, expect.any(AbortSignal));
@@ -124,6 +132,7 @@ test('Polish form and stored rules support recovery after restart without new co
   const f = setup(); jest.mocked(f.storage.read).mockResolvedValueOnce({ kind: 'success', value: { version: 2, accountId, characterId, previewId: id, requestId: id } });
   f.controller.start(); await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   expect(await screen.findByRole('button', { name: 'Sprawdź potwierdzenie' })).toBeOnTheScreen();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Pełne zasady' }));
   expect(await screen.findByText(f.envelope.preview.snapshot.copy.pl.sections.appeal)).toBeOnTheScreen();
   expect(f.api.confirm).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('button', { name: 'Sprawdź potwierdzenie' }));

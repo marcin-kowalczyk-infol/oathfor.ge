@@ -190,7 +190,7 @@
     "retry": "Try again",
     "formRequired": "Choose a workout, valid dates and times, and timezones to review the rules.",
     "reviewIntro": "Read these rules before committing. The completion deadline and receipt cutoff are separate.",
-    "consent": "By choosing “Commit to the Oath”, I accept the displayed rules and times.",
+    "consent": "By choosing “Commit to the Oath”, I accept the rules on the cards and the full rules.",
     "pending": "Your confirmation may already have arrived. Check the same Oath before starting another.",
     "recover": "Check confirmation",
     "storageError": "We could not securely save or read your confirmation. Try again before continuing.",
@@ -297,7 +297,8 @@
         "title": "Pause",
         "line": "A pause withdraws Oaths without proof."
       }
-    }
+    },
+    "fullRules": "Full rules"
   },
   "oathHome": {
     "today": "Today",

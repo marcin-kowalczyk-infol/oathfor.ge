@@ -13,6 +13,7 @@ import { SceneDoor } from '../ui/SceneDoor';
 import { BackLink } from '../ui/BackLink';
 import { ActivityOffering } from './ActivityOffering';
 import { SnapshotRules } from './SnapshotRules';
+import { OathRuleCards } from './OathRuleCards';
 import type { OathController } from './controller';
 import { WallTimePicker, type TimeDraft } from './WallTimePicker';
 export type OathCreationDraft = { activity: Activity; scheduled: boolean; activation: TimeDraft; deadline: TimeDraft };
@@ -100,7 +101,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
       </>}
       {review && <>
         <CompanionBubble message={t('oath.reviewIntro')} />
-        <SnapshotRules snapshot={ready.preview!.snapshot} />
+        <OathRuleCards snapshot={ready.preview!.snapshot} />
         {!pending && <>
           <View style={styles.consent}><Text style={styles.body}>{t('oath.consent')}</Text></View>
           <Action label={t('oath.confirm')} busy={busy} onPress={() => { void controller.confirm(); }} />
