@@ -128,8 +128,8 @@ export function HomeRoutes(props: HomeRoutesProps) {
     case 'forge':
       front = guideSeen === null ? <View testID="forge-room-waiting" style={styles.dark} />
         // A tutorial started before the first room entry replaces the guide, which then counts as seen.
-        : <ForgeRoom character={character} progress={forgeProgress.progress} onTalk={refreshProgress} showGuide={!guideSeen} onGuideComplete={guideDone} tutorial={route.tutorial} onTutorialStart={() => { if (!guideSeen) guideDone(); }} onTutorialEnd={() => dispatch({ type: 'tutorialEnded' })}
-          onOpenStation={station => dispatch({ type: 'openStation', station })} onExit={() => dispatch({ type: 'door' })} />;
+        : <ForgeRoom character={character} progress={forgeProgress.progress} onTalk={refreshProgress} from={route.from} showGuide={!guideSeen} onGuideComplete={guideDone} tutorial={route.tutorial} onTutorialStart={() => { if (!guideSeen) guideDone(); }} onTutorialEnd={() => dispatch({ type: 'tutorialEnded' })}
+          onOpenStation={station => dispatch({ type: 'openStation', station, flown: true })} onExit={() => dispatch({ type: 'door' })} />;
       break;
     case 'tutorial':
       front = <TutorialScreen onBack={back} />;

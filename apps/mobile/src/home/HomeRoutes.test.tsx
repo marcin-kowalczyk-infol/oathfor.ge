@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Dimensions } from 'react-native';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { Oath } from '../api/oathSchema';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { OathController, OathControllerState } from '../oaths/controller';
@@ -67,6 +67,12 @@ test('a newly confirmed Oath refreshes the menu summary', async () => {
   expect(summaryLoads()).toBe(2);
 });
 
+/** Leaving the room: the door visit, Żaromir's line, then the action, which opens the menu within 700 ms. */
+async function leaveRoom() {
+  await fireEvent.press(await screen.findByRole('button', { name: 'Door' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Next' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Leave the Forge' }));
+}
 const menu: HomeState = { accountId, characterId: mira.id, route: { kind: 'menu' }, sequence: 0 };
 const readyState: OathControllerState = { kind: 'ready', busy: false, preview: null, pending: null, oath: null, needsReview: false };
 const readyOaths = () => ({
@@ -88,9 +94,9 @@ test('the Tutorial tile opens the room tutorial instead of the first-visit guide
   expect(guideStorage.markSeen).toHaveBeenCalledTimes(1);
   expect(guideStorage.markSeen).toHaveBeenCalledWith(accountId);
   await fireEvent.press(screen.getByRole('button', { name: 'Close the tutorial' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Leave the Forge' }));
+  await leaveRoom();
   await fireEvent.press(await screen.findByRole('button', forgeTile));
-  expect(await screen.findByRole('button', { name: 'Leave the Forge' })).toBeOnTheScreen();
+  expect(await screen.findByRole('button', { name: 'Door' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
 });
 
@@ -143,7 +149,7 @@ test('a closed tutorial stays closed when the routes remount', async () => {
   await fireEvent.press(await screen.findByRole('button', { name: 'Close the tutorial' }));
   await view.rerender(<Remountable mounted={false} />);
   await view.rerender(<Remountable mounted />);
-  expect(await screen.findByRole('button', { name: 'Leave the Forge' })).toBeOnTheScreen();
+  expect(await screen.findByRole('button', { name: 'Door' })).toBeOnTheScreen();
   expect(screen.queryByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeNull();
 });
 
@@ -160,4 +166,20 @@ test('entering the room and touching Żaromir load the Today and history totals 
   await fireEvent.press(screen.getByRole('button', { name: 'Zharomir, your progress' }));
   expect(loads('history')).toBe(2);
   expect(loads('today')).toBe(today + 1);
+});
+
+test('a return from a place the room flew into starts the room on that close-up', async () => {
+  await render(<Harness oaths={readyOaths()} initial={{ ...menu, route: { kind: 'forge', tutorial: null, from: 'seals' } }} />);
+  expect(await screen.findByTestId('flight-closeup', { includeHiddenElements: true })).toBeTruthy();
+});
+
+test('a place action in the room asks for a flown request', async () => {
+  const route = jest.fn();
+  let home: HomeState | null = { ...menu, route: { kind: 'forge', tutorial: null } };
+  const onHome: HomeRoutesProps['onHome'] = update => { home = typeof update === 'function' ? update(home) : update; route(home); };
+  await render(<Harness oaths={readyOaths()} initial={home!} route={[home, onHome]} />);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Seals' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Next' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'View current Oaths' }));
+  await waitFor(() => expect(route).toHaveBeenLastCalledWith(expect.objectContaining({ route: { kind: 'oaths', request: expect.objectContaining({ target: 'today', flown: true }) } })));
 });

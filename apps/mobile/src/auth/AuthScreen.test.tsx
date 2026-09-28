@@ -439,9 +439,15 @@ const oathLists = (runtime: ReturnType<typeof setup>) => jest.mocked(runtime.oat
 // Menu summaries load Today with limit 1. Each room entry loads Today and history with limit 1 for Żaromir, so those pairs are left out.
 const limitOne = (runtime: ReturnType<typeof setup>, view: string) => jest.mocked(runtime.oathApi.list).mock.calls.filter(([, query]) => query.limit === 1 && query.view === view).length;
 const summaries = (runtime: ReturnType<typeof setup>) => limitOne(runtime, 'today') - limitOne(runtime, 'history');
+/** Leaving the room: the door visit, Żaromir's line, then the action, which opens the menu within 700 ms. */
+async function leaveRoom() {
+  await fireEvent.press(await screen.findByRole('button', { name: 'Door' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Next' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Leave the Forge' }));
+}
 async function enterRoom() {
   await fireEvent.press(await screen.findByRole('button', forgeTile));
-  expect(await screen.findByRole('button', { name: 'Leave the Forge' })).toBeOnTheScreen();
+  expect(await screen.findByRole('button', { name: 'Door' })).toBeOnTheScreen();
 }
 async function useStation(station: 'Hearth' | 'Seals' | 'Chronicle', action: string) {
   await fireEvent.press(screen.getByRole('button', { name: station }));
@@ -465,7 +471,7 @@ test('the room leads to creation, Today and History, the Oath door returns to th
   await useStation('Chronicle', 'Read history');
   expect(await screen.findByRole('button', { name: 'History', selected: true })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Return to the Forge' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Leave the Forge' }));
+  await leaveRoom();
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
 });
@@ -478,14 +484,14 @@ test('the first room entry shows the guide and stores the flag, the next entry d
   await fireEvent.press(await screen.findByRole('button', forgeTile));
   // The room waits for the flag, so the guide never starts late.
   expect(screen.getByTestId('forge-room-waiting')).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Leave the Forge' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Door' })).toBeNull();
   await act(async () => answer(false));
   await fireEvent.press(await screen.findByRole('button', { name: 'Skip introduction' }));
   expect(runtime.guideStorage.markSeen).toHaveBeenCalledWith(account.id);
-  await fireEvent.press(screen.getByRole('button', { name: 'Leave the Forge' }));
+  await leaveRoom();
   await enterRoom();
   expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: 'Leave the Forge' }));
+  await leaveRoom();
   await fireEvent.press(await screen.findByRole('button', { name: 'Tutorial, Zharomir explains the rules' }));
   expect(await screen.findByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
@@ -520,7 +526,7 @@ test('in simple layout the Tutorial tile opens the rules screen, the Forge opens
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', forgeTile));
   expect(await screen.findByRole('button', { name: 'Today', selected: true })).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Leave the Forge' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Door' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Back to menu' }));
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
 });
@@ -534,7 +540,7 @@ test('a pending acceptance makes the Forge resume Oath creation', async () => {
   await fireEvent.press(await screen.findByRole('button', { name: 'Enter the Forge, An Oath awaits confirmation' }));
   expect(await screen.findByRole('button', { name: 'Check confirmation' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Today' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Leave the Forge' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Door' })).toBeNull();
 });
 
 function pausable(runtime: ReturnType<typeof setup>) {
@@ -634,7 +640,7 @@ test('returning from the room and Settings refreshes the menu summary without re
   expect(oathLists(runtime)).toEqual(['today']);
   expect(summaries(runtime)).toBe(1);
   await enterRoom();
-  await fireEvent.press(screen.getByRole('button', { name: 'Leave the Forge' }));
+  await leaveRoom();
   await fireEvent.press(await screen.findByRole('button', { name: 'Settings, Language, pause, account' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Back to menu' }));
   await screen.findByRole('button', forgeTile);

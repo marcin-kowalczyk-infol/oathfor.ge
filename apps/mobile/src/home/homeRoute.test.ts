@@ -96,3 +96,11 @@ test('an ended room tutorial clears its id so a remount does not start it again'
   const settings = run({ type: 'openSettings' });
   expect(homeReducer(settings, { type: 'tutorialEnded' })).toBe(settings);
 });
+test('a flown station request skips the screen zoom and the way back flies out of that place', () => {
+  const oaths = run({ type: 'openForge', layout: 'room', pending: false }, { type: 'openStation', station: 'seals', flown: true });
+  expect(oaths.route).toMatchObject({ kind: 'oaths', request: { target: 'today', flown: true } });
+  expect(homeReducer(oaths, { type: 'back', layout: 'room' }).route).toEqual({ kind: 'forge', tutorial: null, from: 'seals' });
+  // A request that did not fly, for example an interrupted acceptance, returns to the room as before.
+  const resumed = run({ type: 'openForge', layout: 'room', pending: true });
+  expect(homeReducer(resumed, { type: 'back', layout: 'room' }).route).toEqual({ kind: 'forge', tutorial: null });
+});

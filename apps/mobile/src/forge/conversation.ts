@@ -15,7 +15,7 @@ const gendered: ReadonlySet<PlayerLine> = new Set(['tutorial.chronicle', 'tutori
 export const playerLineKey = (line: PlayerLine, form: CharacterForm) => gendered.has(line) ? `room.player.${line}.${form}` : `room.player.${line}`;
 
 /** A place visit: the player speaks first, Żaromir describes the place, then its action shows. */
-export function visitScript(place: 'hearth' | 'seals' | 'chronicle', form: CharacterForm): (ScriptLine | ScriptAction)[] {
+export function visitScript(place: 'hearth' | 'seals' | 'chronicle' | 'door', form: CharacterForm): (ScriptLine | ScriptAction)[] {
   return [{ speaker: 'player', key: playerLineKey(place, form) }, { speaker: 'guide', key: `room.descriptions.${place}` }, { action: place }];
 }
 

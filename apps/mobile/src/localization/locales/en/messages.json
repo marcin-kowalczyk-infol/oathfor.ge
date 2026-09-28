@@ -443,7 +443,8 @@
     "descriptions": {
       "hearth": "New Oaths take shape here.",
       "seals": "Your commitments await here.",
-      "chronicle": "Your journey leaves its mark here."
+      "chronicle": "Your journey leaves its mark here.",
+      "door": "The door leads to the menu. The Forge will wait for your return."
     },
     "exit": "Leave the Forge",
     "dismiss": "Close the conversation",

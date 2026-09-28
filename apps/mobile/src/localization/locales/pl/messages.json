@@ -451,7 +451,8 @@
     "descriptions": {
       "hearth": "Tutaj nabierają kształtu nowe Przysięgi.",
       "seals": "Tutaj czekają Twoje zobowiązania.",
-      "chronicle": "Tutaj zostają ślady Twojej drogi."
+      "chronicle": "Tutaj zostają ślady Twojej drogi.",
+      "door": "Drzwi prowadzą do menu. Kuźnia poczeka na Twój powrót."
     },
     "exit": "Wyjdź z Kuźni",
     "dismiss": "Zamknij rozmowę",

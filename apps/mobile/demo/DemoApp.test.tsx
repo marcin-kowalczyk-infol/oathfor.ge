@@ -13,7 +13,7 @@ jest.mock('../src/auth/AuthScreen', () => ({ AuthScreen: ({ guideStorage, profil
 
 test('the app owns the room, so the demo shows no room of its own and passes a guide storage', async () => {
   await render(<DemoApp />);
-  expect(screen.queryByRole('button', { name: messages.room.exit })).toBeNull();
+  expect(screen.queryByRole('button', { name: messages.room.door })).toBeNull();
   expect(screen.getByText('Guide storage: function')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
   expect(screen.getByText(pl.empty)).toBeOnTheScreen();

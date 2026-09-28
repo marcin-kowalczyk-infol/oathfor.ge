@@ -49,6 +49,18 @@ function drawOrder(ids: string[]) {
   visit(screen.toJSON());
   return order;
 }
+/** Leaving through the door: the visit, Żaromir's line, then the action, which opens the menu within 700 ms. */
+async function leave(copy = en) {
+  await fireEvent.press(screen.getByRole('button', { name: copy.room.door }));
+  await fireEvent.press(screen.getByRole('button', { name: copy.room.tutorial.next }));
+  await fireEvent.press(screen.getByRole('button', { name: copy.room.exit }));
+  await act(async () => { jest.advanceTimersByTime(700); });
+}
+/** A place action opens its screen after the camera flight, within 700 ms. */
+async function pressAction(name: string) {
+  await fireEvent.press(screen.getByRole('button', { name }));
+  await act(async () => { jest.advanceTimersByTime(700); });
+}
 const walkTimers = () => intervals.mock.calls.flatMap((args, index) => args[1] === WALK_FRAME_MS ? [intervals.mock.results[index].value] : []);
 
 beforeEach(() => {
@@ -67,7 +79,7 @@ test('reduced motion immediately reveals the selected station and exit is the on
   expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
   expect(onExit).not.toHaveBeenCalled();
   expect(walkTimers()).toHaveLength(0);
-  await fireEvent.press(screen.getByRole('button', { name: en.room.exit }));
+  await leave();
   expect(onExit).toHaveBeenCalledTimes(1);
 });
 
@@ -188,7 +200,7 @@ test('station discovery requires its named action before opening the matching sc
     await fireEvent.press(screen.getByRole('button', { name: en.room[station] }));
     expect(open).toHaveBeenCalledTimes(['hearth', 'seals', 'chronicle'].indexOf(station));
     await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.next }));
-    await fireEvent.press(screen.getByRole('button', { name: label }));
+    await pressAction(label);
     expect(open).toHaveBeenLastCalledWith(station);
   }
 });
@@ -248,7 +260,7 @@ test.each([['pl', pl], ['en', en]] as const)('the %s door leaves the room and na
   const onExit = jest.fn();
   await render(room({ onExit }, locale));
   for (const station of ['hearth', 'seals', 'chronicle'] as const) expect(screen.getByRole('button', { name: copy.room[station] })).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: copy.room.exit }));
+  await leave(copy);
   expect(onExit).toHaveBeenCalledTimes(1);
 });
 
@@ -380,7 +392,7 @@ describe('tutorial', () => {
     expect(screen.queryByText(tut.end)).toBeNull();
     await press(en.room.hearth);
     await next();
-    await press(en.room.actions.hearth);
+    await pressAction(en.room.actions.hearth);
     expect(onOpenStation).toHaveBeenCalledWith('hearth');
   });
 
@@ -406,7 +418,7 @@ describe('tutorial', () => {
     expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
     await next();
     expect(screen.getByRole('button', { name: en.room.actions.seals })).toBeOnTheScreen();
-    await press(en.room.exit);
+    await leave();
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
@@ -763,7 +775,7 @@ describe('dialogue panel', () => {
     expect(screen.getByText(en.room.descriptions.hearth)).toBeOnTheScreen();
     expect(plate()).toHaveTextContent('Zharomir');
     ringAt(aside);
-    await press(en.room.actions.hearth);
+    await pressAction(en.room.actions.hearth);
     expect(onOpenStation).toHaveBeenCalledWith('hearth');
   });
 
@@ -931,7 +943,7 @@ describe('talking to Żaromir', () => {
       return { left, top, right: left + style.width, bottom: top + style.height };
     };
     const talkBox = box(en.room.talk.label);
-    for (const place of [en.room.hearth, en.room.seals, en.room.chronicle, en.room.exit]) {
+    for (const place of [en.room.hearth, en.room.seals, en.room.chronicle, en.room.door]) {
       const other = box(place);
       const overlap = talkBox.left < other.right && other.left < talkBox.right && talkBox.top < other.bottom && other.top < talkBox.bottom;
       expect([place, overlap]).toEqual([place, false]);
@@ -1020,5 +1032,108 @@ describe('talking to Żaromir', () => {
     expect(card()).toHaveTextContent('Wątła', { exact: false });
     expect(card()).toHaveTextContent('2 bieżące Przysięgi', { exact: false });
     expect(card()).toHaveTextContent('5 wpisów w kronice', { exact: false });
+  });
+});
+
+describe('camera flight', () => {
+  const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
+  function captureTimings() {
+    const timings: { duration?: number; to: unknown; done?: (result: { finished: boolean }) => void }[] = [];
+    jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
+      start: done => {
+        if (value instanceof Animated.ValueXY) { done?.({ finished: true }); return; }
+        timings.push({ duration: config.duration, to: config.toValue, done });
+      }, stop: jest.fn(), reset: jest.fn(),
+    }));
+    return timings;
+  }
+  // With motion the first touch completes the typed player line, the second brings Żaromir's line with the action.
+  async function visit(place: 'hearth' | 'seals' | 'chronicle') {
+    await press(en.room[place]);
+    await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
+    await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
+  }
+
+  test('the place action flies into the close-up and opens its screen within 700 ms, ignoring a second touch', async () => {
+    motion.mockReturnValue(true);
+    const timings = captureTimings();
+    const onOpenStation = jest.fn();
+    await render(room({ onOpenStation }));
+    await visit('seals');
+    await press(en.room.actions.seals);
+    expect(timings.filter(timing => timing.duration === 650)).toHaveLength(1);
+    expect(screen.getByTestId('flight-closeup', hidden)).toBeTruthy();
+    expect(onOpenStation).not.toHaveBeenCalled();
+    await press(en.room.actions.seals);
+    await act(async () => { jest.advanceTimersByTime(699); });
+    expect(onOpenStation).not.toHaveBeenCalled();
+    await act(async () => { jest.advanceTimersByTime(1); });
+    expect(onOpenStation).toHaveBeenCalledTimes(1);
+    expect(onOpenStation).toHaveBeenCalledWith('seals');
+    expect(timings.filter(timing => timing.duration === 650)).toHaveLength(1);
+  });
+
+  test('a finished flight opens the screen at once and the time limit does not open it again', async () => {
+    motion.mockReturnValue(true);
+    const timings = captureTimings();
+    const onOpenStation = jest.fn();
+    await render(room({ onOpenStation }));
+    await visit('chronicle');
+    await press(en.room.actions.chronicle);
+    await act(async () => timings.find(timing => timing.duration === 650)!.done!({ finished: true }));
+    expect(onOpenStation).toHaveBeenCalledTimes(1);
+    await act(async () => { jest.advanceTimersByTime(700); });
+    expect(onOpenStation).toHaveBeenCalledTimes(1);
+  });
+
+  test('with reduced motion the close-up crossfades in 250 ms without scaling and the screen opens by 700 ms', async () => {
+    const timings = captureTimings();
+    const onOpenStation = jest.fn();
+    await render(room({ onOpenStation }));
+    await press(en.room.hearth);
+    await press(en.room.tutorial.next);
+    await press(en.room.actions.hearth);
+    expect(timings.map(timing => timing.duration)).toEqual([250]);
+    await act(async () => { jest.advanceTimersByTime(700); });
+    expect(onOpenStation).toHaveBeenCalledTimes(1);
+  });
+
+  test('returning from a place starts on its close-up, flies back and shows the player at that place', async () => {
+    motion.mockReturnValue(true);
+    const timings = captureTimings();
+    await render(room({ from: 'seals' }));
+    expect(screen.getByTestId('flight-closeup', hidden)).toBeTruthy();
+    expectAt('room-player', places.seals.player);
+    const back = timings.find(timing => timing.duration === 650)!;
+    expect(back.to).toBe(0);
+    await act(async () => back.done!({ finished: true }));
+    expect(screen.queryByTestId('flight-closeup', hidden)).toBeNull();
+    // The entrance zoom does not play on top of the return.
+    expect(timings.filter(timing => timing.duration === 1100)).toHaveLength(0);
+  });
+
+  test('the door is a visit: the player looks out, then the action pulls back and leaves once by 700 ms', async () => {
+    const timings = captureTimings();
+    const onExit = jest.fn();
+    await render(room({ onExit }));
+    await press(en.room.door);
+    expectAt('room-player', places.door.player);
+    expect(screen.getByText(en.room.player.door)).toBeOnTheScreen();
+    expect(onExit).not.toHaveBeenCalled();
+    await press(en.room.tutorial.next);
+    expect(screen.getByText(en.room.descriptions.door)).toBeOnTheScreen();
+    await press(en.room.exit);
+    await press(en.room.exit);
+    expect(timings.map(timing => timing.duration)).toContain(250);
+    await act(async () => { jest.advanceTimersByTime(700); });
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  test('the Polish door line and action come from the catalog', async () => {
+    await render(room({}, 'pl'));
+    await fireEvent.press(screen.getByRole('button', { name: pl.room.door }));
+    await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.next }));
+    expect(screen.getByText('Drzwi prowadzą do menu. Kuźnia poczeka na Twój powrót.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: pl.room.exit })).toBeOnTheScreen();
   });
 });

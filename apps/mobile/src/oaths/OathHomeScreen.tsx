@@ -20,7 +20,8 @@ import { OathScreen, type OathCreationDraft } from './OathScreen';
 import type { OathController } from './controller';
 import { layoutMode } from '../ui/layoutMode';
 type ViewName = 'today' | 'history';
-export type ForgeNavigation = { request: { id: number; target: 'create' | ViewName } | null; onReturn(): void };
+/** flown: the room already flew into the place, so its screen opens without a second zoom. */
+export type ForgeNavigation = { request: { id: number; target: 'create' | ViewName; flown?: boolean } | null; onReturn(): void };
 /** reload: a new value reloads the visible list, for example after a pause change made in Settings. */
 export function OathHomeScreen({ controller, timezone, forgeNavigation, reload = 0 }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; reload?: number }) {
   const { t, i18n } = useTranslation(); const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
@@ -44,7 +45,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const detailId = useRef('');
   const generation = useRef(0);
   // Room arrival drives only the backdrop approach and the busy notice, never Oath state.
-  const [arrival, setArrival] = useState<{ id: number; place: ForgePlace } | null>(null);
+  const [arrival, setArrival] = useState<{ id: number; place: ForgePlace; flown: boolean } | null>(null);
   const [hearthRequest, setHearthRequest] = useState(false);
   const [busyNotice, setBusyNotice] = useState(false);
   const confirmedId = available ? account.oath?.id : undefined;
@@ -101,7 +102,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     handledRequest.current = request.id;
     // A newer room request supersedes an unfinished hearth request and its backdrop.
     setHearthRequest(false);
-    setArrival({ id: request.id, place: request.target === 'create' ? 'hearth' : request.target === 'today' ? 'seals' : 'chronicle' });
+    setArrival({ id: request.id, place: request.target === 'create' ? 'hearth' : request.target === 'today' ? 'seals' : 'chronicle', flown: !!request.flown });
     if (request.target === 'create') {
       if (route === 'create') return;
       if (account.pending) { create(true); return; }
@@ -122,9 +123,11 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     return t('oathHome.group', { date, timezone: item.snapshot.deadline.timezone });
   }
   const place: ForgePlace = hearthRequest ? 'hearth' : route === 'detail' ? 'seals' : view === 'history' ? 'chronicle' : 'seals';
-  if (available && route === 'create') return <OathScreen approach={arrival?.place === 'hearth' ? arrival.id : null} controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? returnLabel : undefined} backPlain={!!forgeNavigation && !interactiveForge} onBack={forgeNavigation?.onReturn ?? (() => { void loadList('today'); })} />;
+  // After the room's own flight the close-up is already in view, so the screen skips its zoom.
+  const approach = arrival && !arrival.flown ? arrival : null;
+  if (available && route === 'create') return <OathScreen approach={approach?.place === 'hearth' ? approach.id : null} controller={controller} timezone={timezone} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? returnLabel : undefined} backPlain={!!forgeNavigation && !interactiveForge} onBack={forgeNavigation?.onReturn ?? (() => { void loadList('today'); })} />;
   // Today's hub leaves an empty band under the tabs. The seal wall is lowered into it.
-  return <SceneSurface place={place} drop={route === 'list' && view === 'today' && interactiveForge ? 0.3 : 0} scroll={scroll} approach={arrival && arrival.place === place && place !== 'hearth' ? arrival.id : null}><SafeAreaView style={styles.safeArea}><Animated.ScrollView style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
+  return <SceneSurface place={place} drop={route === 'list' && view === 'today' && interactiveForge ? 0.3 : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}><SafeAreaView style={styles.safeArea}><Animated.ScrollView style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
     {forgeNavigation && (interactiveForge
       ? <SceneDoor label={returnLabel} onPress={forgeNavigation.onReturn} />
       : <BackLink label={returnLabel} onPress={forgeNavigation.onReturn} />)}

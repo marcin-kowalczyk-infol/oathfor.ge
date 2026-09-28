@@ -20,6 +20,7 @@ import { aside, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, S
 import { PlayerFigure } from './PlayerFigure';
 import type { Character } from '../api/characters';
 import { useWalker } from './useWalker';
+import { useCameraFlight } from './cameraFlight';
 
 export type ForgeStation = 'hearth' | 'seals' | 'chronicle';
 const stations: { id: ForgeStation; x: number; y: number }[] = [
@@ -61,10 +62,12 @@ const sealsCover = (position: Animated.ValueXY) => position.y.interpolate({ inpu
  * tutorial starts the rules conversation, and a new id restarts it with no heard places. It takes priority over the guide.
  * onTutorialEnd reports a close or finish, so the parent can drop the id and a remount does not start it again.
  */
-export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGuideComplete, tutorial = null, onTutorialStart, onTutorialEnd, onOpenStation, onExit }: {
+export function ForgeRoom({ character, progress, onTalk, from = null, showGuide = false, onGuideComplete, tutorial = null, onTutorialStart, onTutorialEnd, onOpenStation, onExit }: {
   character: Pick<Character, 'name' | 'presetId' | 'build' | 'form'>;
   /** Server counts for Żaromir's hint and card. onTalk asks the parent to refresh them. */
-  progress: ForgeProgress; onTalk: () => void; showGuide?: boolean | number; onGuideComplete?: () => void; tutorial?: number | null; onTutorialStart?: () => void; onTutorialEnd?: () => void;
+  progress: ForgeProgress; onTalk: () => void;
+  /** The place a return from its screen flies back out of. The player stands there. */
+  from?: ForgeStation | null; showGuide?: boolean | number; onGuideComplete?: () => void; tutorial?: number | null; onTutorialStart?: () => void; onTutorialEnd?: () => void;
   onOpenStation: (station: ForgeStation) => void; onExit: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -81,7 +84,8 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
   const allowed = useMotionAllowed();
   // Żaromir stands aside in normal mode. The player starts in the lower middle and walks to each touched place.
   const guide = useWalker(guideFeet, aside, allowed);
-  const player = useWalker(playerFeet, playerStart, allowed);
+  const player = useWalker(playerFeet, from ? playerFeet[from] : playerStart, allowed);
+  const flight = useCameraFlight({ allowed, from });
   // Which figure is lower on screen, so drawn in front. Walks cannot be read back, so it is checked at a coarse rate while one walks.
   const lower = (): 'guide' | 'player' => guide.now().y > player.now().y ? 'guide' : 'player';
   const [front, setFront] = useState(lower);
@@ -136,6 +140,8 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
   const glow = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // A return from a place flies back instead, so the entrance zoom does not play on top of it.
+    if (from) entered.current = true;
     if (!allowed) { camera.setValue(entered.current ? 1 : 0); return; }
     if (entered.current) { camera.setValue(1); return; }
     entered.current = true;
@@ -156,7 +162,8 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
     const talk = setTimeout(() => setPresence('talk'), ACT_BEFORE_TURN_MS + TURN_FRAME_MS * 4);
     return () => { clearTimeout(turn); clearTimeout(talk); };
   }, [allowed, telling, guide.arrived]);
-  const placeBubble = !tour && bubbleOpen && isStation(player.arrived);
+  const visited = player.arrived && player.arrived !== 'start' ? player.arrived : null;
+  const placeBubble = !tour && bubbleOpen && !!visited;
 
   useEffect(() => {
     if (!allowed) { glow.setValue(0.35); return; }
@@ -168,7 +175,7 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
     return () => { shimmer.stop(); glow.stopAnimation(); };
   }, [allowed, glow]);
 
-  function choose(id: ForgeStation) {
+  function choose(id: ScenePlace) {
     finishGuide();
     player.walkTo(id);
     setTouchRequest(value => value + 1);
@@ -196,7 +203,7 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
   }
   const placeLabel = (place: TutorialPlace) => tour
     ? `${t('room.tutorial.hear', { place: t(`room.${place}`) })}${tour.heard.includes(place) ? `, ${t('room.tutorial.heard')}` : ''}`
-    : t(place === 'door' ? 'room.exit' : `room.${place}`);
+    : t(`room.${place}`);
   const heardMark = (place: TutorialPlace) => tour?.heard.includes(place) ? `heard-${place}` : undefined;
   const stationGlow = (id: ForgeStation) => glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === id || tour?.place === id ? [0.45, 0.75] : player.target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
   const seals = stations.find(station => station.id === 'seals')!;
@@ -214,9 +221,9 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
   // At a visited place the player handles it, facing it.
   const playerPose: HeroPose = player.walking ? { kind: 'walk', direction: player.direction }
     : told ? { kind: 'act', place: told }
-    : !tour && isStation(player.arrived) ? { kind: 'act', place: player.arrived } : { kind: 'idle' };
+    : !tour && visited ? { kind: 'act', place: visited } : { kind: 'idle' };
   // The place responds once the figure stands there and starts working. Touching it again while it is there replays it.
-  const effectPlace = tour ? told : player.arrived === player.target && isStation(player.arrived) ? player.arrived : null;
+  const effectPlace = tour ? told : player.arrived === player.target ? visited : null;
   // Lower on screen is drawn in front. Each figure brings its own seal cut, so the drums cover only a figure behind them.
   const figures = ([
     { id: 'guide', walker: guide, node: <HeroSprite run={guide.run} pose={pose} allowed={allowed} height={FIGURE_HEIGHT} scale={guide.scale} /> },
@@ -243,12 +250,14 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
       : { speaker: 'player', key: playerLineKey('talk', form), id: `talk-${talk.id}-0`, more: talk.step === 'player', dismiss: () => setTalk(null),
         next: talk.step === 'player' ? () => setTalk({ ...talk, step: 'hint' }) : undefined };
   } else if (placeBubble) {
-    const place = player.arrived as ForgeStation;
+    const place = visited!;
     const script = visitScript(place, form);
     const said = script[visitLine] as ScriptLine;
+    // The action flies the camera into the place, or pulls it back out of the door, before its screen opens.
+    const action = place === 'door' ? { label: t('room.exit'), onPress: () => flight.fly('door', onExit) }
+      : { label: t(`room.actions.${place}`), onPress: () => flight.fly(place, () => onOpenStation(place)) };
     line = visitLine === 0 ? { ...said, id: `visit-${touchRequest}-0`, more: true, next: () => setVisitLine(1), dismiss: () => setBubbleOpen(false) }
-      : { ...said, id: `visit-${touchRequest}-1`, title: t(`room.${place}`), dismiss: () => setBubbleOpen(false),
-        controls: { action: { label: t(`room.actions.${place}`), onPress: () => onOpenStation(place) } } };
+      : { ...said, id: `visit-${touchRequest}-1`, title: t(`room.${place}`), dismiss: () => setBubbleOpen(false), controls: { action } };
   }
   // A soft ring of light under the speaking figure shows who speaks. It waits while that figure walks.
   const speaker = line?.speaker === 'player' ? player : guide;
@@ -266,6 +275,7 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
     const { width: nextWidth, height: nextHeight } = nativeEvent.layout;
     if (nextWidth > 0 && nextHeight > 0) setViewport({ width: nextWidth, height: nextHeight });
   }}>
+    <Animated.View style={[StyleSheet.absoluteFill, flight.place && flight.scale(point(places[flight.place].anchor.x, places[flight.place].anchor.y))]}>
     <Animated.View style={[StyleSheet.absoluteFill, { transformOrigin: [viewport.width * 0.515, viewport.height * 0.45, 0], transform: [{ scale: camera.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }]}>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.scenery}>
       <Image source={room} resizeMode="stretch" style={{ position: 'absolute', left, top, width: sceneWidth, height: sceneHeight }} />
@@ -285,7 +295,7 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
       {/* Native check: replaying on the same animated value made a stepped sheet blink on iOS. Each touch mounts a fresh response. */}
       {effectPlace && <StationEffect key={touchRequest} station={effectPlace} request={touchRequest} allowed={allowed} point={point} sceneWidth={sceneWidth} />}
     </View>
-    <SceneHotspot label={placeLabel('door')} onPress={() => { if (tour) { hear('door'); return; } finishGuide(); onExit(); }} anchor={hotspot(door.x, door.y)} door allowed={allowed} glow={glow} heard={heardMark('door')} selected={tour ? tour.place === 'door' : undefined} />
+    <SceneHotspot label={placeLabel('door')} onPress={() => tour ? hear('door') : choose('door')} anchor={hotspot(door.x, door.y)} door allowed={allowed} glow={glow} heard={heardMark('door')} selected={tour ? tour.place === 'door' : undefined} />
     {stations.map(station => <SceneHotspot key={station.id} cue={false} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : player.target === station.id}
       onPress={() => tour ? hear(station.id) : choose(station.id)} anchor={hotspot(station.x, station.y)} allowed={allowed} glow={glow} heard={heardMark(station.id)} />)}
     {speakerFoot && <View testID="speaking-ring" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
@@ -307,6 +317,8 @@ export function ForgeRoom({ character, progress, onTalk, showGuide = false, onGu
       onPress={() => { onTalk(); setBubbleOpen(false); setTalk(current => ({ id: (current?.id ?? 0) + 1, step: 'player', waited: false })); }}
       style={[styles.talkTarget, talkBox]} />}
     </Animated.View>
+    </Animated.View>
+    {flight.overlay(viewport)}
     {line && <DialoguePanel frame={{ left: (viewport.width - panelWidth) / 2, width: panelWidth, bottom: PANEL_BOTTOM, maxHeight: viewport.height - PANEL_BOTTOM - stationEdge }}
       speaker={line.speaker} lineId={line.id} text={bindShortWords(t(line.key, line.values), i18n.language)} title={line.title}
       extra={line.id === `talk-${talk?.id}-1` ? <TalkCard character={character} progress={progress} /> : undefined}

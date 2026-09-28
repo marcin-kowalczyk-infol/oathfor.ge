@@ -28,6 +28,8 @@ test('re-running demo effects keeps character creation, the menu, the room guide
   expect(await screen.findByText(messages.oathHome.emptyToday)).toBeOnTheScreen();
   expect(screen.queryByText(messages.oathHome.loadError)).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: messages.forge.returnRoom }));
-  await fireEvent.press(await screen.findByRole('button', { name: messages.room.exit }));
+  await fireEvent.press(await screen.findByRole('button', { name: messages.room.door }));
+  await fireEvent.press(screen.getByRole('button', { name: messages.room.tutorial.next }));
+  await fireEvent.press(screen.getByRole('button', { name: messages.room.exit }));
   expect(await screen.findByRole('button', forge)).toBeOnTheScreen();
 });
