@@ -1072,6 +1072,8 @@ describe('talking to Żaromir', () => {
     expect(screen.getByText(pl.room.talk.hint.current)).toBeOnTheScreen();
     expect(counter('oaths')).toBe('2 bieżące Przysięgi');
     expect(counter('chronicle')).toBe('5 wpisów w kronice');
+    // Native check MVP-20-T21: "wpisy w" ended a line. The single-letter word stays with the next one.
+    expect(screen.getByText('wpisów w\u00a0kronice', { normalizer: text => text })).toBeOnTheScreen();
   });
 });
 

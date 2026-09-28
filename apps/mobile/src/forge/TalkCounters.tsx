@@ -1,5 +1,6 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import type { ForgeProgress } from './progressHint';
 
 const icons = {
@@ -13,7 +14,7 @@ const ICON = 40;
  * from the server's Oath list totals. While the first answer is awaited a count shows "…", a missing one shows "–".
  */
 export function TalkCounters({ progress, waiting }: { progress: ForgeProgress; waiting: boolean }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const counter = (id: 'oaths' | 'chronicle', value: number | null, key: string, unknownKey: string) => {
     const shown = value === null ? (waiting ? '…' : '–') : String(value);
     const label = t(key, { count: value ?? 0 });
@@ -21,7 +22,7 @@ export function TalkCounters({ progress, waiting }: { progress: ForgeProgress; w
       <Image testID={`talk-icon-${id}`} source={icons[id]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.icon} />
       <View style={styles.words}>
         <Text maxFontSizeMultiplier={2} style={styles.number}>{shown}</Text>
-        <Text maxFontSizeMultiplier={2} style={styles.label}>{label}</Text>
+        <Text maxFontSizeMultiplier={2} style={styles.label}>{bindShortWords(label, i18n.language)}</Text>
       </View>
     </View>;
   };

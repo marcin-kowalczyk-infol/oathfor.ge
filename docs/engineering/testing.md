@@ -329,3 +329,23 @@ Defects found and fixed, each with a failing test first unless noted:
 | The speaking ring was invisible on the lit floor. | The ring is the warm haze image under the speaker. | Visual only, rechecked. |
 
 Not observed natively: Reduce Motion, the largest text and simple layout, hints for 0, 1 and 5 Oaths and the paused state, every walk direction in a recording, the 700 ms limit by frame count, the other 11 player figures (DUMMY still figures, later slice), iPhone SE 3 and other sizes, VoiceOver (deferred by the owner), a Release build and physical devices. The pilot sprites, the painted panel and the responses await owner visual acceptance.
+
+### Demo feedback fixes (MVP-20-T16 to T20), 2026-09-28
+
+The owner's demo review asked for three changes to the scene: the player's bust hid behind the panel, the talk with Żaromir needed one touch and a visual answer, and the book looked like pages falling out. The talk rows above record the earlier two-step talk and card.
+
+Automated: both busts are drawn after the painted frame and end above the text, one touch gives Żaromir's hint and two counters, the hint follows refreshed counts, the 2000 ms wait and the refresh started by the touch, unknown counts read "Liczba bieżących Przysiąg nieznana" and "Liczba wpisów w kronice nieznana", the catalogs no longer hold `room.player.talk`, and the chronicle turns one page in 440 ms before the signs rise. The full mobile suite passed with 75 suites and 945 tests.
+
+Native checks on the iPhone 18 Pro, iOS 27.0, demo development build, returning player scenario:
+
+| Observed | Result |
+| --- | --- |
+| Player line at the chronicle (PL) and the hearth (EN) | The whole medallion stands above the frame, clear of the × and the text |
+| First-visit guide | Żaromir's painted bust over the frame, its soft lower edge on the braid |
+| One touch on Żaromir (PL) | "Twoje Przysięgi czekają przy pieczęciach.", seal counter 3, chronicle counter 22, matching the demo data |
+| One touch on Żaromir (EN) after "Add demo Oath" | "Your Oaths are waiting at the seals.", 4 current Oaths, 22 chronicle entries |
+| Chronicle touch, video at 30 frames per second | One leaf lifts on the right, stands, lands on the left, then the signs rise. No clasp, the lectern stays visible |
+
+Defect found and fixed: the Polish counter label broke as "wpisy w / kronice". The label now keeps the single-letter word with the next one. The test failed first, then passed, rechecked natively.
+
+Not observed natively: the counters at large text, the waiting state with "…", the unavailable hint, Reduce Motion for the page turn, iPhone SE 3 and VoiceOver. The menu still showed 3 current Oaths right after "Add demo Oath" while the room showed 4, a menu refresh timing outside this change. The page turn, icons and busts await owner visual acceptance.

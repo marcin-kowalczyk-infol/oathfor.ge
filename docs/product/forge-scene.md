@@ -49,7 +49,7 @@ Until the player art is delivered the player is the static menu figure of the ch
 ## Dialogue panel
 
 - A dark carved wood panel with bronze fittings sits at the bottom of the room. A name plate names the speaker.
-- The speaker's bust rises above the frame. Żaromir is on the left, the player on the right. A change of speaker slides the old bust out and the new one in, and the plate moves to that side.
+- The speaker's bust rises above the frame and is drawn over it, so the frame never hides part of it (owner demo review, 2026-09-28). Żaromir is on the left, the player on the right. A change of speaker slides the old bust out and the new one in, and the plate moves to that side.
 - A soft ring of light under the speaking character in the room shows who speaks. The panel has no tail.
 - Text appears letter by letter. The first touch shows the whole line, the next touch continues. A pulsing rune in the corner shows that more follows.
 - The panel keeps today's controls: the place action as a bronze button, the counter such as "2 / 4", "Another place", "Finish" and ×.
