@@ -12,11 +12,12 @@ import { SceneDoor } from '../ui/SceneDoor';
 import { BackLink } from '../ui/BackLink';
 import { compactStoredTime, shortStoredTime, wallTimeIn } from './compactStoredTime';
 import { CountdownChip } from './CountdownChip';
+import { OathRuleCards } from './OathRuleCards';
 import { SceneSurface, type ForgePlace } from '../ui/SceneSurface';
 import { StateSeal } from '../ui/StateSeal';
 import { CompanionBubble } from '../ui/CompanionBubble';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
-import { SnapshotRules, storedTime } from './SnapshotRules';
+import { storedTime } from './SnapshotRules';
 import { useSceneEntrance } from '../ui/useSceneEntrance';
 import { ForgeHub } from './ForgeHub';
 import { OathScreen, type OathCreationDraft } from './OathScreen';
@@ -94,6 +95,13 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     setLoading(false);
     if (result.kind === 'success' && result.value.oath.id === id) setDetail(result.value.oath);
     else setFailed(true);
+  }
+  // A countdown reaching zero asks for the same detail again, quietly. Only the server's answer changes the state shown.
+  async function refreshDetail(id: string) {
+    const epoch = generation.current;
+    const result = await controller.detail(id);
+    if (!current(epoch) || detailId.current !== id) return;
+    if (result.kind === 'success' && result.value.oath.id === id) setDetail(result.value.oath);
   }
   function create(recover = false) {
     if (!recover && !controller.resetCreation()) return false;
@@ -208,7 +216,9 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
           {detail.reason === 'service_availability_unknown' && <Text style={styles.body}>{t('oathHome.unknownAvailability')}</Text>}
           {detail.reason === 'character_paused' && <Text style={styles.body}>{t('oathHome.withdrawn')}</Text>}
           {detail.review && <Text style={styles.body}>{t('oathHome.reviewDeadline', { deadline: formatDeadline(new Date(detail.review.closesAt), locale, 'UTC') })}</Text>}
-          <View style={styles.parchment}><SnapshotRules snapshot={detail.snapshot} /></View>
+          <View style={styles.detailCountdown}><CountdownChip oath={detail} clock={controller.clock} size="large" onElapsed={() => { void refreshDetail(detail.id); }} /></View>
+          {detail.terminalAt && <Text style={styles.body}>{t('oathHome.closedAt', { time: compactStoredTime(wallTimeIn(detail.terminalAt, detail.snapshot.deadline.timezone), locale) })}</Text>}
+          <OathRuleCards snapshot={detail.snapshot} emblem={false} />
         </>}
       </>}
     </>}
@@ -218,6 +228,7 @@ const chronicleIcon = require('../../assets/forge/scene/talk-chronicle-v01.png')
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   historyHeader: { gap: 12 },
+  detailCountdown: { alignItems: 'center' },
   historyCount: { flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: '#8a6436', backgroundColor: 'rgba(28, 22, 16, 0.94)' },
   historyIcon: { width: 48, height: 48 },
   historyTotal: { color: tokens.color.primary, fontSize: 32, fontWeight: '700' },

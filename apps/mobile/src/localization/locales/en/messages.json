@@ -341,7 +341,8 @@
     "pending": "Cases in progress",
     "summary": "{{activity}} · {{deadline}}",
     "historyLine": "Every entry is part of your story in the Forge.",
-    "historyEmpty": "The chronicle is waiting for its first entry."
+    "historyEmpty": "The chronicle is waiting for its first entry.",
+    "closedAt": "Closed {{time}}"
   },
   "forge": {
     "busy": "The Forge is still finishing your last step. Return to the hearth in a moment.",

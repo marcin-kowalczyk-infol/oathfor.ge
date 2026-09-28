@@ -18,7 +18,7 @@ const HIGHLIGHT = '#e0a84f';
  * The accepted rules as the promise, the declaration and short cards, with the complete stored rules one touch away
  * (owner decision Q1: folded under "Pełne zasady"). The folded text is the unchanged SnapshotRules.
  */
-export function OathRuleCards({ snapshot, highlight = null, onCardsLayout }: { snapshot: Snapshot; highlight?: RuleCardId | null; /** Top of the card grid inside this view. */ onCardsLayout?(y: number): void }) {
+export function OathRuleCards({ snapshot, highlight = null, emblem = true, onCardsLayout }: { snapshot: Snapshot; highlight?: RuleCardId | null; /** The detail shows its own emblem above. */ emblem?: boolean; /** Top of the card grid inside this view. */ onCardsLayout?(y: number): void }) {
   const { t, i18n } = useTranslation();
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
@@ -28,7 +28,7 @@ export function OathRuleCards({ snapshot, highlight = null, onCardsLayout }: { s
   const text = (value: string) => bindShortWords(value, locale);
   return <View style={styles.rules}>
     <View style={styles.head}>
-      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={snapshot.activity} size={88} /></View>
+      {emblem && <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={snapshot.activity} size={88} /></View>}
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{copy.title}</Text>
       <Text style={styles.promise}>{promiseText(snapshot, locale)}</Text>
     </View>

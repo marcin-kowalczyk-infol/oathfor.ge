@@ -349,7 +349,8 @@
     "pending": "Sprawy w toku",
     "summary": "{{activity}} · {{deadline}}",
     "historyLine": "Każdy wpis to Twoja historia w Kuźni.",
-    "historyEmpty": "Kronika czeka na pierwszy wpis."
+    "historyEmpty": "Kronika czeka na pierwszy wpis.",
+    "closedAt": "Zamknięta {{time}}"
   },
   "forge": {
     "busy": "Kuźnia kończy jeszcze Twój poprzedni krok. Wróć do paleniska za chwilę.",

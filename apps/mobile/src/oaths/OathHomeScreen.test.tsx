@@ -33,6 +33,7 @@ test('Today retains overdue review-pending Oaths and opens their authoritative s
   expect(screen.queryByText('Missed')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: /Open Oath: Running/ }));
   expect(await screen.findByLabelText('Status: Under review')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Full rules' }));
   expect(await screen.findByText(oath().snapshot.copy.en.sections.appeal)).toBeOnTheScreen();
 });
 test('empty Today has loading, failed retry and explicit creation states', async () => {
@@ -426,4 +427,45 @@ test('an empty chronicle says it waits for its first entry, once', async () => {
   expect(await screen.findByText('The chronicle is waiting for its first entry.')).toBeOnTheScreen();
   expect(within(screen.getByTestId('history-header')).getByText('0')).toBeOnTheScreen();
   expect(screen.queryByText('No completed or withdrawn Oaths yet.')).toBeNull();
+});
+
+test('an active Oath detail shows its countdown, the rule cards and folded full rules', async () => {
+  const active = oath({ state: 'active', reason: null, review: null });
+  const f = setup([active]); f.controller.clock.observe('2026-10-24T00:29:59Z');
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath:/ }))[0]);
+  await screen.findByLabelText('Status: Active');
+  expect(screen.getAllByTestId('countdown-chip').map(chip => chip.props.accessibilityLabel)).toEqual(['Until the deadline 1 day']);
+  expect(screen.getAllByTestId(/^rule-card-/)).toHaveLength(9);
+  expect(screen.queryByText(active.snapshot.copy.en.sections.appeal)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Full rules' }));
+  expect(screen.getByText(active.snapshot.copy.en.sections.appeal)).toBeOnTheScreen();
+});
+
+test('a closed Oath detail shows when it closed instead of a countdown', async () => {
+  const done = oath({ state: 'fulfilled', reason: null, review: null, terminalAt: '2026-10-25T21:30:00Z' });
+  const f = setup([done]); f.controller.clock.observe(serverTime);
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press((await screen.findAllByRole('button', { name: /Otwórz Przysięgę/ }))[0]);
+  await screen.findByLabelText('Status: Spełniona');
+  expect(screen.queryByTestId('countdown-chip')).toBeNull();
+  expect(screen.getByText('Zamknięta 25 paź 2026, 22:30')).toBeOnTheScreen();
+});
+
+test('a detail countdown reaching zero asks the server once, only its answer changes the state', async () => {
+  jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-10-25T00:29:30Z'));
+  try {
+    const active = oath({ state: 'active', reason: null, review: null });
+    const f = setup([active]); f.controller.clock.observe('2026-10-25T00:29:30Z');
+    jest.mocked(f.controller.detail).mockResolvedValueOnce({ kind: 'success', value: { oath: active, serverTime } }).mockResolvedValueOnce({ kind: 'success', value: { oath: { ...active, state: 'review_pending', reason: 'service_availability_unknown', review: { enteredAt: '2026-10-25T00:45:01Z', closesAt: '2026-10-28T00:45:01Z' } }, serverTime } });
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+    await act(async () => { await Promise.resolve(); });
+    await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath:/ }))[0]);
+    expect(await screen.findByLabelText('Status: Active')).toBeOnTheScreen();
+    await act(async () => { jest.advanceTimersByTime(31000); });
+    expect(f.controller.detail).toHaveBeenCalledTimes(2);
+    expect(await screen.findByLabelText('Status: Under review')).toBeOnTheScreen();
+    await act(async () => { jest.advanceTimersByTime(180000); });
+    expect(f.controller.detail).toHaveBeenCalledTimes(2);
+  } finally { jest.useRealTimers(); }
 });
