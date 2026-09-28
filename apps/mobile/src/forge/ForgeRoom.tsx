@@ -108,8 +108,11 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
   function finishGuide() {
     if (guideStep === null) return;
     setGuideStep(null);
+    guide.walkTo('aside');
     onGuideComplete?.();
   }
+  // Local decision D3 (owner, 2026-09-28): in the guide only Żaromir walks, to his spot beside each step's place.
+  useEffect(() => { if (guidePlace) guide.walkTo(guidePlace); }, [guidePlace]);
   const camera = useRef(new Animated.Value(0)).current;
   const entered = useRef(false);
   const [touchRequest, setTouchRequest] = useState(0);
@@ -187,6 +190,7 @@ export function ForgeRoom({ character, showGuide = false, onGuideComplete, tutor
   const pose: HeroPose = guide.walking ? { kind: 'walk', direction: guide.direction }
     : told ? (presence === 'act' ? { kind: 'act', place: told } : presence === 'turn' ? { kind: 'turn' } : { kind: 'talk', gestures: [0, 3] })
     : tour && !tour.place && guide.arrived === 'tutor' ? { kind: 'talk', gestures: [0, 1, 0, 2] }
+    : guidePlace && guide.arrived === guidePlace ? { kind: 'talk', gestures: [0, 3] }
     : { kind: 'idle' };
   // At a visited place the player handles it, facing it.
   const playerPose: HeroPose = player.walking ? { kind: 'walk', direction: player.direction }

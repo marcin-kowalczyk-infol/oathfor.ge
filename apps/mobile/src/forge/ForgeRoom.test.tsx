@@ -769,7 +769,7 @@ describe('dialogue panel', () => {
     expect(screen.getByText(en.room.guide.hearth)).toBeOnTheScreen();
     expect(plate()).toHaveTextContent('Zharomir');
     expect(screen.getByText('1 / 4')).toBeOnTheScreen();
-    ringAt(aside);
+    ringAt(places.hearth.guide);
   });
 
   // Review finding: the ring glowed aside while Żaromir was still walking to his tutorial place.
@@ -823,5 +823,63 @@ describe('dialogue panel', () => {
       return style.top + style.marginTop + style.height;
     });
     expect(se.height - last.bottom - last.maxHeight).toBeGreaterThanOrEqual(Math.max(...bottoms));
+  });
+});
+
+describe('first-visit guide with Żaromir walking', () => {
+  function captureWalks() {
+    motion.mockReturnValue(true);
+    const walks: { to: unknown; done: (result: { finished: boolean }) => void }[] = [];
+    jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
+      start: done => { if (value instanceof Animated.ValueXY) walks.push({ to: config.toValue, done: done ?? (() => undefined) }); }, stop: jest.fn(), reset: jest.fn(),
+    }));
+    return walks;
+  }
+  const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
+
+  test('Żaromir walks to each step\'s place while the player stays at the start', async () => {
+    const walks = captureWalks();
+    await render(room({ showGuide: true }));
+    expect(walks.map(walk => walk.to)).toEqual([places.hearth.guide]);
+    expect(screen.getByText(en.room.guide.hearth)).toBeOnTheScreen();
+    for (const place of ['seals', 'chronicle', 'door'] as const) {
+      await act(async () => walks[walks.length - 1].done({ finished: true }));
+      await press(en.room.guide.next);
+      expect(walks[walks.length - 1].to).toEqual(places[place].guide);
+    }
+    expectAt('room-player', playerStart);
+  });
+
+  test('at a step\'s place Żaromir turns to the player and talks', async () => {
+    const walks = captureWalks();
+    await render(room({ showGuide: true }));
+    await act(async () => walks[0].done({ finished: true }));
+    expect(screen.getByTestId('hero-talk', hidden)).toBeTruthy();
+  });
+
+  test('touching a place ends the guide, the player visits it and Żaromir goes aside', async () => {
+    const onGuideComplete = jest.fn();
+    await render(room({ showGuide: true, onGuideComplete }));
+    expectAt('room-guide', places.hearth.guide);
+    await press(en.room.seals);
+    expect(onGuideComplete).toHaveBeenCalledTimes(1);
+    expectAt('room-guide', aside);
+    expectAt('room-player', places.seals.player);
+    expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
+  });
+
+  test.each([['finished', 'done'], ['skipped', 'skip']] as const)('a %s guide sends Żaromir aside', async (_name, how) => {
+    await render(room({ showGuide: true }));
+    if (how === 'skip') await press(en.room.guide.skip);
+    else for (const label of [en.room.guide.next, en.room.guide.next, en.room.guide.next, en.room.guide.done]) await press(label);
+    expectAt('room-guide', aside);
+  });
+
+  test('with reduced motion Żaromir stands at the step\'s place at once', async () => {
+    await render(room({ showGuide: true }));
+    expectAt('room-guide', places.hearth.guide);
+    await press(en.room.guide.next);
+    expectAt('room-guide', places.seals.guide);
+    expect(walkTimers()).toHaveLength(0);
   });
 });
