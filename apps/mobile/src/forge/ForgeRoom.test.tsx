@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { Animated, Dimensions, StyleSheet } from 'react-native';
+import { Animated, Dimensions, Easing, StyleSheet } from 'react-native';
 import { ForgeRoom } from './ForgeRoom';
 import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, places, playerStart, tutor, walkDirection, walkDuration } from './sceneLayout';
 import { presetArt } from '../characters/presetArt';
@@ -200,7 +200,8 @@ test('touching the station the player stands at replays its response', async () 
   jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
     start: done => {
       if (value instanceof Animated.ValueXY) { if (done) finishes.push(done); return; }
-      if (config.duration === responseDuration('chronicle')) responses.push(1);
+      // The camera's entrance also runs 1100 ms, eased. Place responses run linearly.
+      if (config.duration === responseDuration('chronicle') && config.easing === Easing.linear) responses.push(1);
     }, stop: jest.fn(), reset: jest.fn(),
   }));
   await render(room());
