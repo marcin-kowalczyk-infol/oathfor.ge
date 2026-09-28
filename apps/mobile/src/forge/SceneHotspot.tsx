@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 /** Light belongs to the scene; the stationary touch area never scales with it. */
-export function SceneHotspot({ label, hint, selected, onPress, anchor, door = false, allowed, glow, heard }: {
+export function SceneHotspot({ label, hint, selected, onPress, anchor, door = false, cue = true, allowed, glow, heard }: {
   label: string; hint?: string; selected?: boolean; onPress: () => void;
   anchor: { left: number; top: number }; door?: boolean; allowed: boolean; glow: Animated.Value; heard?: string;
+  /** A small mote marks the place. Stations draw their ember wisp in the scenery instead, where it can blend with the room. */
+  cue?: boolean;
 }) {
   const ripple = useRef(new Animated.Value(1)).current;
   const animation = useRef<Animated.CompositeAnimation | null>(null);
@@ -26,9 +28,9 @@ export function SceneHotspot({ label, hint, selected, onPress, anchor, door = fa
     }}
     style={[door ? styles.door : styles.station, anchor]}>
     {({ pressed }) => <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.cueLayer}>
-      <Animated.View style={[styles.cueMote, { backgroundColor: color, shadowColor: color,
+      {cue && <Animated.View style={[styles.cueMote, { backgroundColor: color, shadowColor: color,
         opacity: pressed || selected ? 1 : glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
-        transform: [{ translateY: glow.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }, { rotate: '45deg' }] }]} />
+        transform: [{ translateY: glow.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }, { rotate: '45deg' }] }]} />}
       <Animated.View style={[styles.touchRing, { left: touch.x - 22, top: touch.y - 22, borderColor: color, shadowColor: color,
         opacity: ripple.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.95, 0.75, 0] }),
         transform: [{ scale: ripple.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1.8] }) }] }]} />

@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Animated, Dimensions, StyleSheet } from 'react-native';
-import { ForgeRoom, walkDirection } from './ForgeRoom';
+import { ForgeRoom, walkDirection, walkDuration } from './ForgeRoom';
+import { ACT_BEFORE_TURN_MS, TURN_FRAME_MS, WALK_FRAME_MS } from './HeroSprite';
 import { useMotionAllowed } from '../ui/useMotion';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Locale } from '../localization/locale';
@@ -10,13 +11,15 @@ import pl from '../localization/locales/pl/messages.json';
 jest.mock('../ui/useMotion', () => ({ useMotionAllowed: jest.fn() }));
 // The decorative flame owns its own loop and is not part of room navigation.
 jest.mock('../ui/HearthFire', () => ({ HearthFire: () => null }));
+// Looping decorations (hotspot wisps) own their loops. The room glow test counts only the room's own loop.
+jest.mock('./Sprite', () => ({ ...jest.requireActual('./Sprite'), SpriteLoop: () => null }));
 type Props = Parameters<typeof ForgeRoom>[0];
 const room = (props: Partial<Props> = {}, locale: Locale = 'en') =>
   <LocalizationProvider initialLocale={locale}><ForgeRoom onExit={jest.fn()} onOpenStation={jest.fn()} {...props} /></LocalizationProvider>;
 const motion = jest.mocked(useMotionAllowed);
 let intervals: jest.SpyInstance;
 let clear: jest.SpyInstance;
-const walkTimers = () => intervals.mock.calls.flatMap((args, index) => args[1] === 140 ? [intervals.mock.results[index].value] : []);
+const walkTimers = () => intervals.mock.calls.flatMap((args, index) => args[1] === WALK_FRAME_MS ? [intervals.mock.results[index].value] : []);
 
 beforeEach(() => {
   jest.useFakeTimers(); motion.mockReturnValue(false);
@@ -159,11 +162,68 @@ test('station discovery requires its named action before opening the matching sc
   }
 });
 
-test('walking picks the sheet that faces the travel direction and never mirrors', () => {
-  expect(walkDirection({ x: 0.5, y: 0.82 }, { x: 0.72, y: 0.65 })).toBe('right');
-  expect(walkDirection({ x: 0.5, y: 0.82 }, { x: 0.30, y: 0.635 })).toBe('left');
-  expect(walkDirection({ x: 0.5, y: 0.82 }, { x: 0.515, y: 0.565 })).toBe('back');
-  expect(walkDirection({ x: 0.515, y: 0.565 }, { x: 0.5, y: 0.82 })).toBe('forward');
+test('walking picks one of eight sheets that faces the travel direction and never mirrors', () => {
+  const start = { x: 0.5, y: 0.82 };
+  const hearth = { x: 0.515, y: 0.565 };
+  const seals = { x: 0.30, y: 0.635 };
+  const chronicle = { x: 0.72, y: 0.65 };
+  expect(walkDirection(start, chronicle)).toBe('back-right');
+  expect(walkDirection(start, seals)).toBe('back-left');
+  expect(walkDirection(start, hearth)).toBe('back');
+  expect(walkDirection(start, { x: 0.19, y: 0.50 })).toBe('back-left');
+  expect(walkDirection(hearth, start)).toBe('front');
+  expect(walkDirection(hearth, chronicle)).toBe('front-right');
+  expect(walkDirection(chronicle, { x: 0.5, y: 0.66 })).toBe('left');
+  expect(walkDirection(seals, chronicle)).toBe('right');
+  expect(walkDirection(seals, start)).toBe('front-right');
+  expect(walkDirection(chronicle, start)).toBe('front-left');
+});
+
+test('a longer walk takes longer, within a bounded time', () => {
+  const start = { x: 0.5, y: 0.82 };
+  const near = walkDuration(start, { x: 0.5, y: 0.78 });
+  const far = walkDuration(start, { x: 0.19, y: 0.50 });
+  expect(far).toBeGreaterThan(walkDuration(start, { x: 0.515, y: 0.565 }));
+  expect(near).toBeGreaterThanOrEqual(600);
+  expect(far).toBeLessThanOrEqual(1800);
+});
+
+test('touching the station Żaromir stands at replays its response', async () => {
+  motion.mockReturnValue(true);
+  const finishes: ((result: { finished: boolean }) => void)[] = [];
+  const responses: number[] = [];
+  jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
+    start: done => {
+      if (value instanceof Animated.ValueXY) { if (done) finishes.push(done); return; }
+      if (config.duration === 800) responses.push(1);
+    }, stop: jest.fn(), reset: jest.fn(),
+  }));
+  await render(room());
+  await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
+  await act(async () => finishes[finishes.length - 1]({ finished: true }));
+  expect(responses).toHaveLength(1);
+  await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
+  expect(responses).toHaveLength(2);
+});
+
+// Review finding: a new target mid-walk started from the old destination, not from where Żaromir was.
+test('a new target mid-walk starts from where Żaromir is', async () => {
+  motion.mockReturnValue(true);
+  jest.spyOn(Animated, 'timing').mockImplementation(() => ({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() }));
+  await render(room());
+  await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
+  await act(async () => { jest.advanceTimersByTime(walkDuration({ x: 0.5, y: 0.82 }, { x: 0.72, y: 0.65 }) / 2); });
+  await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
+  // From the chronicle foot point the seals are straight left. From halfway they are up and to the left.
+  expect(screen.getByTestId('hero-walk-back-left', { includeHiddenElements: true })).toBeTruthy();
+});
+
+test('a walk shows the sheet for its direction', async () => {
+  motion.mockReturnValue(true);
+  jest.spyOn(Animated, 'timing').mockImplementation(() => ({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() }));
+  await render(room());
+  await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
+  expect(screen.getByTestId('hero-walk-back-left', { includeHiddenElements: true })).toBeTruthy();
 });
 
 test('arrival shows the station pose, including the static reduced-motion equivalent', async () => {
@@ -413,6 +473,37 @@ describe('tutorial after review', () => {
     expect(walks.map(walk => walk.to)).toEqual([{ x: 0.5, y: 0.66 }, { x: 0.72, y: 0.65 }]);
     expect(screen.getByText(tut.again)).toBeOnTheScreen();
     expect(screen.getByTestId('hero-idle', { includeHiddenElements: true })).toBeTruthy();
+  });
+
+  test('at a told place Żaromir works facing it, turns around and then talks to the player', async () => {
+    const walks = captureWalks();
+    await render(room({ tutorial: 1 }));
+    await press(hear('seals'));
+    await act(async () => walks[walks.length - 1].done({ finished: true }));
+    expect(screen.getByTestId('hero-pose-seals', { includeHiddenElements: true })).toBeTruthy();
+    await act(async () => { jest.advanceTimersByTime(ACT_BEFORE_TURN_MS); });
+    expect(screen.getByTestId('hero-turn', { includeHiddenElements: true })).toBeTruthy();
+    await act(async () => { jest.advanceTimersByTime(TURN_FRAME_MS * 4); });
+    expect(screen.getByTestId('hero-talk', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByText(tut.seals['1'])).toBeOnTheScreen();
+  });
+
+  test('while the player chooses a place Żaromir talks and points at the places', async () => {
+    const walks = captureWalks();
+    await render(room({ tutorial: 1 }));
+    await act(async () => walks[walks.length - 1].done({ finished: true }));
+    expect(screen.getByTestId('hero-talk', { includeHiddenElements: true })).toBeTruthy();
+  });
+
+  test('the door chapter plays the moonlight response at the door', async () => {
+    const walks = captureWalks();
+    await render(room({ tutorial: 1 }));
+    await press(hear('door'));
+    // The place responds when Żaromir reaches it and starts working there, not while he is still walking.
+    expect(screen.queryByTestId('fx-door', { includeHiddenElements: true })).toBeNull();
+    await act(async () => walks[walks.length - 1].done({ finished: true }));
+    expect(screen.getByTestId('fx-door', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByTestId('hero-pose-door', { includeHiddenElements: true })).toBeTruthy();
   });
 
   test('touching the place being told keeps the current line', async () => {

@@ -1,40 +1,54 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing } from 'react-native';
+import { SpriteSequence } from './Sprite';
+import { effectSheets, type HeroPlace, type Sheet } from './motion';
+
+type Point = (x: number, y: number) => { left: number; top: number };
+
+/**
+ * Where each response sits on the room artwork, as fractions of it. width is the sprite cell width as a fraction of the artwork width.
+ * window is the part of the shared progress in which that sprite plays.
+ */
+type Layer = { sheet: Sheet; x: number; y: number; width: number; window: [number, number]; id: string };
+const responses: Record<HeroPlace, { duration: number; layers: Layer[] }> = {
+  // The flare rises from the painted fire bed.
+  hearth: { duration: 900, layers: [{ sheet: effectSheets.hearthBurst, x: 0.516, y: 0.472, width: 0.24, window: [0, 1], id: 'fx-hearth' }] },
+  // The three seals light up one after another, left to right.
+  seals: { duration: 1150, layers: [0.12, 0.207, 0.3].map((x, index) => ({
+    sheet: effectSheets.sealGlow, x, y: 0.517, width: 0.112, window: [index * 0.15, 0.7 + index * 0.15] as [number, number], id: `fx-seal-${index}`,
+  })) },
+  // One page turns over the open book on the lectern.
+  // Native check on iPhone 18 Pro: the page matches the open page size. Its tilt toward the book is baked into the export.
+  chronicle: { duration: 800, layers: [{ sheet: effectSheets.chroniclePage, x: 0.848, y: 0.512, width: 0.13, window: [0, 1], id: 'fx-chronicle' }] },
+  // Moonlight and mist spill over the threshold.
+  // Native check: at the threshold behind the seals the mist only lit the seal drums. It rises from the doorway floor instead.
+  door: { duration: 1100, layers: [{ sheet: effectSheets.doorMist, x: 0.19, y: 0.505, width: 0.28, window: [0, 1], id: 'fx-door' }] },
+};
 
 /** Decorative responses never delay navigation or alter committed state. */
-export function StationEffect({ station, request, allowed, anchor }: {
-  station: 'hearth' | 'seals' | 'chronicle'; request: number; allowed: boolean;
-  anchor: { left: number; top: number };
+export function StationEffect({ station, request, allowed, point, sceneWidth }: {
+  station: HeroPlace; request: number; allowed: boolean; point: Point; sceneWidth: number;
 }) {
   const progress = useRef(new Animated.Value(1)).current;
   const consumed = useRef<number | null>(null);
+  const response = responses[station];
   useEffect(() => {
     if (consumed.current === request) { progress.setValue(1); return; }
     consumed.current = request;
     if (!allowed) { progress.setValue(1); return; }
     progress.setValue(0);
-    const response = Animated.timing(progress, { toValue: 1, duration: 900, easing: Easing.out(Easing.quad), isInteraction: false, useNativeDriver: true });
-    response.start();
-    return () => { response.stop(); progress.stopAnimation(); };
+    const play = Animated.timing(progress, { toValue: 1, duration: response.duration, easing: Easing.linear, isInteraction: false, useNativeDriver: true });
+    play.start();
+    return () => { play.stop(); progress.stopAnimation(); };
   }, [allowed, progress, request, station]);
-  const opacity = progress.interpolate({ inputRange: [0, 0.15, 0.65, 1], outputRange: [0, 0.85, 0.55, 0] });
-  return <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.anchor, anchor]}>
-    {station === 'hearth' && <>
-      <Animated.Image source={require('../../assets/forge/ember-haze-v01.png')} style={[styles.flare, { opacity, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [10, -36] }) }, { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1.6] }) }] }]} />
-      {[0, 1, 2, 3, 4, 5].map(index => <Animated.View key={index} style={[styles.ember, { opacity, transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, (index - 2.5) * 13] }) }, { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [8, -35 - index % 3 * 15] }) }] }]} />)}
-    </>}
-    {station === 'chronicle' && [0, 1, 2].map(index => <Animated.View key={index} style={[styles.page, { opacity, transform: [{ perspective: 240 }, { rotateZ: '-12deg' }, { rotateY: progress.interpolate({ inputRange: [0, 0.22 + index * 0.14, 1], outputRange: ['0deg', '-90deg', '-175deg'] }) }] }]} />)}
-    {station === 'seals' && [0, 1, 2].map(index => <Animated.View key={index} style={[styles.rune, { left: (index - 1) * 16, top: index % 2 * 9, opacity, transform: [{ perspective: 200 }, { rotateY: progress.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }, { translateY: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -9, 0] }) }] }]}>
-      <View style={styles.runeStem} /><View style={styles.runeBranch} />
-    </Animated.View>)}
-  </View>;
+  // No wrapper: each light blends directly with the room image drawn before it. The layers are hidden from accessibility.
+  return <>
+    {response.layers.map(layer => {
+      const width = layer.width * sceneWidth;
+      const height = width / layer.sheet.aspect;
+      const anchor = point(layer.x, layer.y);
+      return <SpriteSequence key={layer.id} testID={layer.id} sheet={layer.sheet} width={width} progress={progress} start={layer.window[0]} end={layer.window[1]}
+        style={{ left: anchor.left - width * layer.sheet.anchor.x, top: anchor.top - height * layer.sheet.anchor.y }} />;
+    })}
+  </>;
 }
-const styles = StyleSheet.create({
-  anchor: { position: 'absolute', width: 0, height: 0 },
-  flare: { position: 'absolute', width: 170, height: 180, left: -85, top: -100, tintColor: '#ffc15a' },
-  ember: { position: 'absolute', width: 2, height: 5, borderRadius: 2, backgroundColor: '#ffdc91', shadowColor: '#ffa735', shadowOpacity: 1, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
-  page: { position: 'absolute', width: 17, height: 23, top: -12, left: 0, backgroundColor: '#d6bd85', borderColor: '#987744', borderWidth: 0.5, transformOrigin: 'left center' },
-  rune: { position: 'absolute', width: 10, height: 18 },
-  runeStem: { position: 'absolute', width: 2, height: 16, backgroundColor: '#ffd38a', shadowColor: '#ffc167', shadowOpacity: 1, shadowRadius: 5, shadowOffset: { width: 0, height: 0 } },
-  runeBranch: { position: 'absolute', width: 2, height: 10, left: 3, top: 0, backgroundColor: '#ffd38a', transform: [{ rotate: '-40deg' }] },
-});
