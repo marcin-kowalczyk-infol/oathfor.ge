@@ -17,8 +17,9 @@ jest.mock('../ui/HearthFire', () => ({ HearthFire: () => null }));
 jest.mock('./Sprite', () => ({ ...jest.requireActual('./Sprite'), SpriteLoop: () => null }));
 type Props = Parameters<typeof ForgeRoom>[0];
 const character = { name: 'Mira', presetId: 'starter_02', build: 'thin', form: 'feminine' } as const;
+const known = { today: { total: 0, paused: false }, history: { total: 0 }, loading: false };
 const room = (props: Partial<Props> = {}, locale: Locale = 'en') =>
-  <LocalizationProvider initialLocale={locale}><ForgeRoom character={character} onExit={jest.fn()} onOpenStation={jest.fn()} {...props} /></LocalizationProvider>;
+  <LocalizationProvider initialLocale={locale}><ForgeRoom character={character} progress={known} onTalk={jest.fn()} onExit={jest.fn()} onOpenStation={jest.fn()} {...props} /></LocalizationProvider>;
 const motion = jest.mocked(useMotionAllowed);
 let intervals: jest.SpyInstance;
 let clear: jest.SpyInstance;
@@ -648,7 +649,7 @@ describe('player', () => {
   });
 
   test('a character whose preset has no art gets a silhouette and the room still works', async () => {
-    await render(<LocalizationProvider initialLocale="en"><ForgeRoom character={{ ...character, presetId: 'starter_99' }} onExit={jest.fn()} onOpenStation={jest.fn()} /></LocalizationProvider>);
+    await render(room({ character: { ...character, presetId: 'starter_99' } }));
     expect(screen.getByTestId('player-silhouette', hidden)).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: en.room.hearth }));
     expect(screen.getByText(en.room.player.hearth)).toBeOnTheScreen();
@@ -900,5 +901,122 @@ describe('first-visit guide with Żaromir walking', () => {
     await press(en.room.guide.next);
     expectAt('room-guide', places.seals.guide);
     expect(walkTimers()).toHaveLength(0);
+  });
+});
+
+describe('talking to Żaromir', () => {
+  const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
+  const talk = () => press(en.room.talk.label);
+  const card = () => screen.getByTestId('talk-card');
+
+  test('Żaromir aside has a labelled touch target of at least 44 points, only in normal mode', async () => {
+    const view = await render(room());
+    const box = StyleSheet.flatten(screen.getByRole('button', { name: en.room.talk.label }).props.style) as { width: number; height: number };
+    expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
+    await view.rerender(room({ tutorial: 1 }));
+    expect(screen.queryByRole('button', { name: en.room.talk.label })).toBeNull();
+  });
+
+  // Review finding: on 375 point wide screens the talk target covered the edges of the hearth and chronicle touch areas.
+  test.each([[375, 667], [375, 812], [440, 956]])('at %i × %i the talk target stays clear of every place', async (width, height) => {
+    const window = { width, height, scale: 3, fontScale: 1 };
+    Dimensions.set({ window, screen: window });
+    await render(room());
+    const box = (name: string) => {
+      const style = StyleSheet.flatten(screen.getByRole('button', { name }).props.style) as { left: number; top: number; width: number; height: number; marginLeft?: number; marginTop?: number };
+      const left = style.left + (style.marginLeft ?? 0);
+      const top = style.top + (style.marginTop ?? 0);
+      return { left, top, right: left + style.width, bottom: top + style.height };
+    };
+    const talkBox = box(en.room.talk.label);
+    for (const place of [en.room.hearth, en.room.seals, en.room.chronicle, en.room.exit]) {
+      const other = box(place);
+      const overlap = talkBox.left < other.right && other.left < talkBox.right && talkBox.top < other.bottom && other.top < talkBox.bottom;
+      expect([place, overlap]).toEqual([place, false]);
+    }
+  });
+
+  test('the guide hides the talk until it ends', async () => {
+    await render(room({ showGuide: true }));
+    expect(screen.queryByRole('button', { name: en.room.talk.label })).toBeNull();
+    await press(en.room.guide.skip);
+    expect(screen.getByRole('button', { name: en.room.talk.label })).toBeOnTheScreen();
+  });
+
+  test('the player asks, then Żaromir gives the hint for no current Oaths with the statistics card', async () => {
+    const onTalk = jest.fn();
+    await render(room({ onTalk, progress: { today: { total: 0, paused: false }, history: { total: 5 }, loading: false } }));
+    await talk();
+    expect(onTalk).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(en.room.player.talk)).toBeOnTheScreen();
+    await press(en.room.tutorial.next);
+    expect(screen.getByText(en.room.talk.hint.none)).toBeOnTheScreen();
+    expect(card()).toHaveTextContent('Mira', { exact: false });
+    expect(card()).toHaveTextContent('Oathkeeper', { exact: false });
+    expect(card()).toHaveTextContent('Slight', { exact: false });
+    expect(card()).toHaveTextContent('0 current Oaths', { exact: false });
+    expect(card()).toHaveTextContent('5 chronicle entries', { exact: false });
+  });
+
+  test('one current Oath reads in the singular', async () => {
+    await render(room({ progress: { today: { total: 1, paused: false }, history: { total: 1 }, loading: false } }));
+    await talk(); await press(en.room.tutorial.next);
+    expect(screen.getByText('You have 1 current Oath. Take a look at the seals.')).toBeOnTheScreen();
+  });
+
+  test('a restarted guide closes an open talk for good', async () => {
+    const view = await render(room());
+    await talk();
+    await view.rerender(room({ showGuide: 2 }));
+    await press(en.room.guide.skip);
+    expect(screen.queryByText(en.room.player.talk)).toBeNull();
+  });
+
+  test('current Oaths are counted in the hint', async () => {
+    await render(room({ progress: { today: { total: 3, paused: false }, history: { total: 1 }, loading: false } }));
+    await talk(); await press(en.room.tutorial.next);
+    expect(screen.getByText('You have 3 current Oaths. Take a look at the seals.')).toBeOnTheScreen();
+    expect(card()).toHaveTextContent('1 chronicle entry', { exact: false });
+  });
+
+  test('a paused character hears the pause line first', async () => {
+    await render(room({ progress: { today: { total: 3, paused: true }, history: { total: 1 }, loading: false } }));
+    await talk(); await press(en.room.tutorial.next);
+    expect(screen.getByText(en.room.talk.hint.paused)).toBeOnTheScreen();
+  });
+
+  test('without counts the hint says so and the card shows dashes', async () => {
+    await render(room({ progress: { today: null, history: null, loading: false } }));
+    await talk(); await press(en.room.tutorial.next);
+    expect(screen.getByText(en.room.talk.hint.unavailable)).toBeOnTheScreen();
+    expect(card()).toHaveTextContent('– current Oaths', { exact: false });
+    expect(card()).toHaveTextContent('– chronicle entries', { exact: false });
+  });
+
+  test('Żaromir waits for a pending answer at most 2000 ms', async () => {
+    await render(room({ progress: { today: null, history: null, loading: true } }));
+    await talk(); await press(en.room.tutorial.next);
+    expect(screen.queryByText(en.room.talk.hint.unavailable)).toBeNull();
+    await act(async () => { jest.advanceTimersByTime(1999); });
+    expect(screen.queryByText(en.room.talk.hint.unavailable)).toBeNull();
+    await act(async () => { jest.advanceTimersByTime(1); });
+    expect(screen.getByText(en.room.talk.hint.unavailable)).toBeOnTheScreen();
+  });
+
+  test('an answer arriving in time gives the counted hint at once', async () => {
+    const view = await render(room({ progress: { today: null, history: null, loading: true } }));
+    await talk(); await press(en.room.tutorial.next);
+    await view.rerender(room({ progress: { today: { total: 2, paused: false }, history: { total: 4 }, loading: false } }));
+    expect(screen.getByText('You have 2 current Oaths. Take a look at the seals.')).toBeOnTheScreen();
+  });
+
+  test('the Polish card uses the form title, build and plural labels', async () => {
+    await render(room({ progress: { today: { total: 2, paused: false }, history: { total: 5 }, loading: false } }, 'pl'));
+    await press(pl.room.talk.label);
+    await press(pl.room.tutorial.next);
+    expect(card()).toHaveTextContent('Obrończyni Przysięgi', { exact: false });
+    expect(card()).toHaveTextContent('Wątła', { exact: false });
+    expect(card()).toHaveTextContent('2 bieżące Przysięgi', { exact: false });
+    expect(card()).toHaveTextContent('5 wpisów w kronice', { exact: false });
   });
 });
