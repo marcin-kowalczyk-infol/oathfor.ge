@@ -35,7 +35,7 @@ export default function DemoApp() {
     [copy.new, () => reset(false)], [copy.empty, () => reset(true, false)], [copy.returning, () => reset(true)],
     [copy.restart, () => { restart(); setControls(false); }],
     [copy.expire, () => { dummy.state.expired = true; restart(); setControls(false); }],
-    [dummy.state.offline ? copy.online : copy.offline, () => { dummy.state.offline = !dummy.state.offline; repaint(value => value + 1); }],
+    [dummy.state.offline ? copy.online : copy.offline, () => { dummy.setOffline(!dummy.state.offline); repaint(value => value + 1); }],
     [copy.lose, () => { dummy.state.loseNext = true; repaint(value => value + 1); }],
     [copy.add, () => { dummy.add(); repaint(value => value + 1); setControls(false); }],
   ];

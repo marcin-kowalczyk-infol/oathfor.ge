@@ -9,16 +9,18 @@ import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { layoutMode } from '../ui/layoutMode';
 import { tokens } from '../ui/tokens';
 import { oathArt, ruleIcon } from './oathArt';
-import { ruleCards, type RuleCardId } from './ruleCards';
+import { ruleCards, type RuleCard, type RuleCardId } from './ruleCards';
 import { promiseText, SnapshotRules } from './SnapshotRules';
 
 const HIGHLIGHT = '#e0a84f';
+// VoiceOver reads a date card as "pt 2 paź 18:00 Warszawa" and the cutoff card as "18:15 15 minut po terminie".
+const spoken = (card: RuleCard) => (card.time && card.lines.length > 1 ? [card.lines[0], card.time, ...card.lines.slice(1)] : [card.time, ...card.lines]).filter(Boolean).join(' ');
 
 /**
  * The accepted rules as the promise, the declaration and short cards, with the complete stored rules one touch away
  * (owner decision Q1: folded under "Pełne zasady"). The folded text is the unchanged SnapshotRules.
  */
-export function OathRuleCards({ snapshot, highlight = null, emblem = true, onCardsLayout }: { snapshot: Snapshot; highlight?: RuleCardId | null; /** The detail shows its own emblem above. */ emblem?: boolean; /** Top of the card grid inside this view. */ onCardsLayout?(y: number): void }) {
+export function OathRuleCards({ snapshot, highlight = null, head = 'full', onCardsLayout }: { snapshot: Snapshot; highlight?: RuleCardId | null; /** promise: the detail shows its own emblem and title above, so only the promise opens the rules. */ head?: 'full' | 'promise'; /** Top of the card grid inside this view. */ onCardsLayout?(y: number): void }) {
   const { t, i18n } = useTranslation();
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
@@ -28,8 +30,10 @@ export function OathRuleCards({ snapshot, highlight = null, emblem = true, onCar
   const text = (value: string) => bindShortWords(value, locale);
   return <View style={styles.rules}>
     <View style={styles.head}>
-      {emblem && <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={snapshot.activity} size={88} /></View>}
-      <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{copy.title}</Text>
+      {head === 'full' && <>
+        <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={snapshot.activity} size={88} /></View>
+        <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{copy.title}</Text>
+      </>}
       <Text style={styles.promise}>{promiseText(snapshot, locale)}</Text>
     </View>
     <View style={styles.declaration}>
@@ -37,11 +41,12 @@ export function OathRuleCards({ snapshot, highlight = null, emblem = true, onCar
       <Text style={styles.body}>{copy.declaration}</Text>
     </View>
     <View testID="rule-cards" onLayout={event => onCardsLayout?.(event.nativeEvent.layout.y)} style={[styles.grid, { flexDirection: columns === 2 ? 'row' : 'column' }]}>
-      {ruleCards(snapshot, t, locale).map(card => <View key={card.id} testID={`rule-card-${card.id}`} accessible accessibilityLabel={`${card.title}. ${card.lines.join(' ')}`}
+      {ruleCards(snapshot, t, locale).map(card => <View key={card.id} testID={`rule-card-${card.id}`} accessible accessibilityLabel={`${card.title}. ${spoken(card)}`}
         style={[styles.card, columns === 2 && styles.half, card.id === highlight && styles.highlight]}>
         <SpriteFrame sheet={oathArt.ruleIcons} index={ruleIcon[card.icon]} width={40} />
         <View style={styles.cardText}>
           <Text style={styles.cardTitle}>{text(card.title)}</Text>
+          {card.time && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardTime}>{card.time}</Text>}
           {card.lines.map(line => <Text key={line} style={styles.cardLine}>{text(line)}</Text>)}
         </View>
       </View>)}
@@ -70,6 +75,7 @@ const styles = StyleSheet.create({
   cardText: { flex: 1, gap: 2 },
   cardTitle: { color: tokens.color.text, fontSize: 15, fontWeight: '700' },
   cardLine: { color: tokens.color.secondary, fontSize: 14, lineHeight: 20 },
+  cardTime: { color: tokens.color.primary, fontSize: 22, lineHeight: 28, fontWeight: '700', fontVariant: ['tabular-nums'] },
   fold: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14, borderRadius: 16, backgroundColor: 'rgba(28, 22, 16, 0.94)' },
   foldText: { flex: 1, color: tokens.color.text, fontSize: tokens.body, fontWeight: '600' },
   foldMark: { color: tokens.color.primary, fontSize: 18 },

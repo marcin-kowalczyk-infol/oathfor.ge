@@ -31,7 +31,7 @@ Starting tone: calm, direct and quietly warm. One brief acknowledgment followed 
 
 Use only backend-provided event/state, eligibility and permitted history. A missing start event is not evidence of inactivity. The companion cannot assess proof on his own, grant rewards, extend deadlines, reduce committed requirements or resolve an appeal. Provider errors and uncertain evidence are not misses. The deterministic state explanation, exact deadlines and action labels remain visible separately; narrative copy cannot replace them. These boundaries apply the existing [AI policy](../engineering/ai-verification.md) and [bilingual copy handoff](../product/first-loop.md#bilingual-implementation-copy-handoff), not a new game rule.
 
-Persona means written event-driven messages. It does not add audio, open chat, a memory system or live model integration. Suppress gameplay interventions while paused under the accepted [pause contract](../product/first-loop.md#pause-contract); passive status remains available when the player opens it.
+Persona means written event-driven messages. It does not add audio, open chat or a memory system. **Owner decision, 2026-09-28:** a live model may write bounded companion messages for reminders, upcoming deadline notifications and motivation. The rules in this section are the policy each generated message must pass before it is sent. Exact deadlines, state and actions still come from the backend, never from model text. Suppress gameplay interventions while paused under the accepted [pause contract](../product/first-loop.md#pause-contract); passive status remains available when the player opens it.
 
 ## Bilingual event examples
 

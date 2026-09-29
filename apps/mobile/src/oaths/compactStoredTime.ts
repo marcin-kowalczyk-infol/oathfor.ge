@@ -14,14 +14,19 @@ export function compactStoredTime(local: string, locale: Locale): string {
 
 /** Weekday and 24-hour time of a stored wall time, with the date when asked: "pt 2 paź 18:00" or "Fri, Oct 2, 18:00". */
 export function shortStoredTime(local: string, locale: Locale, withDate: boolean): string {
-  const instant = new Date(`${local}Z`);
-  const part = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'pl-PL', { timeZone: 'UTC', ...options }).format(instant);
-  const weekday = part({ weekday: 'short' }).replace(/\.$/, '');
   const time = local.slice(11, 16);
-  if (!withDate) return `${weekday} ${time}`;
-  const day = instant.getUTCDate(), month = part({ month: 'short' }).replace(/\.$/, '');
-  return locale === 'en' ? `${weekday}, ${month} ${day}, ${time}` : `${weekday} ${day} ${month} ${time}`;
+  if (!withDate) return `${weekday(local, locale)} ${time}`;
+  return `${shortStoredDay(local, locale)}${locale === 'en' ? ',' : ''} ${time}`;
 }
+
+/** Weekday and date of a stored wall time without the hour: "pt 2 paź" or "Fri, Oct 2". */
+export function shortStoredDay(local: string, locale: Locale): string {
+  const instant = new Date(`${local}Z`);
+  const day = instant.getUTCDate(), month = part(local, locale, { month: 'short' }).replace(/\.$/, '');
+  return locale === 'en' ? `${weekday(local, locale)}, ${month} ${day}` : `${weekday(local, locale)} ${day} ${month}`;
+}
+const part = (local: string, locale: Locale, options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'pl-PL', { timeZone: 'UTC', ...options }).format(new Date(`${local}Z`));
+const weekday = (local: string, locale: Locale) => part(local, locale, { weekday: 'short' }).replace(/\.$/, '');
 
 /** The wall time of an instant in a stored zone. Missing device zone data falls back to UTC rather than hiding it. */
 export function wallTimeIn(instant: string, zone: string): string {

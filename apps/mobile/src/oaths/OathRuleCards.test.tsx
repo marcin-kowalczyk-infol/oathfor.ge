@@ -23,7 +23,9 @@ test('Polish cards show the promise, declaration and card values, full rules fol
   await render(<LocalizationProvider initialLocale="pl"><OathRuleCards snapshot={value} /></LocalizationProvider>);
   expect(screen.getByText(value.copy.pl.declaration)).toBeOnTheScreen();
   expect(screen.getByText(promiseText(value, 'pl'))).toBeOnTheScreen();
-  expect(screen.getByTestId('rule-card-deadline')).toHaveTextContent(/Termin.*pt 2 paź 18:00 · Warszawa/);
+  expect(screen.getByTestId('rule-card-deadline')).toHaveTextContent(/Termin.*18:00.*pt 2 paź.*Warszawa/);
+  expect(screen.getByTestId('rule-card-deadline')).toHaveProp('accessibilityLabel', 'Termin. pt 2 paź 18:00 Warszawa');
+  expect(screen.getByTestId('rule-card-cutoff')).toHaveProp('accessibilityLabel', 'Ostatni moment na dowód. 18:15 15 minut po terminie');
   expect(screen.getByTestId('rule-cards')).toHaveStyle({ flexDirection: 'row' });
   expect(screen.queryByText(value.copy.pl.sections.appeal)).toBeNull();
 });

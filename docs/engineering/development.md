@@ -398,7 +398,7 @@ Source build: React Native 0.86 links precompiled core binaries by default. `scr
 
 iOS 27 SDK: an app without the UIScene life cycle stops at launch. The Expo SDK 57 template still creates its window in the app delegate. `expo-build-properties` sets `ios.enableSceneSupport`, which Expo documents as adopting the scene life cycle in an SDK 57 project "as required by the iOS 27 SDK" ([Expo build properties for SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/build-properties/), expo-build-properties 57.0.22, expo/expo PR 50205 and 50221). It moves React Native startup to Expo's `ExpoAppSceneDelegate` and adds the scene manifest to `Info.plist`. It is a no-op on SDK 58, so remove it with that upgrade.
 
-Prerequisites: Xcode with an iOS simulator runtime and CocoaPods (`brew install cocoapods`, 1.17.0 verified on 2026-09-27). The build needs no Apple account or signing. Native folders are generated and ignored (`apps/mobile/ios`, `apps/mobile/demo/ios`). The demo uses the unregistered placeholder bundle identifier `com.placeholder.oathforge.demo` for simulators only.
+Prerequisites: Xcode with an iOS simulator runtime and CocoaPods (`brew install cocoapods`, 1.17.0 verified on 2026-09-27). The shell needs a UTF-8 locale, for example `LANG=en_US.UTF-8`. Without it CocoaPods 1.17.0 on Ruby 4.0.7 stopped with `Encoding::CompatibilityError` (local observation, 2026-09-29). The build needs no Apple account or signing. Native folders are generated and ignored (`apps/mobile/ios`, `apps/mobile/demo/ios`). The demo uses the unregistered placeholder bundle identifier `com.placeholder.oathforge.demo` for simulators only.
 
 From `apps/mobile`, with the Node version from `.nvmrc` and the simulator booted:
 

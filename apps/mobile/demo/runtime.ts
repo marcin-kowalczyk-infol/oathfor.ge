@@ -204,7 +204,15 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
       rulesGuideStorage: { async read(owner: string) { return state.rulesGuideSeen.has(owner); }, async markSeen(owner: string) { state.rulesGuideSeen.add(owner); } },
       apple: { async isAvailable() { return true; }, onRevoked() { return () => {}; } },
       permissions: { async read() { return { kind: 'denied' as const, canAskAgain: false }; }, async request() { return { kind: 'denied' as const, canAskAgain: false }; }, async openSettings() { return false; } },
+      network: { onReconnect(listener: () => void) { reconnectListeners.add(listener); return () => { reconnectListeners.delete(listener); }; } },
     };
   }
-  return { state, runtime, add: () => seed('active') };
+  // The simulator's own network never drops, so the offline control stands in for it and going back online is a reconnect.
+  const reconnectListeners = new Set<() => void>();
+  function setOffline(offline: boolean) {
+    const reconnected = state.offline && !offline;
+    state.offline = offline;
+    if (reconnected) reconnectListeners.forEach(listener => listener());
+  }
+  return { state, runtime, setOffline, add: () => seed('active') };
 }

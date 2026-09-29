@@ -7,6 +7,7 @@ Run from repository root. Commands are shared shell/Python entrypoints, not vend
 | `python3 .agents/commands/check_repository.py` | Validate docs, local links, symlinks, skills, role adapters and artwork exclusion; Python 3.11+ |
 | `python3 .agents/commands/check_api.py` | Build an isolated Compose runtime, run API/unit/integration/static checks and real HTTP; removes its own temporary project |
 | `python3 .agents/commands/check_docker.py` | Verify clean Compose startup, managed worker, persistence and bootstrap failure in a disposable source copy/project |
+| `python3 .agents/commands/review_copy.py` | Advisory PL/EN copy review with TypeSafe Jev. Reviews locale keys changed against `HEAD` by default. Needs `TYPESAFE_API_KEY` and sends only copy keys and text. Flags are hints for the owner, not approval. Options: `--ref`, `--all`, `--prefix`, `--strict`, `--threshold`, `--json`. Tests: `python3 -m unittest discover -s .agents/commands -p 'test_review_copy.py'`. **Local decision: owner, 2026-09-29. Source: [TypeSafe API](https://docs.typesafe.ai/api.md), reviewed 2026-09-29.** |
 | `git diff --check` | Whitespace check on tracked changes |
 | `git status --short` | Inspect changed/untracked files |
 | `mkdir -p graphics` | Recreate ignored local artwork directory after clone |

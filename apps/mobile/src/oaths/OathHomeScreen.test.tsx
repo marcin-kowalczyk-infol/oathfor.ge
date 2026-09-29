@@ -1,4 +1,4 @@
-import { Dimensions, StyleSheet } from 'react-native';
+import { AppState, Dimensions, StyleSheet } from 'react-native';
 import { createServerClock } from './serverClock';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
@@ -63,7 +63,8 @@ test('history paginates withdrawals and refresh begins with the first page', asy
   await fireEvent.press(screen.getByRole('button', { name: 'Load more' }));
   expect(await screen.findAllByTestId('state-seal-withdrawn', { includeHiddenElements: true })).toHaveLength(2);
   expect(jest.mocked(f.controller.list).mock.calls[2][0]).toEqual({ view: 'history', cursor: 'cursor1' });
-  await fireEvent.press(screen.getByRole('button', { name: 'Refresh' }));
+  expect(screen.queryByRole('button', { name: 'Refresh' })).toBeNull();
+  await act(async () => { await screen.getByTestId('oath-list-scroll').props.refreshControl.props.onRefresh(); });
   expect(jest.mocked(f.controller.list).mock.calls[3][0]).toEqual({ view: 'history' });
   await waitFor(() => expect(screen.getAllByTestId('state-seal-withdrawn', { includeHiddenElements: true })).toHaveLength(1));
 });
@@ -379,6 +380,15 @@ test('Today rows count down by state with a short deadline, the zone stays in th
   expect(screen.getAllByRole('header', { name: /Europe\/Warsaw/ }).length).toBeGreaterThan(0);
 });
 
+test('each Today state section labels its own date and zone, even on the same day', async () => {
+  const scheduled = oath({ state: 'scheduled', activatedAt: null, reason: null, review: null, id: '20000000-0000-4000-8000-000000000002' });
+  const active = oath({ state: 'active', reason: null, review: null, id: '20000000-0000-4000-8000-000000000003' });
+  const f = setup([scheduled, active]);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await screen.findAllByRole('button', { name: /Open Oath:/ });
+  expect(screen.getAllByRole('header', { name: 'October 25, 2026 · Europe/Warsaw' })).toHaveLength(2);
+});
+
 test('a countdown reaching zero on Today shows time is up and asks the server once, the state stays', async () => {
   jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-10-25T00:29:30Z'));
   try {
@@ -468,4 +478,64 @@ test('a detail countdown reaching zero asks the server once, only its answer cha
     await act(async () => { jest.advanceTimersByTime(180000); });
     expect(f.controller.detail).toHaveBeenCalledTimes(2);
   } finally { jest.useRealTimers(); }
+});
+
+test('a review detail keeps its state, countdown, closing time in the Oath zone and reason in one status panel', async () => {
+  const f = setup(); f.controller.clock.observe(serverTime);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath:/ }))[0]);
+  const panel = await screen.findByTestId('detail-status');
+  expect(within(panel).getByLabelText('Status: Under review')).toBeOnTheScreen();
+  expect(within(panel).getByTestId('countdown-chip')).toBeOnTheScreen();
+  expect(within(panel).getByText('Review closes Oct 28, 2026 at 1:45am')).toBeOnTheScreen();
+  expect(within(panel).getByText(/Service availability is uncertain/)).toBeOnTheScreen();
+  expect(screen.queryByText(/GMT/)).toBeNull();
+  expect(screen.getAllByRole('header', { name: oath().snapshot.copy.en.title })).toHaveLength(1);
+});
+
+test('the Polish review closing time uses the same short date as a closed Oath', async () => {
+  const f = setup(); f.controller.clock.observe(serverTime);
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press((await screen.findAllByRole('button', { name: /Otwórz Przysięgę/ }))[0]);
+  expect(await screen.findByText('Przegląd kończy się 28 paź 2026, 1:45')).toBeOnTheScreen();
+});
+
+test('the list refreshes quietly when the app returns to the foreground, a detail stays as it is', async () => {
+  const listeners: ((state: string) => void)[] = [];
+  // The preset's AppState.addEventListener is already a jest.fn, so mockRestore would leave it returning undefined for later tests.
+  const original = jest.mocked(AppState.addEventListener).getMockImplementation();
+  const subscription = jest.spyOn(AppState, 'addEventListener').mockImplementation(((_: string, listener: (state: string) => void) => { listeners.push(listener); return { remove: jest.fn() }; }) as never);
+  try {
+    const f = setup();
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+    await screen.findAllByText('Under review');
+    const late = deferred<Awaited<ReturnType<OathController['list']>>>(); jest.mocked(f.controller.list).mockReturnValueOnce(late.promise);
+    await act(async () => { listeners.forEach(listener => listener('active')); });
+    expect(f.controller.list).toHaveBeenCalledTimes(2);
+    expect(screen.getAllByRole('button', { name: /Open Oath: Running/ }).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Loading Oaths…')).toBeNull();
+    await act(async () => late.resolve(page([oath()])));
+    await fireEvent.press(screen.getAllByRole('button', { name: /Open Oath: Running/ })[0]);
+    await screen.findByTestId('detail-status');
+    await act(async () => { listeners.forEach(listener => listener('active')); });
+    expect(f.controller.list).toHaveBeenCalledTimes(2);
+  } finally { subscription.mockImplementation(original); }
+});
+
+test('the list refreshes quietly when the network comes back, a detail stays as it is', async () => {
+  const listeners: (() => void)[] = [];
+  const stop = jest.fn();
+  const network = { onReconnect: (listener: () => void) => { listeners.push(listener); return stop; } };
+  const f = setup();
+  const view = await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" network={network} /></LocalizationProvider>);
+  await screen.findAllByText('Under review');
+  await act(async () => { listeners.forEach(listener => listener()); });
+  expect(f.controller.list).toHaveBeenCalledTimes(2);
+  expect(screen.queryByText('Loading Oaths…')).toBeNull();
+  await fireEvent.press(screen.getAllByRole('button', { name: /Open Oath: Running/ })[0]);
+  await screen.findByTestId('detail-status');
+  await act(async () => { listeners.forEach(listener => listener()); });
+  expect(f.controller.list).toHaveBeenCalledTimes(2);
+  await view.unmount();
+  expect(stop).toHaveBeenCalledTimes(1);
 });

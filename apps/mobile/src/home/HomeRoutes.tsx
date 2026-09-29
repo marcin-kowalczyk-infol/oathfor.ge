@@ -7,6 +7,7 @@ import type { CharacterController, CharacterControllerState } from '../character
 import { ForgeRoom } from '../forge/ForgeRoom';
 import { useForgeProgress } from '../forge/useForgeProgress';
 import type { GuideStorage } from '../forge/guideStorage';
+import type { NetworkEvents } from '../api/networkEvents';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale, type Locale } from '../localization/locale';
 import type { NotificationState } from '../onboarding/notifications';
@@ -34,6 +35,8 @@ export type HomeRoutesProps = {
   timezone: string;
   guideStorage: GuideStorage;
   rulesGuideStorage?: GuideStorage;
+  /** Reconnects reload the visible Oath list. */
+  network?: NetworkEvents;
   notifications: { state: NotificationState; enable(): void; skip(): void; retryPermission(): void; settings(): void };
   /**
    * Route state owned by the parent for the account, so a session check that hides these screens returns to the same place.
@@ -161,7 +164,7 @@ export function HomeRoutes(props: HomeRoutesProps) {
     {front && <View style={styles.fill}>{front}</View>}
     <View style={hidden ? styles.hidden : styles.fill} accessibilityElementsHidden={hidden} importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}>
       <MotionSuspended suspended={hidden}>
-        <OathHomeScreen key={`${accountId}.${character.id}`} controller={oaths} timezone={props.timezone} rulesGuideStorage={props.rulesGuideStorage} reload={oathReload}
+        <OathHomeScreen key={`${accountId}.${character.id}`} controller={oaths} timezone={props.timezone} rulesGuideStorage={props.rulesGuideStorage} network={props.network} reload={oathReload}
           forgeNavigation={{ request: route.kind === 'oaths' ? route.request : null, onReturn: place => dispatch({ type: 'back', layout, from: place }) }} />
       </MotionSuspended>
     </View>

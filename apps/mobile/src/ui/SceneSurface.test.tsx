@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { act, render, screen } from '@testing-library/react-native';
+import { Animated, StyleSheet, Text } from 'react-native';
 import { SceneSurface } from './SceneSurface';
 import { useMotionAllowed } from './useMotion';
 
@@ -24,4 +24,13 @@ test('leaving a place mid-approach removes the room overlay', async () => {
   await view.rerender(<SceneSurface place="chronicle" approach={null}><Text>History</Text></SceneSurface>);
   expect(screen.queryByTestId('forge-approach-seals', { includeHiddenElements: true })).toBeNull();
   expect(screen.queryByTestId('forge-approach-chronicle', { includeHiddenElements: true })).toBeNull();
+});
+
+test('the close-up follows the content when the list is pulled down, so text never slides onto the art', async () => {
+  motion.mockReturnValue(false);
+  const scroll = new Animated.Value(0);
+  await render(<SceneSurface place="chronicle" drop={0.3} scroll={scroll}><Text>History</Text></SceneSurface>);
+  await act(async () => { scroll.setValue(-80); });
+  const style = StyleSheet.flatten(screen.getByTestId('forge-scroller', { includeHiddenElements: true }).props.style);
+  expect(style.transform).toEqual([{ translateY: 80 }]);
 });

@@ -13,6 +13,7 @@ Status: API [liveness and identity contracts](api-contract.md), local PostgreSQL
 | Redis | Messenger Streams transport implemented locally; cache use deferred |
 | S3-compatible storage | Private proof objects with controlled lifecycle |
 | OpenAI | Evidence assessment and constrained companion wording |
+| TypeSafe (processor approved, layer proposed) | Typed rule judgments over transcribed proof text and screening of generated companion wording, see [ADR 0007](../decisions/0007-typed-judgment-provider.md) |
 | RevenueCat | Subscription integration; backend maintains validated entitlements |
 
 Logical modules: identity, Oaths, evidence, verification, progression, squads, notifications and subscriptions. Start as one backend with explicit responsibilities; separate services only for demonstrated needs. **Local architecture choice.**

@@ -31,9 +31,24 @@ function cutoffTime(snapshot: Snapshot, locale: Locale): string {
 }
 
 /** The stored promise with its activity and committed deadline filled in. */
+/** "+02:00" reads as "UTC+2", "+05:30" as "UTC+5:30" and "+00:00" as "UTC". The offset still tells a repeated hour apart. */
+function shortOffset(offset: string): string {
+  const [, sign, hours, minutes] = /^([+-])(\d{2}):(\d{2})$/.exec(offset) ?? [];
+  if (!sign) return `UTC${offset}`;
+  if (hours === '00' && minutes === '00') return 'UTC';
+  return `UTC${sign}${Number(hours)}${minutes === '00' ? '' : `:${minutes}`}`;
+}
+/**
+ * The promise names the deadline to the minute with a short offset (owner decision, 2026-09-29).
+ * The full rules keep seconds, zone and offset from storedTime.
+ */
 export function promiseText(snapshot: Snapshot, locale: Locale): string {
   const copy = snapshot.copy[locale];
-  return copy.promise.replace('{activity}', copy.activity).replace('{deadline}', storedTime(snapshot.deadline, locale));
+  const { local, offset } = snapshot.deadline;
+  // Date and time are joined here, because ICU builds differ on the joining word once seconds are dropped.
+  const day = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${local}Z`));
+  const deadline = `${day} ${locale === 'pl' ? 'o' : 'at'} ${local.slice(11, 16)} · ${shortOffset(offset)}`;
+  return copy.promise.replace('{activity}', copy.activity).replace('{deadline}', deadline);
 }
 
 export function SnapshotRules({ snapshot }: { snapshot: Snapshot }) {

@@ -1,5 +1,5 @@
 import { act, render, screen } from '@testing-library/react-native';
-import { AppState } from 'react-native';
+import { AppState, Dimensions, StyleSheet } from 'react-native';
 import type { Oath } from '../api/oathSchema';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { CountdownChip } from './CountdownChip';
@@ -97,4 +97,26 @@ test('a new target or a clock correction past the target reports zero once each'
   await view.unmount();
   await act(async () => { jest.advanceTimersByTime(300000); });
   expect(onElapsed).toHaveBeenCalledTimes(2);
+});
+
+test('the large hourglass keeps its own place beside the label', async () => {
+  const clock = clockAtDevice();
+  await render(<LocalizationProvider initialLocale="en"><CountdownChip oath={active('2026-09-29T12:03:00Z')} clock={clock} size="large" /></LocalizationProvider>);
+  expect(StyleSheet.flatten(screen.getByTestId('countdown-icon', { includeHiddenElements: true }).props.style)).toMatchObject({ width: 44, height: 44 });
+});
+
+test('large text stacks the label over the value so every chip keeps to its text', async () => {
+  const phone = (fontScale: number) => ({ width: 390, height: 844, scale: 3, fontScale });
+  const direction = async (fontScale: number, size: 'small' | 'large' = 'large') => {
+    Dimensions.set({ window: phone(fontScale), screen: phone(fontScale) });
+    const view = await render(<LocalizationProvider initialLocale="en"><CountdownChip oath={active('2026-09-29T18:00:30Z')} clock={clockAtDevice()} size={size} /></LocalizationProvider>);
+    const style = StyleSheet.flatten(screen.getByTestId('countdown-texts').props.style);
+    await view.unmount();
+    return style.flexDirection;
+  };
+  try {
+    expect(await direction(1.31)).toBe('column');
+    expect(await direction(1.3)).toBe('row');
+    expect(await direction(1.31, 'small')).toBe('column');
+  } finally { Dimensions.set({ window: phone(1), screen: phone(1) }); }
 });

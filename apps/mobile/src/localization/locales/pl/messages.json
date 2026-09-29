@@ -273,10 +273,10 @@
       },
       "cutoff": {
         "title": "Ostatni moment na dowód",
-        "line_one": "{{time}}, {{count}} minuta po terminie",
-        "line_few": "{{time}}, {{count}} minuty po terminie",
-        "line_many": "{{time}}, {{count}} minut po terminie",
-        "line_other": "{{time}}, {{count}} minuty po terminie"
+        "after_one": "{{count}} minuta po terminie",
+        "after_few": "{{count}} minuty po terminie",
+        "after_many": "{{count}} minut po terminie",
+        "after_other": "{{count}} minuty po terminie"
       },
       "proof": {
         "title": "Dowód"
@@ -325,7 +325,6 @@
     "loading": "Wczytywanie Przysiąg…",
     "loadError": "Nie udało się wczytać Przysiąg. Spróbuj ponownie.",
     "emptyToday": "Brak bieżących Przysiąg. Wybierz trening, gdy zechcesz zacząć.",
-    "refresh": "Odśwież",
     "more": "Wczytaj więcej",
     "open": "Otwórz Przysięgę: {{activity}}, {{deadline}}",
     "group": "{{date}} · {{timezone}}",
@@ -340,7 +339,7 @@
     "pauseChanged": "Twoje Przysięgi się zmieniły. Sprawdź zaktualizowaną listę przed potwierdzeniem pauzy.",
     "pauseError": "Nie udało się potwierdzić zmiany pauzy. Przed kolejną próbą wczytaj jej bieżący stan.",
     "reviewPause": "Wczytaj ponownie skutki pauzy",
-    "reviewDeadline": "Rozpatrywanie kończy się: {{deadline}}",
+    "reviewDeadline": "Przegląd kończy się {{deadline}}",
     "unknownAvailability": "Dostępność usługi jest niepewna. Ta Przysięga jest rozpatrywana, a nie oznaczona jako niewykonana.",
     "withdrawn": "Wycofana po włączeniu pauzy. Wznowienie nie przywróci tej Przysięgi.",
     "detailError": "Nie udało się wczytać tej Przysięgi. Spróbuj ponownie.",
@@ -360,6 +359,17 @@
     "subtitle": "Przysięga nabiera kształtu w działaniu.",
     "seals": "Przysięgi na ścianie pieczęci",
     "seal": "Pieczęć Przysięgi: {{activity}} · {{state}} · {{deadline}}",
+    "sealState": {
+      "scheduled": "Zaplanowana",
+      "active": "Aktywna",
+      "proof_pending": "Ocena trwa",
+      "needs_more_evidence": "Do uzupełnienia",
+      "review_pending": "Rozpatrywana",
+      "fulfilled": "Spełniona",
+      "missed": "Niewykonana",
+      "unresolved": "Nierozstrzygnięta",
+      "withdrawn": "Wycofana"
+    },
     "all": "Wszystkie Twoje Przysięgi",
     "guide": "Żaromir strzeże paleniska. Twój kolejny krok zaczyna się poza nim.",
     "detail": "Szczegóły Przysięgi",

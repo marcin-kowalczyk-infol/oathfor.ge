@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import type { Snapshot } from '../api/oathSchema';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
-import { SnapshotRules } from './SnapshotRules';
+import { promiseText, SnapshotRules } from './SnapshotRules';
 
 function snapshot(): Snapshot {
   const value = JSON.parse(JSON.stringify(catalog));
@@ -56,4 +56,14 @@ test('unsupported device timezone still shows stored deadline and an explicitly 
   await render(<LocalizationProvider initialLocale="en"><SnapshotRules snapshot={value} /></LocalizationProvider>);
   expect(screen.getAllByText(/02:30:00.*DUMMY\/Unsupported.*UTC\+02:00/).length).toBeGreaterThan(0);
   expect(screen.getByText(/00:45:00 · UTC\+00:00/)).toBeOnTheScreen();
+});
+
+test('the promise names the deadline to the minute with a short UTC offset, the full rules keep zone and seconds', () => {
+  const value = snapshot();
+  expect(promiseText(value, 'pl')).toContain('25 października 2026 o 02:30 · UTC+2.');
+  expect(promiseText(value, 'en')).toContain('October 25, 2026 at 02:30 · UTC+2.');
+  expect(promiseText(value, 'en')).not.toMatch(/Europe\/Warsaw|02:30:00/);
+  value.deadline.offset = '+05:30'; expect(promiseText(value, 'en')).toContain('· UTC+5:30.');
+  value.deadline.offset = '-03:00'; expect(promiseText(value, 'en')).toContain('· UTC-3.');
+  value.deadline.offset = '+00:00'; expect(promiseText(value, 'en')).toContain('· UTC.');
 });

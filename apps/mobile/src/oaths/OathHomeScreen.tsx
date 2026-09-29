@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { bindShortWords } from '../localization/typography';
 import type { GuideStorage } from '../forge/guideStorage';
-import { Animated, Image, Pressable, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, AppState, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
-import { formatDeadline } from '../localization/format';
 import type { Oath, OathListEnvelope } from '../api/oathSchema';
+import type { NetworkEvents } from '../api/networkEvents';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import { SceneDoor } from '../ui/SceneDoor';
@@ -28,7 +28,8 @@ type ViewName = 'today' | 'history';
 /** onReturn names the place on screen, so the room flies back out of it. */
 export type ForgeNavigation = { request: { id: number; target: 'create' | ViewName; flown?: boolean } | null; onReturn(place: 'hearth' | 'seals' | 'chronicle'): void };
 /** reload: a new value reloads the visible list, for example after a pause change made in Settings. */
-export function OathHomeScreen({ controller, timezone, forgeNavigation, reload = 0, rulesGuideStorage }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; reload?: number; rulesGuideStorage?: GuideStorage }) {
+/** network: a reconnect reloads the visible list, like a return to the foreground. */
+export function OathHomeScreen({ controller, timezone, forgeNavigation, reload = 0, rulesGuideStorage, network }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; reload?: number; rulesGuideStorage?: GuideStorage; network?: NetworkEvents }) {
   const { t, i18n } = useTranslation(); const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
   const interactiveForge = layoutMode(width, fontScale) === 'room';
@@ -55,15 +56,17 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const [busyNotice, setBusyNotice] = useState(false);
   const confirmedId = available ? account.oath?.id : undefined;
   const current = (epoch: number) => epoch === generation.current;
-  async function loadList(nextView: ViewName, append = false) {
+  /** quiet: the shown list stays until the answer replaces it, for automatic refreshes and the pull gesture. */
+  async function loadList(nextView: ViewName, append = false, quiet = false) {
     const epoch = ++generation.current;
     const previous = append ? list : null;
     const cursor = append ? list?.nextCursor : null;
-    setRoute('list'); setView(nextView); setFailed(false); setLoading(true); setBusyNotice(false);
-    if (!append) setList(null);
+    setRoute('list'); setView(nextView); setFailed(false); setBusyNotice(false);
+    if (!quiet) setLoading(true);
+    if (!append && !quiet) setList(null);
     const result = await controller.list({ view: nextView, ...(cursor ? { cursor } : {}) });
     if (!current(epoch)) return;
-    setLoading(false);
+    if (!quiet) setLoading(false);
     if (result.kind !== 'success') { setFailed(true); return; }
     // Live pagination can repeat rows after server changes; keep the returned order of new rows.
     const existing = new Set(previous?.items.map(item => item.id));
@@ -74,6 +77,21 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     if (available) void loadList('today');
     return () => { generation.current++; };
   }, [available, controller]);
+  // The list keeps itself current: coming back to the app or to the network asks the server again. A detail or creation is left alone.
+  const shown = useRef({ route, view, available }); shown.current = { route, view, available };
+  function refreshShownList() {
+    if (shown.current.available && shown.current.route === 'list') void loadList(shown.current.view, false, true);
+  }
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => { if (state === 'active') refreshShownList(); });
+    return () => subscription.remove();
+  }, [controller]);
+  useEffect(() => network?.onReconnect(refreshShownList), [controller, network]);
+  const [pulling, setPulling] = useState(false);
+  async function pull() {
+    setPulling(true);
+    try { await loadList(view, false, true); } finally { setPulling(false); }
+  }
   useEffect(() => {
     if (confirmedId) {
       setCreationDraft(null);
@@ -112,7 +130,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   function elapsed() {
     const now = controller.clock.now() ?? 0;
     if (elapsedAt.current !== null && now - elapsedAt.current < 1000) return;
-    elapsedAt.current = now; void loadList('today');
+    elapsedAt.current = now; void loadList('today', false, true);
   }
   const handledRequest = useRef<number | null>(null);
   useEffect(() => {
@@ -145,8 +163,9 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   // After the room's own flight the close-up is already in view, so the screen skips its zoom.
   const approach = arrival && !arrival.flown ? arrival : null;
   if (available && route === 'create') return <OathScreen approach={approach?.place === 'hearth' ? approach.id : null} controller={controller} timezone={timezone} rulesGuideStorage={rulesGuideStorage} onViewOath={id => { void openDetail(id); }} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? returnLabel : undefined} backPlain={!!forgeNavigation && !interactiveForge} onBack={forgeNavigation ? () => forgeNavigation.onReturn('hearth') : () => { void loadList('today'); }} />;
-  // Today's hub leaves an empty band under the tabs. The seal wall is lowered into it.
-  return <SceneSurface place={place} drop={route === 'list' && view === 'today' && interactiveForge ? 0.3 : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}><SafeAreaView style={styles.safeArea}><Animated.ScrollView style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
+  // In the room layout every list and detail leaves a band under the tabs (Today's hub, the chronicle band, the detail emblem). The close-up is lowered into it.
+  return <SceneSurface place={place} drop={interactiveForge ? 0.3 : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}><SafeAreaView style={styles.safeArea}><Animated.ScrollView testID="oath-list-scroll" style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content}
+    refreshControl={available && route === 'list' ? <RefreshControl refreshing={pulling} onRefresh={() => pull()} tintColor={tokens.color.primary} /> : undefined} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
     {forgeNavigation && (interactiveForge
       ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />
       : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />)}
@@ -164,6 +183,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       </Pressable>)}</View>
       {route === 'list' && list?.paused && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.paused')} /></View>}
       {route === 'list' && busyNotice && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('forge.busy')} /></View>}
+      {/* The lowered chronicle close-up shows its book in this band, so no text crosses it. */}
+      {route === 'list' && view === 'history' && interactiveForge && <View testID="chronicle-band" style={styles.chronicleBand} />}
       {route === 'list' && view === 'today' && <>
         <ForgeHub items={list?.items ?? []} clock={controller.clock} onElapsed={elapsed} onOpen={id => { void openDetail(id); }} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy} />
       </>}
@@ -181,10 +202,10 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         <CompanionBubble message={t(list.total > 0 ? 'oathHome.historyLine' : 'oathHome.historyEmpty')} />
       </View>}
       {route === 'list' && <>
-        {view === 'today' && !!list?.items.length && <Text accessibilityRole="header" style={styles.label}>{t('forge.all')}</Text>}
+        {view === 'today' && !!list?.items.length && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.section}>{t('forge.all')}</Text>}
         {list?.items.map((item, index) => <View key={item.id} style={styles.entry}>
           {view === 'today' && (index === 0 || category(item) !== category(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
-          {view === 'today' && (index === 0 || group(item) !== group(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{group(item)}</Text>}
+          {view === 'today' && (index === 0 || category(item) !== category(list.items[index - 1]) || group(item) !== group(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.group}>{group(item)}</Text>}
           <Pressable accessibilityRole="button" accessibilityLabel={summary(item)} accessibilityValue={{ text: t(`oath.states.${item.state}`) }} onPress={() => { void openDetail(item.id); }}
             style={({ pressed }) => [styles.journalEntry, !interactiveForge && styles.stackedEntry, pressed && styles.pressedEntry]}>
             <View style={styles.emblems}>
@@ -203,22 +224,29 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         {!loading && !failed && list?.items.length === 0 && view === 'today' && <CompanionBubble message={t('oathHome.emptyToday')} />}
         {failed && <><View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.loadError')} /></View><Action label={t('oath.retry')} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
         {list?.nextCursor && !failed && <Action label={t('oathHome.more')} busy={loading} onPress={() => { void loadList(view, true); }} />}
-        <Action label={t('oathHome.refresh')} busy={loading} variant="secondary" onPress={() => { void loadList(view); }} />
       </>}
       {route === 'detail' && <>
         {failed && <><CompanionBubble message={t('oathHome.detailError')} /><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current); }} /></>}
         {detail && <>
-          <View style={styles.detailSeal}><ActivityEmblem activity={detail.snapshot.activity} size={108} /><Text style={styles.activity}>{detail.snapshot.copy[locale].activity}</Text></View>
-          <View accessible accessibilityLabel={t('oath.state', { state: t(`oath.states.${detail.state}`) })} accessibilityLiveRegion="polite" style={styles.detailState}>
-            <StateSeal state={detail.state} size={56} />
-            <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.detailStateLabel}>{t(`oath.states.${detail.state}`)}</Text>
+          {/* In the room layout the emblem stands on the middle plinth of the lowered seal wall, the text starts on the floor below it. */}
+          <View style={[styles.detailHero, interactiveForge && styles.detailWall]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={detail.snapshot.activity} size={108} /></View>
+          <View style={styles.detailHead}>
+            <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.detailTitle}>{detail.snapshot.copy[locale].title}</Text>
+            <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.detailActivity}>{detail.snapshot.copy[locale].activity}</Text>
           </View>
-          {detail.reason === 'service_availability_unknown' && <Text style={styles.body}>{t('oathHome.unknownAvailability')}</Text>}
-          {detail.reason === 'character_paused' && <Text style={styles.body}>{t('oathHome.withdrawn')}</Text>}
-          {detail.review && <Text style={styles.body}>{t('oathHome.reviewDeadline', { deadline: formatDeadline(new Date(detail.review.closesAt), locale, 'UTC') })}</Text>}
-          <View style={styles.detailCountdown}><CountdownChip oath={detail} clock={controller.clock} size="large" onElapsed={() => { void refreshDetail(detail.id); }} /></View>
-          {detail.terminalAt && <Text style={styles.body}>{t('oathHome.closedAt', { time: compactStoredTime(wallTimeIn(detail.terminalAt, detail.snapshot.deadline.timezone), locale) })}</Text>}
-          <OathRuleCards snapshot={detail.snapshot} emblem={false} />
+          {/* One centred panel answers where the Oath stands: state, time left, the closing moment in the Oath's zone and why. */}
+          <View testID="detail-status" style={styles.statusPanel}>
+            <View accessible accessibilityLabel={t('oath.state', { state: t(`oath.states.${detail.state}`) })} accessibilityLiveRegion="polite" style={styles.detailState}>
+              <StateSeal state={detail.state} size={56} />
+              <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.detailStateLabel}>{t(`oath.states.${detail.state}`)}</Text>
+            </View>
+            <CountdownChip oath={detail} clock={controller.clock} size="large" onElapsed={() => { void refreshDetail(detail.id); }} />
+            {detail.review && <Text style={styles.statusTime}>{t('oathHome.reviewDeadline', { deadline: compactStoredTime(wallTimeIn(detail.review.closesAt, detail.snapshot.deadline.timezone), locale) })}</Text>}
+            {detail.terminalAt && <Text style={styles.statusTime}>{t('oathHome.closedAt', { time: compactStoredTime(wallTimeIn(detail.terminalAt, detail.snapshot.deadline.timezone), locale) })}</Text>}
+            {detail.reason === 'service_availability_unknown' && <Text style={styles.statusReason}>{t('oathHome.unknownAvailability')}</Text>}
+            {detail.reason === 'character_paused' && <Text style={styles.statusReason}>{t('oathHome.withdrawn')}</Text>}
+          </View>
+          <OathRuleCards snapshot={detail.snapshot} head="promise" />
         </>}
       </>}
     </>}
@@ -228,13 +256,15 @@ const chronicleIcon = require('../../assets/forge/scene/talk-chronicle-v01.png')
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   historyHeader: { gap: 12 },
-  detailCountdown: { alignItems: 'center' },
   historyCount: { flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: '#8a6436', backgroundColor: 'rgba(28, 22, 16, 0.94)' },
   historyIcon: { width: 48, height: 48 },
   historyTotal: { color: tokens.color.primary, fontSize: 32, fontWeight: '700' },
   historyLabel: { color: tokens.color.text, fontSize: 17, flexShrink: 1 },
   content: { flexGrow: 1, paddingHorizontal: tokens.space.card, paddingTop: 24, paddingBottom: 36, gap: tokens.space.section },
   entry: { gap: 10 },
+  // The list opens under the seal wall with a rule and a display heading, then state and date step down in size.
+  section: { color: '#f3dfbd', fontFamily: tokens.font.display, fontSize: 22, lineHeight: 30, paddingTop: 20, borderTopWidth: 1, borderTopColor: 'rgba(141, 105, 65, 0.55)', textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
+  group: { color: tokens.color.secondary, fontSize: 14, lineHeight: 20, marginTop: -4 },
   journalEntry: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, backgroundColor: 'rgba(32, 28, 23, 0.94)', borderRadius: 8, borderTopWidth: 1, borderTopColor: '#8d6941', borderBottomWidth: 3, borderBottomColor: '#080c0d', boxShadow: '0 6px 18px rgba(0,0,0,0.3)' },
   stackedEntry: { flexDirection: 'column', alignItems: 'flex-start' },
   pressedEntry: { backgroundColor: '#493721', borderTopColor: '#f0bd76', transform: [{ scale: 0.98 }] },
@@ -242,8 +272,17 @@ const styles = StyleSheet.create({
   activity: { color: '#f4deb7', fontSize: 21, lineHeight: 29, fontWeight: '600' },
   state: { color: '#edba78', fontSize: 15, lineHeight: 22 },
   deadline: { color: '#ded1bd', fontSize: 14, lineHeight: 22 },
-  detailSeal: { alignItems: 'center', gap: 8, paddingVertical: 12 },
-  detailState: { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 12 },
+  detailHero: { alignItems: 'center', paddingTop: 4 },
+  // Matches the Today hub band, so the emblem meets the same plinth whether the list or the detail is open.
+  detailWall: { height: 262, justifyContent: 'flex-end', paddingTop: 0 },
+  chronicleBand: { height: 262 },
+  detailHead: { alignItems: 'center', gap: 4, marginTop: -8 },
+  detailTitle: { color: '#f3dfbd', fontFamily: tokens.font.display, fontSize: tokens.title, lineHeight: 36, textAlign: 'center', textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
+  detailActivity: { color: tokens.color.primary, fontSize: 14, lineHeight: 20, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', textAlign: 'center' },
+  statusPanel: { alignItems: 'center', gap: 14, paddingVertical: 20, paddingHorizontal: 18, borderRadius: 16, borderWidth: 1, borderColor: '#5b4630', backgroundColor: 'rgba(28, 22, 16, 0.94)' },
+  statusTime: { color: '#ded1bd', fontSize: 15, lineHeight: 22, textAlign: 'center' },
+  statusReason: { color: tokens.color.secondary, fontSize: 15, lineHeight: 22, textAlign: 'center' },
+  detailState: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   detailStateLabel: { color: '#edba78', fontFamily: tokens.font.display, fontSize: 20, lineHeight: 28, flexShrink: 1 },
   emblems: { width: 84, height: 84 },
   stateBadge: { position: 'absolute', right: -6, bottom: -6 },

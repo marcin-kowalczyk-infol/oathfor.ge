@@ -36,9 +36,10 @@ function Seal({ item, onOpen, motion, clock, onElapsed }: { item: Oath; onOpen(i
           <View style={styles.stateBadge}><StateSeal state={item.state} size={34} /></View>
         </Animated.View>
         <Text style={[styles.name, pressed && styles.highlight]}>{copy.activity}</Text>
-        <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>
+        {/* One short line keeps the three dates and chips level. The button still speaks the full state. */}
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.state}>{t(`forge.sealState.${item.state}`)}</Text>
         <Text style={styles.deadline}>{deadline}</Text>
-        {clock && <View style={styles.chip}><CountdownChip oath={item} clock={clock} onElapsed={onElapsed} /></View>}
+        {clock && <View style={styles.chip}><CountdownChip oath={item} clock={clock} stacked onElapsed={onElapsed} /></View>}
       </>}
     </Pressable>
   </View>;
@@ -106,11 +107,12 @@ const styles = StyleSheet.create({
   createMark: { color: tokens.color.primary, fontSize: 30 }, createText: { color: tokens.color.primary, fontSize: 19, fontWeight: '700', flexShrink: 1, textAlign: 'center' },
   disabled: { opacity: 0.5 }, caption: { color: tokens.color.secondary, fontSize: 14, textAlign: 'center' },
   seals: { flexDirection: 'row', gap: 8, paddingBottom: 12 }, branch: { flex: 1, alignItems: 'center' },
-  sealTarget: { alignSelf: 'stretch', alignItems: 'center', gap: 5, paddingBottom: 8 },
+  sealTarget: { flexGrow: 1, alignSelf: 'stretch', alignItems: 'center', gap: 5, paddingBottom: 8 },
   highlight: { color: '#ffe1aa' },
   stateBadge: { position: 'absolute', right: -8, bottom: -6 },
   name: { color: tokens.color.text, fontSize: 14, lineHeight: 19, fontWeight: '600', textAlign: 'center', marginTop: 3 },
   state: { color: tokens.color.secondary, fontSize: 12, lineHeight: 17, textAlign: 'center' },
   deadline: { color: '#bfa987', fontSize: 12, lineHeight: 17, textAlign: 'center' },
-  chip: { alignItems: 'center', marginTop: 4 },
+  // Chips sit on one line at the bottom of every column, whatever the height above them.
+  chip: { alignSelf: 'stretch', marginTop: 'auto', paddingTop: 4 },
 });

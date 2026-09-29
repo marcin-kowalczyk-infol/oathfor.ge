@@ -58,7 +58,7 @@ Rule cards, each with an icon from `graphics/mvp-21/incoming/oath-rule-icons-v01
 | Reward | New icon | Reward policy from the snapshot | Nagroda / Reward |
 | Consequence | New icon | Consequence policy from the snapshot | Jeśli nie zdążysz / If you miss it |
 
-Values are formatted from snapshot fields, never from the device's current settings. Card titles and lines were accepted by the owner (decision Q5) and may still be tuned after native checks. The promise and the declaration stay as text above the cards, because the player accepts them.
+Values are formatted from snapshot fields, never from the device's current settings. Card titles and lines were accepted by the owner (decision Q5) and may still be tuned after native checks. The promise and the declaration stay as text above the cards, because the player accepts them. Start, deadline and last-moment cards show the hour large on its own line, with the day and zone or the grace period under it, so a half-width card never breaks a date at random (owner request, 2026-09-29). The promise names the deadline to the minute with a short offset, for example "29 września 2026 o 07:43 · UTC+2". The full rules keep the zone, the offset and the seconds (owner decision, 2026-09-29).
 
 Below the cards a scroll icon opens "Pełne zasady" / "Full rules": the complete stored `SnapshotRules`, unchanged. It starts folded (decision Q1). The consent line becomes "Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady." / "By choosing "Make the Oath", I accept the rules on the cards and the full rules."
 
@@ -83,7 +83,7 @@ The animation starts only after the server confirms acceptance, never on the tap
 2. Confirmation card:
    - The activity emblem and the sealed wax with its flame.
    - Title "Przysięga złożona" / "Oath made".
-   - The countdown in large type with the animated hourglass (`countdown-hourglass-v05.png`), for example "Do terminu: 2 d 5 h" / "Until the deadline: 2 d 5 h".
+   - The countdown in large type with the animated hourglass (`countdown-hourglass-v05.png`), for example "Do terminu: 2 d 5 h" / "Until the deadline: 2 d 5 h". Above a text scale of 1.3 every countdown chip, in lists, here and in the detail, stands its label over the value, so it keeps to its text instead of filling the width.
    - One line with D in its local time and zone, and the state label from the server.
    - Actions: "Zobacz Przysięgę" / "View the Oath" (detail with the full rules) and "Wróć do Kuźni" / "Back to the Forge". "Nowa Przysięga" stays available.
 
@@ -99,9 +99,24 @@ Each row of the Today list becomes a card:
 
 The featured seals of `ForgeHub` and the section headers stay, with the same countdown chip. Rows keep server order.
 
+Seal wall polish (native check on iPhone 18 Pro, 2026-09-28):
+- Each seal shows a short one-line state, for example "Rozpatrywana" / "Under review". The seal button still speaks the full state.
+- The seal chip stacks its label over one unbroken value and fills the column. All three chips sit on one line at the bottom of the row.
+- "Wszystkie Twoje Przysięgi" / "All your Oaths" opens the list with a rule and a display heading. The date and zone line is smaller and repeats under every state section, so each group keeps its zone label.
+
+Lists keep themselves current (owner decision, 2026-09-29). There is no "Odśwież" / "Refresh" button. Today and History ask the server again when the app returns to the foreground, when the device gets its network back and when a countdown reaches zero, and a pull-down gesture refreshes them as in other iOS apps. The shown list stays until the answer replaces it. An open detail or creation is left alone.
+
+Refresh practice (research, checked 2026-09-29). Apple asks apps not to make people start every update and treats the refresh control as a way to load content before the next automatic update ([HIG, progress indicators](https://developer.apple.com/design/human-interface-guidelines/progress-indicators)). Common client practice refetches stale data on foreground, screen focus and network reconnect ([TanStack Query important defaults](https://tanstack.com/query/latest/docs/framework/react/guides/important-defaults), [React Native](https://tanstack.com/query/latest/docs/framework/react/react-native)). Oath state changes at known moments, so these events and the countdowns replace timed polling (local decision). Silent push is throttled to a few per hour and may be dropped, so it is not an update path ([Apple, background updates](https://developer.apple.com/documentation/usernotifications/pushing-background-updates-to-your-app)).
+
+Reconnect (owner decision, 2026-09-29). `expo-network` reports connection changes ([Expo Network for SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/network/)). Only a change from offline to online refetches, so the first reading and repeated reports never do. Internet reachability counts when the platform knows it, the link state otherwise. The simulator demo's offline control stands in for the network, because the simulator's own connection does not drop.
+
+Proof verdict updates (owner decision, 2026-09-29, not implemented, because the proof screen does not exist yet). A visible notification announces the verdict and also refetches an open list. While the proof screen waits for a verdict, it polls with growing gaps of 3, 5, 10 and 20 seconds, then every 20 seconds, for about 2 minutes in total. After that it stops and the player sees the pending state until a notification, a foreground return or a pull-down. Growing gaps follow the common exponential backoff practice ([AWS, exponential backoff and jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/)). The exact steps are a local decision.
+
 ### 5. History and detail (item 6)
 
 History rows show the result seal, the activity and a compact date, and touching a row opens the detail. The rows show no further text.
+
+In the room layout the chronicle close-up is lowered like the seal wall, so the book fills a band under the tabs and no text crosses it (native check, 2026-09-29).
 
 The top of History gets a short encouraging header: the chronicle icon with the server total of entries (the `history` list `total`, as in Żaromir's counter) and one of Żaromir's lines. Accepted lines (decision Q5):
 - "Każdy wpis to Twoja historia w Kuźni." / "Every entry is part of your story in the Forge."
@@ -109,7 +124,7 @@ The top of History gets a short encouraging header: the chronicle icon with the 
 
 No per-state totals appear, because the API has none and counting loaded pages would mislead.
 
-The detail uses the same layout as the review screen: the state seal and label, the countdown for nonterminal Oaths, the rule cards and "Pełne zasady" folded below. Terminal Oaths show their result and terminal date instead of a countdown.
+The detail uses the same layout as the review screen: the state seal and label, the countdown for nonterminal Oaths, the rule cards and "Pełne zasady" folded below. Terminal Oaths show their result and terminal date instead of a countdown. In the room layout the detail lowers the seal wall like Today, so the emblem stands on the middle plinth and the title and tabs sit on the dark band. The Oath title and activity follow, then one centred status panel holds the state, the countdown, the review or closing time in the Oath's own zone and the reason. The promise, declaration and rule cards come after it (native check, 2026-09-29).
 
 ## Countdown
 

@@ -57,7 +57,8 @@ export function SceneSurface({ children, place = 'room', approach = null, drop =
         <View style={[styles.backdrop, styles.quiet]} />
       </> : <Animated.View style={[styles.backdrop, { transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1.14, 1] }) }], transformOrigin: [size.width / 2, imageHeight * 0.25, 0] }]}>
         {/* The close-up scrolls with the content, so text never slides across the focal object. */}
-        <Animated.View style={[styles.scroller, scroll && { transform: [{ translateY: scroll.interpolate({ inputRange: [0, 1], outputRange: [0, -1], extrapolateLeft: 'clamp' }) }] }]}>
+        {/* A pull-down overscroll moves it too. Native check: a clamped close-up let the History title slide onto the book. */}
+        <Animated.View testID="forge-scroller" style={[styles.scroller, scroll && { transform: [{ translateY: Animated.multiply(scroll, -1) }] }]}>
         <Image source={closeUps[place]} resizeMode="stretch" style={[styles.layer, { left: 0, top: imageTop, width: size.width, height: imageHeight }]} />
         {/* Native check: the taller 8-frame flame at 0.4 of the width rose above the arch. 0.24 keeps it inside the opening. */}
         {place === 'hearth' && <HearthFire anchor={{ left: size.width * 0.5, top: imageTop + imageHeight * 0.345 }} size={size.width * 0.24} opacity={0.85} />}

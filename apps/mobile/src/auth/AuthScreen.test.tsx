@@ -12,6 +12,7 @@ import type { Character, CharacterClient, CharacterList } from '../api/character
 
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: mockDeviceLanguage }], getCalendars: () => [{ timeZone: 'Europe/Warsaw' }] }));
 jest.mock('../onboarding/notificationPermissions', () => ({ nativeNotificationPermissions: { read: jest.fn().mockResolvedValue({ kind: 'unavailable', canAskAgain: false }), request: jest.fn(), openSettings: jest.fn() } }));
+jest.mock('../api/networkEvents', () => ({ nativeNetworkEvents: { onReconnect: () => () => {} } }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 // Routing tests use the static room. Walking and the flame are covered by the room's own tests.
 jest.mock('../ui/useMotion', () => ({ ...jest.requireActual('../ui/useMotion'), useMotionAllowed: () => false }));

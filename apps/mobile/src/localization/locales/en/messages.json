@@ -269,8 +269,8 @@
       },
       "cutoff": {
         "title": "Last moment for proof",
-        "line_one": "{{time}}, {{count}} minute after the deadline",
-        "line_other": "{{time}}, {{count}} minutes after the deadline"
+        "after_one": "{{count}} minute after the deadline",
+        "after_other": "{{count}} minutes after the deadline"
       },
       "proof": {
         "title": "Proof"
@@ -317,7 +317,6 @@
     "loading": "Loading Oaths…",
     "loadError": "We could not load your Oaths. Try again.",
     "emptyToday": "No current Oaths. Choose a workout when you are ready.",
-    "refresh": "Refresh",
     "more": "Load more",
     "open": "Open Oath: {{activity}}, {{deadline}}",
     "group": "{{date}} · {{timezone}}",
@@ -332,7 +331,7 @@
     "pauseChanged": "Your Oaths changed. Review this updated list before confirming pause.",
     "pauseError": "We could not confirm the pause change. Reload its current status before trying again.",
     "reviewPause": "Reload pause review",
-    "reviewDeadline": "Review closes at {{deadline}}",
+    "reviewDeadline": "Review closes {{deadline}}",
     "unknownAvailability": "Service availability is uncertain. This Oath is under review, not marked missed.",
     "withdrawn": "Withdrawn when gameplay was paused. Resuming does not restore this Oath.",
     "detailError": "We could not load this Oath. Try again.",
@@ -352,6 +351,17 @@
     "subtitle": "A promise takes shape through action.",
     "seals": "Oaths on the seal wall",
     "seal": "Oath seal: {{activity}} · {{state}} · {{deadline}}",
+    "sealState": {
+      "scheduled": "Scheduled",
+      "active": "Active",
+      "proof_pending": "Assessing",
+      "needs_more_evidence": "Needs evidence",
+      "review_pending": "Under review",
+      "fulfilled": "Fulfilled",
+      "missed": "Missed",
+      "unresolved": "Unresolved",
+      "withdrawn": "Withdrawn"
+    },
     "all": "All your Oaths",
     "guide": "Zharomir keeps the hearth. Your next step begins outside it.",
     "detail": "Oath details",

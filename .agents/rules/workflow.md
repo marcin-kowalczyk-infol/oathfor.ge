@@ -14,6 +14,10 @@ Delegate only when a bounded task can make useful independent progress. For each
 
 Keep one writer per file or use an isolated worktree for conflicting work. A subagent may propose an out-of-scope change but must not silently expand its assignment. Main agent reviews integration and owns the final result.
 
+## Advisor checkpoints
+
+**Local decision: owner instruction, 2026-09-28.** When the host offers an advisor model, the main agent consults it at three moments. Before committing to a large plan. When the same error returns after a fix attempt. Before reporting a long task as done. Without an advisor, apply the same checkpoints as a self-review. The advisor setting is per user, so this repository does not configure it. **Source: [Claude Code advisor](https://code.claude.com/docs/en/advisor), reviewed 2026-09-28.**
+
 ## Return contract
 
 Return findings/changes, supporting file locations, checks performed, open questions and limitations. Review roles stay read-only unless explicitly reassigned.

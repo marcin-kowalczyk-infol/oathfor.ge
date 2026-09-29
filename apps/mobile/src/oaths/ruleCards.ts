@@ -1,12 +1,13 @@
 import type { Snapshot } from '../api/oathSchema';
 import type { Locale } from '../localization/locale';
-import { shortStoredTime } from './compactStoredTime';
+import { shortStoredDay } from './compactStoredTime';
 import type { RuleIconId } from './oathArt';
 import { zoneLabel } from './zoneLabel';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 export type RuleCardId = 'start' | 'deadline' | 'cutoff' | 'proof' | 'review' | 'reward' | 'consequence' | 'fixed' | 'pause';
-export type RuleCard = { id: RuleCardId; icon: RuleIconId; title: string; lines: string[] };
+/** time: the hour shown large on its own line. A half-width card otherwise breaks a date line at random. */
+export type RuleCard = { id: RuleCardId; icon: RuleIconId; title: string; time?: string; lines: string[] };
 
 // S in the deadline zone. Device zone data may be missing, then D plus the stored grace keeps the wall time.
 function cutoffWall(snapshot: Snapshot): string {
@@ -22,14 +23,14 @@ function cutoffWall(snapshot: Snapshot): string {
  * snapshot, never from current policy or device settings. The full stored rule text stays available beside them.
  */
 export function ruleCards(snapshot: Snapshot, t: Translate, locale: Locale): RuleCard[] {
-  const at = (time: { local: string; timezone: string }) => `${shortStoredTime(time.local, locale, true)} · ${zoneLabel(time.timezone, t)}`;
   const names = snapshot.evidence.alternatives.map(kind => t(`oath.cards.evidence.${kind}`));
   const proof = names.join(t('oath.cards.or'));
-  const card = (id: RuleCardId, icon: RuleIconId, lines: string[]): RuleCard => ({ id, icon, title: t(`oath.cards.${id}.title`), lines });
+  const card = (id: RuleCardId, icon: RuleIconId, lines: string[], time?: string): RuleCard => ({ id, icon, title: t(`oath.cards.${id}.title`), ...(time ? { time } : {}), lines });
+  const at = (id: RuleCardId, icon: RuleIconId, value: { local: string; timezone: string }) => card(id, icon, [shortStoredDay(value.local, locale), zoneLabel(value.timezone, t)], value.local.slice(11, 16));
   return [
-    card('start', 'start', [snapshot.activation.time ? at(snapshot.activation.time) : t('oath.cards.start.now')]),
-    card('deadline', 'deadline', [at(snapshot.deadline)]),
-    card('cutoff', 'cutoff', [t('oath.cards.cutoff.line', { time: cutoffWall(snapshot), count: snapshot.review.receiptGraceSeconds / 60 })]),
+    snapshot.activation.time ? at('start', 'start', snapshot.activation.time) : card('start', 'start', [t('oath.cards.start.now')]),
+    at('deadline', 'deadline', snapshot.deadline),
+    card('cutoff', 'cutoff', [t('oath.cards.cutoff.after', { count: snapshot.review.receiptGraceSeconds / 60 })], cutoffWall(snapshot)),
     card('proof', 'proof', [proof.charAt(0).toLocaleUpperCase(locale) + proof.slice(1)]),
     card('review', 'review', [t('oath.cards.review.line', { count: Math.round(snapshot.review.reviewWindowSeconds / 86400) })]),
     card('reward', 'reward', [t('oath.cards.reward.line', { photo: snapshot.rewards.photoTotal, record: snapshot.rewards.recordTotal })]),

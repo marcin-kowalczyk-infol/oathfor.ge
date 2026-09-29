@@ -100,3 +100,17 @@ test('each scenario starts without the room guide flag, while an interface resta
   expect(await dummy.runtime().guideStorage.read(account)).toBe(true);
   expect(await createDummy('pl', true, false).runtime().guideStorage.read(account)).toBe(false);
 });
+test('the offline control reports a reconnect only when it goes back online', () => {
+  const dummy = createDummy('en', true);
+  const reconnect = jest.fn();
+  const stop = dummy.runtime().network.onReconnect(reconnect);
+  dummy.setOffline(false);
+  expect(reconnect).not.toHaveBeenCalled();
+  dummy.setOffline(true);
+  expect(dummy.state.offline).toBe(true);
+  dummy.setOffline(false);
+  expect(reconnect).toHaveBeenCalledTimes(1);
+  stop();
+  dummy.setOffline(true); dummy.setOffline(false);
+  expect(reconnect).toHaveBeenCalledTimes(1);
+});
