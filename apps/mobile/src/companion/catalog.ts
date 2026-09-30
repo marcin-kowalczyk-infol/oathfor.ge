@@ -1,9 +1,10 @@
+// Żaromir's appearances. The picture of each, in every art style, is in src/art.
 export const appearances = {
-  'zharomir-wanderer-v01': { copyKey: 'wanderer', image: require('../../assets/companion/zharomir-wanderer-v01.png'), next: 'zharomir-ember-sash-v01' },
-  'zharomir-ember-sash-v01': { copyKey: 'emberSash', image: require('../../assets/companion/zharomir-ember-sash-v01.png'), next: 'zharomir-guardian-token-v01' },
-  'zharomir-guardian-token-v01': { copyKey: 'guardianToken', image: require('../../assets/companion/zharomir-guardian-token-v01.png'), next: 'zharomir-oath-fittings-v01' },
-  'zharomir-oath-fittings-v01': { copyKey: 'oathFittings', image: require('../../assets/companion/zharomir-oath-fittings-v01.png'), next: 'zharomir-spark-mantle-v01' },
-  'zharomir-spark-mantle-v01': { copyKey: 'sparkMantle', image: require('../../assets/companion/zharomir-spark-mantle-v01.png'), next: null },
+  'zharomir-wanderer-v01': { copyKey: 'wanderer', next: 'zharomir-ember-sash-v01' },
+  'zharomir-ember-sash-v01': { copyKey: 'emberSash', next: 'zharomir-guardian-token-v01' },
+  'zharomir-guardian-token-v01': { copyKey: 'guardianToken', next: 'zharomir-oath-fittings-v01' },
+  'zharomir-oath-fittings-v01': { copyKey: 'oathFittings', next: 'zharomir-spark-mantle-v01' },
+  'zharomir-spark-mantle-v01': { copyKey: 'sparkMantle', next: null },
 } as const;
 
 export type AppearanceId = keyof typeof appearances;

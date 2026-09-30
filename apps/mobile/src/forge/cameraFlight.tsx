@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
+import { useArt } from '../art/ArtProvider';
+import { LIST_DROP } from '../ui/SceneSurface';
 import type { ScenePlace } from './sceneLayout';
 
 export const FLIGHT_MS = 650;
@@ -12,13 +14,8 @@ const PREFERENCE_WAIT_MS = 400;
 const RESET_MS = 100;
 // About 1.9 times into a place. The door pulls the camera back instead.
 const SCALE: Record<ScenePlace, number> = { hearth: 1.9, seals: 1.9, chronicle: 1.9, door: 0.8 };
-const closeUps = {
-  hearth: require('../../assets/forge/station-hearth-v01.jpg'),
-  seals: require('../../assets/forge/station-seals-v01.jpg'),
-  chronicle: require('../../assets/forge/station-chronicle-v01.jpg'),
-};
-// The close-up framing of SceneSurface: full width, 1.5 times as tall, the Today list lowered by 0.3 of the screen.
-const DROP: Record<ScenePlace, number> = { hearth: 0, seals: 0.3, chronicle: 0, door: 0 };
+// The close-up framing of SceneSurface: full width, 1.5 times as tall, the Today and History lists lowered into their band.
+const DROP: Record<ScenePlace, number> = { hearth: 0, seals: LIST_DROP, chronicle: LIST_DROP, door: 0 };
 
 /**
  * The camera flight between the room and a place's screen. `from` starts the room on that place's close-up and flies back.
@@ -26,6 +23,7 @@ const DROP: Record<ScenePlace, number> = { hearth: 0, seals: 0.3, chronicle: 0, 
  * without motion. Its callback runs once, when the flight ends or at 700 ms, whichever comes first. A second fly is ignored.
  */
 export function useCameraFlight({ allowed, from, onReturned }: { allowed: boolean; from: ScenePlace | null; onReturned?: () => void }) {
+  const closeUps = useArt().stations;
   const zoom = useRef(new Animated.Value(from ? 1 : 0)).current;
   const fade = useRef(new Animated.Value(from ? 1 : 0)).current;
   const [place, setPlace] = useState<ScenePlace | null>(from);

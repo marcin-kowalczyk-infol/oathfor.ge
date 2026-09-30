@@ -486,6 +486,12 @@
       "permission_unavailable": "We could not check notification permission on this device. Your choice is still saved.",
       "permission_checking": "Checking notification permission on this device…"
     },
+    "artStyle": {
+      "title": "Face of the Forge",
+      "current": "Classic",
+      "cinematic": "Cinematic",
+      "note": "Demo only. Where cinematic art is missing, the classic art stays."
+    },
     "pause": {
       "title": "Pause",
       "row_active": "{{name}}: active",

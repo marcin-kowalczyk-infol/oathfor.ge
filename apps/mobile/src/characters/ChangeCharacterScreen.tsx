@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Pressable, SafeAreaView, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Text } from '../ui/Text';
 import type { Character } from '../api/characters';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { tokens } from '../ui/tokens';

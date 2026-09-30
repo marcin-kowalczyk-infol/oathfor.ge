@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Easing, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ImageSourcePropType } from 'react-native';
+import { Animated, Easing, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, View, useWindowDimensions, type ImageSourcePropType } from 'react-native';
+import { Text } from '../ui/Text';
 import type { Character } from '../api/characters';
+import { useArt } from '../art/ArtProvider';
 import { presetArt } from '../characters/presetArt';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { layoutMode } from '../ui/layoutMode';
@@ -14,9 +16,6 @@ export type MainMenuScreenProps = {
   onForge(): void; onTutorial(): void; onSettings(): void; onChangeCharacter(): void;
 };
 
-const room = require('../../assets/forge/room-prototype-v03.png');
-const wanderer = require('../../assets/companion/zharomir-wanderer-v01.png');
-const tools = require('../../assets/menu/settings-tools-v01.jpg');
 const ROOM = { width: 887, height: 1774 };
 // The Forge tile frames the room from the door to the lectern, centred on this share of the artwork height.
 const ROOM_TILE_CENTER = 0.463;
@@ -33,6 +32,7 @@ const DETAIL_LINE = 16;
 /** Home screen after a character exists. Presentational: the caller owns routes, the summary request and the pending acceptance. */
 export function MainMenuScreen({ character, summary, pending, onForge, onTutorial, onSettings, onChangeCharacter }: MainMenuScreenProps) {
   const { t } = useTranslation();
+  const tools = useArt().menuTools;
   const { width, fontScale } = useWindowDimensions();
   // The window rule for the simple layout also stacks the card and turns the tiles into full-width rows.
   const stacked = layoutMode(width, fontScale) === 'simple';
@@ -69,12 +69,13 @@ export function MainMenuScreen({ character, summary, pending, onForge, onTutoria
 
 /** The room, blurred and darkened, with a warm glow high up and a vignette towards the tiles. */
 function Backdrop() {
+  const room = useArt().room.image;
   const { width, height } = useWindowDimensions();
   const cover = Math.max(width / ROOM.width, height / ROOM.height);
   const frame = { width: cover * ROOM.width, height: cover * ROOM.height, left: (width - cover * ROOM.width) / 2, top: (height - cover * ROOM.height) * 0.38 };
   return <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.fill}>
     {/* The blur radius is in image pixels. The artwork is drawn at about two pixels per point. */}
-    <Image source={room} resizeMode="stretch" blurRadius={12} style={[styles.layer, frame, styles.roomZoom]} />
+    <Image testID="menu-backdrop-room" source={room} resizeMode="stretch" blurRadius={12} style={[styles.layer, frame, styles.roomZoom]} />
     <View style={[styles.fill, styles.darken]} />
     <View style={[styles.fill, styles.vignette]} />
     <View style={[styles.fill, styles.warmth]} />
@@ -84,7 +85,7 @@ function Backdrop() {
 function CharacterCard({ character, summary, stacked, onChangeCharacter }: { character: Character; summary: OathSummaryState; stacked: boolean; onChangeCharacter(): void }) {
   const { t } = useTranslation();
   const { fontScale } = useWindowDimensions();
-  const art = presetArt(character.presetId, character.build);
+  const art = presetArt(useArt().presets, character.presetId, character.build);
   // A summary of the previous character is never shown after a switch.
   const current = summary.kind === 'ready' && summary.characterId === character.id ? summary : null;
   const label = current ? t('menu.currentOaths', { count: current.total }) : t('menu.currentOathsLabel');
@@ -147,6 +148,7 @@ function useSize(initial: Size) {
 }
 
 function ForgeTile({ title, detail, label, stacked, onPress }: TileProps) {
+  const room = useArt().room.image;
   const { width } = useWindowDimensions();
   const [size, onLayout] = useSize({ width: width - 40, height: FORGE_HEIGHT });
   const motion = useMotionAllowed();
@@ -169,7 +171,7 @@ function ForgeTile({ title, detail, label, stacked, onPress }: TileProps) {
     <Pressable testID="menu-forge" accessibilityRole="button" accessibilityLabel={label} onPress={onPress} onLayout={onLayout}
       style={({ pressed }) => [styles.tile, styles.forgeTile, { minHeight: FORGE_HEIGHT }, pressed && styles.pressed]}>
       <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.clip}>
-        <Image source={room} resizeMode="stretch" style={[styles.layer, { left: 0, top, width: size.width, height: imageHeight }]} />
+        <Image testID="menu-forge-room" source={room} resizeMode="stretch" style={[styles.layer, { left: 0, top, width: size.width, height: imageHeight }]} />
         <View style={[styles.fill, stacked ? styles.deepFade : styles.fade]} />
       </View>
       <TileLabel title={title} detail={detail} stacked={stacked} hero />
@@ -203,10 +205,12 @@ function TileLabel({ title, detail, stacked, hero = false, detailLines = 0, onDe
 }
 
 function TutorialArt({ size, stacked }: { size: Size; stacked: boolean }) {
-  // The companion export has a flat #222 backdrop. The tile uses the same colour, so no edge of the picture shows.
-  const figure = { height: 210, width: 140, top: -6 };
+  // The v01 picture has a flat #222 backdrop and the tile uses the same colour, so no edge of it shows. A transparent picture shows the tile.
+  // The style's frame keeps Żaromir the same size and inset in the tile.
+  const { image, frames: { tile } } = useArt().companion['zharomir-wanderer-v01'];
+  const figure = { height: tile.height, width: tile.width, top: tile.top };
   return <View style={[styles.fill, styles.tutorialBackdrop]}>
-    <Image source={wanderer} resizeMode="stretch" style={[styles.layer, figure, stacked ? { left: size.width - figure.width - 18 } : { left: 18 }]} />
+    <Image testID="menu-tutorial-figure" source={image} resizeMode="stretch" style={[styles.layer, figure, { left: stacked ? size.width - tile.width - tile.right : tile.left }]} />
     <View style={[styles.fill, styles.tutorialGlow]} />
   </View>;
 }

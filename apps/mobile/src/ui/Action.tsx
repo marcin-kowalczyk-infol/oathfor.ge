@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { tokens } from './tokens';
 import { useMotionAllowed } from './useMotion';

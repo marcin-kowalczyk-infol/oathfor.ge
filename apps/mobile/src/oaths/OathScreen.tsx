@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { AccessibilityInfo, Animated, Image, Pressable, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Animated, Image, Pressable, SafeAreaView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { isPreviewInput, type Activity, type LocalTimeInput, type PreviewInput } from '../api/oathSchema';
 import { Action } from '../ui/Action';
@@ -11,7 +12,7 @@ import { CompanionBubble } from '../ui/CompanionBubble';
 import { SceneDoor } from '../ui/SceneDoor';
 import { BackLink } from '../ui/BackLink';
 import { ActivityOffering } from './ActivityOffering';
-import { SealedScroll, SealStamp } from './SealStamp';
+import { SealStamp } from './SealStamp';
 import { CountdownChip } from './CountdownChip';
 import { countdownTarget, formatCountdown } from './countdown';
 import { shortStoredTime } from './compactStoredTime';
@@ -28,9 +29,11 @@ import { layoutMode } from '../ui/layoutMode';
 import { useMotionAllowed } from '../ui/useMotion';
 import type { OathController } from './controller';
 import { WallTimePicker, type TimeDraft } from './WallTimePicker';
+import { useArt } from '../art/ArtProvider';
 // Żaromir's four lines on the first review (docs/product/oath-screens.md section 2) and the card each one lights.
 const GUIDE_CARDS: (RuleCardId | null)[] = [null, 'deadline', 'cutoff', 'fixed'];
-const zharomir = require('../../assets/forge/scene/zharomir-bust-v01.png');
+// The named card stops a little below the top edge, so its gold border stays in view.
+const GUIDE_MARGIN = 12;
 // Oaths whose seal was stamped in this app run. A remount or a replayed confirmation shows the sealed scroll without stamping again.
 const stamped = new Set<string>();
 export type OathCreationDraft = { activity: Activity; scheduled: boolean; activation: TimeDraft; deadline: TimeDraft };
@@ -38,6 +41,7 @@ function emptyDraft(timezone: string): OathCreationDraft {
   return { activity: 'running', scheduled: false, activation: { date: '', time: '', zone: timezone }, deadline: { date: '', time: '', zone: timezone } };
 }
 export function OathScreen({ controller, timezone, onBack, backLabel, backPlain = false, initialDraft, onDraftChange, approach = null, onViewOath, rulesGuideStorage }: { controller: OathController; timezone: string; onBack?(): void; backLabel?: string; /** Simple layout: a plain back control instead of the room door picture. */ backPlain?: boolean; initialDraft?: OathCreationDraft | null; onDraftChange?(draft: OathCreationDraft | null): void; approach?: number | null; /** Opens the detail of a just made Oath. */ onViewOath?(id: string): void; /** The "seen" flag of Żaromir's rules explanation, per account on this device (owner decision Q4). */ rulesGuideStorage?: GuideStorage }) {
+  const zharomir = useArt().zharomirBust;
   const { t, i18n } = useTranslation();
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const [draft, setDraft] = useState<OathCreationDraft>(() => initialDraft ?? emptyDraft(timezone));
@@ -55,7 +59,10 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const busy = ready?.busy ?? true;
   const pending = ready?.pending;
   const oath = ready?.oath;
-  useEffect(() => { if (oath) { setMode('detail'); onDraftChange?.(null); } }, [oath, onDraftChange]);
+  // A confirmed Oath shows its detail in the same render, so no frame falls back to the creation form (native check, 2026-09-30).
+  const [shownOath, setShownOath] = useState<typeof oath>(undefined);
+  if (oath !== shownOath) { setShownOath(oath); if (oath) setMode('detail'); }
+  useEffect(() => { if (oath) onDraftChange?.(null); }, [oath, onDraftChange]);
   const local = (draft: TimeDraft): LocalTimeInput => ({ local: `${draft.date}T${draft.time}`, timezone: draft.zone, ...(draft.offset ? { offset: draft.offset } : {}) });
   const input: PreviewInput = { activity, activation: scheduled ? { mode: 'scheduled', time: local(activation) } : { mode: 'now' }, deadline: local(deadline) };
   const valid = isPreviewInput(input);
@@ -69,14 +76,20 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   useEffect(() => { scroll.setValue(0); }, [scene, scroll]);
   const window = useWindowDimensions();
   const [, setSealed] = useState<string | null>(null);
+  // The stamp and the sealed scroll share one size, so the scroll does not jump when the press ends (native check, 2026-09-30).
+  const scrollWidth = Math.min(260, window.width - 48);
   const motion = useMotionAllowed() && layoutMode(window.width, window.fontScale) === 'room';
+  // The same threshold as the activity offerings, so the default text size keeps its rows on every width.
+  const largeText = window.fontScale > 1.3;
   const accountId = rulesGuideStorage ? controller.boundCharacter()?.accountId : undefined;
   const reviewing = !!review && !pending;
   // Unknown until read. A pending read shows nothing, a failed read counts as unseen: showing the lines again is the safe loss.
   const [guideSeen, setGuideSeen] = useState<boolean | null>(null);
   const [guideLine, setGuideLine] = useState<number | null>(null);
   const scrollView = useRef<{ scrollTo(options: { y: number; animated?: boolean }): void } | null>(null);
-  const cardsTop = useRef({ block: 0, grid: 0 });
+  // Native check, 2026-09-30: in one column the named cards sit far below the grid top. The measured places are state,
+  // so a card measured after its step began still moves the page.
+  const [guideTops, setGuideTops] = useState<{ block: number; grid: number; cards: Partial<Record<RuleCardId, number>> }>({ block: 0, grid: 0, cards: {} });
   useEffect(() => {
     if (!reviewing || !rulesGuideStorage || !accountId || guideSeen !== null) return;
     let live = true;
@@ -89,8 +102,14 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
     if (guideSeen === false && accountId) { setGuideSeen(true); void rulesGuideStorage?.markSeen(accountId); }
   }
   const guideShown = reviewing && guideLine !== null;
-  // The cards come into view above the panel while Żaromir names them.
-  useEffect(() => { if (guideShown) scrollView.current?.scrollTo({ y: cardsTop.current.block + cardsTop.current.grid, animated: motion }); }, [guideShown, motion]);
+  // Each step brings the card Żaromir names into view above the panel. His opening line shows the grid top.
+  const guideCard = guideShown ? GUIDE_CARDS[guideLine!] : null;
+  const guideTop = guideShown ? Math.max(0, guideTops.block + guideTops.grid + (guideCard ? guideTops.cards[guideCard] ?? 0 : 0) - GUIDE_MARGIN) : null;
+  useEffect(() => { if (guideTop !== null) scrollView.current?.scrollTo({ y: guideTop, animated: motion }); }, [guideTop, guideLine, motion]);
+  // Native check, 2026-09-30: at the largest text size the 280 pt panel cut the fourth line of the first Polish guide line.
+  // The line is capped at 2x, 46 pt a line, and the longest Polish and English lines wrap to four lines at 375 and 402 pt.
+  // The frame and the step row take 114 pt, so 344 pt holds five lines and leaves the upper half of the screen for the card.
+  const guideFrame = { left: 12, width: Math.min(window.width - 24, 560), bottom: 24, maxHeight: largeText ? Math.min(344, window.height * 0.5) : Math.min(280, window.height * 0.45) };
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   // VoiceOver hears once that the Oath was made and how long is left, when the stamp settles.
   function announceMade(made: NonNullable<typeof oath>) {
@@ -109,7 +128,8 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
     return <View style={styles.group}>
       <WallTimePicker field={field} value={draft} disabled={busy} now={() => controller.clock.now() ?? Date.now()} onChange={value => { if (!busy) { setDraft(value); setSubmitted(false); } }} />
       {occurrence && <View style={styles.group}>
-        <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.offsetChoice', { field: t(`oath.${field}Time`) })}</Text>
+        {/* Native check, 2026-09-30: inside the 350 / 323 pt bench the uncapped "dwukrotnie." and "wystąpienie" take about 367 pt. */}
+        <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t('oath.offsetChoice', { field: t(`oath.${field}Time`) })}</Text>
         {occurrence.validOffsets?.map(offset => <Pressable key={offset} accessibilityRole="radio"
           accessibilityLabel={t('oath.occurrence', { offset })} accessibilityState={{ selected: draft.offset === offset, disabled: busy }} disabled={busy}
           style={[styles.choice, draft.offset === offset && styles.selected]} onPress={() => { if (!busy) setDraft({ ...draft, offset }); }}>
@@ -118,6 +138,9 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
       </View>}
     </View>;
   }
+  // Native check, 2026-09-30: uncapped at the largest size the pending, storage and error lines hold words wider than the
+  // 370 pt column ("kontynuowaniem." and "potwierdzeniem." about 501 pt, "potwierdzenie" 434 pt), so they take the display cap.
+  // Lines whose words fit stay uncapped as tokens.ts asks, and the consent inside its frame takes the inset cap.
   let errorText: string | undefined;
   if (error) {
     if (error.kind === 'storage') errorText = t('oath.storageError');
@@ -129,43 +152,43 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
       {onBack && (backPlain ? <BackLink label={backLabel ?? t('oathHome.today')} onPress={onBack} /> : <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />)}
       {!review && !detail && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
       {!ready && <>
-        <Text accessibilityLiveRegion="polite" style={styles.body}>{t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading')}</Text>
+        <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading')}</Text>
         {state.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
       </>}
-      {ready && errorText && <Text accessibilityLiveRegion="polite" style={styles.body}>{errorText}</Text>}
+      {ready && errorText && <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{errorText}</Text>}
       {ready?.needsReview && <Text style={styles.body}>{t('oath.reviewAgain')}</Text>}
       {pending && <>
-        <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oath.pending')}</Text>
+        <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t('oath.pending')}</Text>
         <Action label={t('oath.recover')} busy={busy} onPress={() => { void controller.recover(); }} />
       </>}
-      {detail && !stamped.has(oath.id) && <View style={styles.confirmed}>
-        <SealStamp width={Math.min(300, window.width - 48)} onDone={() => { stamped.add(oath.id); setSealed(oath.id); announceMade(oath); }} />
-      </View>}
-      {detail && stamped.has(oath.id) && <>
+      {detail && <>
         <View style={styles.confirmed}>
-          <SealedScroll width={Math.min(260, window.width - 48)} />
+          <SealStamp width={scrollWidth} sealed={stamped.has(oath.id)} onDone={() => { stamped.add(oath.id); setSealed(oath.id); announceMade(oath); }} />
+          {stamped.has(oath.id) && <>
           <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={oath.snapshot.activity} size={56} /></View>
           <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.made')}</Text>
           <CountdownChip oath={oath} clock={controller.clock} size="large" />
           <Text style={styles.body}>{t('oath.madeDeadline', { time: `${shortStoredTime(oath.snapshot.deadline.local, locale, true)} · ${zoneLabel(oath.snapshot.deadline.timezone, t)}` })}</Text>
           <Text style={styles.body}>{t('oath.state', { state: t(`oath.states.${oath.state}`) })}</Text>
+          </>}
         </View>
-        {onViewOath && <Action label={t('oath.viewOath')} onPress={() => onViewOath(oath.id)} />}
-        {onBack && <Action label={backLabel ?? t('oathHome.today')} variant="secondary" onPress={onBack} />}
-        {!pending && <Action label={t('oath.newOath')} variant="secondary" onPress={() => { if (controller.resetCreation()) { const next = emptyDraft(timezone); setDraft(next); onDraftChange?.(null); setMode('form'); setSubmitted(false); } }} />}
+        {stamped.has(oath.id) && onViewOath && <Action label={t('oath.viewOath')} onPress={() => onViewOath(oath.id)} />}
+        {stamped.has(oath.id) && onBack && <Action label={backLabel ?? t('oathHome.today')} variant="secondary" onPress={onBack} />}
+        {stamped.has(oath.id) && !pending && <Action label={t('oath.newOath')} variant="secondary" onPress={() => { if (controller.resetCreation()) { const next = emptyDraft(timezone); setDraft(next); onDraftChange?.(null); setMode('form'); setSubmitted(false); } }} />}
       </>}
       {review && <>
         <CompanionBubble message={t('oath.reviewIntro')} />
         {rulesGuideStorage && guideSeen !== null && !guideShown && <Pressable accessibilityRole="button" accessibilityLabel={t('oath.guide.replay')} onPress={() => setGuideLine(0)} style={({ pressed }) => [styles.replay, pressed && styles.pressed]}>
           <View style={styles.replayBust}><Image source={zharomir} resizeMode="cover" style={styles.replayImage} /></View>
-          <Text accessible={false} style={styles.replayText}>{t('oath.guide.replay')}</Text>
+          <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.replayText}>{t('oath.guide.replay')}</Text>
         </Pressable>}
-        <View onLayout={event => { cardsTop.current.block = event.nativeEvent.layout.y; }}>
-          <OathRuleCards snapshot={ready.preview!.snapshot} highlight={guideShown ? GUIDE_CARDS[guideLine!] : null} onCardsLayout={y => { cardsTop.current.grid = y; }} />
+        <View testID="oath-rules-block" onLayout={event => { const y = event.nativeEvent.layout.y; setGuideTops(tops => tops.block === y ? tops : { ...tops, block: y }); }}>
+          <OathRuleCards snapshot={ready.preview!.snapshot} highlight={guideCard} onCardsLayout={y => setGuideTops(tops => tops.grid === y ? tops : { ...tops, grid: y })}
+            onCardLayout={(id, y) => setGuideTops(tops => tops.cards[id] === y ? tops : { ...tops, cards: { ...tops.cards, [id]: y } })} />
         </View>
         {guideShown && <View style={{ height: 240 }} />}
         {!pending && <>
-          <View style={styles.consent}><Text style={styles.body}>{t('oath.consent')}</Text></View>
+          <View style={styles.consent}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('oath.consent')}</Text></View>
           <Action label={t('oath.confirm')} busy={busy} onPress={() => { void controller.confirm(); }} />
           <Action label={t('oath.edit')} busy={busy} variant="secondary" onPress={() => { setMode('form'); setSubmitted(false); }} />
         </>}
@@ -179,9 +202,11 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
               label={t(`oath.activities.${value}`)} selected={activity === value} disabled={busy} onPress={() => setActivity(value)} />)}
           </View>
         </View>
-        <View style={styles.timeWorkbench}>
+        {/* Native check, 2026-09-30: at the largest text size "W przyszłym terminie" broke mid-word between the medallion and the marker.
+            The start labels take the full width under them, and the bench gives back some side padding. */}
+        <View style={[styles.timeWorkbench, largeText && styles.wideBench]}>
           <Text accessibilityRole="header" style={styles.label}>{t('oath.startChoice')}</Text>
-          {[false, true].map(value => <GameChoice key={String(value)} label={t(value ? 'oath.scheduled' : 'oath.now')} symbol={value ? '◷' : 'ϟ'}
+          {[false, true].map(value => <GameChoice key={String(value)} label={t(value ? 'oath.scheduled' : 'oath.now')} symbol={value ? '◷' : 'ϟ'} stacked={largeText}
             selected={scheduled === value} disabled={busy} onPress={() => { setScheduled(value); setSubmitted(false); }} />)}
           {scheduled && timeFields('activation', activation, setActivation)}
           {timeFields('deadline', deadline, setDeadline)}
@@ -191,7 +216,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
             ? { disabled: true, unavailableReason: !valid ? t('oath.formRequired') : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
       </>}
     </Animated.ScrollView>
-    {guideShown && <DialoguePanel frame={{ left: 12, width: Math.min(window.width - 24, 560), bottom: 24, maxHeight: Math.min(280, window.height * 0.45) }}
+    {guideShown && <DialoguePanel frame={guideFrame}
       speaker="guide" lineId={`rules-${guideLine}`} text={bindShortWords(t(`oath.guide.${guideLine! + 1}`), i18n.language)} playerName="" portrait={null} allowed={motion} more={guideLine! < 3}
       continueLabel={t('room.tutorial.next')} onContinue={() => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide()}
       controls={{ step: { count: `${guideLine! + 1} / ${GUIDE_CARDS.length}`, label: t('room.tutorial.next'), text: true, onPress: () => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide() } }}
@@ -202,7 +227,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { flexGrow: 1, width: '100%', maxWidth: 680, alignSelf: 'center', padding: tokens.space.card, paddingBottom: 36, gap: tokens.space.section },
   workbench: { gap: 14 }, offerings: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'stretch' },
-  timeWorkbench: { padding: 18, gap: 18, backgroundColor: 'rgba(28, 24, 20, 0.92)', borderRadius: 24 },
+  timeWorkbench: { padding: 18, gap: 18, backgroundColor: 'rgba(28, 24, 20, 0.92)', borderRadius: 24 }, wideBench: { paddingHorizontal: 10 },
   confirmed: { gap: 14, alignItems: 'center', paddingVertical: 24 },
   consent: { padding: 20, borderLeftWidth: 3, borderLeftColor: tokens.color.primary, backgroundColor: 'rgba(32, 25, 19, 0.94)', borderRadius: 12 },
   group: { gap: tokens.space.item },
@@ -211,9 +236,11 @@ const styles = StyleSheet.create({
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
   choice: { minHeight: 64, padding: 18, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius },
   selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
-  replay: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 10, minHeight: 44, paddingRight: 14, borderRadius: 22, backgroundColor: 'rgba(28, 22, 16, 0.94)' },
+  // Native check, 2026-09-30: the pill sized itself to the unshrunk label, 44 + 10 + about 370 + 14 pt, and ran past the screen edge.
+  // The column bounds it and the label shrinks and wraps inside.
+  replay: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', maxWidth: '100%', gap: 10, minHeight: 44, paddingRight: 14, borderRadius: 22, backgroundColor: 'rgba(28, 22, 16, 0.94)' },
   replayBust: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: '#b58a52' },
   replayImage: { width: 44, height: 44 },
-  replayText: { color: tokens.color.text, fontSize: 15, fontWeight: '600' },
+  replayText: { flexShrink: 1, color: tokens.color.text, fontSize: 15, fontWeight: '600' },
   pressed: { opacity: 0.75 },
 });

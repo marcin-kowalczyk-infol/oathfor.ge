@@ -5,6 +5,7 @@ import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { CharacterCreationScreen, emptyCreationDraft, type CharacterCreationDraft } from './CharacterCreationScreen';
 import type { CharacterControllerState } from './controller';
 import type { PendingCreation } from './creationStorage';
+import { currentArt } from '../art/current';
 import { presetArt } from './presetArt';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
@@ -79,15 +80,15 @@ test('the build starts slight and draws the figure and every look in the chosen 
   expect(screen.getByRole('radio', { name: 'Stout build', selected: false })).toBeEnabled();
   const figure = () => screen.getByTestId('character-figure').props.source;
   const look = (id: string) => screen.getByTestId(`look-${id}`).props.source;
-  expect(figure()).toBe(presetArt('starter_01', 'thin')!.figure);
-  for (const id of presets) expect(look(id)).toBe(presetArt(id, 'thin')!.portrait);
+  expect(figure()).toBe(presetArt(currentArt.presets, 'starter_01', 'thin')!.figure);
+  for (const id of presets) expect(look(id)).toBe(presetArt(currentArt.presets, id, 'thin')!.portrait);
   await fireEvent.press(screen.getByRole('radio', { name: 'Stout build' }));
   expect(screen.getByRole('radio', { name: 'Stout build', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Slight build', selected: false })).toBeOnTheScreen();
-  expect(figure()).toBe(presetArt('starter_01', 'heavy')!.figure);
-  for (const id of presets) expect(look(id)).toBe(presetArt(id, 'heavy')!.portrait);
+  expect(figure()).toBe(presetArt(currentArt.presets, 'starter_01', 'heavy')!.figure);
+  for (const id of presets) expect(look(id)).toBe(presetArt(currentArt.presets, id, 'heavy')!.portrait);
   await fireEvent.press(screen.getByRole('radio', { name: 'Look 2 of 4' }));
-  expect(figure()).toBe(presetArt('starter_02', 'heavy')!.figure);
+  expect(figure()).toBe(presetArt(currentArt.presets, 'starter_02', 'heavy')!.figure);
 });
 
 test('submits the chosen build with the look, name and title', async () => {
@@ -133,7 +134,7 @@ test('a stored creation prefills its values and retries it instead of creating a
   expect(screen.getByRole('radio', { name: 'Oathkeeper, they / them', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Look 3 of 4', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Stout build', selected: true })).toBeDisabled();
-  expect(screen.getByTestId('character-figure').props.source).toBe(presetArt('starter_03', 'heavy')!.figure);
+  expect(screen.getByTestId('character-figure').props.source).toBe(presetArt(currentArt.presets, 'starter_03', 'heavy')!.figure);
   expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device. Try again to finish.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Create character' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));

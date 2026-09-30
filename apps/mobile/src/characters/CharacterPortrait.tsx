@@ -1,11 +1,13 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import { Text } from '../ui/Text';
 import type { CharacterBuild } from '../api/characters';
 import { tokens } from '../ui/tokens';
+import { useArt } from '../art/ArtProvider';
 import { presetArt } from './presetArt';
 
 /** Round portrait of a character in its build. A look the app cannot draw shows the name's first letter instead. Decorative, the caller labels it. */
 export function CharacterPortrait({ id, presetId, build, name, size, active = false }: { id: string; presetId: string; build: CharacterBuild; name: string; size: number; active?: boolean }) {
-  const art = presetArt(presetId, build);
+  const art = presetArt(useArt().presets, presetId, build);
   const ring = { width: size + 8, height: size + 8, borderRadius: (size + 8) / 2 };
   const inner = { width: size, height: size, borderRadius: size / 2 };
   return <View accessible={false} importantForAccessibility="no-hide-descendants" style={[styles.ring, ring, active && styles.activeRing]}>

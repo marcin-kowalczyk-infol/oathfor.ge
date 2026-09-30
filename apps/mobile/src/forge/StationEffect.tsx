@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { SpriteSequence } from './Sprite';
-import { effectSheets, type HeroPlace, type Sheet } from './motion';
+import { useArt } from '../art/ArtProvider';
+import { currentArt } from '../art/current';
+import type { ArtSet } from '../art/registry';
+import type { HeroPlace, Sheet } from './motion';
 import { ARTWORK } from './sceneLayout';
 
 type Point = (x: number, y: number) => { left: number; top: number };
@@ -14,40 +17,43 @@ type Layer = { sheet: Sheet; x: number; y: number; width: number; window: [numbe
 const DURATION: Record<HeroPlace, number> = { hearth: 900, seals: 1150, chronicle: 1100, door: 1100 };
 export const responseDuration = (place: HeroPlace) => DURATION[place];
 
-// Cut layers from room-prototype-v03 (export-scene-v01.py), in artwork pixels: box x, y, width, height and the turning centre.
-const drums = {
-  star: { source: require('../../assets/forge/scene/room-seal-star-v01.png'), box: [62, 867, 89, 95], centre: [110.5, 919], sheet: effectSheets.sealStar, anchor: [112, 921], width: 0.0864 },
-  tree: { source: require('../../assets/forge/scene/room-seal-tree-v01.png'), box: [149, 861, 85, 99], centre: [196, 915.5], sheet: effectSheets.sealTree, anchor: [195, 913], width: 0.0844 },
-  wolf: { source: require('../../assets/forge/scene/room-seal-wolf-v01.png'), box: [231, 857, 85, 101], centre: [277.5, 912.5], sheet: effectSheets.sealWolf, anchor: [277, 908], width: 0.0829 },
+// The painted seal drums: where each motif lights (anchor in artwork pixels, cell width as a fraction of the artwork)
+// and the drum centre the sparks leave from.
+const motifs = {
+  star: { effect: 'sealStar', anchor: [112, 921], centre: [110.5, 919], width: 0.0864 },
+  tree: { effect: 'sealTree', anchor: [195, 913], centre: [196, 915.5], width: 0.0844 },
+  wolf: { effect: 'sealWolf', anchor: [277, 908], centre: [277.5, 912.5], width: 0.0829 },
 } as const;
 /** Local decision (MVP-20 planning): each drum turns once in 450 ms, 200 ms after the previous one, left to right. */
 export const sealTurns = (['star', 'tree', 'wolf'] as const).map((id, index) => ({ id, start: index * 200, end: index * 200 + 450 }));
-const doorLeaf = { source: require('../../assets/forge/scene/room-door-leaf-v01.png'), box: [31, 476, 94, 395], hinge: 34 };
-const haze = require('../../assets/forge/ember-haze-v01.png');
 
-const responses: Record<HeroPlace, Layer[]> = {
-  // The flare rises from the painted fire bed.
-  hearth: [{ sheet: effectSheets.hearthBurst, x: 0.516, y: 0.472, width: 0.24, window: [0, 1], id: 'fx-hearth' }],
-  // Each motif lights from its centre while its drum turns, then fades.
-  seals: sealTurns.map(turn => ({ sheet: drums[turn.id].sheet, x: drums[turn.id].anchor[0] / ARTWORK.width, y: drums[turn.id].anchor[1] / ARTWORK.height,
-    width: drums[turn.id].width, window: [turn.start / DURATION.seals, Math.min(1, (turn.end + 250) / DURATION.seals)] as [number, number], id: `fx-seal-${turn.id}` })),
-  // One leaf turns over the lectern book, 110 ms a frame, then signs rise once it lands (end of frame 5, 550 ms).
-  chronicle: [
-    { sheet: effectSheets.bookPageTurn, x: 739 / ARTWORK.width, y: 932 / ARTWORK.height, width: 0.1759, window: [0, 0.8], id: 'fx-book-page-turn' },
-    { sheet: effectSheets.bookSigns, x: 735 / ARTWORK.width, y: 900 / ARTWORK.height, width: 0.1623, window: [0.5, 1], id: 'fx-book-signs' },
-  ],
-  // Moonlight and mist spill over the threshold.
-  // Native check: at the threshold behind the seals the mist only lit the seal drums. It rises from the doorway floor instead.
-  door: [{ sheet: effectSheets.doorMist, x: 0.19, y: 0.505, width: 0.28, window: [0, 1], id: 'fx-door' }],
-};
+/** The lights of each response. A room without its own book cut plays the signs without the turning leaf. */
+function responses({ effects, room }: ArtSet): Record<HeroPlace, Layer[]> {
+  return {
+    // The flare rises from the painted fire bed.
+    hearth: [{ sheet: effects.hearthBurst, x: 0.516, y: 0.472, width: 0.24, window: [0, 1], id: 'fx-hearth' }],
+    // Each motif lights from its centre while its drum turns, then fades.
+    seals: sealTurns.map(turn => ({ sheet: effects[motifs[turn.id].effect], x: motifs[turn.id].anchor[0] / ARTWORK.width, y: motifs[turn.id].anchor[1] / ARTWORK.height,
+      width: motifs[turn.id].width, window: [turn.start / DURATION.seals, Math.min(1, (turn.end + 250) / DURATION.seals)] as [number, number], id: `fx-seal-${turn.id}` })),
+    // One leaf turns over the lectern book, 110 ms a frame, then signs rise once it lands (end of frame 5, 550 ms).
+    chronicle: [
+      ...room.bookPageTurn ? [{ sheet: room.bookPageTurn.sheet, x: room.bookPageTurn.x / ARTWORK.width, y: room.bookPageTurn.y / ARTWORK.height, width: room.bookPageTurn.width, window: [0, 0.8] as [number, number], id: 'fx-book-page-turn' }] : [],
+      { sheet: effects.bookSigns, x: 735 / ARTWORK.width, y: 900 / ARTWORK.height, width: 0.1623, window: [0.5, 1], id: 'fx-book-signs' },
+    ],
+    // Moonlight and mist spill over the threshold.
+    // Native check: at the threshold behind the seals the mist only lit the seal drums. It rises from the doorway floor instead.
+    door: [{ sheet: effects.doorMist, x: 0.19, y: 0.505, width: 0.28, window: [0, 1], id: 'fx-door' }],
+  };
+}
 
 /** When each sprite of a response plays, in milliseconds from its start. */
-export const responseWindows = (place: HeroPlace): Record<string, [number, number]> =>
-  Object.fromEntries(responses[place].map(layer => [layer.id, [layer.window[0] * DURATION[place], layer.window[1] * DURATION[place]]]));
+export const responseWindows = (place: HeroPlace, art: ArtSet = currentArt): Record<string, [number, number]> =>
+  Object.fromEntries(responses(art)[place].map(layer => [layer.id, [layer.window[0] * DURATION[place], layer.window[1] * DURATION[place]]]));
 
 /**
  * Decorative responses never delay navigation or alter committed state. One progress value drives every part of a response.
  * Cut layers of the room move only while a response plays, so nothing stays drawn over the room afterwards.
+ * A room without its own cuts plays only the lights, so no cut of another room is drawn over it.
  */
 export function StationEffect({ station, request, allowed, point, sceneWidth }: {
   station: HeroPlace; request: number; allowed: boolean; point: Point; sceneWidth: number;
@@ -55,6 +61,8 @@ export function StationEffect({ station, request, allowed, point, sceneWidth }: 
   const progress = useRef(new Animated.Value(1)).current;
   const consumed = useRef<number | null>(null);
   const [playing, setPlaying] = useState(false);
+  const art = useArt();
+  const { doorLeaf, seals } = art.room;
   const duration = DURATION[station];
   useEffect(() => {
     if (consumed.current === request) { progress.setValue(1); setPlaying(false); return; }
@@ -70,7 +78,7 @@ export function StationEffect({ station, request, allowed, point, sceneWidth }: 
   const at = (box: readonly number[]) => ({ ...point(box[0] / ARTWORK.width, box[1] / ARTWORK.height), width: box[2] * px, height: box[3] * px });
   // Within one response, the fraction of progress at a time in milliseconds.
   const t = (ms: number) => Math.min(1, ms / duration);
-  const lights = responses[station].map(layer => {
+  const lights = responses(art)[station].map(layer => {
     const width = layer.width * sceneWidth;
     const height = width / layer.sheet.aspect;
     const anchor = point(layer.x, layer.y);
@@ -79,16 +87,16 @@ export function StationEffect({ station, request, allowed, point, sceneWidth }: 
   });
   // No wrapper: each light blends directly with the room image drawn before it. The layers are hidden from accessibility.
   return <>
-    {playing && station === 'hearth' && <Animated.Image testID="fx-coals" source={haze} style={[styles.coals, { ...point(0.516, 0.47),
+    {playing && station === 'hearth' && <Animated.Image testID="fx-coals" source={art.haze} style={[styles.coals, { ...point(0.516, 0.47),
       opacity: progress.interpolate({ inputRange: [0, 0.35, 1], outputRange: [0, 0.85, 0], extrapolate: 'clamp' }) }]} />}
-    {playing && station === 'seals' && sealTurns.map(turn => {
-      const drum = drums[turn.id];
+    {playing && station === 'seals' && seals && sealTurns.map(turn => {
+      const drum = seals[turn.id];
       const box = at(drum.box);
       return <Animated.Image key={turn.id} testID={`cut-seal-${turn.id}`} source={drum.source} resizeMode="stretch" style={[styles.layer, box, {
         transformOrigin: [(drum.centre[0] - drum.box[0]) * px, (drum.centre[1] - drum.box[1]) * px, 0],
         transform: [{ rotate: progress.interpolate({ inputRange: [t(turn.start), t(turn.end)], outputRange: ['0deg', '360deg'], extrapolate: 'clamp' }) }] }]} />;
     })}
-    {playing && station === 'door' && <>
+    {playing && station === 'door' && doorLeaf && <>
       {/* The leaf narrows toward its hinge, so the dark doorway shows at its free edge instead of the painted leaf. */}
       <View testID="door-backing" style={[styles.layer, styles.backing, at(doorLeaf.box)]} />
       <Animated.Image testID="cut-door-leaf" source={doorLeaf.source} resizeMode="stretch" style={[styles.layer, at(doorLeaf.box), {
@@ -97,7 +105,7 @@ export function StationEffect({ station, request, allowed, point, sceneWidth }: 
     </>}
     {lights}
     {playing && station === 'seals' && sealTurns.flatMap(turn => [0, 1].map(spark => {
-      const drum = drums[turn.id];
+      const drum = motifs[turn.id];
       const origin = point((drum.centre[0] + (spark ? 18 : -14)) / ARTWORK.width, (drum.centre[1] - 10) / ARTWORK.height);
       const window = [t(turn.start + 150), t(turn.end + 200)];
       return <Animated.View key={`${turn.id}-${spark}`} testID={`spark-${turn.id}-${spark}`} style={[styles.spark, { left: origin.left, top: origin.top,

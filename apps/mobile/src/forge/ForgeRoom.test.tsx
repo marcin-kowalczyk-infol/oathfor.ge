@@ -2,9 +2,12 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Animated, Dimensions, Easing, StyleSheet } from 'react-native';
 import { ForgeRoom } from './ForgeRoom';
 import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, PEDESTAL_WAYPOINT, places, playerStart, tutor, walkDirection, walkDuration } from './sceneLayout';
+import { ArtProvider, ArtSetProvider, resolveArt } from '../art/ArtProvider';
+import { currentArt } from '../art/current';
 import { presetArt } from '../characters/presetArt';
 import { responseDuration } from './StationEffect';
 import { ACT_BEFORE_TURN_MS, TURN_FRAME_MS, WALK_FRAME_MS } from './HeroSprite';
+import { LIST_DROP } from '../ui/SceneSurface';
 import { useMotionAllowed } from '../ui/useMotion';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Locale } from '../localization/locale';
@@ -494,6 +497,18 @@ describe('tutorial after review', () => {
     expect(screen.getByText(en.room.player.tutorial.seals)).toBeOnTheScreen();
   });
 
+  // Native check, 2026-09-30: arriving first, he stood facing the room until the player arrived, then snapped around.
+  test('arriving before the player, Żaromir already faces the told place', async () => {
+    const walks = captureWalks();
+    await render(room({ tutorial: 1 }));
+    await act(async () => walks[0].done({ finished: true }));
+    await press(hear('chronicle'));
+    const guideWalk = walks.findIndex(walk => walk.to === places.chronicle.guide);
+    await act(async () => walks[guideWalk].done({ finished: true }));
+    expect(screen.getByTestId('hero-pose-chronicle', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.queryByTestId('hero-idle', { includeHiddenElements: true })).toBeNull();
+  });
+
   test('while the player chooses a place Żaromir talks and points at the places', async () => {
     const walks = captureWalks();
     await render(room({ tutorial: 1 }));
@@ -611,7 +626,7 @@ describe('player', () => {
 
   test('another preset draws its still menu figure until its sprites exist', async () => {
     await render(room({ character: { ...character, presetId: 'starter_04' } }));
-    expect(screen.getByTestId('player-dummy', hidden).props.source).toBe(presetArt('starter_04', 'thin')!.figure);
+    expect(screen.getByTestId('player-dummy', hidden).props.source).toBe(presetArt(currentArt.presets, 'starter_04', 'thin')!.figure);
   });
 
   test('the pilot walks to the chronicle facing its direction and handles the book on arrival', async () => {
@@ -638,6 +653,15 @@ describe('player', () => {
     expect(screen.getByTestId('fx-seal-star', hidden)).toBeTruthy();
     expect(screen.getByTestId('hero-idle', hidden)).toBeTruthy();
     expectAt('room-guide', aside);
+  });
+
+  // Native check: the turning drums were drawn over the station glow, so they darkened while turning and brightened at the end.
+  test('a place response is drawn under the station glows', async () => {
+    const walks = captureWalks();
+    await render(room());
+    await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
+    await act(async () => walks[0].done({ finished: true }));
+    expect(drawOrder(['cut-seal-star', 'station-glow-seals', 'fx-seal-star'])).toEqual(['cut-seal-star', 'fx-seal-star', 'station-glow-seals']);
   });
 
   test('with reduced motion the player stands at the place at once', async () => {
@@ -725,6 +749,25 @@ describe('tutorial with the player', () => {
     const opacity = (id: string) => (StyleSheet.flatten(screen.getByTestId(id, hidden).props.style) as { opacity: number }).opacity;
     expect(opacity('seals-cut-player')).toBe(1);
     expect(opacity('seals-cut-guide')).toBe(0);
+  });
+
+  // Owner decision 2026-09-29: the v03 drum cut differs from C4 in material, so the cinematic room draws none until its own cut exists.
+  test('in the cinematic room the door chapter covers the player with the cinematic seal cut', async () => {
+    await render(<ArtProvider style="cinematic">{room({ tutorial: 1 })}</ArtProvider>);
+    await press(hear('door'));
+    expectAt('room-player', places.door.player);
+    expect(String(screen.getByTestId('forge-room-image', hidden).props.source.testUri)).toMatch(/room-cinematic-v02\.png$/);
+    expect(String(screen.getByTestId('seals-cut-player', hidden).props.source.testUri)).toMatch(/room-seals-front-cinematic-v01\.png$/);
+  });
+
+  // Owner decision 2026-09-29: a room never shows cuts of another room.
+  test('a room without its own seal cut draws none', async () => {
+    const cinematic = resolveArt('cinematic');
+    await render(<ArtSetProvider art={{ ...cinematic, room: { ...cinematic.room, sealsFront: null } }}>{room({ tutorial: 1 })}</ArtSetProvider>);
+    await press(hear('door'));
+    expectAt('room-player', places.door.player);
+    expect(screen.queryByTestId('seals-cut-player', hidden)).toBeNull();
+    expect(screen.queryByTestId('seals-cut-guide', hidden)).toBeNull();
   });
 
   test('finishing the tutorial sends Żaromir back aside and the room is in normal mode', async () => {
@@ -1095,6 +1138,17 @@ describe('camera flight', () => {
     await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
     await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
   }
+
+  // Native check, 2026-09-30: History lowers its close-up into the band under the tabs, but the flight ended on it unlowered.
+  test.each(['seals', 'chronicle'] as const)('the %s flight ends on the list screen framing', async place => {
+    motion.mockReturnValue(true);
+    captureTimings();
+    await render(room());
+    await visit(place);
+    await press(en.room.actions[place]);
+    const image = screen.getByTestId('flight-closeup', hidden).children[0] as unknown as { props: { style: { top: number } } };
+    expect(image.props.style.top).toBeCloseTo(Dimensions.get('window').height * LIST_DROP, 3);
+  });
 
   test('the place action flies into the close-up and opens its screen within 700 ms', async () => {
     motion.mockReturnValue(true);

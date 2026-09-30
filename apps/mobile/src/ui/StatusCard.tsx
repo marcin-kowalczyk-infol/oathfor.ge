@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { AccessibilityInfo, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Text } from './Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { Action, ActionProps } from './Action';
 import { tokens } from './tokens';

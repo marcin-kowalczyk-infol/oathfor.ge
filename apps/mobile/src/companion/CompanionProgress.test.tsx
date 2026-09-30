@@ -1,4 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
+import { ArtProvider, resolveArt } from '../art/ArtProvider';
+import type { ArtStyle } from '../art/registry';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { CompanionArt, CompanionProgress } from './CompanionProgress';
 import { CompanionPresentation } from './catalog';
@@ -40,4 +43,13 @@ test('decorative art is absent from the accessibility tree', async () => {
   await render(<LocalizationProvider initialLocale="en"><CompanionArt appearance="zharomir-wanderer-v01" decorative /></LocalizationProvider>);
   expect(screen.queryByRole('image')).not.toBeOnTheScreen();
   expect(screen.queryByText('Wanderer')).not.toBeOnTheScreen();
+});
+
+test.each(['current', 'cinematic'] as const)('the panel keeps Żaromir\'s size and place for the %s art', async (style: ArtStyle) => {
+  const { image, frames } = resolveArt(style).companion['zharomir-ember-sash-v01'];
+  await render(<ArtProvider style={style}><LocalizationProvider initialLocale="en"><CompanionArt appearance="zharomir-ember-sash-v01" /></LocalizationProvider></ArtProvider>);
+  const picture = screen.getByRole('image');
+  expect(picture.props.source).toBe(image);
+  expect(StyleSheet.flatten(picture.props.style)).toMatchObject({ position: 'absolute', ...frames.panel });
+  expect(StyleSheet.flatten(screen.getByTestId('companion-art-frame').props.style)).toMatchObject({ width: 180, height: 270, overflow: 'hidden', alignSelf: 'center' });
 });

@@ -1,6 +1,7 @@
 import { act, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { PlayerFigure } from './PlayerFigure';
+import { currentArt } from '../art/current';
 import { presetArt } from '../characters/presetArt';
 import { FIGURE_FOOT, FIGURE_HEIGHT } from './sceneLayout';
 
@@ -10,7 +11,7 @@ const box = (id: string) => StyleSheet.flatten(screen.getByTestId(id, hidden).pr
 test('draws the character figure still, standing on the foot point', async () => {
   await render(<PlayerFigure presetId="starter_03" build="thin" pose={{ kind: 'idle' }} allowed scale={1} />);
   const figure = screen.getByTestId('player-dummy', hidden);
-  expect(figure.props.source).toBe(presetArt('starter_03', 'thin')!.figure);
+  expect(figure.props.source).toBe(presetArt(currentArt.presets, 'starter_03', 'thin')!.figure);
   const { top, height } = box('player-dummy');
   // The soles are at 968 of 984 pixels.
   expect(top + height * 968 / 984).toBeCloseTo(FIGURE_HEIGHT * FIGURE_FOOT);

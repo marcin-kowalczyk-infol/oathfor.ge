@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { bindShortWords } from '../localization/typography';
 import type { GuideStorage } from '../forge/guideStorage';
-import { Animated, AppState, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, AppState, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
 import type { Oath, OathListEnvelope } from '../api/oathSchema';
@@ -13,7 +14,7 @@ import { BackLink } from '../ui/BackLink';
 import { compactStoredTime, shortStoredTime, wallTimeIn } from './compactStoredTime';
 import { CountdownChip } from './CountdownChip';
 import { OathRuleCards } from './OathRuleCards';
-import { SceneSurface, type ForgePlace } from '../ui/SceneSurface';
+import { LIST_DROP, SceneSurface, type ForgePlace } from '../ui/SceneSurface';
 import { StateSeal } from '../ui/StateSeal';
 import { CompanionBubble } from '../ui/CompanionBubble';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
@@ -23,6 +24,7 @@ import { ForgeHub } from './ForgeHub';
 import { OathScreen, type OathCreationDraft } from './OathScreen';
 import type { OathController } from './controller';
 import { layoutMode } from '../ui/layoutMode';
+import { useArt } from '../art/ArtProvider';
 type ViewName = 'today' | 'history';
 /** flown: the room already flew into the place, so its screen opens without a second zoom. */
 /** onReturn names the place on screen, so the room flies back out of it. */
@@ -30,6 +32,7 @@ export type ForgeNavigation = { request: { id: number; target: 'create' | ViewNa
 /** reload: a new value reloads the visible list, for example after a pause change made in Settings. */
 /** network: a reconnect reloads the visible list, like a return to the foreground. */
 export function OathHomeScreen({ controller, timezone, forgeNavigation, reload = 0, rulesGuideStorage, network }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; reload?: number; rulesGuideStorage?: GuideStorage; network?: NetworkEvents }) {
+  const chronicleIcon = useArt().talk.chronicle;
   const { t, i18n } = useTranslation(); const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
   const interactiveForge = layoutMode(width, fontScale) === 'room';
@@ -54,6 +57,15 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const [arrival, setArrival] = useState<{ id: number; place: ForgePlace; flown: boolean } | null>(null);
   const [hearthRequest, setHearthRequest] = useState(false);
   const [busyNotice, setBusyNotice] = useState(false);
+  // The screen stays mounted under the room. A new list request shows its view in the same render, so the first visible
+  // frame is never the previous view (native check, 2026-09-30). The effect below still loads it.
+  const [shownRequest, setShownRequest] = useState<number | null>(null);
+  const incoming = available ? forgeNavigation?.request : null;
+  if (incoming && incoming.id !== shownRequest) {
+    setShownRequest(incoming.id);
+    if (incoming.target !== 'create') { setRoute('list'); setView(incoming.target); setList(null); setLoading(true); setFailed(false); setBusyNotice(false); }
+    else if (route !== 'create' && account.kind === 'ready' && !account.pending) { setHearthRequest(true); setBusyNotice(false); }
+  }
   const confirmedId = available ? account.oath?.id : undefined;
   const current = (epoch: number) => epoch === generation.current;
   /** quiet: the shown list stays until the answer replaces it, for automatic refreshes and the pull gesture. */
@@ -164,7 +176,15 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const approach = arrival && !arrival.flown ? arrival : null;
   if (available && route === 'create') return <OathScreen approach={approach?.place === 'hearth' ? approach.id : null} controller={controller} timezone={timezone} rulesGuideStorage={rulesGuideStorage} onViewOath={id => { void openDetail(id); }} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? returnLabel : undefined} backPlain={!!forgeNavigation && !interactiveForge} onBack={forgeNavigation ? () => forgeNavigation.onReturn('hearth') : () => { void loadList('today'); }} />;
   // In the room layout every list and detail leaves a band under the tabs (Today's hub, the chronicle band, the detail emblem). The close-up is lowered into it.
-  return <SceneSurface place={place} drop={interactiveForge ? 0.3 : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}><SafeAreaView style={styles.safeArea}><Animated.ScrollView testID="oath-list-scroll" style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content}
+  // While a hearth request waits for Today, only the hearth shows at the creation screen's framing. Creation or the list with its notice follows.
+  // The same surface stays mounted, so its close-ups are already decoded.
+  const waiting = available && hearthRequest;
+  return <SceneSurface place={place} drop={interactiveForge && !waiting ? LIST_DROP : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}>{waiting ? <SafeAreaView testID="hearth-waiting" style={styles.safeArea}><View style={styles.content}>
+    {forgeNavigation && (interactiveForge
+      ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />
+      : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />)}
+    <SlowNotice text={t('oathHome.loading')} />
+  </View></SafeAreaView> : <SafeAreaView style={styles.safeArea}><Animated.ScrollView testID="oath-list-scroll" style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content}
     refreshControl={available && route === 'list' ? <RefreshControl refreshing={pulling} onRefresh={() => pull()} tintColor={tokens.color.primary} /> : undefined} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
     {forgeNavigation && (interactiveForge
       ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />
@@ -250,9 +270,15 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         </>}
       </>}
     </>}
-  </Animated.ScrollView></SafeAreaView></SceneSurface>;
+  </Animated.ScrollView></SafeAreaView>}</SceneSurface>;
 }
-const chronicleIcon = require('../../assets/forge/scene/talk-chronicle-v01.png');
+/** A waiting line that appears only when the answer is slow, so a fast answer never flashes it (native check, 2026-09-30). */
+function SlowNotice({ text }: { text: string }) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => { const wait = setTimeout(() => setShown(true), SLOW_MS); return () => clearTimeout(wait); }, []);
+  return shown ? <Text accessibilityLiveRegion="polite" style={styles.body}>{text}</Text> : null;
+}
+const SLOW_MS = 500;
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   historyHeader: { gap: 12 },

@@ -2,6 +2,10 @@ import { AccessibilityInfo, Animated, AppState, Dimensions } from 'react-native'
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Character } from '../api/characters';
+import { StyleSheet } from 'react-native';
+import { ArtProvider, resolveArt } from '../art/ArtProvider';
+import { currentArt } from '../art/current';
+import type { ArtStyle } from '../art/registry';
 import { presetArt } from '../characters/presetArt';
 import { MainMenuScreen, type MainMenuScreenProps } from './MainMenuScreen';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
@@ -16,10 +20,10 @@ const phone = (fontScale: number) => ({ width: 390, height: 844, scale: 3, fontS
 beforeEach(() => Dimensions.set({ window: phone(1), screen: phone(1) }));
 afterEach(() => jest.restoreAllMocks());
 
-async function setup(patch: Partial<MainMenuScreenProps> = {}, locale: 'en' | 'pl' = 'en') {
+async function setup(patch: Partial<MainMenuScreenProps> = {}, locale: 'en' | 'pl' = 'en', style: ArtStyle = 'current') {
   const handlers = { onForge: jest.fn(), onTutorial: jest.fn(), onSettings: jest.fn(), onChangeCharacter: jest.fn() };
   const props: MainMenuScreenProps = { character: mira, summary: ready(2), pending: false, ...handlers, ...patch };
-  await render(<LocalizationProvider initialLocale={locale}><MainMenuScreen {...props} /></LocalizationProvider>);
+  await render(<ArtProvider style={style}><LocalizationProvider initialLocale={locale}><MainMenuScreen {...props} /></LocalizationProvider></ArtProvider>);
   await act(async () => {});
   return handlers;
 }
@@ -28,12 +32,12 @@ test('shows the name, the form title and the preset figure', async () => {
   await setup({}, 'pl');
   expect(screen.getByText('Mira')).toBeOnTheScreen();
   expect(screen.getByText('Obrończyni Przysięgi')).toBeOnTheScreen();
-  expect(screen.getByTestId('menu-figure', hidden).props.source).toBe(presetArt('starter_02', 'thin')!.figure);
+  expect(screen.getByTestId('menu-figure', hidden).props.source).toBe(presetArt(currentArt.presets, 'starter_02', 'thin')!.figure);
 });
 
 test('the figure follows the character build', async () => {
   await setup({ character: { ...mira, build: 'heavy' } });
-  expect(screen.getByTestId('menu-figure', hidden).props.source).toBe(presetArt('starter_02', 'heavy')!.figure);
+  expect(screen.getByTestId('menu-figure', hidden).props.source).toBe(presetArt(currentArt.presets, 'starter_02', 'heavy')!.figure);
 });
 
 test('a preset the app cannot draw shows the placeholder figure', async () => {
@@ -150,4 +154,21 @@ test('Polish plurals hold without Intl.PluralRules, as on Hermes for iOS', async
     await setup({ summary: ready(22) }, 'pl');
     expect(screen.getByLabelText('22 bieżące Przysięgi')).toBeOnTheScreen();
   } finally { Object.defineProperty(Intl, 'PluralRules', original); }
+});
+
+test.each(['current', 'cinematic'] as const)('the Tutorial tile frames Żaromir for the %s art in both layouts', async (style: ArtStyle) => {
+  const art = resolveArt(style);
+  const { image, frames } = art.companion['zharomir-wanderer-v01'];
+  const figure = () => StyleSheet.flatten(screen.getByTestId('menu-tutorial-figure', hidden).props.style);
+  await setup({}, 'en', style);
+  expect(screen.getByTestId('menu-tutorial-figure', hidden).props.source).toBe(image);
+  expect(figure()).toMatchObject({ width: frames.tile.width, height: frames.tile.height, top: frames.tile.top, left: frames.tile.left });
+  // The room tile and the menu backdrop draw the style's room.
+  expect(screen.getByTestId('menu-forge-room', hidden).props.source).toBe(art.room.image);
+  expect(screen.getByTestId('menu-backdrop-room', hidden).props.source).toBe(art.room.image);
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  await setup({}, 'en', style);
+  // Stacked, the figure keeps its inset from the right edge of the full-width tile.
+  await act(async () => { fireEvent(screen.getByTestId('menu-tutorial'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 350, height: 120 } } }); });
+  expect(figure().left + frames.tile.width + frames.tile.right).toBeCloseTo(350, 5);
 });

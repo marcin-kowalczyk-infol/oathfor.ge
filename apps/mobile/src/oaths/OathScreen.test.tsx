@@ -1,5 +1,6 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo } from 'react-native';
+import { Profiler } from 'react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
+import { AccessibilityInfo, Dimensions, ScrollView, StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { OathScreen } from './OathScreen';
@@ -283,6 +284,97 @@ test('a flag still being read shows nothing', async () => {
   expect(screen.queryByRole('button', { name: 'Zharomir explains the rules' })).toBeNull();
 });
 
+// Native check, 2026-09-30, iPhone 18 Pro at the largest accessibility size in Polish: the 280 pt panel cut the fourth line of
+// the first guide line, and the cards Żaromir named sat far below the one-column grid top, hidden while he spoke about them.
+describe('the rules guide at the largest text size', () => {
+  const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
+  afterEach(() => Dimensions.set(initial));
+  const phone = (fontScale: number) => ({ width: 402, height: 874, scale: 3, fontScale });
+  const next = async () => { await fireEvent.press(screen.getByRole('button', { name: 'Dalej' })); };
+  test.each([[3.12, 344], [1, 280]])('at text scale %d the panel may grow to %i points', async (fontScale, height) => {
+    Dimensions.set({ window: phone(fontScale), screen: phone(fontScale) });
+    await openReview(setup(), rulesGuide(false));
+    const panel = await screen.findByTestId('dialogue-panel');
+    expect((StyleSheet.flatten(panel.props.style) as ViewStyle).maxHeight).toBe(height);
+  });
+  test.each([3.12, 1])('at text scale %d each step scrolls the named card into view above the panel', async fontScale => {
+    Dimensions.set({ window: phone(fontScale), screen: phone(fontScale) });
+    const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo');
+    let show!: (seen: boolean) => void;
+    await openReview(setup(), rulesGuide(new Promise<boolean>(resolve => { show = resolve; })));
+    const layout = (testId: string, y: number) => fireEvent(screen.getByTestId(testId), 'layout', { nativeEvent: { layout: { x: 0, y, width: 370, height: 300 } } });
+    await layout('oath-rules-block', 400); await layout('rule-cards', 900);
+    await layout('rule-card-deadline', 320); await layout('rule-card-cutoff', 640); await layout('rule-card-fixed', 2240);
+    await act(async () => { show(false); });
+    await screen.findByTestId('dialogue-panel');
+    const last = () => scrollTo.mock.calls.at(-1)?.[0] as { y: number; animated?: boolean } | undefined;
+    expect(last()).toEqual(expect.objectContaining({ y: 400 + 900 - 12 }));
+    await next();
+    expect(last()).toEqual(expect.objectContaining({ y: 400 + 900 + 320 - 12 }));
+    await next();
+    expect(last()).toEqual(expect.objectContaining({ y: 400 + 900 + 640 - 12 }));
+    await next();
+    expect(last()).toEqual(expect.objectContaining({ y: 400 + 900 + 2240 - 12 }));
+    // A card measured again while Żaromir names it, for example after the text above it wrapped, is followed.
+    await layout('rule-card-fixed', 2300);
+    expect(last()).toEqual(expect.objectContaining({ y: 400 + 900 + 2300 - 12 }));
+    if (fontScale > 1.3) expect(last()?.animated).toBe(false);
+  });
+});
+
+// Native check, 2026-09-30, iPhone 18 Pro at the largest accessibility size in Polish: the Żaromir button ran past the right
+// screen edge while its label wrapped to three lines, and long words broke mid-word in the text under the cards.
+describe('the review at the largest text size', () => {
+  const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
+  afterEach(() => Dimensions.set(initial));
+  const phone = (width: number) => ({ width, height: 874, scale: 3, fontScale: 3.571 });
+  const flat = (node: unknown) => StyleSheet.flatten((node as { props: { style?: StyleProp<ViewStyle & TextStyle> } }).props.style) ?? {};
+  test.each([402, 375])('at %s points the Żaromir button stays inside the column and its label wraps within it', async width => {
+    Dimensions.set({ window: phone(width), screen: phone(width) });
+    await openReview(setup(), rulesGuide(true));
+    const button = screen.getByRole('button', { name: 'Żaromir objaśnia zasady' });
+    expect(flat(button).maxWidth).toBe('100%');
+    const label = within(button).getByText('Żaromir objaśnia zasady');
+    expect(flat(label).flexShrink).toBe(1);
+    expect(label).toHaveProp('maxFontSizeMultiplier', 2.5);
+    expect(label).toHaveProp('accessible', false);
+  });
+  test.each([402, 375])('at %s points the consent and the pending notice keep whole words', async width => {
+    Dimensions.set({ window: phone(width), screen: phone(width) });
+    const f = setup();
+    await openReview(f, rulesGuide(true));
+    expect(screen.getByText('Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady.')).toHaveProp('maxFontSizeMultiplier', 2.5);
+    await fireEvent.press(screen.getByRole('button', { name: 'Złóż Przysięgę' }));
+    expect(await screen.findByText(/Twoje potwierdzenie mogło już dotrzeć/)).toHaveProp('maxFontSizeMultiplier', 2);
+  });
+  test.each([402, 375])('at %s points an error line keeps whole words while the review-again line stays uncapped', async width => {
+    Dimensions.set({ window: phone(width), screen: phone(width) });
+    const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code: 'preview_superseded' });
+    await openReview(f, rulesGuide(true));
+    await fireEvent.press(screen.getByRole('button', { name: 'Złóż Przysięgę' }));
+    expect(await screen.findByText(/potwierdzeniem\./)).toHaveProp('maxFontSizeMultiplier', 2);
+    expect(screen.getByText('Ponownie wybierz i sprawdź terminy przed złożeniem Przysięgi.')).not.toHaveProp('maxFontSizeMultiplier');
+  });
+  test('the made deadline and state lines fit and stay uncapped', async () => {
+    Dimensions.set({ window: phone(375), screen: phone(375) });
+    const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed('20000000-0000-4000-8000-0000000000c1', f.envelope.preview.snapshot));
+    await openReview(f, rulesGuide(true));
+    await fireEvent.press(screen.getByRole('button', { name: 'Złóż Przysięgę' }));
+    expect(await screen.findByText(/^Termin: /)).not.toHaveProp('maxFontSizeMultiplier');
+    expect(screen.getByText(/^Status: /)).not.toHaveProp('maxFontSizeMultiplier');
+  });
+  test('in the bench the repeated-hour question keeps whole words and the occurrence choices stay uncapped', async () => {
+    Dimensions.set({ window: phone(375), screen: phone(375) });
+    const f = setup(); jest.mocked(f.api.preview).mockResolvedValueOnce({ kind: 'time_error', code: 'ambiguous_local_time', field: 'deadline', validOffsets: ['+02:00', '+01:00'] });
+    f.controller.start(); await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await selectDate('Data ukończenia', '25 października 2026');
+    await selectTime('Godzina ukończenia', '02', '30', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
+    expect(await screen.findByText(/Ta godzina występuje dwukrotnie/)).toHaveProp('maxFontSizeMultiplier', 2);
+    expect(screen.getByText('UTC +02:00')).not.toHaveProp('maxFontSizeMultiplier');
+  });
+});
+
 const confirmed = (oathId: string, snapshot: unknown): Awaited<ReturnType<OathClient['confirm']>> => ({ kind: 'success' as const, value: { oath: { id: oathId, characterId, snapshot: snapshot as never, state: 'active', createdAt: '2026-10-24T00:00:00Z', activatedAt: '2026-10-24T00:00:00Z', terminalAt: null, reason: null, review: null }, serverTime: '2026-10-24T00:00:00Z' } });
 test('the seal is stamped only after the server confirms, once, also after a lost reply', async () => {
   const f = setup(); f.controller.start();
@@ -302,6 +394,34 @@ test('the seal is stamped only after the server confirms, once, also after a los
   expect(new Set(jest.mocked(SealStamp).mock.calls.map(call => call[0].width)).size).toBe(1);
   expect(screen.queryByTestId('seal-stamp', { includeHiddenElements: true })).toBeNull();
 });
+// Native check, 2026-09-30: the detail mode was set one render late, so the creation form showed for a frame after acceptance.
+test('acceptance goes from the rules straight to the seal without a frame of the creation form', async () => {
+  const f = setup(); f.controller.start();
+  const oathId = '20000000-0000-4000-8000-0000000000a3';
+  const frames: boolean[] = [];
+  let recording = false;
+  await render(<Profiler id="oath" onRender={() => { if (recording) frames.push(screen.queryAllByText('View rules', { includeHiddenElements: true }).length > 0); }}>
+    <LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>
+  </Profiler>);
+  await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
+  const commit = await screen.findByRole('button', { name: 'Commit to the Oath' });
+  jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(oathId, f.envelope.preview.snapshot));
+  recording = true;
+  await fireEvent.press(commit);
+  await screen.findByTestId('seal-stamp', { includeHiddenElements: true });
+  recording = false;
+  expect(frames.length).toBeGreaterThan(0);
+  expect(frames.filter(Boolean)).toEqual([]);
+  // Native check: the sealed scroll replaced a 300 point stamp at 260 points, so the scroll jumped when the press ended.
+  const stamp = screen.getByTestId('seal-stamp', { includeHiddenElements: true });
+  const image = (node: { children: unknown[] }): unknown => node.children.length ? image(node.children[0] as { children: unknown[] }) : node;
+  const pressed = image(stamp as never);
+  const sealed = await screen.findByTestId('seal-sealed', { includeHiddenElements: true }, { timeout: 3000 });
+  expect(sealed.props.style.width).toBe(stamp.props.style.width);
+  // Native check under Reduce Motion: a new sealed image had to load, so the scroll vanished for a frame. The same image stays.
+  expect(image(sealed as never)).toBe(pressed);
+});
+
 test('a remount showing the same confirmed Oath does not stamp again', async () => {
   const f = setup(); f.controller.start();
   const oathId = '20000000-0000-4000-8000-0000000000a2';
@@ -315,7 +435,8 @@ test('a remount showing the same confirmed Oath does not stamp again', async () 
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   expect(await screen.findByText('Status: Active')).toBeOnTheScreen();
   expect(screen.getByTestId('seal-sealed', { includeHiddenElements: true })).toBeOnTheScreen();
-  expect(SealStamp).not.toHaveBeenCalled();
+  // The scroll is drawn sealed from its first render, it never presses again.
+  expect(jest.mocked(SealStamp).mock.calls.every(call => call[0].sealed)).toBe(true);
 });
 test('a definitive rejection stamps nothing', async () => {
   const f = setup(); f.controller.start();
@@ -362,4 +483,73 @@ test('Polish card and a scheduled Oath counting down to its start', async () => 
   expect(await screen.findByRole('header', { name: 'Przysięga złożona' })).toBeOnTheScreen();
   expect(screen.getByTestId('countdown-chip')).toHaveProp('accessibilityLabel', 'Start za 20 godzin');
   expect(screen.getByRole('button', { name: 'Zobacz Przysięgę' })).toBeOnTheScreen();
+});
+
+// Native check, 2026-09-30, iPhone 18 Pro at the largest accessibility size in Polish: beside the picture and the marker
+// "Bieganie", "Trening siłowy" and "W przyszłym terminie" broke mid-word. In the simple layout the label gets its own full-width line.
+describe('creation choices at the largest text size', () => {
+  const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
+  afterEach(() => Dimensions.set(initial));
+  const phone = (width: number, fontScale: number) => ({ width, height: 874, scale: 3, fontScale });
+  type Node = { type: unknown; parent: Node | null; props: { style?: unknown } };
+  const hostParent = (node: Node) => { let parent = node.parent; while (parent && typeof parent.type !== 'string') parent = parent.parent; return parent!; };
+  const flat = (node: Node): TextStyle => StyleSheet.flatten(node.props.style as StyleProp<TextStyle>) ?? {};
+  async function renderForm(width: number, fontScale: number) {
+    Dimensions.set({ window: phone(width, fontScale), screen: phone(width, fontScale) });
+    const f = setup(); f.controller.start();
+    await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await screen.findByRole('radio', { name: 'Bieganie' });
+  }
+  test.each([402, 375])('at %s points each activity label takes a full-width line under the picture and the marker', async width => {
+    await renderForm(width, 3.12);
+    for (const [name, marker] of [['Bieganie', '✓'], ['Trening siłowy', '○'], ['Mobilność', '○']] as const) {
+      const radio = screen.getByRole('radio', { name }) as unknown as Node;
+      const label = within(radio as never).getByText(name) as unknown as Node;
+      expect(hostParent(label)).toBe(radio);
+      expect(flat(label)).toEqual(expect.objectContaining({ alignSelf: 'stretch', textAlign: 'left' }));
+      expect(flat(radio).flexDirection).not.toBe('row');
+      const top = hostParent(within(radio as never).getByText(marker, { includeHiddenElements: true }) as unknown as Node);
+      expect(top).not.toBe(radio);
+      expect(flat(top).flexDirection).toBe('row');
+      expect(radio).toHaveProp('accessibilityState', { selected: name === 'Bieganie', disabled: false });
+    }
+  });
+  test.each([402, 375])('at %s points each start label takes a full-width line under the medallion and the marker', async width => {
+    await renderForm(width, 3.12);
+    for (const [name, marker] of [['Teraz', '◆'], ['W przyszłym terminie', '◇']] as const) {
+      const radio = screen.getByRole('radio', { name }) as unknown as Node;
+      const label = within(radio as never).getByText(name) as unknown as Node;
+      expect(hostParent(label)).toBe(radio);
+      expect(flat(label).alignSelf).toBe('stretch');
+      expect(flat(radio).flexDirection).not.toBe('row');
+      const top = hostParent(within(radio as never).getByText(marker, { includeHiddenElements: true }) as unknown as Node);
+      expect(top).not.toBe(radio);
+      expect(flat(top).flexDirection).toBe('row');
+      expect(radio).toHaveProp('accessibilityState', { selected: name === 'Teraz', disabled: false });
+    }
+    const bench = screen.getByRole('header', { name: 'Kiedy Przysięga ma się rozpocząć?' }) as unknown as Node;
+    expect(StyleSheet.flatten(hostParent(bench).props.style as StyleProp<ViewStyle>).paddingHorizontal).toBe(10);
+  });
+  test('at the default text size the activities stay tiles and the start choices stay single rows', async () => {
+    await renderForm(402, 1);
+    for (const [name, marker] of [['Bieganie', '✓'], ['Trening siłowy', '○'], ['Mobilność', '○']] as const) {
+      const radio = screen.getByRole('radio', { name }) as unknown as Node;
+      const label = within(radio as never).getByText(name) as unknown as Node;
+      expect(hostParent(label)).toBe(radio);
+      expect(flat(label).textAlign).toBe('center');
+      expect(flat(radio).flexDirection).not.toBe('row');
+      expect(hostParent(within(radio as never).getByText(marker, { includeHiddenElements: true }) as unknown as Node)).toBe(radio);
+    }
+    for (const [name, marker] of [['Teraz', '◆'], ['W przyszłym terminie', '◇']] as const) {
+      const radio = screen.getByRole('radio', { name }) as unknown as Node;
+      const label = within(radio as never).getByText(name) as unknown as Node;
+      expect(hostParent(label)).toBe(radio);
+      expect(flat(label).flex).toBe(1);
+      expect(flat(radio).flexDirection).toBe('row');
+      expect(hostParent(within(radio as never).getByText(marker, { includeHiddenElements: true }) as unknown as Node)).toBe(radio);
+    }
+    const bench = screen.getByRole('header', { name: 'Kiedy Przysięga ma się rozpocząć?' }) as unknown as Node;
+    expect(StyleSheet.flatten(hostParent(bench).props.style as StyleProp<ViewStyle>)).toEqual(expect.objectContaining({ padding: 18 }));
+    expect(StyleSheet.flatten(hostParent(bench).props.style as StyleProp<ViewStyle>).paddingHorizontal).toBeUndefined();
+  });
 });

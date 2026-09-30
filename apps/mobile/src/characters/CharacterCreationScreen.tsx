@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Animated, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { Text } from '../ui/Text';
 import type { CharacterBuild, CharacterForm } from '../api/characters';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { Action } from '../ui/Action';
@@ -7,6 +8,7 @@ import { tokens } from '../ui/tokens';
 import { useSceneEntrance } from '../ui/useSceneEntrance';
 import type { CharacterControllerState, CharacterDraft, CharacterError } from './controller';
 import { validateCharacterName } from './name';
+import { useArt } from '../art/ArtProvider';
 import { drawablePresets, presetArt } from './presetArt';
 
 export type CharacterCreationDraft = { name: string; presetId: string | null; build: CharacterBuild; form: CharacterForm | null };
@@ -94,7 +96,8 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
   // The stored choices become the draft, so a later decisive rejection still shows them for editing.
   useEffect(() => { if (pending) onDraft({ name: pending.name, presetId: pending.presetId, build: pending.build, form: pending.form }); }, [pending?.requestId]);
   const wait = useRateLimitWait(state.error);
-  const looks = drawablePresets(state.presets);
+  const { presets } = useArt();
+  const looks = drawablePresets(presets, state.presets);
   const name = pending?.name ?? draft.name;
   const presetId = pending?.presetId ?? (draft.presetId !== null && looks.includes(draft.presetId) ? draft.presetId : looks[0] ?? null);
   const build = pending?.build ?? draft.build;
@@ -103,7 +106,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
   const check = validateCharacterName(name);
   const nameProblem = name !== '' && !check.valid ? check.reason : null;
   const full = state.characters.length >= state.limit;
-  const art = presetId === null ? null : presetArt(presetId, build);
+  const art = presetId === null ? null : presetArt(presets, presetId, build);
   // Large text leaves more room for words, the figure is decorative and may shrink.
   const figureHeight = Math.round(Math.min(340, Math.max(200, height * (fontScale > 1.5 ? 0.28 : 0.36))));
   const stageHeight = figureHeight + STAGE_TOP + STAGE_BOTTOM;
@@ -165,7 +168,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
           return <Pressable key={id} accessibilityRole="radio" accessibilityLabel={t('character.look', { index: index + 1, count: looks.length })}
             accessibilityState={{ selected, disabled: locked }} disabled={locked} onPress={() => { if (!locked) onDraft({ presetId: id }); }}
             style={({ pressed }) => [styles.portraitRing, selected && styles.portraitSelected, pressed && styles.pressed, locked && styles.locked]}>
-            <Image testID={`look-${id}`} source={presetArt(id, build)!.portrait} style={styles.portrait} />
+            <Image testID={`look-${id}`} source={presetArt(presets, id, build)!.portrait} style={styles.portrait} />
             {selected && <View style={styles.check}><Text allowFontScaling={false} style={styles.checkText}>✓</Text></View>}
           </Pressable>;
         })}

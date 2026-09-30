@@ -9,6 +9,7 @@ import * as characterControllers from '../characters/controller';
 import type { SessionStorage } from './sessionStorage';
 import type { OathClient } from '../api/oaths';
 import type { Character, CharacterClient, CharacterList } from '../api/characters';
+import type { ArtStyle, ArtStyleStorage } from '../art/registry';
 
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: mockDeviceLanguage }], getCalendars: () => [{ timeZone: 'Europe/Warsaw' }] }));
 jest.mock('../onboarding/notificationPermissions', () => ({ nativeNotificationPermissions: { read: jest.fn().mockResolvedValue({ kind: 'unavailable', canAskAgain: false }), request: jest.fn(), openSettings: jest.fn() } }));
@@ -62,6 +63,23 @@ test.each([['en', 'Your first steps'], ['pl', 'Twoje pierwsze kroki']] as const)
   expect(await screen.findByText(heading)).toBeOnTheScreen();
   expect(runtime.storage.write).toHaveBeenCalledWith({ version: 1, kind: 'active', session });
   expect(Apple.signInAsync).toHaveBeenCalledWith({ nonce: challenge.nonce, state: challenge.state, requestedScopes: [] });
+});
+
+test('the provider locale, not the device language, is the default before the profile loads', async () => {
+  const runtime = setup();
+  mockDeviceLanguage = 'en';
+  let loaded: (value: unknown) => void = () => {};
+  runtime.profileApi.get.mockImplementation(() => new Promise(resolve => { loaded = resolve; }));
+  await render(<LocalizationProvider initialLocale="pl"><AuthScreen {...runtime} /></LocalizationProvider>);
+  expect(await screen.findByText('Witaj w Oathforge')).toBeOnTheScreen();
+  await fireEvent.press(await screen.findByTestId('native-apple-button'));
+  expect(await screen.findByText('Twoje pierwsze kroki')).toBeOnTheScreen();
+  expect(screen.getByText('Wczytywanie potwierdzonych wyborów…')).toBeOnTheScreen();
+  expect(screen.queryByText('Your first steps')).toBeNull();
+  await act(async () => { loaded({ kind: 'success', value: { profile: { locale: 'pl', timezone: 'Europe/Warsaw', intention: null, companionIntroduced: false, notificationPreference: null }, onboardingStatus: 'pending' } }); });
+  expect(await screen.findByText('Twoje pierwsze kroki')).toBeOnTheScreen();
+  await act(async () => { await runtime.controller.logout(); });
+  expect(await screen.findByText('Witaj w Oathforge')).toBeOnTheScreen();
 });
 
 test('provider availability failure is recoverable without exposing the native button', async () => {
@@ -422,7 +440,7 @@ test('a failed switch error does not follow the player into new character creati
   expect(screen.queryByText('We could not create this character. Check your choices and try again.')).toBeNull();
 });
 
-async function signIn(runtime: ReturnType<typeof setup>, locale: 'en' | 'pl' = 'en') {
+async function signIn(runtime: ReturnType<typeof setup> & { artStyle?: ArtStyleStorage }, locale: 'en' | 'pl' = 'en') {
   runtime.profileApi.get.mockResolvedValue({ kind: 'success', value: completeProfile });
   await render(<LocalizationProvider initialLocale={locale}><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
@@ -713,4 +731,31 @@ test('a pause review never stays open for another character', async () => {
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
   expect(screen.queryByRole('header', { name: 'Review pause' })).toBeNull();
   expect(screen.queryByText('Mira')).toBeNull();
+});
+
+const settingsTile = { name: 'Settings, Language, pause, account' };
+const tutorialImage = () => String(screen.getByTestId('menu-tutorial-figure', { includeHiddenElements: true }).props.source.testUri);
+
+test('without an injected style the app draws the current art and Settings has no art style row', async () => {
+  await signIn(setup());
+  await screen.findByRole('button', forgeTile);
+  expect(tutorialImage()).toMatch(/zharomir-wanderer-v01\.png$/);
+  await fireEvent.press(screen.getByRole('button', settingsTile));
+  expect(await screen.findByRole('header', { name: 'Settings' })).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Face of the Forge' })).toBeNull();
+  expect(screen.queryByRole('radio', { name: 'Cinematic' })).toBeNull();
+});
+
+test('an injected style is read on start, and a choice in Settings is stored and redraws the art', async () => {
+  let stored: ArtStyle = 'cinematic';
+  const artStyle: ArtStyleStorage = { read: jest.fn(() => stored), write: jest.fn(style => { stored = style; }) };
+  await signIn({ ...setup(), artStyle });
+  await screen.findByRole('button', forgeTile);
+  expect(tutorialImage()).toMatch(/zharomir-wanderer-cinematic-v01\.png$/);
+  await fireEvent.press(screen.getByRole('button', settingsTile));
+  await fireEvent.press(await screen.findByRole('radio', { name: 'Classic' }));
+  expect(artStyle.write).toHaveBeenCalledWith('current');
+  expect(screen.getByRole('radio', { name: 'Classic', selected: true })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Back to menu' }));
+  expect(tutorialImage()).toMatch(/zharomir-wanderer-v01\.png$/);
 });

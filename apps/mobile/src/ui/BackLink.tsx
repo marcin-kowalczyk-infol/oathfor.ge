@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
+import { Text } from './Text';
 import { tokens } from './tokens';
 
 /** Plain back control without artwork, matching the back buttons of Settings, the pause review and the character screens. */

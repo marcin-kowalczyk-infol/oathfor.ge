@@ -71,6 +71,7 @@ A full screen with a back button to the menu, on the same darkened room backgrou
 | Row | Behavior |
 | --- | --- |
 | Language | Polish or English. The choice saves `locale` through `PATCH /api/profile` and applies after the server confirms. On failure the previous language stays and an error line appears. This makes the language choice persistent, replacing the session-only in-app choice. |
+| Face of the Forge (demo only) | Classic or cinematic art, see the [demo README](../../apps/mobile/demo/README.md#art-style). The row exists only when the demo injects its style adapter. Production has no such row. |
 | Notifications | On or off, from `notificationPreference`. Turning on asks for iOS permission through the existing notification controller. When permission is denied the row explains it and offers "Open iOS Settings". No notification is scheduled yet. |
 | Pause | Shows the active character's name and state (active or paused) and opens the existing pause review. The review confirms with its revision, as today. Pause applies only to that character. |
 | Sign out | Signs out at once, as the current buttons do. |

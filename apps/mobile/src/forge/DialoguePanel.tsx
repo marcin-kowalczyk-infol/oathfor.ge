@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
+import { Animated, Image, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
+import { Text } from '../ui/Text';
 import { tokens } from '../ui/tokens';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { useArt } from '../art/ArtProvider';
 import type { Speaker } from './conversation';
 
 export const TYPE_MS = 30;
@@ -11,17 +13,7 @@ const SLIDE = 24;
 const SWAP_MS = 220;
 // Busts sit inside the corners, clear of the × in the top right.
 const BUST_INSET = 50;
-const zharomir = require('../../assets/forge/scene/zharomir-bust-v01.png');
-// The painted frame (docs/art/forge-scene-assets.md), exported for 3x screens: 1 point is 3 pixels.
-const art = {
-  corner: require('../../assets/forge/scene/panel-corner-v01.png'),
-  edgeH: require('../../assets/forge/scene/panel-edge-h-v01.png'),
-  edgeV: require('../../assets/forge/scene/panel-edge-v-v01.png'),
-  fill: require('../../assets/forge/scene/panel-fill-v01.png'),
-  plate: require('../../assets/forge/scene/panel-plate-v01.png'),
-  // The rune with alpha from its brightness (export-rune-alpha-v01.py). A screen blend drew a dark square in the panel on iOS.
-  rune: require('../../assets/forge/scene/panel-rune-alpha-v01.png'),
-};
+// The painted frame and Żaromir's bust come from the style's art (src/art). The frame is exported for 3x screens: 1 point is 3 pixels.
 const CORNER = 96 / 3;
 const EDGE = 80 / 3;
 const TILE_H = 142 / 3;
@@ -51,6 +43,7 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
   more: boolean;
   continueLabel: string; onContinue: () => void; controls?: PanelControls; dismissLabel: string; onDismiss: () => void;
 }) {
+  const { panel: art, zharomirBust: zharomir } = useArt();
   const { t } = useTranslation();
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1.3;
@@ -133,10 +126,14 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
       <Image testID="dialogue-plate-image" source={art.plate} resizeMode="stretch" style={[styles.plateImage, PLATE]} />
       <Text accessible={false} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={styles.plateName}>{name}</Text>
     </View>
-    <Pressable testID="dialogue-panel-touch" accessible={false} onPress={press} style={[styles.touch, largeText ? styles.fill : styles.fit]}>
-      {title ? <Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.title}>{title}</Text> : null}
-      <ScrollView testID="dialogue-scroll" style={largeText ? styles.fill : styles.fit} accessibilityLiveRegion="polite">{body}{extra}</ScrollView>
-    </Pressable>
+    {/* Native check, 2026-09-30: on iOS a scroll view does not drag while a view above it holds the touch, so a drag in a long line
+        acted as a tap and skipped it. The touch target sits inside the scroll view, where a drag cancels the press. */}
+    <View style={[styles.touch, largeText ? styles.fill : styles.fit]}>
+      {title ? <Pressable accessible={false} onPress={press}><Text accessibilityRole="header" maxFontSizeMultiplier={2.4} style={styles.title}>{title}</Text></Pressable> : null}
+      <ScrollView testID="dialogue-scroll" style={largeText ? styles.fill : styles.fit} contentContainerStyle={largeText && styles.grow} accessibilityLiveRegion="polite">
+        <Pressable testID="dialogue-panel-touch" accessible={false} onPress={press} style={largeText && styles.grow}>{body}{extra}</Pressable>
+      </ScrollView>
+    </View>
     {(controls?.action || controls?.step) && <View style={styles.controls}>
       {controls.action && <Pressable accessibilityRole="button" accessibilityLabel={controls.action.label} onPress={controls.action.onPress} style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
         <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.display} numberOfLines={1} style={styles.actionLabel}>{controls.action.label} →</Text>
@@ -165,6 +162,7 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
  * Tiles are counted for the panel's width and its height limit and clipped at the corners.
  */
 function PaintedFrame({ width, height }: { width: number; height: number }) {
+  const art = useArt().panel;
   const across = Math.max(0, Math.ceil((width - 2 * CORNER) / TILE_H));
   const down = Math.max(0, Math.ceil((height - 2 * CORNER) / TILE_V));
   const tiles = (count: number, id: string, size: { width: number; height: number }, source: number) =>
@@ -172,7 +170,8 @@ function PaintedFrame({ width, height }: { width: number; height: number }) {
   const corner = (id: string, place: object, flip: object[]) =>
     <Image testID={`panel-corner-${id}`} source={art.corner} resizeMode="stretch" style={[styles.corner, place, { transform: flip }]} />;
   return <View testID="panel-frame" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>
-    <Image testID="panel-fill" source={art.fill} resizeMode="cover" style={styles.wood} />
+    {/* Native check, 2026-09-30: a covering image is not clipped to its box on iOS, so the wood reached the screen edges. */}
+    <View testID="panel-fill-clip" style={styles.wood}><Image testID="panel-fill" source={art.fill} resizeMode="cover" style={styles.woodImage} /></View>
     <View style={[styles.edgeH, { top: 0 }]}>{tiles(across, 'panel-edge-top-tile', { width: TILE_H, height: EDGE }, art.edgeH)}</View>
     <View style={[styles.edgeH, { bottom: 0, transform: [{ scaleY: -1 }] }]}>{tiles(across, 'panel-edge-bottom-tile', { width: TILE_H, height: EDGE }, art.edgeH)}</View>
     <View style={[styles.edgeV, { left: 0 }]}>{tiles(down, 'panel-edge-left-tile', { width: EDGE, height: TILE_V }, art.edgeV)}</View>
@@ -190,7 +189,8 @@ const parchment = '#f0dfb9';
 const styles = StyleSheet.create({
   panel: { position: 'absolute', zIndex: 5, backgroundColor: wood, borderRadius: 6, paddingTop: 36, paddingBottom: 8,
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
-  wood: { position: 'absolute', left: 4, top: 4, right: 4, bottom: 4 },
+  wood: { position: 'absolute', left: 4, top: 4, right: 4, bottom: 4, overflow: 'hidden' },
+  woodImage: { width: '100%', height: '100%' },
   corner: { position: 'absolute', width: CORNER, height: CORNER },
   edgeH: { position: 'absolute', left: CORNER, right: CORNER, height: EDGE, flexDirection: 'row', overflow: 'hidden' },
   edgeV: { position: 'absolute', top: CORNER, bottom: CORNER, width: EDGE, overflow: 'hidden' },
@@ -209,6 +209,8 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   // At normal size the panel grows with its text and scrolls only once it reaches its height limit.
   fit: { flexGrow: 0, flexShrink: 1 },
+  // At large text the panel has a fixed height, so the touch fills the text area and a tap under a short line still continues.
+  grow: { flexGrow: 1 },
   title: { color: parchment, fontFamily: tokens.font.display, fontSize: 19, marginBottom: 4 },
   text: { color: parchment, fontFamily: tokens.font.body, fontSize: 16, lineHeight: 23 },
   untyped: { color: 'transparent' },

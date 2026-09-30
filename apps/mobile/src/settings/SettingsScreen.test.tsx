@@ -161,3 +161,21 @@ test('text inside the cards is capped so long Polish words never break mid-word 
     'W grze',
   ]) expect(screen.getByText(text).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
 });
+
+test('without an injected style control Settings has no art style row, as in production', async () => {
+  await setup();
+  expect(screen.queryByRole('header', { name: 'Face of the Forge' })).toBeNull();
+  expect(screen.queryByRole('radio', { name: 'Cinematic' })).toBeNull();
+});
+
+test.each([['en', 'Face of the Forge', 'Classic', 'Cinematic'], ['pl', 'Oblicze Kuźni', 'Dawne', 'Filmowe']] as const)('the demo art style row in %s selects the other style once', async (ui, title, classic, cinematic) => {
+  const onChange = jest.fn();
+  await setup({ artStyle: { value: 'current', onChange } }, ui);
+  expect(screen.getByRole('header', { name: title })).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: classic, selected: true })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('radio', { name: classic }));
+  expect(onChange).not.toHaveBeenCalled();
+  await fireEvent.press(screen.getByRole('radio', { name: cinematic }));
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith('cinematic');
+});

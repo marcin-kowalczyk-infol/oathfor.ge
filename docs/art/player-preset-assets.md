@@ -14,7 +14,7 @@ Script `graphics/mvp-17/export-starters-v01.py`, Pillow, records in `graphics/mv
 2. Portrait: Apple Vision face landmarks give the pupil midpoint and face height (`graphics/mvp-17/detect-eyes.swift`, results in `eyes-2026-09-27.txt`). The square crop makes the face 41 percent of the side with the eyes at 50 percent width and 44 percent height, as the DUMMY portraits did, then Lanczos to 256 × 256. Crops that extend past the master are padded with transparency. That area falls outside the circular mask.
 3. Alpha of 250 and above snaps to 255, because the figure interiors sit at 254. The masters have clean edges without a dark halo.
 
-Figures weigh 0.4 to 0.7 MB and portraits about 0.1 MB. All files are PNG with straight alpha. `apps/mobile/src/characters/presetArt.ts` maps a preset ID and build to these files. A preset or build the app cannot draw returns no art, and screens then show a neutral placeholder.
+Figures weigh 0.4 to 0.7 MB and portraits about 0.1 MB. All files are PNG with straight alpha. `apps/mobile/src/art/current.ts` lists these files and `apps/mobile/src/characters/presetArt.ts` maps a preset ID and build to them, for the art style in use. A preset or build the app cannot draw returns no art, and screens then show a neutral placeholder.
 
 ## Exports
 

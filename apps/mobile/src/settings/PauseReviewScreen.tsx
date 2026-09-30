@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Text } from '../ui/Text';
 import type { Character } from '../api/characters';
 import type { Oath } from '../api/oathSchema';
 import { useTranslation } from '../localization/LocalizationProvider';

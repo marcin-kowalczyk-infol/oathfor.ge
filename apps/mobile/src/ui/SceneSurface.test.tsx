@@ -1,9 +1,12 @@
 import { act, render, screen } from '@testing-library/react-native';
-import { Animated, StyleSheet, Text } from 'react-native';
+import { Animated, Dimensions, StyleSheet, Text } from 'react-native';
+import { ArtProvider, resolveArt } from '../art/ArtProvider';
 import { SceneSurface } from './SceneSurface';
 import { useMotionAllowed } from './useMotion';
 
 jest.mock('./useMotion', () => ({ useMotionAllowed: jest.fn() }));
+// The flame owns its loop. Its props show where the surface places it.
+jest.mock('./HearthFire', () => ({ HearthFire: (props: object) => { const { View } = require('react-native'); return <View testID="hearth-flame" {...props} />; } }));
 const motion = jest.mocked(useMotionAllowed);
 
 test('arriving from the room zooms into the place only when motion is allowed', async () => {
@@ -33,4 +36,18 @@ test('the close-up follows the content when the list is pulled down, so text nev
   await act(async () => { scroll.setValue(-80); });
   const style = StyleSheet.flatten(screen.getByTestId('forge-scroller', { includeHiddenElements: true }).props.style);
   expect(style.transform).toEqual([{ translateY: 80 }]);
+});
+
+test.each(['current', 'cinematic'] as const)('the hearth close-up shows its own art and places the flame on its fire bed for the %s art', async style => {
+  motion.mockReturnValue(false);
+  const art = resolveArt(style);
+  const hidden = { includeHiddenElements: true };
+  await render(<ArtProvider style={style}><SceneSurface place="hearth"><Text>Hearth</Text></SceneSurface></ArtProvider>);
+  expect(screen.getByTestId('forge-closeup-image', hidden).props.source).toBe(art.stations.hearth);
+  const flame = screen.getByTestId('hearth-flame', hidden).props;
+  // The close-up spans the window width and is 1.5 times as tall, from the top.
+  const { width } = Dimensions.get('window');
+  expect(flame.anchor.left / width).toBeCloseTo(art.stationFire.x, 5);
+  expect(flame.anchor.top / (width * 1.5)).toBeCloseTo(art.stationFire.y, 5);
+  expect(flame.size / width).toBeCloseTo(art.stationFire.width, 5);
 });

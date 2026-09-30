@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import * as Apple from 'expo-apple-authentication';
-import { getCalendars, getLocales } from 'expo-localization';
+import { getCalendars } from 'expo-localization';
 import type { ProfileClient } from '../api/profile';
 import type { OathClient } from '../api/oaths';
 import type { PendingStorage } from '../oaths/pendingStorage';
@@ -15,13 +15,14 @@ import type { GuideStorage } from '../forge/guideStorage';
 import { HomeRoutes } from '../home/HomeRoutes';
 import type { HomeState } from '../home/homeRoute';
 import type { Locale } from '../localization/locale';
-import { useTranslation } from '../localization/LocalizationProvider';
-import { resolveLocale } from '../localization/locale';
+import { useDefaultLocale, useTranslation } from '../localization/LocalizationProvider';
 import { createOnboardingController } from '../onboarding/controller';
 import { OnboardingView } from '../onboarding/OnboardingView';
 import { createNotificationController } from '../onboarding/notifications';
 import { nativeNotificationPermissions, type NotificationPermissions } from '../onboarding/notificationPermissions';
 import { nativeNetworkEvents, type NetworkEvents } from '../api/networkEvents';
+import { ArtProvider } from '../art/ArtProvider';
+import type { ArtStyle, ArtStyleStorage } from '../art/registry';
 import { StatusBar } from 'expo-status-bar';
 import type { Authentication, SessionController } from './session';
 import { AuthView } from './AuthView';
@@ -38,16 +39,31 @@ const nativeApple: AppleAvailability = {
   },
 };
 
+type AuthScreenProps = { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; oathApi: OathClient; acceptanceStorage: PendingStorage; characterApi: CharacterClient; creationStorage: CreationStorage; guideStorage: GuideStorage; rulesGuideStorage?: GuideStorage; apple?: AppleAvailability; permissions?: NotificationPermissions; network?: NetworkEvents };
+
+/**
+ * artStyle: the demo's DUMMY style choice, read once on mount and written on each change. Without it every screen draws
+ * the current art and Settings has no style row, as in production.
+ */
+export function AuthScreen({ artStyle, ...props }: AuthScreenProps & { artStyle?: ArtStyleStorage }) {
+  const [style, setStyle] = useState<ArtStyle>(() => artStyle?.read() ?? 'current');
+  const choice = artStyle && { value: style, onChange(next: ArtStyle) { artStyle.write(next); setStyle(next); } };
+  return <ArtProvider style={style}><AuthRoutes {...props} artStyle={choice} /></ArtProvider>;
+}
+
 // The app owns this controller for its lifetime; account subtrees must not replace it.
-export function AuthScreen({ controller, authenticate, profileApi, oathApi, acceptanceStorage, characterApi, creationStorage, guideStorage, rulesGuideStorage, apple = nativeApple, permissions = nativeNotificationPermissions, network = nativeNetworkEvents }: { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; oathApi: OathClient; acceptanceStorage: PendingStorage; characterApi: CharacterClient; creationStorage: CreationStorage; guideStorage: GuideStorage; rulesGuideStorage?: GuideStorage; apple?: AppleAvailability; permissions?: NotificationPermissions; network?: NetworkEvents }) {
+function AuthRoutes({ controller, authenticate, profileApi, oathApi, acceptanceStorage, characterApi, creationStorage, guideStorage, rulesGuideStorage, apple = nativeApple, permissions = nativeNotificationPermissions, network = nativeNetworkEvents, artStyle }: AuthScreenProps & { artStyle?: { value: ArtStyle; onChange(style: ArtStyle): void } }) {
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const { i18n } = useTranslation();
   const languageOwner = useRef(i18n);
   languageOwner.current = i18n;
+  const defaultLocale = useDefaultLocale();
+  const defaultOwner = useRef(defaultLocale);
+  defaultOwner.current = defaultLocale;
   const onboarding = useMemo(() => createOnboardingController({
     api: profileApi, session: controller,
     applyLocale: locale => languageOwner.current.changeLanguage(locale),
-    defaultLocale: () => resolveLocale(getLocales()[0]?.languageTag),
+    defaultLocale: () => defaultOwner.current,
     suggestedTimezone: () => getCalendars()[0]?.timeZone ?? null,
   }), [profileApi, controller]);
   const notifications = useMemo(() => createNotificationController({ session: controller, onboarding, permissions }), [controller, onboarding, permissions]);
@@ -133,7 +149,7 @@ export function AuthScreen({ controller, authenticate, profileApi, oathApi, acce
     // Routes belong to this account and character. A switch or a created character resets them to the menu.
     return <><StatusBar style="light" />
       <HomeRoutes key={state.account.id} accountId={state.account.id} character={active} characterState={characterState} characters={characters} oaths={oaths}
-        profile={profile.value.profile} timezone={profile.value.profile.timezone!} guideStorage={guideStorage} rulesGuideStorage={rulesGuideStorage} network={network}
+        profile={profile.value.profile} timezone={profile.value.profile.timezone!} guideStorage={guideStorage} rulesGuideStorage={rulesGuideStorage} network={network} artStyle={artStyle}
         home={home} onHome={setHome} language={languageState} onLocale={saveLocale}
         onSettingsOpened={() => setLanguage(current => current.saving ? current : { ...current, error: false })}
         notifications={{ state: notificationState, enable: () => { void notifications.enable(); }, skip: () => { void notifications.skip(); }, retryPermission: () => { void notifications.retryPermission(); }, settings: () => { void notifications.settings(); } }}

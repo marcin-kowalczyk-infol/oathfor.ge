@@ -73,3 +73,5 @@ Owner decision, 2026-09-26: authored prose and player-facing content must not co
 ## Proposed player terminology, 2026-09-26
 
 The [player-character note](player-character.md) retains the owner’s working name Oathtar and proposes Twoja postać / Your character as interface wording, with Przysiężnik / Oathbearer as a possible lore title. These remain exploration, not accepted replacements for existing terms. Żaromir / Zharomir remains the companion’s name.
+
+Demo only, proposed 2026-09-29: Oblicze Kuźni / Face of the Forge names the art style row, with Dawne / Classic for the current art and Filmowe / Cinematic for the restyle. It is a development control, not accepted player terminology.

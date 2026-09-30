@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '../ui/Text';
 import type { ResolvedTime, Snapshot } from '../api/oathSchema';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale, type Locale } from '../localization/locale';
@@ -68,20 +69,22 @@ export function SnapshotRules({ snapshot }: { snapshot: Snapshot }) {
         <ActivityEmblem activity={snapshot.activity} size={112} />
       </View>
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{copy.title}</Text>
-      <Text style={styles.secondary}>{copy.subtitle}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.secondary}>{copy.subtitle}</Text>
     </View>
-    <View style={styles.promise}><Text style={styles.promiseText}>{promise}</Text></View>
+    {/* Native check, 2026-09-30: uncapped at the largest size "października", "zaplanowany" and "Nierozstrzygnięta" broke mid-word
+        on the parchment. Every text here takes the display cap, also the rule bodies that full-width copy elsewhere leaves uncapped. */}
+    <View style={styles.promise}><Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.promiseText}>{promise}</Text></View>
     <View style={styles.facts}>{facts.map(([label, value]) => <View key={label} style={styles.group}>
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{label}</Text>
-      <Text style={styles.body}>{value}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{value}</Text>
     </View>)}</View>
     <View style={styles.card}>
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t('oath.rules.declaration')}</Text>
-      <Text style={styles.body}>{copy.declaration}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{copy.declaration}</Text>
     </View>
     {sections.map(section => <View key={section} style={[styles.card, (section === 'evidence' || section === 'photo' || section === 'activityRecord') && styles.evidence]}>
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t(`oath.sections.${section}`)}</Text>
-      <Text style={styles.body}>{copy.sections[section]}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{copy.sections[section]}</Text>
     </View>)}
   </View>;
 }

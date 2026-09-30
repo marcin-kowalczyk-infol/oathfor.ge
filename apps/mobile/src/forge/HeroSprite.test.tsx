@@ -102,6 +102,28 @@ test('the previous frame stays underneath until the next sheet has loaded', asyn
   expect(screen.queryByTestId('hero-previous', { includeHiddenElements: true })).toBeNull();
 });
 
+// Native check, cinematic style: a new image element under the next sheet had to load too, so for two frames neither showed.
+test('the previous frame keeps its own loaded image element while the next sheet loads', async () => {
+  const errors = jest.spyOn(console, 'error');
+  const view = await render(sprite({ kind: 'walk', direction: 'back' }));
+  const walking = screen.getByTestId('hero-walk-back', { includeHiddenElements: true }).children[0] as unknown as { props: { source: unknown } };
+  const walkSource = walking.props.source;
+  await view.rerender(sprite({ kind: 'act', place: 'hearth' }));
+  expect(walking.props.source).toBe(walkSource);
+  const previous = screen.getByTestId('hero-previous', { includeHiddenElements: true }).children[0] as unknown as { props: { source: unknown } };
+  expect(previous).toBe(walking);
+  expect(errors).not.toHaveBeenCalled();
+});
+
+test('returning to the sheet still underneath shows it at once, since it will not load again', async () => {
+  const view = await render(sprite({ kind: 'walk', direction: 'back' }));
+  await view.rerender(sprite({ kind: 'act', place: 'hearth' }));
+  await view.rerender(sprite({ kind: 'walk', direction: 'back' }));
+  const wrapper = screen.getByTestId('hero-walk-back', { includeHiddenElements: true }).parent as unknown as { props: { style: object } };
+  expect(StyleSheet.flatten(wrapper.props.style)).not.toMatchObject({ opacity: 0 });
+  expect(screen.queryByTestId('hero-previous', { includeHiddenElements: true })).toBeNull();
+});
+
 test('a new run restarts the frame timer without remounting', async () => {
   const intervals = jest.spyOn(globalThis, 'setInterval');
   const view = await render(<HeroSprite pose={{ kind: 'walk', direction: 'front' }} allowed height={HEIGHT} run={1} />);

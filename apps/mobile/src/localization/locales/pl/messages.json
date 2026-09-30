@@ -498,6 +498,12 @@
       "permission_unavailable": "Nie udało się sprawdzić zgody na powiadomienia na tym urządzeniu. Twój wybór pozostaje zapisany.",
       "permission_checking": "Sprawdzanie zgody na powiadomienia na tym urządzeniu…"
     },
+    "artStyle": {
+      "title": "Oblicze Kuźni",
+      "current": "Dawne",
+      "cinematic": "Filmowe",
+      "note": "Tylko w wersji demo. Gdzie brakuje grafiki filmowej, zostaje dawna."
+    },
     "pause": {
       "title": "Pauza",
       "row_active": "Postać {{name}}: w grze",

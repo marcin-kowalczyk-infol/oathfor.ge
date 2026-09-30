@@ -1,4 +1,5 @@
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Text } from '../ui/Text';
 import { isSupportedTimezone } from '../api/profile';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { CompanionArt } from '../companion/CompanionProgress';

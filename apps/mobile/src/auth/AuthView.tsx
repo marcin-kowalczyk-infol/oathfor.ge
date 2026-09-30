@@ -1,5 +1,6 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';

@@ -1,12 +1,10 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { bindShortWords } from '../localization/typography';
+import { useArt } from '../art/ArtProvider';
 import type { ForgeProgress } from './progressHint';
 
-const icons = {
-  oaths: require('../../assets/forge/scene/talk-seal-v01.png'),
-  chronicle: require('../../assets/forge/scene/talk-chronicle-v01.png'),
-};
 const ICON = 40;
 
 /**
@@ -15,6 +13,7 @@ const ICON = 40;
  */
 export function TalkCounters({ progress, waiting }: { progress: ForgeProgress; waiting: boolean }) {
   const { t, i18n } = useTranslation();
+  const icons = useArt().talk;
   const counter = (id: 'oaths' | 'chronicle', value: number | null, key: string, unknownKey: string) => {
     const shown = value === null ? (waiting ? '…' : '–') : String(value);
     const label = t(key, { count: value ?? 0 });

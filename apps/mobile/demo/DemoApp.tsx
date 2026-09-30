@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Modal, SafeAreaView, ScrollView, View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { Modal, SafeAreaView, ScrollView, View, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { Text } from '../src/ui/Text';
 import { AuthScreen } from '../src/auth/AuthScreen';
 import { LocalizationProvider } from '../src/localization/LocalizationProvider';
 import type { Locale } from '../src/localization/locale';

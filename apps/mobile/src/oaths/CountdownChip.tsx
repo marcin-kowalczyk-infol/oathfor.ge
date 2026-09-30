@@ -1,17 +1,19 @@
-import { Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Text } from '../ui/Text';
 import type { Oath } from '../api/oathSchema';
 import { SpriteLoop } from '../forge/Sprite';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { tokens } from '../ui/tokens';
 import { useMotionAllowed } from '../ui/useMotion';
 import { countdownTarget, formatCountdown } from './countdown';
-import { oathArt } from './oathArt';
+import { useArt } from '../art/ArtProvider';
 import type { ServerClock } from './serverClock';
 import { useCountdown } from './useCountdown';
 
 /** Time left for an Oath from server time. Hidden without server time or for states without a countdown. */
 /** stacked: the label sits over one unbroken value, for narrow seal columns that must line up side by side. */
 export function CountdownChip({ oath, clock, size = 'small', stacked = false, onElapsed }: { oath: Pick<Oath, 'state' | 'snapshot' | 'review'>; clock: ServerClock; size?: 'small' | 'large'; stacked?: boolean; onElapsed?: () => void }) {
+  const oathArt = useArt().oaths;
   const { t } = useTranslation();
   const motion = useMotionAllowed();
   const { fontScale } = useWindowDimensions();

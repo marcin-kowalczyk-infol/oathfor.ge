@@ -1,22 +1,21 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, Image, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useArt } from '../art/ArtProvider';
 import { HearthFire } from './HearthFire';
 import { useMotionAllowed } from './useMotion';
 
 export type ForgePlace = 'hearth' | 'seals' | 'chronicle' | 'room';
-const room = require('../../assets/forge/room-prototype-v03.png');
-const closeUps = {
-  hearth: require('../../assets/forge/station-hearth-v01.jpg'),
-  seals: require('../../assets/forge/station-seals-v01.jpg'),
-  chronicle: require('../../assets/forge/station-chronicle-v01.jpg'),
-};
 // Station anchors in the room artwork, shared with the spatial scene.
 const roomAnchors = { hearth: { x: 0.515, y: 0.45 }, seals: { x: 0.22, y: 0.52 }, chronicle: { x: 0.82, y: 0.51 } };
 
 /** Illustrated place behind functional screens. Content owns scrolling and safe areas. */
+/** In the room layout the Oath lists and the detail lower their close-up by this fraction of the screen into the band under the tabs. */
+export const LIST_DROP = 0.3;
+
 export function SceneSurface({ children, place = 'room', approach = null, drop = 0, scroll }: { children: ReactNode; place?: ForgePlace; approach?: number | null; drop?: number; scroll?: Animated.Value }) {
   const window = useWindowDimensions();
   const motion = useMotionAllowed();
+  const { room: { image: room }, stations: closeUps, stationFire: fire } = useArt();
   const [size, setSize] = useState({ width: window.width, height: window.height });
   const [approaching, setApproaching] = useState<number | null>(null);
   const consumed = useRef<number | null>(null);
@@ -59,9 +58,9 @@ export function SceneSurface({ children, place = 'room', approach = null, drop =
         {/* The close-up scrolls with the content, so text never slides across the focal object. */}
         {/* A pull-down overscroll moves it too. Native check: a clamped close-up let the History title slide onto the book. */}
         <Animated.View testID="forge-scroller" style={[styles.scroller, scroll && { transform: [{ translateY: Animated.multiply(scroll, -1) }] }]}>
-        <Image source={closeUps[place]} resizeMode="stretch" style={[styles.layer, { left: 0, top: imageTop, width: size.width, height: imageHeight }]} />
-        {/* Native check: the taller 8-frame flame at 0.4 of the width rose above the arch. 0.24 keeps it inside the opening. */}
-        {place === 'hearth' && <HearthFire anchor={{ left: size.width * 0.5, top: imageTop + imageHeight * 0.345 }} size={size.width * 0.24} opacity={0.85} />}
+        <Image testID="forge-closeup-image" source={closeUps[place]} resizeMode="stretch" style={[styles.layer, { left: 0, top: imageTop, width: size.width, height: imageHeight }]} />
+        {/* Native check: the taller 8-frame flame at 0.4 of the width rose above the arch. Each close-up keeps it inside its own opening. */}
+        {place === 'hearth' && <HearthFire anchor={{ left: size.width * fire.x, top: imageTop + imageHeight * fire.y }} size={size.width * fire.width} opacity={0.85} />}
         <View style={[styles.layer, styles.fade, { left: 0, right: 0, top: imageTop, height: imageHeight }]} />
         {imageTop > 0 && <View style={[styles.layer, styles.rise, { left: 0, right: 0, top: 0, height: imageTop + imageHeight * 0.12 }]} />}
         <View style={[styles.layer, styles.floor, { left: 0, right: 0, top: imageTop + imageHeight - 1, height: 20000 }]} />

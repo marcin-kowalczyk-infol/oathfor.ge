@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';

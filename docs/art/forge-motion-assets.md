@@ -14,7 +14,7 @@ Terms source checked 2026-09-26 for the same tool: [OpenAI Europe Terms of Use](
 
 Character sheets use 288 × 320 cells. Each frame is scaled to one figure height (282 px) and placed with its torso centre at x 144 and its soles at y 312. Station poses keep one scale per sheet so a lean stays visible. Faint alpha haze below 8 is cleared. Sprites are never mirrored, so the lantern stays in his right hand.
 
-Light sheets are 4 × 2 on black and use a screen blend in the app. The near-black floor is lifted to exact black. The page sheet is RGBA with a normal blend. Its 9 degree tilt toward the lectern book is baked into the export, because a runtime rotation made the page blink on iOS.
+Light sheets are 4 × 2 on black and use a screen blend in the app. The near-black floor is lifted to exact black. The page sheet was RGBA with a normal blend and a baked 9 degree tilt toward the lectern book, because a runtime rotation made the page blink on iOS. It was removed from the app on 2026-09-30.
 
 | Export | Master | Size / mode | Use | SHA-256 |
 | --- | --- | --- | --- | --- |
@@ -35,8 +35,8 @@ Light sheets are 4 × 2 on black and use a screen blend in the app. The near-bla
 | `zharomir-talk-v01.png` | `zharomir-talk-v02` | 576 × 640 RGBA | Explain, point left, point right, nod | `1ddd820463bcd2527c818f32d0eda0b61e8e12c28c4d76cd3d4cceb0616befc0` |
 | `fx-hearth-loop-v01.png` | `fx-hearth-loop-v02` | 1152 × 768 RGB | Hearth flame loop | `8a7c66cce776891e961fc3162c2ced0ad5ed40593af371d092db863ab46464ba` |
 | `fx-hearth-burst-v01.png` | `fx-hearth-burst-v03` | 1152 × 768 RGB | Hearth flare on arrival | `f3a6e8229e452703ca296a40bf0cf41ba5f8362791516a85198ce547593f6a23` |
-| `fx-seal-glow-v01.png` | `fx-seal-glow-v02` | 768 × 512 RGB | Ring of light on each seal | `3c6d561686477757fb41b614532aca76a01177f0b439f5514db3834b9baceb71` |
-| `fx-chronicle-page-v01.png` | `fx-chronicle-page-v02` | 768 × 512 RGBA | Turning page | `5fbd0c4aac30e2cb776701f1ee41bb66d2444d0395913d66524f95ec0f616844` |
+| `fx-seal-glow-v01.png` | `fx-seal-glow-v02` | 768 × 512 RGB | Removed from the app on 2026-09-30. Nothing drew it since 28ef796, the seal motif sheets replaced it | `3c6d561686477757fb41b614532aca76a01177f0b439f5514db3834b9baceb71` |
+| `fx-chronicle-page-v01.png` | `fx-chronicle-page-v02` | 768 × 512 RGBA | Removed from the app on 2026-09-30. Nothing drew it since 28ef796, the book page turn replaced it | `5fbd0c4aac30e2cb776701f1ee41bb66d2444d0395913d66524f95ec0f616844` |
 | `fx-door-mist-v01.png` | `fx-door-mist-v02` | 768 × 512 RGB | Moonlight and mist at the door | `adea54c3812774defc1c39c8d94cd214868b702d97ceab97a9d4fd5e2e1fcbd6` |
 | `fx-candle-loop-v01.png` | `fx-candle-loop-v02` | 384 × 256 RGB | Candle and lamp flames | `6d9df37690a24361a786f80da7c90e8c4eb9b765643c23d23b9cc544b6bc1a8e` |
 | `fx-attract-wisp-v01.png` | `fx-attract-wisp-v02` | 384 × 256 RGB | Ember wisp over a station | `5eb59e171028586b5eea5967f05898ae2f8aac162db4669736fafd4d01f6079b` |

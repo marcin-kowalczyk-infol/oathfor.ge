@@ -1,3 +1,4 @@
+import { Profiler } from 'react';
 import { AppState, Dimensions, StyleSheet } from 'react-native';
 import { createServerClock } from './serverClock';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
@@ -223,6 +224,62 @@ test('room navigation opens history and keeps full stored time in accessibility'
   expect(screen.getByRole('button', { name: /Open Oath:.*Europe\/Warsaw/ })).toBeOnTheScreen();
   expect(f.controller.list).toHaveBeenLastCalledWith({ view: 'history' });
 });
+// Native check, 2026-09-30: the screen stays mounted under the room, so after the chronicle flight its first frame still showed Today.
+test('a room request shows its view from the first commit, never the hidden previous view', async () => {
+  const f = setup();
+  const history = deferred<Awaited<ReturnType<OathController['list']>>>();
+  const hidden = { includeHiddenElements: true };
+  const frames: { title: boolean; today: boolean; chronicle: boolean }[] = [];
+  const record = () => frames.push({ title: screen.queryAllByText('Your Oaths', hidden).length > 0, today: screen.queryAllByText('Under review', hidden).length > 0, chronicle: !!screen.queryByTestId('forge-place-chronicle', hidden) });
+  let recording = false;
+  const screenWith = (request: { id: number; target: 'history' } | null) => <Profiler id="home" onRender={() => { if (recording) record(); }}>
+    <LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request, onReturn: jest.fn() }} /></LocalizationProvider>
+  </Profiler>;
+  const view = await render(screenWith(null));
+  expect((await screen.findAllByText('Under review')).length).toBeGreaterThan(0);
+  jest.mocked(f.controller.list).mockReturnValueOnce(history.promise);
+  recording = true;
+  await view.rerender(screenWith({ id: 1, target: 'history' }));
+  recording = false;
+  expect(frames.length).toBeGreaterThan(0);
+  expect(frames.filter(frame => frame.title || frame.today || !frame.chronicle)).toEqual([]);
+  await act(async () => history.resolve(page([oath()])));
+  expect(f.controller.list).toHaveBeenLastCalledWith({ view: 'history' });
+});
+
+// Native check, 2026-09-30: after the hearth flight the hidden detail showed for two frames before creation opened.
+test('a hearth request shows only the hearth while Today loads, never the hidden previous screen', async () => {
+  const f = setup();
+  const today = deferred<Awaited<ReturnType<OathController['list']>>>();
+  const hidden = { includeHiddenElements: true };
+  const frames: { detail: boolean; list: boolean; hearth: boolean }[] = [];
+  let recording = false;
+  const record = () => frames.push({ detail: screen.queryAllByText('Oath details', hidden).length > 0, list: screen.queryAllByText('Your Oaths', hidden).length > 0, hearth: !!screen.queryByTestId('forge-place-hearth', hidden) });
+  const screenWith = (request: { id: number; target: 'create' } | null) => <Profiler id="home" onRender={() => { if (recording) record(); }}>
+    <LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request, onReturn: jest.fn() }} /></LocalizationProvider>
+  </Profiler>;
+  const view = await render(screenWith(null));
+  await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath: Running/ }))[0]);
+  expect(await screen.findByText('Oath details')).toBeOnTheScreen();
+  const closeUp = screen.getByTestId('forge-closeup-image', hidden);
+  jest.mocked(f.controller.list).mockReturnValueOnce(today.promise);
+  recording = true;
+  await view.rerender(screenWith({ id: 1, target: 'create' }));
+  recording = false;
+  expect(frames.length).toBeGreaterThan(0);
+  expect(frames.filter(frame => frame.detail || frame.list || !frame.hearth)).toEqual([]);
+  // The mounted surface keeps its decoded close-ups (a new one showed two dark frames) and frames the hearth like creation.
+  expect(screen.getByTestId('forge-closeup-image', hidden)).toBe(closeUp);
+  expect(StyleSheet.flatten(closeUp.props.style)).toMatchObject({ top: 0 });
+  // A slow answer still says what is happening and keeps the way back to the room. A fast one shows no text (native check).
+  expect(screen.queryByText('Loading Oaths…')).toBeNull();
+  expect(await screen.findByText('Loading Oaths…', {}, { timeout: 1500 })).toBeOnTheScreen();
+  expect(screen.getAllByRole('button', { name: /Return to the Forge|Back to menu/ }).length).toBeGreaterThan(0);
+  jest.mocked(f.controller.resetCreation).mockReturnValue(true);
+  await act(async () => today.resolve(page([oath()])));
+  expect(await screen.findByLabelText('Completion date')).toBeOnTheScreen();
+});
+
 test('room return preserves pending acceptance without resetting it', async () => {
   const f = setup([]); const onReturn = jest.fn();
   f.change({ kind: 'ready', busy: false, pending: { version: 2, accountId: id, characterId, previewId: id, requestId: id }, preview: null, oath: null, needsReview: false });

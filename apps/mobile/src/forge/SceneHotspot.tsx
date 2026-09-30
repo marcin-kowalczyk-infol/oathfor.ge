@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '../ui/Text';
 
 /** Light belongs to the scene; the stationary touch area never scales with it. */
 export function SceneHotspot({ label, hint, selected, onPress, anchor, door = false, cue = true, allowed, glow, heard }: {

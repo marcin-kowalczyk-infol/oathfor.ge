@@ -1,10 +1,12 @@
 import { tokens } from './tokens';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
+import { useArt } from '../art/ArtProvider';
 
 export function SceneDoor({ label, onPress, disabled = false, maxLines }: { label: string; onPress(): void; disabled?: boolean; maxLines?: number }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.door, { opacity: disabled ? 0.5 : pressed ? 0.7 : 1 }]}>
     <View testID="scene-door-picture" style={styles.picture} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Image source={require('../../assets/forge/room-prototype-v03.png')} resizeMode="stretch" style={styles.image} />
+      <Image source={useArt().room.image} resizeMode="stretch" style={styles.image} />
     </View>
     <Text numberOfLines={maxLines} style={styles.label}>{label}</Text>
   </Pressable>;

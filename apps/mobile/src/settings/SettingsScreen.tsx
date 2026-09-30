@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Text } from '../ui/Text';
+import { ART_STYLES, type ArtStyle } from '../art/registry';
 import { useTranslation } from '../localization/LocalizationProvider';
 import type { Locale } from '../localization/locale';
 import type { NotificationState } from '../onboarding/notifications';
@@ -20,6 +22,8 @@ export type SettingsScreenProps = {
   character: { name: string };
   /** null while the pause state is unknown or loading. */
   paused: boolean | null;
+  /** The demo's art style choice. Only the demo injects it, so production Settings has no such row. */
+  artStyle?: { value: ArtStyle; onChange(style: ArtStyle): void };
   onLocale(locale: Locale): void;
   onNotifications(enabled: boolean): void;
   onRetryPermission(): void;
@@ -34,7 +38,7 @@ const gold = { line: 'rgba(214,170,105,0.55)', faint: 'rgba(214,170,105,0.22)', 
 
 /** Presentational Settings. The server owns every saved value, so the screen only reflects confirmed props. */
 export function SettingsScreen(props: SettingsScreenProps) {
-  const { locale, localeState, notificationState, preference, character, paused } = props;
+  const { locale, localeState, notificationState, preference, character, paused, artStyle } = props;
   const { t } = useTranslation();
   const { fontScale } = useWindowDimensions();
   // One call per rendered state: a double tap before the parent answers must not send twice.
@@ -89,6 +93,22 @@ export function SettingsScreen(props: SettingsScreenProps) {
           {localeState.saving && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.note}>{t('settings.language.saving')}</Text>}
           {localeState.error && !localeState.saving && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{t('settings.language.error')}</Text>}
         </View>
+
+        {artStyle && <View style={styles.card}>
+          {section('settings.artStyle.title')}
+          <View accessibilityRole="radiogroup" accessibilityLabel={t('settings.artStyle.title')} style={[styles.options, stacked && styles.stackedOptions]}>
+            {ART_STYLES.map(option => {
+              const selected = option === artStyle.value;
+              return <Pressable key={option} accessibilityRole="radio" accessibilityLabel={t(`settings.artStyle.${option}`)} accessibilityState={{ selected }}
+                onPress={() => { if (!selected) artStyle.onChange(option); }}
+                style={({ pressed }) => [styles.option, !stacked && styles.halfOption, selected && styles.selectedOption, pressed && styles.pressed]}>
+                <Text allowFontScaling={false} accessible={false} style={[styles.optionMark, selected && styles.selectedMark]}>{selected ? '◆' : '◇'}</Text>
+                <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={[styles.optionLabel, selected && styles.selectedLabel]}>{t(`settings.artStyle.${option}`)}</Text>
+              </Pressable>;
+            })}
+          </View>
+          <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.note}>{t('settings.artStyle.note')}</Text>
+        </View>}
 
         <View style={styles.card}>
           {section('settings.notifications.title')}

@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react-native';
 import { Animated, StyleSheet } from 'react-native';
 import { SpriteFrame, SpriteLoop } from './Sprite';
-import { effectSheets, heroSheets } from './motion';
+import { currentArt } from '../art/current';
+
+const { effects: effectSheets, zharomir: heroSheets } = currentArt;
 
 const image = (testID: string) => StyleSheet.flatten((screen.getByTestId(testID, { includeHiddenElements: true }).children[0] as unknown as { props: { style: object } }).props.style) as
   { left: number; top: number; width: number; height: number };
@@ -33,7 +35,7 @@ test('a loop runs only while motion is allowed and stops on unmount', async () =
 test('light sheets use a screen blend and solid sheets do not', async () => {
   await render(<>
     <SpriteLoop sheet={effectSheets.hearthLoop} width={60} duration={1200} allowed={false} testID="light" />
-    <SpriteLoop sheet={effectSheets.chroniclePage} width={60} duration={1200} allowed={false} testID="page" />
+    <SpriteLoop sheet={currentArt.room.bookPageTurn!.sheet} width={60} duration={1200} allowed={false} testID="page" />
   </>);
   expect(StyleSheet.flatten(screen.getByTestId('light', { includeHiddenElements: true }).props.style)).toMatchObject({ mixBlendMode: 'screen' });
   expect(StyleSheet.flatten(screen.getByTestId('page', { includeHiddenElements: true }).props.style).mixBlendMode).toBeUndefined();

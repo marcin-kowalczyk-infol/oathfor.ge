@@ -4,6 +4,7 @@ import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { ChangeCharacterScreen } from './ChangeCharacterScreen';
 import type { CharacterControllerState } from './controller';
 import type { Character } from '../api/characters';
+import { currentArt } from '../art/current';
 import { presetArt } from './presetArt';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
@@ -108,7 +109,7 @@ test('an unresolved creation is shown as a card that returns to creation, and ot
   expect(f.onChoose).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('button', { name: 'Mira, Oathkeeper, active character' }));
   expect(f.onBack).toHaveBeenCalledTimes(1);
-  expect(screen.getByTestId(`portrait-${pending.requestId}`, { includeHiddenElements: true }).props.source).toBe(presetArt('starter_03', 'heavy')!.portrait);
+  expect(screen.getByTestId(`portrait-${pending.requestId}`, { includeHiddenElements: true }).props.source).toBe(presetArt(currentArt.presets, 'starter_03', 'heavy')!.portrait);
 });
 
 test('card names stay on one line and display text is capped for the largest text', async () => {
@@ -125,7 +126,7 @@ test('card names stay on one line and display text is capped for the largest tex
 test('each card draws its preset in the saved build', async () => {
   await setup(ready({ characters: [mira, wit] }));
   const portrait = (id: string) => screen.getByTestId(`portrait-${id}`, { includeHiddenElements: true }).props.source;
-  expect(portrait(mira.id)).toBe(presetArt('starter_01', 'heavy')!.portrait);
-  expect(portrait(wit.id)).toBe(presetArt('starter_04', 'thin')!.portrait);
-  expect(portrait(mira.id)).not.toBe(presetArt('starter_01', 'thin')!.portrait);
+  expect(portrait(mira.id)).toBe(presetArt(currentArt.presets, 'starter_01', 'heavy')!.portrait);
+  expect(portrait(wit.id)).toBe(presetArt(currentArt.presets, 'starter_04', 'thin')!.portrait);
+  expect(portrait(mira.id)).not.toBe(presetArt(currentArt.presets, 'starter_01', 'thin')!.portrait);
 });

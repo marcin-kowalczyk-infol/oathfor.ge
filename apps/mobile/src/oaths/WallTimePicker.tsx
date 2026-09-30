@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
@@ -57,43 +58,53 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
   const blank = first ? (first.getUTCDay() + 6) % 7 : 0;
   function moveMonth(delta: number) { if (first) { first.setUTCMonth(first.getUTCMonth() + delta); setMonth(first.toISOString().slice(0, 7)); } }
   const zones = open === 'zone' ? availableZones(value.zone).filter(zone => `${zoneName(zone)} ${zone}`.toLocaleLowerCase(locale).includes(query.trim().toLocaleLowerCase(locale))) : [];
+  // Native check, 2026-09-30: at the largest text size (fontScale 3.571, value 60.7 pt) "października" needs about 437 pt and broke mid-word.
+  // Capped at 2.5 (42.5 pt) it needs about 306 pt. Narrower side padding leaves 334 pt on a 402 pt screen and 307 pt on 375 pt.
+  // The 14 pt label and zone identifier share the cap (35 pt at most), so they stay below the value.
+  // Native check, 2026-09-30: at fontScale 3.571 the sheet titles broke as "ukończe" / "nia" ("ukończenia" needs 445 pt at 85.7 pt).
+  // Titles, the month heading and the clock take the display cap (253 pt, "październik" 256 pt, "23:59" about 198 pt).
+  // The month buttons broke as "Poprze" / "dni" in half-width columns (label about 148 pt, "Poprzedni" 192 pt), so they stack.
+  // The past month note is Action's uncapped reason, "Wcześniejsze" needs 347 pt, so the date sheet trims its side padding to 8 pt (359 pt at 375).
+  // Zone rows take the choice cap and the narrower padding ("DumontDUrville" 430 pt uncapped, 304 pt capped, 327 pt row at 375).
+  const title = (text: string) => <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{text}</Text>;
+  const monthSlot = largeText ? undefined : styles.flex;
   return <View style={styles.group}>
-    {(['date', 'time', 'zone'] as const).map(part => <Pressable key={part} accessibilityRole="button" accessibilityLabel={label(part)} accessibilityValue={{ text: part === 'date' ? value.date ? dateName(value.date) : t('timePicker.chooseDate') : part === 'time' ? value.time.slice(0, 5) || t('timePicker.chooseTime') : `${zoneName(value.zone)} · ${value.zone}` }} accessibilityState={{ disabled }} disabled={disabled} onPress={() => show(part)} style={({ pressed }) => [styles.field, pressed && styles.pressed]}>
-      <Text style={styles.caption}>{label(part)}</Text>
-      <Text style={styles.value}>{part === 'date' ? value.date ? dateName(value.date) : t('timePicker.chooseDate') : part === 'time' ? value.time.slice(0, 5) || t('timePicker.chooseTime') : zoneName(value.zone)}</Text>
-      {part === 'zone' && <Text style={styles.caption}>{value.zone}</Text>}
+    {(['date', 'time', 'zone'] as const).map(part => <Pressable key={part} accessibilityRole="button" accessibilityLabel={label(part)} accessibilityValue={{ text: part === 'date' ? value.date ? dateName(value.date) : t('timePicker.chooseDate') : part === 'time' ? value.time.slice(0, 5) || t('timePicker.chooseTime') : `${zoneName(value.zone)} · ${value.zone}` }} accessibilityState={{ disabled }} disabled={disabled} onPress={() => show(part)} style={({ pressed }) => [styles.field, largeText && styles.wideField, pressed && styles.pressed]}>
+      <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{label(part)}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.value}>{part === 'date' ? value.date ? dateName(value.date) : t('timePicker.chooseDate') : part === 'time' ? value.time.slice(0, 5) || t('timePicker.chooseTime') : zoneName(value.zone)}</Text>
+      {part === 'zone' && <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{value.zone}</Text>}
     </Pressable>)}
     <Text style={styles.caption}>{t('timePicker.seconds')}</Text>
     <Modal visible={open !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(null)}>
       <SafeAreaView style={styles.modal} accessibilityViewIsModal>
-        <View style={styles.header}><Text accessibilityRole="header" style={styles.title}>{open ? label(open) : ''}</Text><Action label={t('timePicker.close')} variant="secondary" onPress={() => setOpen(null)} /></View>
-        {open === 'date' && first && <ScrollView contentContainerStyle={styles.content}>
-          <Text accessibilityRole="header" style={styles.title}>{new Intl.DateTimeFormat(locale, { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(first)}</Text>
-          <View style={styles.row}><View style={styles.flex}>{month <= current.date.slice(0, 7) ? <Action label={t('timePicker.previousMonth')} variant="secondary" disabled unavailableReason={t('timePicker.pastMonth')} onPress={() => {}} /> : <Action label={t('timePicker.previousMonth')} variant="secondary" onPress={() => moveMonth(-1)} />}</View><View style={styles.flex}><Action label={t('timePicker.nextMonth')} variant="secondary" onPress={() => moveMonth(1)} /></View></View>
+        <View style={styles.header}>{title(open ? label(open) : '')}<Action label={t('timePicker.close')} variant="secondary" onPress={() => setOpen(null)} /></View>
+        {open === 'date' && first && <ScrollView testID="date-sheet" contentContainerStyle={[styles.content, largeText && styles.wideContent]}>
+          {title(new Intl.DateTimeFormat(locale, { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(first))}
+          <View testID="month-nav" style={[styles.row, largeText && styles.stack]}><View style={monthSlot}>{month <= current.date.slice(0, 7) ? <Action label={t('timePicker.previousMonth')} variant="secondary" disabled unavailableReason={t('timePicker.pastMonth')} onPress={() => {}} /> : <Action label={t('timePicker.previousMonth')} variant="secondary" onPress={() => moveMonth(-1)} />}</View><View style={monthSlot}><Action label={t('timePicker.nextMonth')} variant="secondary" onPress={() => moveMonth(1)} /></View></View>
           <View style={styles.grid}>{Array.from({ length: largeText ? 0 : blank }, (_, i) => <View key={`blank-${i}`} style={styles.day} />)}{Array.from({ length: days }, (_, i) => {
             const date = `${month}-${pad(i + 1)}`;
             const gone = date < current.date; const marked = date === current.date;
-            return <Pressable key={date} accessibilityRole="button" accessibilityLabel={marked ? `${dateName(date)}, ${t('timePicker.today')}` : dateName(date)} accessibilityState={{ selected: value.date === date, disabled: gone }} disabled={gone} onPress={() => change('date', date)} style={[largeText ? styles.wideDay : styles.day, styles.cell, marked && styles.today, value.date === date && styles.selected, gone && styles.gone]}><Text style={[styles.value, gone && styles.goneText]}>{largeText ? dateName(date) : i + 1}</Text></Pressable>;
+            return <Pressable key={date} accessibilityRole="button" accessibilityLabel={marked ? `${dateName(date)}, ${t('timePicker.today')}` : dateName(date)} accessibilityState={{ selected: value.date === date, disabled: gone }} disabled={gone} onPress={() => change('date', date)} style={[largeText ? styles.wideDay : styles.day, styles.cell, marked && styles.today, value.date === date && styles.selected, gone && styles.gone]}><Text maxFontSizeMultiplier={tokens.maxScale.choice} style={[styles.value, gone && styles.goneText]}>{largeText ? dateName(date) : i + 1}</Text></Pressable>;
           })}</View>
         </ScrollView>}
         {open === 'time' && <><ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.clock}>{hour}:{minute}</Text>
+          <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.clock}>{hour}:{minute}</Text>
           {(['hour', 'minute'] as const).map(part => <View key={part} style={styles.group}><Text accessibilityRole="header" style={styles.value}>{t(`timePicker.${part}`)}</Text><View style={styles.grid}>{Array.from({ length: part === 'hour' ? 24 : 60 }, (_, i) => {
             const number = pad(i); const selected = number === (part === 'hour' ? hour : minute);
             const gone = isToday && (part === 'hour' ? number < nowHour : hour < nowHour || (hour === nowHour && number <= nowMinute));
             return <Pressable key={number} accessibilityRole="radio" accessibilityLabel={`${t(`timePicker.${part}`)} ${number}`} accessibilityState={{ selected, disabled: gone }} disabled={gone} onPress={() => part === 'hour' ? setHour(number) : setMinute(number)} style={[styles.number, styles.cell, selected && styles.selected, gone && styles.gone]}><Text style={[styles.value, gone && styles.goneText]}>{number}</Text></Pressable>;
           })}</View></View>)}
         </ScrollView><View style={styles.footer}>{past ? <Action label={t('timePicker.done')} disabled unavailableReason={t('timePicker.pastTime')} onPress={() => {}} /> : <Action label={t('timePicker.done')} onPress={() => change('time', `${hour}:${minute}:00`)} />}</View></>}
-        {open === 'zone' && <View style={styles.flex}><View style={styles.content}><Text style={styles.caption}>{t('timePicker.zoneHelp')}</Text><TextInput accessibilityLabel={t('timePicker.searchZone')} placeholder={t('timePicker.searchZone')} placeholderTextColor={tokens.color.secondary} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} style={styles.search} /></View><FlatList keyboardShouldPersistTaps="handled" data={zones} keyExtractor={zone => zone} contentContainerStyle={styles.content} ListEmptyComponent={<Text style={styles.value}>{t('timePicker.noZones')}</Text>} renderItem={({ item }) => <Pressable accessibilityRole="radio" accessibilityLabel={`${zoneName(item)} · ${item}`} accessibilityState={{ selected: value.zone === item }} onPress={() => change('zone', item)} style={[styles.field, item === value.zone && styles.selected]}><Text style={styles.value}>{zoneName(item)}</Text><Text style={styles.caption}>{item}</Text></Pressable>} /></View>}
+        {open === 'zone' && <View style={styles.flex}><View style={styles.content}><Text style={styles.caption}>{t('timePicker.zoneHelp')}</Text><TextInput accessibilityLabel={t('timePicker.searchZone')} placeholder={t('timePicker.searchZone')} placeholderTextColor={tokens.color.secondary} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} style={styles.search} /></View><FlatList keyboardShouldPersistTaps="handled" data={zones} keyExtractor={zone => zone} contentContainerStyle={styles.content} ListEmptyComponent={<Text style={styles.value}>{t('timePicker.noZones')}</Text>} renderItem={({ item }) => <Pressable accessibilityRole="radio" accessibilityLabel={`${zoneName(item)} · ${item}`} accessibilityState={{ selected: value.zone === item }} onPress={() => change('zone', item)} style={[styles.field, largeText && styles.wideField, item === value.zone && styles.selected]}><Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.value}>{zoneName(item)}</Text><Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{item}</Text></Pressable>} /></View>}
       </SafeAreaView>
     </Modal>
   </View>;
 }
 const styles = StyleSheet.create({
-  group: { gap: 12 }, field: { padding: 16, gap: 4, minHeight: 64, backgroundColor: tokens.color.surface, borderRadius: 20, borderBottomWidth: 3, borderBottomColor: '#101416' },
+  group: { gap: 12 }, field: { padding: 16, gap: 4, minHeight: 64, backgroundColor: tokens.color.surface, borderRadius: 20, borderBottomWidth: 3, borderBottomColor: '#101416' }, wideField: { paddingHorizontal: tokens.space.small },
   caption: { color: tokens.color.secondary, fontSize: 14, lineHeight: 21 }, value: { color: tokens.color.text, fontSize: 17, fontWeight: '600' },
   modal: { flex: 1, backgroundColor: tokens.color.canvas }, header: { padding: 16, gap: 12 }, title: { color: tokens.color.text, fontSize: 24, fontWeight: '700' },
-  content: { padding: 16, gap: 16 }, row: { flexDirection: 'row', gap: 12 }, flex: { flex: 1 }, grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  content: { padding: 16, gap: 16 }, wideContent: { paddingHorizontal: tokens.space.small }, row: { flexDirection: 'row', gap: 12 }, stack: { flexDirection: 'column' }, flex: { flex: 1 }, grid: { flexDirection: 'row', flexWrap: 'wrap' },
   wideDay: { width: '100%', minHeight: 52 },
   day: { width: '14.2857%', minHeight: 52 }, number: { minWidth: 52, minHeight: 52, flexGrow: 1, margin: 3 }, cell: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12 }, selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
   today: { borderWidth: 2, borderColor: '#b58a52' }, gone: { opacity: 0.35 }, goneText: { color: tokens.color.secondary },

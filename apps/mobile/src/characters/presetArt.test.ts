@@ -1,4 +1,8 @@
-import { presetArt, drawablePresets } from './presetArt';
+import { currentArt } from '../art/current';
+import { presetArt as lookup, drawablePresets as drawable } from './presetArt';
+
+const presetArt = (id: string, build: 'thin' | 'heavy') => lookup(currentArt.presets, id, build);
+const drawablePresets = (ids: string[]) => drawable(currentArt.presets, ids);
 
 const file = (source: unknown) => String((source as { testUri?: string }).testUri ?? source);
 const starters = ['01', '02', '03', '04', '05', '06'];

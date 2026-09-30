@@ -1,5 +1,9 @@
 import { act, render, screen } from '@testing-library/react-native';
-import { CANDLE_FRAME_MS, CandleFlames, candles } from './CandleFlames';
+import { ArtProvider, resolveArt } from '../art/ArtProvider';
+import { currentArt } from '../art/current';
+import { CANDLE_FRAME_MS, CandleFlames } from './CandleFlames';
+
+const candles = currentArt.room.candles;
 
 const point = (x: number, y: number) => ({ left: x * 400, top: y * 800 });
 
@@ -9,6 +13,23 @@ afterEach(() => { jest.useRealTimers(); jest.restoreAllMocks(); });
 test('every painted flame gets one decorative flame', async () => {
   await render(<CandleFlames point={point} sceneWidth={400} allowed={false} />);
   expect(screen.getAllByTestId(/^candle-/, { includeHiddenElements: true })).toHaveLength(candles.length);
+});
+
+test('each style places the flames on its own painted ones', async () => {
+  const hidden = { includeHiddenElements: true };
+  // The sprite's base centre sits on the painted flame base.
+  const base = () => {
+    const style = Object.assign({}, ...[screen.getByTestId('candle-0', hidden).parent!.props.style].flat(Infinity).filter(Boolean));
+    return { x: style.left + style.width * currentArt.effects.candle.anchor.x, y: style.top + style.height * currentArt.effects.candle.anchor.y };
+  };
+  const view = await render(<CandleFlames point={point} sceneWidth={400} allowed={false} />);
+  expect(base().x).toBeCloseTo(candles[0].x * 400, 5);
+  expect(base().y).toBeCloseTo(candles[0].y * 800, 5);
+  const cinematic = resolveArt('cinematic').room.candles;
+  await view.rerender(<ArtProvider style="cinematic"><CandleFlames point={point} sceneWidth={400} allowed={false} /></ArtProvider>);
+  expect(base().x).toBeCloseTo(cinematic[0].x * 400, 5);
+  expect(base().y).toBeCloseTo(cinematic[0].y * 800, 5);
+  expect(screen.getAllByTestId(/^candle-/, hidden)).toHaveLength(cinematic.length);
 });
 
 test('flames share one timer only while motion is allowed', async () => {

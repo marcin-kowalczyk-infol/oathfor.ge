@@ -8,6 +8,7 @@ import { ForgeRoom } from '../forge/ForgeRoom';
 import { useForgeProgress } from '../forge/useForgeProgress';
 import type { GuideStorage } from '../forge/guideStorage';
 import type { NetworkEvents } from '../api/networkEvents';
+import type { ArtStyle } from '../art/registry';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale, type Locale } from '../localization/locale';
 import type { NotificationState } from '../onboarding/notifications';
@@ -37,6 +38,8 @@ export type HomeRoutesProps = {
   rulesGuideStorage?: GuideStorage;
   /** Reconnects reload the visible Oath list. */
   network?: NetworkEvents;
+  /** The demo's art style choice for Settings. Absent in production. */
+  artStyle?: { value: ArtStyle; onChange(style: ArtStyle): void };
   notifications: { state: NotificationState; enable(): void; skip(): void; retryPermission(): void; settings(): void };
   /**
    * Route state owned by the parent for the account, so a session check that hides these screens returns to the same place.
@@ -141,7 +144,7 @@ export function HomeRoutes(props: HomeRoutesProps) {
     case 'settings': {
       const { notifications } = props;
       front = <SettingsScreen locale={props.profile.locale ?? resolveLocale(i18n.resolvedLanguage ?? i18n.language)} localeState={props.language}
-        notificationState={notifications.state} preference={props.profile.notificationPreference} character={character} paused={current ? current.paused : null}
+        notificationState={notifications.state} preference={props.profile.notificationPreference} character={character} paused={current ? current.paused : null} artStyle={props.artStyle}
         onLocale={props.onLocale} onNotifications={enabled => { if (enabled) notifications.enable(); else notifications.skip(); }}
         onRetryPermission={notifications.retryPermission} onOpenSystemSettings={notifications.settings}
         onPause={() => dispatch({ type: 'openPause' })} onSignOut={props.onSignOut} onBack={back} />;

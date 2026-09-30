@@ -87,7 +87,7 @@ The animation starts only after the server confirms acceptance, never on the tap
    - One line with D in its local time and zone, and the state label from the server.
    - Actions: "Zobacz Przysięgę" / "View the Oath" (detail with the full rules) and "Wróć do Kuźni" / "Back to the Forge". "Nowa Przysięga" stays available.
 
-The full rules no longer repeat on this card. They stay one touch away in the detail. Reduce Motion shows the sealed frame at once and a still hourglass. VoiceOver announces "Przysięga złożona" and the countdown once.
+The full rules no longer repeat on this card. They stay one touch away in the detail. Reduce Motion shows the sealed frame and a still hourglass. The app learns the motion preference shortly after the screen opens, so the unsealed scroll shows for up to 400 ms first (native check, 2026-09-30). VoiceOver announces "Przysięga złożona" and the countdown once.
 
 ### 4. Your Oaths (item 4)
 
@@ -167,6 +167,8 @@ Candidates in ignored `graphics/mvp-21/incoming/` (review notes in `graphics/mvp
 | `countdown-hourglass-v05.png` | Countdown | Subtle stream loop, and the list uses the first frame still |
 
 Exports are listed in the manifest [Oath screens assets](../art/oath-screens-assets.md) with provenance and SHA-256, following the [art pipeline](../art/pipeline.md). Decision Q2 needs two more icons for reward and consequence. Until they exist the cards use a marked DUMMY icon from the current sheet.
+
+The demo's art style row (owner decision 2026-09-29, demo only) switches these screens to the [cinematic style](../art/cinematic-assets.md). Today it changes Żaromir in the companion bubbles and the room behind the list screens. Rule icons, the seal, the hourglass, the station close-ups and the bust keep their v01 files until cinematic versions exist.
 
 ## Acceptance
 

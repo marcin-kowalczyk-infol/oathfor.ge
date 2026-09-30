@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Animated, Dimensions, StyleSheet } from 'react-native';
 import { DialoguePanel, TYPE_MS } from './DialoguePanel';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
@@ -148,6 +148,32 @@ test('large text scrolls inside a fixed height', async () => {
   expect(screen.getByTestId('dialogue-scroll')).toBeTruthy();
 });
 
+// Native check, 2026-09-30: on iOS a scroll view does not drag while a view above it holds the touch, so a drag in a long line
+// acted as a tap and skipped the line. The touch target sits inside the scroll view and nothing around it takes the touch.
+test.each([1, 3.12])('at text scale %d a drag in the text scrolls it instead of continuing', async fontScale => {
+  Dimensions.set({ window: { width: 402, height: 874, scale: 3, fontScale }, screen: { width: 402, height: 874, scale: 3, fontScale } });
+  const onContinue = jest.fn();
+  await render(panel({ allowed: false, more: true, onContinue, title: 'The hearth' }));
+  const scroll = screen.getByTestId('dialogue-scroll');
+  type Node = { parent: Node | null; props: Record<string, unknown> };
+  for (let node = (scroll as unknown as Node).parent; node; node = node.parent) {
+    expect(node.props.onStartShouldSetResponder).toBeUndefined();
+    expect(node.props.onResponderGrant).toBeUndefined();
+  }
+  const touch = within(scroll).getByTestId('dialogue-panel-touch');
+  await fireEvent.press(touch);
+  expect(onContinue).toHaveBeenCalledTimes(1);
+  await fireEvent.press(screen.getByText('The hearth'));
+  expect(onContinue).toHaveBeenCalledTimes(2);
+});
+
+test('at large text the touch fills the scroll area, so a tap below a short line continues', async () => {
+  Dimensions.set({ window: { width: 402, height: 874, scale: 3, fontScale: 3.12 }, screen: { width: 402, height: 874, scale: 3, fontScale: 3.12 } });
+  await render(panel({ allowed: false }));
+  expect(StyleSheet.flatten(screen.getByTestId('dialogue-scroll').props.contentContainerStyle)).toMatchObject({ flexGrow: 1 });
+  expect(StyleSheet.flatten(screen.getByTestId('dialogue-panel-touch').props.style)).toMatchObject({ flexGrow: 1 });
+});
+
 test('a new speaker slides the old bust out and the new one in', async () => {
   const timing = jest.spyOn(Animated, 'timing');
   const view = await render(panel());
@@ -197,6 +223,15 @@ describe('painted frame', () => {
     // The plate keeps its painted proportions, so its caps never stretch.
     const box = StyleSheet.flatten(plate.props.style) as { width: number; height: number };
     expect(box.width / box.height).toBeCloseTo(612 / 128);
+  });
+
+  // Native check, 2026-09-30: the covering wood image drew past the panel to the screen's right and bottom edges on iOS.
+  test('the wood is clipped to the inside of the frame', async () => {
+    await render(panel({ allowed: false }));
+    const fill = screen.getByTestId('panel-fill', hidden);
+    expect(StyleSheet.flatten(fill.props.style)).toMatchObject({ width: '100%', height: '100%' });
+    expect(style('panel-fill-clip')).toMatchObject({ position: 'absolute', left: 4, top: 4, right: 4, bottom: 4, overflow: 'hidden' });
+    expect(fill.parent?.props.testID ?? (fill.parent?.parent as { props: { testID?: string } } | undefined)?.props.testID).toBe('panel-fill-clip');
   });
 
   test('Żaromir speaks with his painted bust', async () => {

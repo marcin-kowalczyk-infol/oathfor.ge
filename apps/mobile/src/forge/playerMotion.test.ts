@@ -1,4 +1,7 @@
-import { playerSheets } from './playerMotion';
+import { currentArt } from '../art/current';
+import { playerSheets as lookup } from './playerMotion';
+
+const playerSheets = (presetId: string, build: 'thin' | 'heavy') => lookup(currentArt, presetId, build);
 
 const directions = ['back', 'back-left', 'back-right', 'front', 'front-left', 'front-right', 'left', 'right'] as const;
 

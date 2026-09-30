@@ -1,3 +1,4 @@
+import { Dimensions } from 'react-native';
 import { render, screen } from '@testing-library/react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import type { Snapshot } from '../api/oathSchema';
@@ -66,4 +67,21 @@ test('the promise names the deadline to the minute with a short UTC offset, the 
   value.deadline.offset = '+05:30'; expect(promiseText(value, 'en')).toContain('· UTC+5:30.');
   value.deadline.offset = '-03:00'; expect(promiseText(value, 'en')).toContain('· UTC-3.');
   value.deadline.offset = '+00:00'; expect(promiseText(value, 'en')).toContain('· UTC.');
+});
+
+// Native check, 2026-09-30, iPhone 18 Pro at the largest accessibility size in Polish: uncapped text on the parchment broke
+// "października", "zaplanowany" and "Nierozstrzygnięta" mid-word. The display cap keeps the longest words whole at 402 and 375 points.
+describe.each([402, 375])('at %s points and the largest text size', width => {
+  const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
+  afterEach(() => Dimensions.set(initial));
+  test('every text on the parchment is capped at the display size', async () => {
+    const phone = { width, height: 874, scale: 3, fontScale: 3.571 };
+    Dimensions.set({ window: phone, screen: phone });
+    const value = snapshot();
+    await render(<LocalizationProvider initialLocale="pl"><SnapshotRules snapshot={value} /></LocalizationProvider>);
+    const capped = [promiseText(value, 'pl'), value.copy.pl.subtitle, value.copy.pl.activity, value.copy.pl.declaration, ...Object.values(value.copy.pl.sections)];
+    for (const text of capped) expect(screen.getByText(text)).toHaveProp('maxFontSizeMultiplier', 2);
+    for (const node of screen.getAllByText(/Europe\/Warsaw/)) expect(node).toHaveProp('maxFontSizeMultiplier', 2);
+    expect(screen.getByText('Teraz, w chwili potwierdzenia na serwerze')).toHaveProp('maxFontSizeMultiplier', 2);
+  });
 });

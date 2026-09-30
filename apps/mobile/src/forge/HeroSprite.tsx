@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Easing, StyleSheet, View } from 'react-native';
 import { SpriteFrame } from './Sprite';
-import { heroSheets, type Direction, type FigureSheets, type HeroPlace } from './motion';
+import { useArt } from '../art/ArtProvider';
+import type { Direction, FigureSheets, HeroPlace, Sheet } from './motion';
 
 export const WALK_FRAME_MS = 90;
 const IDLE_FRAME_MS = 300;
@@ -42,13 +43,15 @@ const pace = Easing.bezier(0.3, 0, 0.7, 1);
  * scale is his depth in the room: a fixed number at rest, or from and to over a walk. Native check: a transform scale
  * blurred the sprite on iOS, so depth changes the drawn size, updated with each step, anchored at his feet.
  */
-export function HeroSprite({ pose, allowed, height, scale = 1, run = 0, sheets = heroSheets, name = 'hero' }: {
+export function HeroSprite({ pose, allowed, height, scale = 1, run = 0, sheets: given, name = 'hero' }: {
   pose: HeroPose; allowed: boolean; height: number; scale?: number | { from: number; to: number; duration: number };
   /** Another figure's sheets and test name, for example the player's. Żaromir's by default. */
   sheets?: FigureSheets; name?: string;
   /** A new run restarts the frame timer and the depth change, for example each new walk. */
   run?: number;
 }) {
+  const art = useArt();
+  const sheets = given ?? art.zharomir;
   const started = useRef({ run, at: Date.now() });
   if (started.current.run !== run) started.current = { run, at: Date.now() };
   const { sheet, frames, ms, loop, id } = timing(pose, sheets, name);
@@ -62,7 +65,8 @@ export function HeroSprite({ pose, allowed, height, scale = 1, run = 0, sheets =
   const shown = useRef<Shown | null>(null);
   const [under, setUnder] = useState<Shown | null>(null);
   const [lastSheet, setLastSheet] = useState(sheet);
-  if (lastSheet !== sheet) { setLastSheet(sheet); setUnder(shown.current); }
+  // A sheet still drawn underneath is already loaded and will not report it again, so it shows at once.
+  if (lastSheet !== sheet) { setLastSheet(sheet); setUnder(under?.sheet === sheet ? null : shown.current); }
   // A sheet that never reports loading must not hide him for long.
   useEffect(() => {
     if (!under) return;
@@ -86,12 +90,24 @@ export function HeroSprite({ pose, allowed, height, scale = 1, run = 0, sheets =
   const lift = pose.kind === 'walk' && allowed ? bob[index] * drawn / 100 : 0;
   useEffect(() => { shown.current = { sheet, index, drawn }; });
   const box = height * sheet.aspect;
+  // Each sheet keeps its own element, so the previous frame stays the image that is already loaded and never reloads.
+  const previous = under && under.sheet !== sheet ? under : null;
+  const layers = [
+    ...(previous ? [<SpriteFrame key={sheetKey(previous.sheet)} sheet={previous.sheet} index={previous.index} height={previous.drawn} testID="hero-previous"
+      style={{ position: 'absolute', bottom: 0, left: (box - previous.drawn * previous.sheet.aspect) / 2 }} />] : []),
+    <SpriteFrame key={sheetKey(sheet)} sheet={sheet} index={index} height={drawn} testID={id} onLoad={() => setUnder(null)}
+      style={[previous && styles.loading, lift ? { transform: [{ translateY: lift }] } : undefined]} />,
+  ];
   return <View pointerEvents="none" style={{ width: box, height, alignItems: 'center', justifyContent: 'flex-end' }}>
-    {under && <SpriteFrame sheet={under.sheet} index={under.index} height={under.drawn} testID="hero-previous"
-      style={{ position: 'absolute', bottom: 0, left: (box - under.drawn * under.sheet.aspect) / 2 }} />}
-    <SpriteFrame sheet={sheet} index={index} height={drawn} testID={id} onLoad={() => setUnder(null)}
-      style={[under && styles.loading, lift ? { transform: [{ translateY: lift }] } : undefined]} />
+    {layers}
   </View>;
 }
+
+const keys = new WeakMap<Sheet, string>();
+let nextKey = 0;
+const sheetKey = (value: Sheet) => {
+  if (!keys.has(value)) keys.set(value, `sheet-${++nextKey}`);
+  return keys.get(value)!;
+};
 
 const styles = StyleSheet.create({ loading: { opacity: 0 } });

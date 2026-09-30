@@ -1,5 +1,6 @@
 import { act, render, screen } from '@testing-library/react-native';
 import { Animated, StyleSheet } from 'react-native';
+import { ArtProvider, ArtSetProvider, resolveArt } from '../art/ArtProvider';
 import { StationEffect, sealTurns, responseDuration, responseWindows } from './StationEffect';
 
 const point = (x: number, y: number) => ({ left: x * 400, top: y * 800 });
@@ -114,4 +115,47 @@ test.each(['hearth', 'seals', 'chronicle', 'door'] as const)('a finished or redu
   for (const layer of layers) for (const frame of layer.children as unknown as { props: { style: object } }[]) {
     expect(StyleSheet.flatten(frame.props.style)).toMatchObject({ opacity: 0 });
   }
+});
+
+// Owner decision 2026-09-29: C4 has no cuts yet, and the v03 cuts differ from it in material. Its responses play only lights.
+test('the cinematic chronicle turns its own leaf where the cinematic book lies', async () => {
+  played();
+  await render(<ArtProvider style="cinematic">{effect('chronicle', 1, true)}</ArtProvider>);
+  const leaf = screen.getByTestId('fx-book-page-turn', hidden);
+  const style = StyleSheet.flatten(leaf.props.style) as { left: number; top: number; width: number; height: number };
+  // point() maps the 887 pixel artwork onto 400 points.
+  expect(style.left / 400 * 887).toBeCloseTo(644, 0);
+  expect(style.top / 800 * 1774).toBeCloseTo(819, 0);
+  expect(style.width / 400 * 887).toBeCloseTo(179, 0);
+});
+
+test('the cinematic room turns its own drums and door leaf', async () => {
+  played();
+  const room = resolveArt('cinematic').room;
+  const view = await render(<ArtProvider style="cinematic">{effect('seals', 1, true)}</ArtProvider>);
+  for (const seal of ['star', 'tree', 'wolf'] as const) expect(screen.getByTestId(`cut-seal-${seal}`, hidden).props.source).toBe(room.seals![seal].source);
+  await view.rerender(<ArtProvider style="cinematic">{effect('door', 2, true)}</ArtProvider>);
+  expect(screen.getByTestId('cut-door-leaf', hidden).props.source).toBe(room.doorLeaf!.source);
+});
+
+// Owner decision 2026-09-29: a room never shows cuts of another room. Without its own cuts it plays only lights.
+test('a room without its own cuts plays the lights without any cut layer', async () => {
+  played();
+  const cinematic = resolveArt('cinematic');
+  const bare = { ...cinematic, room: { ...cinematic.room, sealsFront: null, doorLeaf: null, seals: null, bookPageTurn: null } };
+  const withoutCuts = (station: 'seals' | 'chronicle' | 'door') => <ArtSetProvider art={bare}>{effect(station, 1, true)}</ArtSetProvider>;
+  const view = await render(withoutCuts('seals'));
+  for (const seal of ['star', 'tree', 'wolf']) {
+    expect(screen.queryByTestId(`cut-seal-${seal}`, hidden)).toBeNull();
+    expect(screen.getByTestId(`fx-seal-${seal}`, hidden)).toBeTruthy();
+    expect(screen.getAllByTestId(new RegExp(`^spark-${seal}-`), hidden)).toHaveLength(2);
+  }
+  await view.rerender(withoutCuts('door'));
+  expect(screen.queryByTestId('cut-door-leaf', hidden)).toBeNull();
+  expect(screen.queryByTestId('door-backing', hidden)).toBeNull();
+  expect(screen.getByTestId('fx-door', hidden)).toBeTruthy();
+  await view.rerender(withoutCuts('chronicle'));
+  expect(screen.queryByTestId('fx-book-page-turn', hidden)).toBeNull();
+  expect(screen.getByTestId('fx-book-signs', hidden)).toBeTruthy();
+  expect(Object.keys(responseWindows('chronicle', bare))).toEqual(['fx-book-signs']);
 });

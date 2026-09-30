@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { CountdownChip } from './CountdownChip';
 import type { ServerClock } from './serverClock';
-import { Animated, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Text } from '../ui/Text';
 import type { Oath } from '../api/oathSchema';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
@@ -10,6 +11,7 @@ import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { StateSeal } from '../ui/StateSeal';
 import { useMotionAllowed } from '../ui/useMotion';
 import { storedTime } from './SnapshotRules';
+import { useArt } from '../art/ArtProvider';
 
 const embers = [{ x: -35, y: 5, size: 3 }, { x: 17, y: 22, size: 4 }, { x: -8, y: 40, size: 2 }, { x: 36, y: 57, size: 3 }];
 
@@ -51,6 +53,7 @@ export function ForgeHub({ items, onOpen, onCreate, createDisabled = false, cloc
   /** Server time for the countdown chips. A chip reaching zero asks the owner for a fresh list, it never changes state. */
   clock?: ServerClock; onElapsed?(): void;
 }) {
+  const { haze } = useArt();
   const { t } = useTranslation();
   const { fontScale, width } = useWindowDimensions();
   const motion = useMotionAllowed();
@@ -76,7 +79,7 @@ export function ForgeHub({ items, onOpen, onCreate, createDisabled = false, cloc
   if (!visible) return null;
   const art = <View style={styles.art} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
     <Animated.View style={[styles.image, { transform: [{ scale: hearthScale }] }]}>
-      <Animated.Image source={require('../../assets/forge/ember-haze-v01.png')} resizeMode="contain" style={[styles.glow, { opacity: glow }]} />
+      <Animated.Image source={haze} resizeMode="contain" style={[styles.glow, { opacity: glow }]} />
     </Animated.View>
     {embers.map((ember, index) => <Animated.View key={index} style={[styles.ember, {
       width: ember.size, height: ember.size, marginLeft: ember.x, top: 150 - ember.y,

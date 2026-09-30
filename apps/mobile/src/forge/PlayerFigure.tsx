@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import type { CharacterBuild } from '../api/characters';
+import { useArt } from '../art/ArtProvider';
 import { presetArt } from '../characters/presetArt';
 import { HeroSprite, WALK_FRAME_MS, type HeroPose } from './HeroSprite';
 import { playerSheets } from './playerMotion';
@@ -18,7 +19,7 @@ const SOLES = 968 / 984;
  * scale is the depth size: a fixed number at rest, or from and to over a walk.
  */
 export function PlayerFigure(props: Parameters<typeof StillFigure>[0]) {
-  const sheets = playerSheets(props.presetId, props.build);
+  const sheets = playerSheets(useArt(), props.presetId, props.build);
   return sheets ? <HeroSprite sheets={sheets} name="player" pose={props.pose} allowed={props.allowed} height={FIGURE_HEIGHT} scale={props.scale} run={props.run} />
     : <StillFigure {...props} />;
 }
@@ -27,7 +28,7 @@ function StillFigure({ presetId, build, allowed, scale, run = 0 }: {
   presetId: string; build: CharacterBuild; pose: HeroPose; allowed: boolean;
   scale: number | { from: number; to: number; duration: number }; run?: number;
 }) {
-  const art = presetArt(presetId, build);
+  const art = presetArt(useArt().presets, presetId, build);
   const walking = typeof scale !== 'number' && allowed;
   // A new run restarts the depth change. The size follows the walk's own curve, updated at the step rate.
   const started = useRef({ run, at: Date.now() });

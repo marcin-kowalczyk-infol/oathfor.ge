@@ -114,3 +114,13 @@ test('the offline control reports a reconnect only when it goes back online', ()
   dummy.setOffline(true); dummy.setOffline(false);
   expect(reconnect).toHaveBeenCalledTimes(1);
 });
+
+// Owner decision 2026-09-30: the demo starts in the cinematic style, including onboarding.
+test('the DUMMY art style starts cinematic, survives an interface restart and a new scenario resets it', () => {
+  for (const [completed, populated] of [[false, false], [true, false], [true, true]] as const) expect(createDummy('pl', completed, populated).runtime().artStyle.read()).toBe('cinematic');
+  const dummy = createDummy('pl', true);
+  dummy.runtime().artStyle.write('current');
+  // An interface restart builds a new runtime over the same DUMMY state.
+  expect(dummy.runtime().artStyle.read()).toBe('current');
+  expect(createDummy('pl', true).runtime().artStyle.read()).toBe('cinematic');
+});

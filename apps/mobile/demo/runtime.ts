@@ -8,6 +8,7 @@ import type { PendingCreation } from '../src/characters/creationStorage';
 import type { Activity, Oath, Preview, ResolvedTime, Snapshot, LocalTimeInput } from '../src/api/oathSchema';
 import type { PendingAcceptance } from '../src/oaths/pendingStorage';
 import type { Locale } from '../src/localization/locale';
+import type { ArtStyle } from '../src/art/registry';
 
 import CATALOG from '../../api/resources/oath/workout_oath_v1.json';
 const accountId = '10000000-0000-4000-8000-000000000001';
@@ -67,6 +68,8 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     // The room guide flag per account. Interface restart keeps it, a scenario starts without it, so the guide shows on the first room entry.
     guideSeen: new Set<string>(),
     rulesGuideSeen: new Set<string>(),
+    // The demo's art style, like guideSeen: an interface restart keeps it, a new scenario starts cinematic (owner decision 2026-09-30).
+    artStyle: 'cinematic' as ArtStyle,
     creations: new Map<string, string>(), creation: null as PendingCreation | null, paused: new Set<string>(), previewOwners: new Map<string, string>(),
     pending: new Map<string, PendingAcceptance | null>(), previews: new Map<string, Preview>(), accepted: new Map<string, string>(), requests: new Map<string, string>(), oaths: [] as Oath[],
   };
@@ -204,6 +207,7 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
       rulesGuideStorage: { async read(owner: string) { return state.rulesGuideSeen.has(owner); }, async markSeen(owner: string) { state.rulesGuideSeen.add(owner); } },
       apple: { async isAvailable() { return true; }, onRevoked() { return () => {}; } },
       permissions: { async read() { return { kind: 'denied' as const, canAskAgain: false }; }, async request() { return { kind: 'denied' as const, canAskAgain: false }; }, async openSettings() { return false; } },
+      artStyle: { read: () => state.artStyle, write(style: ArtStyle) { state.artStyle = style; } },
       network: { onReconnect(listener: () => void) { reconnectListeners.add(listener); return () => { reconnectListeners.delete(listener); }; } },
     };
   }

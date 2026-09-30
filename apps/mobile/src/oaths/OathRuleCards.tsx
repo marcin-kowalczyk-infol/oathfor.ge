@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Text } from '../ui/Text';
 import type { Snapshot } from '../api/oathSchema';
 import { SpriteFrame } from '../forge/Sprite';
 import { useTranslation } from '../localization/LocalizationProvider';
@@ -8,7 +9,8 @@ import { bindShortWords } from '../localization/typography';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { layoutMode } from '../ui/layoutMode';
 import { tokens } from '../ui/tokens';
-import { oathArt, ruleIcon } from './oathArt';
+import { useArt } from '../art/ArtProvider';
+import { ruleIcon } from './oathArt';
 import { ruleCards, type RuleCard, type RuleCardId } from './ruleCards';
 import { promiseText, SnapshotRules } from './SnapshotRules';
 
@@ -20,7 +22,8 @@ const spoken = (card: RuleCard) => (card.time && card.lines.length > 1 ? [card.l
  * The accepted rules as the promise, the declaration and short cards, with the complete stored rules one touch away
  * (owner decision Q1: folded under "Pełne zasady"). The folded text is the unchanged SnapshotRules.
  */
-export function OathRuleCards({ snapshot, highlight = null, head = 'full', onCardsLayout }: { snapshot: Snapshot; highlight?: RuleCardId | null; /** promise: the detail shows its own emblem and title above, so only the promise opens the rules. */ head?: 'full' | 'promise'; /** Top of the card grid inside this view. */ onCardsLayout?(y: number): void }) {
+export function OathRuleCards({ snapshot, highlight = null, head = 'full', onCardsLayout, onCardLayout }: { snapshot: Snapshot; highlight?: RuleCardId | null; /** promise: the detail shows its own emblem and title above, so only the promise opens the rules. */ head?: 'full' | 'promise'; /** Top of the card grid inside this view. */ onCardsLayout?(y: number): void; /** Top of each card inside the grid. */ onCardLayout?(id: RuleCardId, y: number): void }) {
+  const oathArt = useArt().oaths;
   const { t, i18n } = useTranslation();
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
@@ -34,27 +37,32 @@ export function OathRuleCards({ snapshot, highlight = null, head = 'full', onCar
         <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={snapshot.activity} size={88} /></View>
         <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{copy.title}</Text>
       </>}
-      <Text style={styles.promise}>{promiseText(snapshot, locale)}</Text>
+      {/* Native check, 2026-09-30: uncapped at the largest size the 68 pt promise broke "października" mid-word under the 56 pt title.
+          The display cap keeps it at 38 pt, where the word takes about 251 of the 343 pt column. */}
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.promise}>{promiseText(snapshot, locale)}</Text>
     </View>
     <View style={styles.declaration}>
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t('oath.rules.declaration')}</Text>
-      <Text style={styles.body}>{copy.declaration}</Text>
+      {/* Native check, 2026-09-30: text inside the declaration, the cards and the fold is inset, so it takes the inset cap. */}
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{copy.declaration}</Text>
     </View>
-    <View testID="rule-cards" onLayout={event => onCardsLayout?.(event.nativeEvent.layout.y)} style={[styles.grid, { flexDirection: columns === 2 ? 'row' : 'column' }]}>
+    <View testID="rule-cards" onLayout={event => onCardsLayout?.(event.nativeEvent.layout.y)} style={[styles.grid, columns === 2 ? styles.pairs : styles.stack]}>
+      {/* Native check, 2026-09-30: in one column the cards Żaromir names sit far below the grid top, so each card reports its own place. */}
       {ruleCards(snapshot, t, locale).map(card => <View key={card.id} testID={`rule-card-${card.id}`} accessible accessibilityLabel={`${card.title}. ${spoken(card)}`}
-        style={[styles.card, columns === 2 && styles.half, card.id === highlight && styles.highlight]}>
+        onLayout={onCardLayout && (event => onCardLayout(card.id, event.nativeEvent.layout.y))}
+        style={[styles.card, columns === 2 ? styles.half : styles.full, card.id === highlight && styles.highlight]}>
         <SpriteFrame sheet={oathArt.ruleIcons} index={ruleIcon[card.icon]} width={40} />
         <View style={styles.cardText}>
-          <Text style={styles.cardTitle}>{text(card.title)}</Text>
+          <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardTitle}>{text(card.title)}</Text>
           {card.time && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardTime}>{card.time}</Text>}
-          {card.lines.map(line => <Text key={line} style={styles.cardLine}>{text(line)}</Text>)}
+          {card.lines.map(line => <Text key={line} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardLine}>{text(line)}</Text>)}
         </View>
       </View>)}
     </View>
     <Pressable accessibilityRole="button" accessibilityLabel={t('oath.fullRules')} accessibilityState={{ expanded: open }} onPress={() => setOpen(value => !value)}
       style={({ pressed }) => [styles.fold, pressed && styles.pressed]}>
       <SpriteFrame sheet={oathArt.ruleIcons} index={ruleIcon.fullRules} width={36} />
-      <Text style={styles.foldText}>{t('oath.fullRules')}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.foldText}>{t('oath.fullRules')}</Text>
       <Text style={styles.foldMark}>{open ? '▴' : '▾'}</Text>
     </Pressable>
     {open && <SnapshotRules snapshot={snapshot} />}
@@ -68,9 +76,14 @@ const styles = StyleSheet.create({
   declaration: { gap: 6, padding: 16, borderRadius: 16, backgroundColor: 'rgba(32, 25, 19, 0.94)', borderLeftWidth: 3, borderLeftColor: tokens.color.primary },
   heading: { color: tokens.color.primary, fontSize: 15, fontWeight: '700' },
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
-  grid: { flexWrap: 'wrap', gap: 10 },
+  grid: { gap: 10 },
+  pairs: { flexDirection: 'row', flexWrap: 'wrap' },
+  // Native check: a wrapping column sized its line to the widest card's icon, so at text scale 1.4 every card was about 77 pt wide
+  // and its flex text got no width. One column never wraps and each card stretches across the grid.
+  stack: { flexDirection: 'column', flexWrap: 'nowrap' },
   card: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', minHeight: 44, padding: 12, borderRadius: 16, borderWidth: 2, borderColor: '#5b4630', backgroundColor: 'rgba(28, 22, 16, 0.94)' },
   half: { width: '48.5%' },
+  full: { alignSelf: 'stretch' },
   highlight: { borderColor: HIGHLIGHT, backgroundColor: 'rgba(73, 56, 33, 0.96)' },
   cardText: { flex: 1, gap: 2 },
   cardTitle: { color: tokens.color.text, fontSize: 15, fontWeight: '700' },

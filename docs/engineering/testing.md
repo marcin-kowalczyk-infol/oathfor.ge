@@ -349,3 +349,69 @@ Native checks on the iPhone 18 Pro, iOS 27.0, demo development build, returning 
 Defect found and fixed: the Polish counter label broke as "wpisy w / kronice". The label now keeps the single-letter word with the next one. The test failed first, then passed, rechecked natively.
 
 Not observed natively: the counters at large text, the waiting state with "…", the unavailable hint, Reduce Motion for the page turn, iPhone SE 3 and VoiceOver. The menu still showed 3 current Oaths right after "Add demo Oath" while the room showed 4, a menu refresh timing outside this change. The page turn, icons and busts await owner visual acceptance.
+
+## Cinematic style native check, 2026-09-30
+
+Demo development build on the iPhone 18 Pro, iOS 27.0, cinematic style, returning player scenario, Polish unless noted. Motion was recorded at 60 frames per second and read frame by frame. The full mobile suite passed with 84 suites and 1058 tests.
+
+| Observed | Result |
+| --- | --- |
+| Rule icons on the review cards | All nine cards show their cinematic icon |
+| Hourglass in the Today list and in the detail | Chips and the detail countdown show the cinematic hourglass |
+| History close-up and the flight to the chronicle | The flight ends on the History framing, History opens without a Today frame |
+| Player walks | Back, back left, back right, left, right, front left and front right recorded. Front is not reachable between the scene spots |
+| Player poses | Hearth, seals, chronicle and door |
+| Żaromir | Tutorial pointing, talk gestures, the act pose at the chronicle and the turn to the player |
+| Stamp and sparks after making an Oath | The stamp presses, sparks burst, the sealed scroll stays at the same size |
+| English | Menu, a chronicle visit, History and Today |
+| Large text | Extra extra large keeps the room layout, extra extra extra large switches to the simple layout, the largest size shows no clipping on the menu and the creation screen |
+| Reduce Motion | Figures stand at their places at once, the flight crossfades |
+
+Defects found and fixed, each with a failing test first:
+
+| Defect | Fix | Evidence |
+| --- | --- | --- |
+| After a new-player reset the first onboarding screen flashed in English. The session start applied the device language (en-GB), not the demo's Polish. | The localization provider owns the default language. Onboarding uses it before the profile loads and after sign-out. | `AuthScreen.test`: provider locale is the default. Rechecked. |
+| The player vanished for two frames between the walk and a place pose. | Each sprite sheet keeps its own image element, so the previous frame stays loaded underneath. | `HeroSprite.test`: two tests. Rechecked. |
+| A dark crescent and the knob circled each turning seal drum. | Turning drum layers are face disks only (`room-seal-*-cinematic-v02`). | `registry.test` drum geometry. Rechecked. |
+| The drums darkened while turning. They were drawn over the station glow. | Place responses are drawn under the glows. | `ForgeRoom.test` draw order. Rechecked. |
+| The chronicle flight showed one Today frame before History. | A room request switches the view in the same render. | `OathHomeScreen.test` with a profiler. Rechecked. |
+| The chronicle flight ended on an unlowered close-up. History lowers it by 0.3 of the screen since e792801. | The flight and the lists share `LIST_DROP`. | `ForgeRoom.test` for seals and chronicle. Rechecked. |
+| The hearth flight showed the hidden detail and list before creation. | While a hearth request waits for Today, only the hearth shows at the creation framing. | `OathHomeScreen.test`. Rechecked. |
+| The stamp never pressed. The motion preference arrived after mount, so the sealed frame showed at once. | Without motion the stamp waits up to 400 ms for the preference, like the camera flight. | `SealStamp.test`. Rechecked. |
+| The creation form showed for a frame after acceptance. | A confirmed Oath switches to its detail in the same render. | `OathScreen.test` with a profiler. Rechecked. |
+| The scroll jumped from 300 to 260 points when the press ended. | The stamp and the sealed scroll share 260 points. | `OathScreen.test`. Rechecked. |
+| The panel wood reached the screen's right and bottom edges past the frame. | The wood is clipped inside the frame. | `DialoguePanel.test`. Rechecked. |
+| Arriving before the player, Żaromir faced the room, then snapped back to the place. | He takes the place pose on arrival. | `ForgeRoom.test`. Rechecked. |
+| Under Reduce Motion the scroll vanished for a frame when the stamp became the sealed scroll. | The stamp and the sealed scroll are one element with a `sealed` state. | `OathScreen.test` and `SealStamp.test`. Rechecked. |
+| The hearth waiting surface had no way back and no text for a slow answer. A loading line there flashed for two frames on a fast answer. | The waiting surface keeps the door, the loading line appears only after 500 ms. | `OathHomeScreen.test`. Rechecked. |
+
+Open: entering the room from the menu shows about three dark frames, then the room without figures and the panel without its frame for about 200 ms. The classic style shows the figures late too. Returning to the menu shows its portraits and tiles late. This is image decoding on each screen change, not a cinematic regression. Under Reduce Motion the unsealed scroll shows for up to 400 ms before the sealed frame (observed).
+
+Not observed natively: iPhone SE 3 (pending), VoiceOver, a Release build and physical devices. All cinematic art awaits owner visual acceptance.
+
+## Largest text native check, 2026-09-30 evening
+
+Demo development build on the iPhone 18 Pro, iOS 27.0, cinematic style, returning player scenario, Polish, content size accessibility extra extra extra large (font scale 3.571). Each finding was rechecked after a cold relaunch, because a live size change leaves stale text measurements on iOS. The full mobile suite passed with 85 suites and 1102 tests.
+
+| Observed | Result |
+| --- | --- |
+| Creation form, rule review, full rules and both picker sheets | No word breaks mid-word, value lines stay larger than their labels |
+| Żaromir's rules guide | Every line fits, a drag in the text scrolls it, each step scrolls its card into view above the panel |
+| Room dialogue panel at the default size | Tapping the text still types out and advances the line |
+
+Defects found and fixed, each with a failing test first:
+
+| Defect | Fix | Evidence |
+| --- | --- | --- |
+| The one-column rule cards collapsed to their icons. | The single column does not wrap, so each card spans the full width. | `OathRuleCards.test`. Rechecked. |
+| "Bieganie" and "W przyszłym terminie" broke mid-word. | At large text the label takes its own full-width line under the picture or medallion and the marker. | `OathScreen.test`. Rechecked. |
+| The date value, sheet titles, month buttons, past month note and zone rows broke mid-word. | Values, labels and titles take the existing caps, the month buttons stack and the sheets narrow their side padding. | `WallTimePicker.test`. Rechecked. |
+| The promise broke "października" and the "Żaromir objaśnia zasady" button ran past the screen edge. | The promise, card texts, consent and status lines with a measured break take the existing caps, the button shrinks inside the column. | `OathRuleCards.test`, `SnapshotRules.test`, `OathScreen.test`. Rechecked. |
+| The first guide line was cut in half, and a drag in it advanced the guide. | The panel is taller at large text. The touch target sits inside the scroll view, where a drag cancels the press. | `DialoguePanel.test`, `OathScreen.test`. Rechecked. |
+| The guide scrolled only to the grid top, so later cards stayed below the panel. | Each step scrolls to its own card. | `OathScreen.test`. Rechecked. |
+| The declaration and the Pauza card clipped their last word and left an empty line. | Yoga rounded a pixel-exact multi-line text frame down by a float error on a 3x screen, so TextKit dropped a line. Half a device pixel of bottom padding (`ui/textSlack.ts`) keeps the room. The shared `ui/Text.tsx` adds it to every outermost text. | `textSlack.test`, `Text.test`, `OathRuleCards.test`. Rechecked before the shared component. |
+
+Every app and demo text now renders through the shared `ui/Text.tsx`, and `Text.test` fails when a file imports Text from React Native directly. Open: a native recheck of the other screens with the shared component.
+
+Not observed natively: VoiceOver (the simulator does not run it, a sampled static pass found the room scenery, figures and camera overlay hidden and the rule icons inside labelled cards, the seal stamp was not checked), a Release build (the demo rejects production bundles by design, a production iOS export bundled 179 assets without error), iPhone SE 3 (pending) and physical devices.

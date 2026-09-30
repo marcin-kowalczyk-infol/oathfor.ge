@@ -7,16 +7,16 @@ import { DialoguePanel, type PanelControls } from './DialoguePanel';
 import { TalkCounters } from './TalkCounters';
 import { progressHint, type ForgeProgress } from './progressHint';
 import { chapterScript, guideScript, visitScript, type ScriptLine } from './conversation';
+import { useArt } from '../art/ArtProvider';
 import { presetArt } from '../characters/presetArt';
 import { advanceTour, freshTour, hearPlace, tourControl, tourTextKey, type Tour, type TutorialPlace } from './tutorialChapters';
 import { HearthFire } from '../ui/HearthFire';
 import { HeroSprite, ACT_BEFORE_TURN_MS, TURN_FRAME_MS, type HeroPose } from './HeroSprite';
 import { CandleFlames } from './CandleFlames';
 import { SpriteLoop } from './Sprite';
-import { effectSheets } from './motion';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { bindShortWords } from '../localization/typography';
-import { aside, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, SEALS_BOX, SEALS_FRONT_Y, tutor, type ScenePlace, type Spot } from './sceneLayout';
+import { ARTWORK, aside, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, SEALS_FRONT_Y, tutor, type ScenePlace, type Spot } from './sceneLayout';
 import { PlayerFigure } from './PlayerFigure';
 import type { Character } from '../api/characters';
 import { useWalker } from './useWalker';
@@ -28,9 +28,6 @@ const stations: { id: ForgeStation; x: number; y: number }[] = [
   { id: 'seals', ...places.seals.anchor },
   { id: 'chronicle', ...places.chronicle.anchor },
 ];
-const room = require('../../assets/forge/room-prototype-v03.png');
-const sealsFront = require('../../assets/forge/motion/room-seals-front-v01.png');
-const haze = require('../../assets/forge/ember-haze-v01.png');
 const WISP = 22;
 const ORDER_CHECK_MS = 100;
 const PANEL_BOTTOM = 20;
@@ -71,6 +68,10 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   onOpenStation: (station: ForgeStation) => void; onExit: () => void;
 }) {
   const { t, i18n } = useTranslation();
+  const art = useArt();
+  const { haze, room } = art;
+  // The seal drums cut from the style's room, drawn over a figure standing behind them in the doorway. A room without the cut has none.
+  const sealsFront = room.sealsFront;
   const { width, height } = useWindowDimensions();
   const [viewport, setViewport] = useState({ width, height });
   // Artwork and every interactive anchor share this exact cover transform.
@@ -228,6 +229,8 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   // Between chapters Żaromir waits at the last place facing the player. While the player chooses he points at the places.
   const pose: HeroPose = guide.walking ? { kind: 'walk', direction: guide.direction }
     : told ? (presence === 'act' ? { kind: 'act', place: told } : presence === 'turn' ? { kind: 'turn' } : { kind: 'talk', gestures: [0, 3] })
+    // Arriving before the player, he already faces the place, so he does not turn back to it when the chapter starts (native check, 2026-09-30).
+    : tour?.place && guide.arrived === tour.place ? { kind: 'act', place: tour.place }
     : tour && !tour.place && guide.arrived === 'tutor' ? { kind: 'talk', gestures: [0, 1, 0, 2] }
     : guidePlace && guide.arrived === guidePlace ? { kind: 'talk', gestures: [0, 3] }
     : talk && !guide.walking ? { kind: 'talk', gestures: [0, 3] }
@@ -289,22 +292,23 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     <Animated.View testID="flight-camera" style={[StyleSheet.absoluteFill, flight.place && flight.scale(onScreen(places[flight.place].anchor))]}>
     <Animated.View style={[StyleSheet.absoluteFill, { transformOrigin: [viewport.width * 0.515, viewport.height * 0.45, 0], transform: [{ scale: camera.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }]}>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.scenery}>
-      <Image source={room} resizeMode="stretch" style={{ position: 'absolute', left, top, width: sceneWidth, height: sceneHeight }} />
+      <Image testID="forge-room-image" source={room.image} resizeMode="stretch" style={{ position: 'absolute', left, top, width: sceneWidth, height: sceneHeight }} />
       <CandleFlames point={point} sceneWidth={sceneWidth} allowed={allowed} />
       <HearthFire anchor={point(0.515, 0.466)} size={sceneWidth * 0.17} opacity={0.8} />
-      {stations.map(station => <Animated.Image source={haze} key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: stationGlow(station.id) }]} />)}
+      {/* Native check: replaying on the same animated value made a stepped sheet blink on iOS. Each touch mounts a fresh response. */}
+      {/* Native check: drawn over the glows, the turning drums lost their glow and brightened when they stopped. The response lies under them. */}
+      {effectPlace && <StationEffect key={touchRequest} station={effectPlace} request={touchRequest} allowed={allowed} point={point} sceneWidth={sceneWidth} />}
+      {stations.map(station => <Animated.Image testID={`station-glow-${station.id}`} source={haze} key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: stationGlow(station.id) }]} />)}
       <Animated.Image source={haze} style={[styles.doorGlow, { ...point(door.x, door.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === 'door' || tour?.place === 'door' ? [0.45, 0.72] : tour ? [0.30, 0.60] : [0.16, 0.48] }) }]} />
       {stations.map(station => {
         // The ember wisp floats above each station's touch area, where its mote used to be.
         const spot = hotspot(station.x, station.y);
         const lit = tour ? tour.place === station.id : player.target === station.id;
-        return <SpriteLoop key={`wisp-${station.id}`} sheet={effectSheets.wisp} width={WISP} duration={1300} allowed={allowed}
-          style={{ left: spot.left - WISP / 2, top: spot.top - 30 - WISP * 0.55 / effectSheets.wisp.aspect,
+        return <SpriteLoop key={`wisp-${station.id}`} sheet={art.effects.wisp} width={WISP} duration={1300} allowed={allowed}
+          style={{ left: spot.left - WISP / 2, top: spot.top - 30 - WISP * 0.55 / art.effects.wisp.aspect,
             opacity: lit ? 1 : glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
             transform: [{ translateY: glow.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }} />;
       })}
-      {/* Native check: replaying on the same animated value made a stepped sheet blink on iOS. Each touch mounts a fresh response. */}
-      {effectPlace && <StationEffect key={touchRequest} station={effectPlace} request={touchRequest} allowed={allowed} point={point} sceneWidth={sceneWidth} />}
     </View>
     <SceneHotspot label={placeLabel('door')} onPress={still(() => tour ? hear('door') : choose('door'))} hint={tour ? undefined : t('room.inspect')} anchor={hotspot(door.x, door.y)} door allowed={allowed} glow={glow} heard={heardMark('door')} selected={tour ? tour.place === 'door' : player.target === 'door'} />
     {stations.map(station => <SceneHotspot key={station.id} cue={false} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : player.target === station.id}
@@ -320,10 +324,12 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
         <View style={styles.figureShadow} />
         {node}
       </Animated.View>
-      <Animated.Image testID={`seals-cut-${id}`} source={sealsFront} resizeMode="stretch" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
-        style={[styles.front, { ...point(SEALS_BOX.x, SEALS_BOX.y), width: SEALS_BOX.width * sceneWidth, height: SEALS_BOX.height * sceneHeight, opacity: sealsCover(walker.position) }]} />
+      {sealsFront && <>
+      <Animated.Image testID={`seals-cut-${id}`} source={sealsFront.source} resizeMode="stretch" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+        style={[styles.front, { ...point(sealsFront.box[0] / ARTWORK.width, sealsFront.box[1] / ARTWORK.height), width: sealsFront.box[2] / ARTWORK.width * sceneWidth, height: sealsFront.box[3] / ARTWORK.height * sceneHeight, opacity: sealsCover(walker.position) }]} />
       {/* Native check: the cut hid the seal glow, so the seals darkened as he stepped behind them. The glow is repeated over the cut. */}
       <Animated.Image source={haze} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.objectGlow, styles.front, { ...point(seals.x, seals.y), opacity: Animated.multiply(stationGlow('seals'), sealsCover(walker.position)) }]} />
+      </>}
     </Fragment>)}
     {!tour && !guidePlace && !guide.walking && (guide.arrived ?? 'aside') === 'aside' && <Pressable accessibilityRole="button" accessibilityLabel={t('room.talk.label')}
       onPress={still(() => { onTalk(); setBubbleOpen(false); setTalk(current => ({ id: (current?.id ?? 0) + 1, spoken: !!progress.today, refreshing: false })); })}
@@ -336,7 +342,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     {line && !flight.busy && <DialoguePanel frame={{ left: (viewport.width - panelWidth) / 2, width: panelWidth, bottom: PANEL_BOTTOM, maxHeight: viewport.height - PANEL_BOTTOM - stationEdge }}
       speaker={line.speaker} lineId={line.id} text={line.key ? bindShortWords(t(line.key, line.values), i18n.language) : ''} title={line.title}
       extra={talk && line.id === `talk-${talk.id}` ? <TalkCounters progress={progress} waiting={!talk.spoken} /> : undefined}
-      playerName={character.name} portrait={presetArt(character.presetId, character.build)?.portrait ?? null} allowed={allowed} more={!!line.more}
+      playerName={character.name} portrait={presetArt(art.presets, character.presetId, character.build)?.portrait ?? null} allowed={allowed} more={!!line.more}
       continueLabel={t('room.tutorial.next')} onContinue={still(() => line?.next?.())} controls={line.controls}
       dismissLabel={t(guidePlace ? 'room.guide.skip' : tour ? 'room.tutorial.close' : 'room.dismiss')} onDismiss={still(line.dismiss)} />}
   </View>;

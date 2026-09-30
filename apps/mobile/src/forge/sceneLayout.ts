@@ -25,8 +25,6 @@ export const aside: Spot = { x: 0.66, y: 0.545 };
 /** Żaromir while the player chooses a tutorial chapter, in front of the hearth (MVP-19). */
 export const tutor: Spot = { x: 0.5, y: 0.66 };
 
-// The seal drums cut from the room (export-motion-v01.py), drawn over a figure standing behind them in the doorway.
-export const SEALS_BOX = { x: 50 / 887, y: 850 / 1774, width: 280 / 887, height: 115 / 1774 };
 /** Below this depth the feet are in front of the seal drums, so the cut no longer covers the figure. */
 export const SEALS_FRONT_Y = 957 / 1774;
 

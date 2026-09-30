@@ -29,6 +29,8 @@ These need no new file. Runtime code crops them.
 
 The card figure uses the active character's preset figure, in the selected build, see the [player preset manifest](player-preset-assets.md).
 
+In the demo's cinematic style the background, the Forge tile and the Tutorial tile draw the [cinematic exports](cinematic-assets.md). The Tutorial tile then uses that style's frame, so Żaromir keeps his size and inset.
+
 ## Open items
 
 - Native inspection of the tile on iPhone SE 3 and iPhone 18 Pro, in Polish and English, at the largest text size.
