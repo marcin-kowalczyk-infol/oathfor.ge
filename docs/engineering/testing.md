@@ -415,3 +415,44 @@ Defects found and fixed, each with a failing test first:
 Every app and demo text now renders through the shared `ui/Text.tsx`, and `Text.test` fails when a file imports Text from React Native directly. Open: a native recheck of the other screens with the shared component.
 
 Not observed natively: VoiceOver (the simulator does not run it, a sampled static pass found the room scenery, figures and camera overlay hidden and the rule icons inside labelled cards, the seal stamp was not checked), a Release build (the demo rejects production bundles by design, a production iOS export bundled 179 assets without error), iPhone SE 3 (pending) and physical devices.
+
+## Oath screens acceptance (MVP-21), 2026-09-30
+
+Demo development build on the iPhone 18 Pro, iOS 27.0, with Metro, in the fresh and returning player scenarios, Polish and English, cinematic and classic styles. Motion was recorded at 60 frames per second and read frame by frame. The implementation landed in T01 to T12 (cfb11a9, e260310, 5f0b264, 66c04e2, ed8f176, 1abe3c6, e5e3c3f, 428acb0, 1414bad, c81cafa, 05eae96, a87caea), the fixes below in T13. The full mobile suite passed with 86 suites and 1133 tests, and the typecheck was clean (Node 26). Cinematic rule icons, the stamp and sparks and the largest text are recorded in the two sections above.
+
+Demo limit, not an app defect: the DUMMY server time is frozen at app launch (`initialNow` in `apps/mobile/demo/runtime.ts`), and every fetch observes it again. Demo countdowns therefore lag the wall clock and can step back up after a fetch, for example "Do terminu 5 min" on the confirmation and "6 min" in the detail a minute later.
+
+| Observed | Result |
+| --- | --- |
+| Date sheet (PL, fresh player) | Today's ring on 30 September, past days greyed |
+| Time sheet for today | Hours 00 to 21 greyed, 22 and 23 available |
+| Rule cards | Nine cards readable, the sunrise icon reads at card size |
+| Żaromir's rules guide | Highlights Termin, then Ostatni moment, then Zasady są stałe. Skip (×) and replay ("Żaromir objaśnia zasady") work |
+| Full rules | "Pełne zasady" folds open and closed |
+| Seal at 60 frames per second | Blank scroll, wax, stamp above, press, sparks, sealed scroll, no dark square |
+| Confirmation card | "Przysięga złożona", large chip "Do terminu 5 min", deadline line, state, "Zobacz Przysięgę", "Wróć do Kuźni", "Złóż kolejną Przysięgę" |
+| Detail | Header, seal backdrop, state medallion, countdown and nine cards |
+| Today chip reaching zero (PL) | Sampled every 10 to 15 s. Seal and row chips tick 5, 4, 3, 2, 1, "< 1 min", then "Czas minął". The state stays "Aktywna" |
+| Returning player Today | Three seals with stacked chips ("Przegląd do 2 d 22 h", "Start za 59 min", "Do terminu 3 h 59 min") and list rows with chips |
+| History | Fresh player "0 wpisów w kronice" with "Kronika czeka na pierwszy wpis.". Returning player "22 wpisy w kronice" with Żaromir's line and short rows |
+| English | Room lines, creation form, both sheets, nine cards, guide steps 1 to 4, consent "By choosing “Commit to the Oath”, I accept the rules on the cards and the full rules.", seal, "Oath made" with "Until the deadline 18 h 46 min", Today chips, History "22 chronicle entries". Every English text fits |
+| Classic style (EN) | Room, Today cards and chips, detail cards and the large hourglass |
+| Large hourglass | 346 recorded frames in the cinematic style with mean brightness 45.75 to 46.09, classic 44.52 to 44.69. Only the sand stream changes |
+
+Defects found and fixed, each with a failing test first:
+
+| Defect | Fix | Evidence |
+| --- | --- | --- |
+| The large hourglass blinked 8 times a second (owner report). `SpriteLoop` crossfaded opaque frames, so two layers at half opacity gave 0.75 alpha mid-step. | Solid sheets step, each frame fades in over the previous one. Light sheets keep the crossfade. The loop takes 640 ms. | 825a4c8. `Sprite.test` expected one whole layer at phase 2.5 and got 0.5. Rechecked by the brightness above. |
+| A disabled "Poprzedni miesiąc" and a disabled "Ustaw godzinę" looked enabled. | An unavailable `Action` is muted in both variants. The reason keeps full contrast. | aa4f553. Rechecked. |
+| "Poprzedni miesiąc" pointed forward (›). | A leading ‹. | aa4f553. Rechecked. |
+| The month grid had no weekday names. | A Monday-first weekday row from `Intl`, hidden from VoiceOver, absent in the large-text list. | aa4f553. Rechecked "pon. … niedz." |
+| Today's time sheet opened on 18:00, already past, with a disabled action. | It opens on the first minute after server now. | aa4f553. Rechecked, 23:30 with the action enabled. |
+| The last guide step said "Dalej". | "Zakończ" / "Finish". | aa4f553. Rechecked in Polish. |
+| A single featured seal's chip spanned the whole screen width. | Seal columns keep the three-seal width. | aa4f553. Rechecked. |
+| English guide step 3 said "a quarter hour after the deadline". | "15 minutes after the deadline". | aa4f553. Checked in the catalog only. |
+| Found by review, not natively: each sheet used the "now" of the last render, so an idle form opened on a past, disabled time. | Each sheet reads the server-corrected instant when it opens. | b7f5a6c. The reviewer's case (render 22:50, open 22:56) showed 22:51 disabled, then passed. Native: form idle from 23:42:41 to 23:45:15, the time sheet opened on 23:44 with "Ustaw godzinę" enabled. |
+
+Open (owner questions): the draft value lines of the proof, review, reward, consequence and pause cards, the DUMMY reward and consequence icons, English History rows in 12-hour time while the new cards use 24-hour time, the prefix in "Przegląd do 2 d 22 h" / "Review until 2 d 22 h", which expects a point in time, and a busy `Action` that now looks muted like a disabled one.
+
+Not observed natively: iPhone SE 3 (pending, including the Polish weekday "niedz." at 375 pt), VoiceOver, Reduce Motion for the stepped hourglass, a Release build and physical devices. The Oath screen art awaits owner visual acceptance.

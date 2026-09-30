@@ -61,7 +61,7 @@ Master SHA-256: `oath-rule-icons-v01.png` `a58dfedba7ddbab7b31428b4534db74408d33
 
 ## Open review points
 
-- The sunrise icon may be too detailed at 40 pt. The native check in MVP-21-T13 decides whether it needs a simpler version.
+- The sunrise icon reads at card size in the native check on the iPhone 18 Pro (MVP-21-T13, 2026-09-30), so no simpler version is planned. Owner visual acceptance is still pending.
 - Reward and consequence need new icons in the rule icon style. The request is ignored `graphics/mvp-21/requests/oath-icons-reward-consequence.prompt.txt`. Until then the cards use the two DUMMY icons above.
 - The runner in the proof frame and the padlock on the anvil are small at 40 px. They read as a picture frame and an anvil, which may be enough with the card title.
 - The brightest sparks frame reaches within 2 px of its cell. The sheet must be drawn at its full cell size, not clipped by a smaller container.

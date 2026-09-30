@@ -1,6 +1,6 @@
 # Oath screens: friendlier rules, sealing and countdowns
 
-Status: accepted by the owner on 2026-09-28 for the epic MVP-21 (decisions Q1 to Q5 below). Nothing here is implemented yet.
+Status: accepted by the owner on 2026-09-28 for the epic MVP-21 (decisions Q1 to Q5 below). Implemented in the mobile app in MVP-21 on 2026-09-30 (tasks T01 to T13), with no API change. Native checks ran on the iPhone 18 Pro in PL and EN, see [testing](../engineering/testing.md#oath-screens-acceptance-mvp-21-2026-09-30). Limits: the reward and consequence icons are DUMMY, and the card value lines for proof, review, reward, consequence and pause are drafts awaiting owner review. iPhone SE 3, VoiceOver, Reduce Motion for the stepped hourglass, a Release build and physical devices were not observed. Proof verdict updates in section 4 remain not implemented. Owner acceptance is pending.
 
 ## Purpose
 
@@ -8,7 +8,7 @@ After the MVP-20 demo the owner found the Oath screens too wordy and flat (owner
 
 1. The calendar does not mark today and lets the player pick a past date.
 2. "Zobacz zasady" / "See the rules" opens a wall of text. It should be friendlier, built on artwork and icons, and Żaromir may explain it the first time.
-3. After "Złóż Przysięgę" / "Make the Oath" another wall of text appears and nothing shows that something happened. It needs a seal stamping animation and a countdown to the deadline.
+3. After "Złóż Przysięgę" / "Commit to the Oath" another wall of text appears and nothing shows that something happened. It needs a seal stamping animation and a countdown to the deadline.
 4. "Twoje Przysięgi" / "Your Oaths" should be friendlier, each Oath with a countdown to its close.
 5. History has too much text. Simplify it and encourage visually in every text view.
 
@@ -63,7 +63,7 @@ Rule cards, each with an icon from `graphics/mvp-21/incoming/oath-rule-icons-v01
 
 Values are formatted from snapshot fields, never from the device's current settings. Card titles and lines were accepted by the owner (decision Q5) and may still be tuned after native checks. The promise and the declaration stay as text above the cards, because the player accepts them. Start, deadline and last-moment cards show the hour large on its own line, with the day and zone or the grace period under it, so a half-width card never breaks a date at random (owner request, 2026-09-29). The promise names the deadline to the minute with a short offset, for example "29 września 2026 o 07:43 · UTC+2". The full rules keep the zone, the offset and the seconds (owner decision, 2026-09-29).
 
-Below the cards a scroll icon opens "Pełne zasady" / "Full rules": the complete stored `SnapshotRules`, unchanged. It starts folded (decision Q1). The consent line becomes "Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady." / "By choosing "Make the Oath", I accept the rules on the cards and the full rules."
+Below the cards a scroll icon opens "Pełne zasady" / "Full rules": the complete stored `SnapshotRules`, unchanged. It starts folded (decision Q1). The consent line becomes "Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady." / "By choosing “Commit to the Oath”, I accept the rules on the cards and the full rules."
 
 The reward and consequence cards let the player see both without opening the full rules (decision Q2).
 
