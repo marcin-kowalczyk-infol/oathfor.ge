@@ -24,7 +24,7 @@ Alpha below 8 is cleared and the generator's 250 to 254 alpha ceiling is lifted 
 - **Rule icons.** The 1774 × 887 masters do not divide evenly, so each icon is cut by its measured alpha bounds. Each is scaled to 148 px on its longer side and centred in a 160 × 160 cell. Every icon keeps at least 6 px of empty margin, so no neighbour bleeds in. The sheet is 5 × 2 in the order of the index column below. The app reads a cell by its index, row-major.
 - **Seal stamp.** Every 444 px master cell is scaled whole to 360 px. No frame is trimmed, so the scroll stays still. Frames 7 and 8 are identical in the master (the sealed scroll at rest).
 - **Seal sparks.** Alpha is the brightest channel and the colour is un-premultiplied, as for `panel-rune-alpha-v01` in the [Forge scene assets](forge-scene-assets.md). The sheet is drawn with a normal blend, because a screen blend inside a panel drew a dark square on iOS in MVP-20. Cells were cut at the dark gaps near the nominal grid lines. The golden ring was fitted in each frame and moved to the cell centre, so the burst does not jump. One scale serves all frames (0.79464), slightly under the master cell scale so the widest burst fits with a 2 px margin.
-- **Hourglass.** Every 444 px master cell is scaled whole to 160 px. `hourglass-still-v01.png` is frame 1 alone, for the list chip and Reduce Motion.
+- **Hourglass.** Every 444 px master cell is scaled whole to 160 px. `hourglass-still-v01.png` is frame 1 alone, for the list chip and Reduce Motion. The app steps through the frames in 640 ms. A crossfade of these opaque frames dimmed the whole hourglass at every change (owner native report, 2026-09-30).
 
 | Export | Master | Size / mode | Use | Cells | SHA-256 |
 | --- | --- | --- | --- | --- | --- |
@@ -65,4 +65,4 @@ Master SHA-256: `oath-rule-icons-v01.png` `a58dfedba7ddbab7b31428b4534db74408d33
 - Reward and consequence need new icons in the rule icon style. The request is ignored `graphics/mvp-21/requests/oath-icons-reward-consequence.prompt.txt`. Until then the cards use the two DUMMY icons above.
 - The runner in the proof frame and the padlock on the anvil are small at 40 px. They read as a picture frame and an anvil, which may be enough with the card title.
 - The brightest sparks frame reaches within 2 px of its cell. The sheet must be drawn at its full cell size, not clipped by a smaller container.
-- The stamp, the sparks in motion and the hourglass loop were not checked on device.
+- The stamp and the sparks in motion were not checked on device. The stepped hourglass loop awaits a native check.

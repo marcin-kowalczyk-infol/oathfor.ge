@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 import { Animated, StyleSheet } from 'react-native';
-import { SpriteFrame, SpriteLoop } from './Sprite';
+import { loopOpacity, SpriteFrame, SpriteLoop } from './Sprite';
 import { currentArt } from '../art/current';
 
 const { effects: effectSheets, zharomir: heroSheets } = currentArt;
@@ -39,4 +39,26 @@ test('light sheets use a screen blend and solid sheets do not', async () => {
   </>);
   expect(StyleSheet.flatten(screen.getByTestId('light', { includeHiddenElements: true }).props.style)).toMatchObject({ mixBlendMode: 'screen' });
   expect(StyleSheet.flatten(screen.getByTestId('page', { includeHiddenElements: true }).props.style).mixBlendMode).toBeUndefined();
+});
+
+const layers = (sheet: Parameters<typeof loopOpacity>[0], at: number) => {
+  const phase = new Animated.Value(at);
+  const opacity = loopOpacity(sheet, phase);
+  return Array.from({ length: 8 }, (_, frame) => {
+    const value = opacity(frame);
+    return typeof value === 'number' ? value : (value as unknown as { __getValue: () => number }).__getValue();
+  });
+};
+
+test('a solid loop steps so one opaque frame always covers the art', () => {
+  // Native check: crossfading the opaque hourglass frames dimmed the whole glass at every change.
+  const hourglass = currentArt.oaths.hourglass;
+  expect(layers(hourglass, 2.5)).toEqual([0, 0, 1, 0, 0, 0, 0, 0]);
+  expect(layers(hourglass, 0)).toEqual([1, 0, 0, 0, 0, 0, 0, 0]);
+  expect(layers(hourglass, 7.99)).toEqual([0, 0, 0, 0, 0, 0, 0, 1]);
+  for (let at = 0; at <= 8; at += 0.01) expect(Math.max(...layers(hourglass, at))).toBeCloseTo(1, 5);
+});
+
+test('a light loop still crossfades between neighbouring frames', () => {
+  expect(layers(effectSheets.hearthLoop, 2.5)).toEqual([0, 0, 0.5, 0.5, 0, 0, 0, 0]);
 });

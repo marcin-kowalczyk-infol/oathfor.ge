@@ -35,8 +35,9 @@ export function CountdownChip({ oath, clock, size = 'small', stacked = false, on
   return <View testID="countdown-chip" accessible accessibilityLabel={text.elapsed ? text.spoken : label} style={[styles.chip, large && styles.large, text.elapsed && styles.elapsed]}>
     {/* A sprite loop is absolutely placed, so this box reserves its room. Native check: the label slid under it. */}
     <View testID="countdown-icon" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width: icon, height: icon }}>
+      {/* The grains move about 1 px of the 160 px cell per frame, so a slower loop barely moves at 44 pt. */}
       {large && motion && !text.elapsed
-        ? <SpriteLoop sheet={oathArt.hourglass} width={icon} duration={1000} allowed testID="countdown-hourglass" />
+        ? <SpriteLoop sheet={oathArt.hourglass} width={icon} duration={640} allowed testID="countdown-hourglass" />
         : <Image source={oathArt.hourglassStill} style={{ width: icon, height: icon }} />}
     </View>
     {/* Native check at large text: a wrapped row stretched the chip to full width, while a column hugs its widest line. Every chip stacks, so rows match. */}

@@ -41,7 +41,7 @@ function Layers({ sheet, width, opacity, testID, style, children }: {
   </Animated.View>;
 }
 
-/** A seamless crossfading loop. Reduced motion shows the first frame still. */
+/** A seamless loop, crossfaded for light and stepped for solid sheets. Reduced motion shows the first frame still. */
 export function SpriteLoop({ sheet, width, duration, allowed, testID, style }: {
   sheet: Sheet; width: number; duration: number; allowed: boolean; testID?: string; style?: Animated.WithAnimatedValue<StyleProp<ViewStyle>>;
 }) {
@@ -54,10 +54,25 @@ export function SpriteLoop({ sheet, width, duration, allowed, testID, style }: {
     loop.start();
     return () => { loop.stop(); phase.stopAnimation(); phase.setValue(0); };
   }, [allowed, duration, frames, phase]);
-  return <Layers sheet={sheet} width={width} testID={testID} style={style} opacity={frame => phase.interpolate(frame === 0
-    ? { inputRange: [0, 1, frames - 1, frames], outputRange: [1, 0, 0, 1], extrapolate: 'clamp' }
-    : { inputRange: [frame - 1, frame, frame + 1], outputRange: [0, 1, 0], extrapolate: 'clamp' })} />;
+  return <Layers sheet={sheet} width={width} testID={testID} style={style} opacity={loopOpacity(sheet, phase)} />;
 }
+
+/** Light fades between neighbouring frames. Solid sheets step, so their opaque art never shows at half strength. */
+export const loopOpacity = (sheet: Sheet, phase: Animated.Value) => {
+  const frames = frameCount(sheet);
+  if (sheet.blend === 'normal') {
+    // Each frame fades in over the one before it and out under the one after it, so one frame is always whole.
+    const edge = 0.02;
+    return (frame: number) => phase.interpolate(frame === 0
+      ? { inputRange: [0, 1, 1 + edge], outputRange: [1, 1, 0], extrapolate: 'clamp' }
+      : frame === frames - 1
+        ? { inputRange: [frame - edge, frame, frames], outputRange: [0, 1, 1], extrapolate: 'clamp' }
+        : { inputRange: [frame - edge, frame, frame + 1, frame + 1 + edge], outputRange: [0, 1, 1, 0], extrapolate: 'clamp' });
+  }
+  return (frame: number) => phase.interpolate(frame === 0
+    ? { inputRange: [0, 1, frames - 1, frames], outputRange: [1, 0, 0, 1], extrapolate: 'clamp' }
+    : { inputRange: [frame - 1, frame, frame + 1], outputRange: [0, 1, 0], extrapolate: 'clamp' });
+};
 
 /**
  * Plays a sheet once while progress runs through [start, end] of 0 to 1. Outside the window nothing shows.
