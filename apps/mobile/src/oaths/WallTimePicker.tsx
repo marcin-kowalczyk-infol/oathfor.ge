@@ -38,22 +38,27 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
   const [hour, setHour] = useState('18');
   const [minute, setMinute] = useState('00');
   const [query, setQuery] = useState('');
+  // Review, 2026-09-30: an idle form rendered at 22:50 opened at 22:56 on a greyed 22:51. The sheets use the time of opening.
+  const [openedAt, setOpenedAt] = useState(now);
   const locale = i18n.resolvedLanguage ?? 'en';
   const label = (part: string) => t(`oath.${field}${part[0].toUpperCase()}${part.slice(1)}`);
   const zoneName = (zone: string) => zoneLabel(zone, t);
   const dateName = (date: string) => new Intl.DateTimeFormat(locale, { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' }).format(calendarDate(date));
-  const current = wallNow(value.zone, now());
+  const current = wallNow(value.zone, openedAt);
   const isToday = value.date === current.date;
   const [nowHour, nowMinute] = current.time.split(':');
   const past = `${hour}:${minute}` <= current.time && isToday;
   function show(part: 'date' | 'time' | 'zone') {
     if (disabled) return;
-    if (part === 'date') setMonth((value.date && value.date >= current.date ? value.date : current.date).slice(0, 7));
+    const at = now(); const opened = wallNow(value.zone, at);
+    setOpenedAt(at);
+    if (part === 'date') setMonth((value.date && value.date >= opened.date ? value.date : opened.date).slice(0, 7));
     if (part === 'time') {
       // Native check, 2026-09-30 at 22:54: today opened on a greyed 18:00. A time that already passed moves to the first minute after now, while 23:59 has none left.
       const held = [value.time.slice(0, 2) || '18', value.time.slice(3, 5) || '00'];
-      const after = Number(nowHour) * 60 + Number(nowMinute) + 1;
-      const [h, m] = isToday && `${held[0]}:${held[1]}` <= current.time && after < 24 * 60 ? [pad(Math.floor(after / 60)), pad(after % 60)] : held;
+      const [openHour, openMinute] = opened.time.split(':');
+      const after = Number(openHour) * 60 + Number(openMinute) + 1;
+      const [h, m] = value.date === opened.date && `${held[0]}:${held[1]}` <= opened.time && after < 24 * 60 ? [pad(Math.floor(after / 60)), pad(after % 60)] : held;
       setHour(h); setMinute(m);
     }
     setQuery(''); setOpen(part);

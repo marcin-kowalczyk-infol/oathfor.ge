@@ -89,6 +89,26 @@ test('an allowed stored time for today stays as it was', async () => {
   expect(screen.getByRole('button', { name: 'Use this time' })).toBeEnabled();
 });
 
+// Review, 2026-09-30: the form rendered at 22:50 and a tap at 22:56 opened on a greyed 22:51, since nothing re-rendered the idle picker.
+test('the time sheet reads now when it opens, not when the form rendered', async () => {
+  let instant = Date.parse('2026-09-28T20:50:00Z');
+  await picker({ date: '2026-09-28' }, jest.fn(), 'en', () => instant);
+  instant = Date.parse('2026-09-28T20:56:00Z');
+  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  expect(screen.getByText('22:57')).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: 'Minute 56' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Use this time' })).toBeEnabled();
+});
+
+test('the date sheet reads today when it opens, after midnight started a new month', async () => {
+  let instant = Date.parse('2026-09-30T21:50:00Z');
+  await picker({}, jest.fn(), 'en', () => instant);
+  instant = Date.parse('2026-09-30T22:10:00Z');
+  await fireEvent.press(screen.getByRole('button', { name: 'Completion date' }));
+  expect(day('October 1, 2026, Today')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Previous month' })).toBeDisabled();
+});
+
 test('with no minute left today the sheet keeps 18:00 and cannot confirm it', async () => {
   await picker({ date: '2026-09-28' }, jest.fn(), 'en', () => Date.parse('2026-09-28T21:59:30Z'));
   await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));

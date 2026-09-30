@@ -39,6 +39,7 @@ The date sheet of `WallTimePicker` gets three changes. "Today" means the current
 - On today's date, hours and minutes that already passed are disabled too (decision Q3).
 - The grid carries one row of short weekday names, Monday first, from the sheet's locale. VoiceOver skips it, because each day already speaks its full date. The large-text layout lists whole dates and has no such row. The previous-month control points back, with its chevron before the label (native check, 2026-09-30).
 - On today's date the time sheet opens on the first minute after now when the stored or default time has passed. With no minute left today it keeps the stored or default time, and the action stays disabled (native check, 2026-09-30).
+- Each sheet reads the corrected clock when it opens. The shown month, today's ring, the disabled days, hours and minutes and the opening time all use that moment, so an idle form does not open on a time that passed meanwhile (review, 2026-09-30).
 
 The server keeps rejecting past times (`activation_elapsed`, `deadline_not_after_activation`). The client check is a convenience, not the rule.
 
