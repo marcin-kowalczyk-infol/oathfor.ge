@@ -49,7 +49,13 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
   function show(part: 'date' | 'time' | 'zone') {
     if (disabled) return;
     if (part === 'date') setMonth((value.date && value.date >= current.date ? value.date : current.date).slice(0, 7));
-    if (part === 'time') { setHour(value.time.slice(0, 2) || '18'); setMinute(value.time.slice(3, 5) || '00'); }
+    if (part === 'time') {
+      // Native check, 2026-09-30 at 22:54: today opened on a greyed 18:00. A time that already passed moves to the first minute after now, while 23:59 has none left.
+      const held = [value.time.slice(0, 2) || '18', value.time.slice(3, 5) || '00'];
+      const after = Number(nowHour) * 60 + Number(nowMinute) + 1;
+      const [h, m] = isToday && `${held[0]}:${held[1]}` <= current.time && after < 24 * 60 ? [pad(Math.floor(after / 60)), pad(after % 60)] : held;
+      setHour(h); setMinute(m);
+    }
     setQuery(''); setOpen(part);
   }
   function change(part: 'date' | 'time' | 'zone', next: string) { onChange({ ...value, [part]: next, offset: undefined }); setOpen(null); }
@@ -68,6 +74,8 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
   // Zone rows take the choice cap and the narrower padding ("DumontDUrville" 430 pt uncapped, 304 pt capped, 327 pt row at 375).
   const title = (text: string) => <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{text}</Text>;
   const monthSlot = largeText ? undefined : styles.flex;
+  // Monday first like the grid. 1 January 2024 was a Monday.
+  const weekdays = Array.from({ length: 7 }, (_, i) => new Intl.DateTimeFormat(locale, { timeZone: 'UTC', weekday: 'short' }).format(new Date(Date.UTC(2024, 0, 1 + i))));
   return <View style={styles.group}>
     {(['date', 'time', 'zone'] as const).map(part => <Pressable key={part} accessibilityRole="button" accessibilityLabel={label(part)} accessibilityValue={{ text: part === 'date' ? value.date ? dateName(value.date) : t('timePicker.chooseDate') : part === 'time' ? value.time.slice(0, 5) || t('timePicker.chooseTime') : `${zoneName(value.zone)} · ${value.zone}` }} accessibilityState={{ disabled }} disabled={disabled} onPress={() => show(part)} style={({ pressed }) => [styles.field, largeText && styles.wideField, pressed && styles.pressed]}>
       <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{label(part)}</Text>
@@ -80,7 +88,8 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
         <View style={styles.header}>{title(open ? label(open) : '')}<Action label={t('timePicker.close')} variant="secondary" onPress={() => setOpen(null)} /></View>
         {open === 'date' && first && <ScrollView testID="date-sheet" contentContainerStyle={[styles.content, largeText && styles.wideContent]}>
           {title(new Intl.DateTimeFormat(locale, { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(first))}
-          <View testID="month-nav" style={[styles.row, largeText && styles.stack]}><View style={monthSlot}>{month <= current.date.slice(0, 7) ? <Action label={t('timePicker.previousMonth')} variant="secondary" disabled unavailableReason={t('timePicker.pastMonth')} onPress={() => {}} /> : <Action label={t('timePicker.previousMonth')} variant="secondary" onPress={() => moveMonth(-1)} />}</View><View style={monthSlot}><Action label={t('timePicker.nextMonth')} variant="secondary" onPress={() => moveMonth(1)} /></View></View>
+          <View testID="month-nav" style={[styles.row, largeText && styles.stack]}><View style={monthSlot}>{month <= current.date.slice(0, 7) ? <Action label={t('timePicker.previousMonth')} variant="secondary" direction="back" disabled unavailableReason={t('timePicker.pastMonth')} onPress={() => {}} /> : <Action label={t('timePicker.previousMonth')} variant="secondary" direction="back" onPress={() => moveMonth(-1)} />}</View><View style={monthSlot}><Action label={t('timePicker.nextMonth')} variant="secondary" onPress={() => moveMonth(1)} /></View></View>
+          {!largeText && <View testID="weekday-header" style={styles.grid} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{weekdays.map(name => <Text key={name} numberOfLines={1} maxFontSizeMultiplier={1.3} style={[styles.day, styles.weekday]}>{name}</Text>)}</View>}
           <View style={styles.grid}>{Array.from({ length: largeText ? 0 : blank }, (_, i) => <View key={`blank-${i}`} style={styles.day} />)}{Array.from({ length: days }, (_, i) => {
             const date = `${month}-${pad(i + 1)}`;
             const gone = date < current.date; const marked = date === current.date;
@@ -106,7 +115,7 @@ const styles = StyleSheet.create({
   modal: { flex: 1, backgroundColor: tokens.color.canvas }, header: { padding: 16, gap: 12 }, title: { color: tokens.color.text, fontSize: 24, fontWeight: '700' },
   content: { padding: 16, gap: 16 }, wideContent: { paddingHorizontal: tokens.space.small }, row: { flexDirection: 'row', gap: 12 }, stack: { flexDirection: 'column' }, flex: { flex: 1 }, grid: { flexDirection: 'row', flexWrap: 'wrap' },
   wideDay: { width: '100%', minHeight: 52 },
-  day: { width: '14.2857%', minHeight: 52 }, number: { minWidth: 52, minHeight: 52, flexGrow: 1, margin: 3 }, cell: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12 }, selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
+  day: { width: '14.2857%', minHeight: 52 }, weekday: { minHeight: 0, color: tokens.color.secondary, fontSize: 13, lineHeight: 18, textAlign: 'center' }, number: { minWidth: 52, minHeight: 52, flexGrow: 1, margin: 3 }, cell: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12 }, selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
   today: { borderWidth: 2, borderColor: '#b58a52' }, gone: { opacity: 0.35 }, goneText: { color: tokens.color.secondary },
   pressed: { opacity: 0.75 }, clock: { color: tokens.color.primary, fontSize: 36, fontWeight: '700' }, footer: { padding: 16 }, search: { color: tokens.color.text, backgroundColor: tokens.color.surface, borderRadius: 18, padding: 14, fontSize: 17, minHeight: 48 },
 });

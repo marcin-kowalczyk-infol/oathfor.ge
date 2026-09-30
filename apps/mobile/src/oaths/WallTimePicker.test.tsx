@@ -6,8 +6,8 @@ jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }
 
 // 2026-09-28 11:20 UTC is 13:20 in Warsaw and already 00:20 on 29 September in Auckland.
 const now = () => Date.parse('2026-09-28T11:20:00Z');
-async function picker(value: Partial<TimeDraft> = {}, onChange = jest.fn(), locale: 'en' | 'pl' = 'en') {
-  await render(<LocalizationProvider initialLocale={locale}><WallTimePicker field="deadline" value={{ date: '', time: '', zone: 'Europe/Warsaw', ...value }} disabled={false} now={now} onChange={onChange} /></LocalizationProvider>);
+async function picker(value: Partial<TimeDraft> = {}, onChange = jest.fn(), locale: 'en' | 'pl' = 'en', clock = now) {
+  await render(<LocalizationProvider initialLocale={locale}><WallTimePicker field="deadline" value={{ date: '', time: '', zone: 'Europe/Warsaw', ...value }} disabled={false} now={clock} onChange={onChange} /></LocalizationProvider>);
   return onChange;
 }
 const day = (name: string) => screen.getByRole('button', { name });
@@ -52,10 +52,78 @@ test('hours and minutes that passed today are disabled, other days are open', as
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ time: '14:21:00' }));
 });
 
-test('a past time already chosen for today cannot be confirmed', async () => {
-  await picker({ date: '2026-09-28', time: '09:00:00' });
+test('a past time reached in the sheet for today cannot be confirmed', async () => {
+  await picker({ date: '2026-09-28' });
   await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Hour 14' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Minute 05' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Hour 13' }));
+  expect(screen.getByText('13:05')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Use this time' })).toBeDisabled();
+});
+
+// Native check, 2026-09-30 at 22:54: the sheet opened today on a greyed 18:00 with a disabled action.
+test.each([
+  ['nothing chosen yet', ''], ['a stored time that already passed', '09:00:00'],
+])('for today with %s the time sheet opens on the first minute after now', async (_case, time) => {
+  const onChange = await picker({ date: '2026-09-28', time }, jest.fn(), 'en', () => Date.parse('2026-09-28T20:54:30Z'));
+  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  expect(screen.getByText('22:55')).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: 'Hour 22' })).toBeSelected();
+  expect(screen.getByRole('radio', { name: 'Minute 55' })).toBeSelected();
+  await fireEvent.press(screen.getByRole('button', { name: 'Use this time' }));
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ time: '22:55:00' }));
+});
+
+test('the first minute after now rolls into the next hour', async () => {
+  await picker({ date: '2026-09-28' }, jest.fn(), 'en', () => Date.parse('2026-09-28T19:59:10Z'));
+  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  expect(screen.getByText('22:00')).toBeOnTheScreen();
+});
+
+test('an allowed stored time for today stays as it was', async () => {
+  await picker({ date: '2026-09-28', time: '23:30:00' }, jest.fn(), 'en', () => Date.parse('2026-09-28T20:54:30Z'));
+  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  expect(screen.getByRole('radio', { name: 'Hour 23' })).toBeSelected();
+  expect(screen.getByRole('radio', { name: 'Minute 30' })).toBeSelected();
+  expect(screen.getByRole('button', { name: 'Use this time' })).toBeEnabled();
+});
+
+test('with no minute left today the sheet keeps 18:00 and cannot confirm it', async () => {
+  await picker({ date: '2026-09-28' }, jest.fn(), 'en', () => Date.parse('2026-09-28T21:59:30Z'));
+  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  expect(screen.getByText('18:00')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Use this time' })).toBeDisabled();
+});
+
+// Native check, 2026-09-30: both month buttons pointed right, and the Monday-first grid had no weekday names.
+test('the previous month points back and the next month points forward', async () => {
+  await picker();
+  await fireEvent.press(screen.getByRole('button', { name: 'Completion date' }));
+  expect(screen.getByRole('button', { name: 'Previous month' })).toHaveTextContent(/^‹\s*Previous month$/);
+  expect(screen.getByRole('button', { name: 'Next month' })).toHaveTextContent(/^Next month\s*›$/);
+  await fireEvent.press(screen.getByRole('button', { name: 'Next month' }));
+  expect(screen.getByRole('button', { name: 'Previous month' })).toHaveTextContent(/^‹\s*Previous month$/);
+});
+
+test.each([
+  ['en', 'Completion date', ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']],
+  ['pl', 'Data ukończenia', ['pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.', 'niedz.']],
+] as const)('the %s month grid names the weekdays once, Monday first, without VoiceOver repeating them', async (locale, field, names) => {
+  size(402, 1);
+  await picker({}, jest.fn(), locale);
+  await fireEvent.press(screen.getByRole('button', { name: field }));
+  expect(screen.queryByTestId('weekday-header')).toBeNull();
+  const header = screen.getByTestId('weekday-header', { includeHiddenElements: true });
+  expect(header.children.map(cell => (cell as { props: { children?: unknown } }).props.children)).toEqual(names);
+  expect(header).toHaveProp('importantForAccessibility', 'no-hide-descendants');
+});
+
+test('at the largest text size the full-width day rows carry no weekday header', async () => {
+  size(402, 3.571);
+  await picker({}, jest.fn(), 'pl');
+  await fireEvent.press(screen.getByRole('button', { name: 'Data ukończenia' }));
+  expect(screen.queryByTestId('weekday-header', { includeHiddenElements: true })).toBeNull();
 });
 
 test('another day keeps every hour and minute', async () => {

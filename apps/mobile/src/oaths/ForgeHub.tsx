@@ -29,7 +29,7 @@ function Seal({ item, onOpen, motion, clock, onElapsed }: { item: Oath; onOpen(i
   };
   const copy = item.snapshot.copy[locale];
   const deadline = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC' }).format(new Date(`${item.snapshot.deadline.local}Z`));
-  return <View style={styles.branch}>
+  return <View testID="forge-seal-column" style={styles.branch}>
     <Pressable testID="forge-seal" accessibilityRole="button" accessibilityLabel={t('forge.seal', { activity: copy.activity, state: t(`oath.states.${item.state}`), deadline: storedTime(item.snapshot.deadline, locale) })}
       onPress={() => onOpen(item.id)} onPressIn={() => press(true)} onPressOut={() => press(false)} style={styles.sealTarget}>
       {({ pressed }) => <>
@@ -97,7 +97,7 @@ export function ForgeHub({ items, onOpen, onCreate, createDisabled = false, cloc
     </Pressable> : art}
     {items.length > 0 && <>
       <Text accessibilityRole="header" style={styles.caption}>{t('forge.seals')}</Text>
-      <View style={styles.seals}>{items.slice(0, 3).map(item => <Seal key={item.id} item={item} onOpen={onOpen} motion={motion} clock={clock} onElapsed={onElapsed} />)}</View>
+      <View testID="forge-seals" style={styles.seals}>{items.slice(0, 3).map(item => <Seal key={item.id} item={item} onOpen={onOpen} motion={motion} clock={clock} onElapsed={onElapsed} />)}</View>
     </>}
   </View>;
 }
@@ -109,7 +109,9 @@ const styles = StyleSheet.create({
   createLabel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 16, paddingBottom: 14 },
   createMark: { color: tokens.color.primary, fontSize: 30 }, createText: { color: tokens.color.primary, fontSize: 19, fontWeight: '700', flexShrink: 1, textAlign: 'center' },
   disabled: { opacity: 0.5 }, caption: { color: tokens.color.secondary, fontSize: 14, textAlign: 'center' },
-  seals: { flexDirection: 'row', gap: 8, paddingBottom: 12 }, branch: { flex: 1, alignItems: 'center' },
+  // Native check, 2026-09-30: a lone seal took the full row and stretched its chip across the screen. Each column is a third of the row,
+  // widened by the 8 pt gap and padded 4 pt on each side, so one or two seals keep the three-seal width and sit centred.
+  seals: { flexDirection: 'row', justifyContent: 'center', marginHorizontal: -4, paddingBottom: 12 }, branch: { width: `${100 / 3}%`, paddingHorizontal: 4, alignItems: 'center' },
   sealTarget: { flexGrow: 1, alignSelf: 'stretch', alignItems: 'center', gap: 5, paddingBottom: 8 },
   highlight: { color: '#ffe1aa' },
   stateBadge: { position: 'absolute', right: -8, bottom: -6 },

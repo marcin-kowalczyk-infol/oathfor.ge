@@ -87,3 +87,22 @@ test('seal countdowns stack the label over one unbroken value', async () => {
     expect(screen.getByText('3 h 45 min')).toHaveProp('numberOfLines', 1);
   } finally { jest.useRealTimers(); }
 });
+
+// Native check, 2026-09-30: a lone featured seal stretched its countdown chip across almost the whole 402 pt screen.
+test.each([1, 2, 3])('at seal count %i every column keeps the three-seal width and the row stays centred', async count => {
+  jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-09-28T19:00:30Z'));
+  try {
+    const clock = createServerClock(); clock.observe(new Date(Date.now()).toISOString());
+    const items = Array.from({ length: count }, (_, i) => ({ ...sealOath('active'), id: `oath-${i}` }) as Oath);
+    await render(<LocalizationProvider initialLocale="en"><ForgeHub items={items} onOpen={jest.fn()} clock={clock} /></LocalizationProvider>);
+    const columns = screen.getAllByTestId('forge-seal-column');
+    expect(columns).toHaveLength(count);
+    // A third of a row widened by the 8 pt gap, less 4 pt on each side, is exactly one of three columns with an 8 pt gap between them.
+    for (const column of columns) {
+      expect(column).toHaveStyle({ width: `${100 / 3}%`, paddingHorizontal: 4 });
+      expect(column).not.toHaveStyle({ flex: 1 });
+    }
+    expect(screen.getByTestId('forge-seals')).toHaveStyle({ flexDirection: 'row', justifyContent: 'center', marginHorizontal: -4 });
+    expect(screen.getAllByTestId('countdown-chip')).toHaveLength(count);
+  } finally { jest.useRealTimers(); }
+});

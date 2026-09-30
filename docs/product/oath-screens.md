@@ -37,6 +37,8 @@ The date sheet of `WallTimePicker` gets three changes. "Today" means the current
 - Today's cell has a bronze ring and the label "Dziś" / "Today" for VoiceOver.
 - Days before today are dimmed and not pressable (`accessibilityState.disabled`). The previous-month arrow is disabled while the shown month is the current month.
 - On today's date, hours and minutes that already passed are disabled too (decision Q3).
+- The grid carries one row of short weekday names, Monday first, from the sheet's locale. VoiceOver skips it, because each day already speaks its full date. The large-text layout lists whole dates and has no such row. The previous-month control points back, with its chevron before the label (native check, 2026-09-30).
+- On today's date the time sheet opens on the first minute after now when the stored or default time has passed. With no minute left today it keeps the stored or default time, and the action stays disabled (native check, 2026-09-30).
 
 The server keeps rejecting past times (`activation_elapsed`, `deadline_not_after_activation`). The client check is a convenience, not the rule.
 
@@ -70,10 +72,10 @@ The reward and consequence cards let the player see both without opening the ful
 | --- | --- | --- |
 | 1 | Zanim złożysz Przysięgę, poznaj jej zasady. Każda karta to jedna z nich. | Before you make the Oath, meet its rules. Each card is one of them. |
 | 2 | Klepsydra to termin. Do niego wykonujesz zadanie. | The hourglass is the deadline. Finish the task by then. |
-| 3 | Świeca to ostatni moment na dowód, kwadrans po terminie. | The candle is the last moment for proof, a quarter hour after the deadline. |
+| 3 | Świeca to ostatni moment na dowód, kwadrans po terminie. | The candle is the last moment for proof, 15 minutes after the deadline. |
 | 4 | Kowadło z kłódką mówi, że po złożeniu nic tu się nie zmieni. | The anvil with the lock says nothing here changes once you make it. |
 
-The × skips the explanation. A small Żaromir button on the screen replays it. The "seen" flag is stored like the first-visit guide flag, in device storage per account (decision Q4). Simple layout and Reduce Motion show the lines without typing, in a static panel.
+The last line offers "Zakończ" / "Finish" instead of "Dalej" / "Next", because it closes the explanation. The × skips the explanation. A small Żaromir button on the screen replays it. The "seen" flag is stored like the first-visit guide flag, in device storage per account (decision Q4). Simple layout and Reduce Motion show the lines without typing, in a static panel.
 
 ### 3. Making the Oath (item 3)
 

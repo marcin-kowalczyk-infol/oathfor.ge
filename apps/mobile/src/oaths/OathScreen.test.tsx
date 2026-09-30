@@ -257,7 +257,9 @@ test('the first review lets Żaromir explain the cards once, lighting each card 
   expect(line()).toContain('Kowadło z\u00a0kłódką');
   expect(screen.getByTestId('rule-card-fixed')).toHaveStyle({ borderColor: '#e0a84f' });
   expect(storage.markSeen).not.toHaveBeenCalled();
-  await next();
+  // Native check, 2026-09-30: the last step still offered "Dalej" although it closes the guide.
+  expect(screen.queryByRole('button', { name: 'Dalej' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Zakończ' }));
   expect(screen.queryByTestId('dialogue-panel')).toBeNull();
   expect(storage.markSeen).toHaveBeenCalledTimes(1);
 });

@@ -10,9 +10,11 @@ export type ActionProps = {
   onPress: () => void;
   busy?: boolean;
   variant?: 'primary' | 'secondary';
+  /** Secondary only. back draws the chevron before the label, like the other back controls. */
+  direction?: 'forward' | 'back';
 } & ({ disabled: true; unavailableReason: string } | { disabled?: false; unavailableReason?: string });
 
-export function Action({ label, onPress, disabled = false, busy = false, unavailableReason, variant = 'primary' }: ActionProps) {
+export function Action({ label, onPress, disabled = false, busy = false, unavailableReason, variant = 'primary', direction = 'forward' }: ActionProps) {
   const { t } = useTranslation();
   const motion = useMotionAllowed();
   const depth = useRef(new Animated.Value(0)).current;
@@ -24,6 +26,8 @@ export function Action({ label, onPress, disabled = false, busy = false, unavail
   }
   const unavailable = disabled || busy;
   const reason = unavailableReason ?? (busy ? t('common.working') : undefined);
+  const back = variant === 'secondary' && direction === 'back';
+  const arrow = <Text allowFontScaling={false} accessible={false} style={[styles.arrow, unavailable && styles.mutedText]}>{back ? '‹' : '›'}</Text>;
   return <View style={styles.group}>
     <Animated.View style={{ transform: [{ translateY: depth.interpolate({ inputRange: [0, 1], outputRange: [0, 3] }) }, { scale: depth.interpolate({ inputRange: [0, 1], outputRange: [1, 0.975] }) }] }}><Pressable
       accessibilityRole="button"
@@ -33,11 +37,12 @@ export function Action({ label, onPress, disabled = false, busy = false, unavail
       disabled={unavailable}
       onPress={() => { if (!unavailable) onPress(); }}
       onPressIn={() => press(1)} onPressOut={() => press(0)}
-      style={({ pressed }) => [styles.button, variant === 'primary' ? styles.primary : styles.secondary, pressed && styles.pressed, unavailable && styles.unavailable]}
+      style={({ pressed }) => [styles.button, variant === 'primary' ? styles.primary : styles.secondary, back && styles.backward, pressed && styles.pressed, unavailable && styles.unavailable, unavailable && variant === 'primary' && styles.unavailablePrimary]}
     >
-      {variant === 'primary' && <Text allowFontScaling={false} accessible={false} style={styles.sigil}>◆</Text>}
-      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, variant === 'primary' ? styles.primaryLabel : styles.secondaryLabel]}>{label}</Text>
-      {variant === 'secondary' && <Text allowFontScaling={false} accessible={false} style={styles.arrow}>›</Text>}
+      {variant === 'primary' && <Text allowFontScaling={false} accessible={false} style={[styles.sigil, unavailable && styles.mutedText]}>◆</Text>}
+      {back && arrow}
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, variant === 'primary' ? styles.primaryLabel : styles.secondaryLabel, unavailable && styles.mutedText]}>{label}</Text>
+      {variant === 'secondary' && !back && arrow}
     </Pressable></Animated.View>
     {unavailable && reason && <Text style={styles.reason}>{reason}</Text>}
   </View>;
@@ -48,7 +53,10 @@ const styles = StyleSheet.create({
   button: { minHeight: 56, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 20, flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center' },
   primary: { backgroundColor: tokens.color.primary, borderBottomWidth: 5, borderBottomColor: '#8c602e', shadowColor: '#d98528', shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
   secondary: { backgroundColor: 'transparent', justifyContent: 'space-between', paddingHorizontal: 4, minHeight: 48 },
+  backward: { justifyContent: 'flex-start' },
   pressed: { opacity: 0.8 }, unavailable: { shadowOpacity: 0 },
+  // Native check, 2026-09-30: disabled actions only lost their shadow and read as enabled. The reason under them keeps full contrast.
+  unavailablePrimary: { backgroundColor: tokens.color.surface, borderBottomColor: '#101416' }, mutedText: { color: tokens.color.secondary },
   sigil: { color: '#714a25', fontSize: 16 }, arrow: { color: tokens.color.primary, fontSize: 26 },
   label: { fontSize: tokens.body, lineHeight: tokens.body * 1.5, fontWeight: '600', flexShrink: 1 },
   primaryLabel: { color: tokens.color.canvas },

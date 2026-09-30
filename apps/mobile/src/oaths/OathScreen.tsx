@@ -104,6 +104,8 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const guideShown = reviewing && guideLine !== null;
   // Each step brings the card Żaromir names into view above the panel. His opening line shows the grid top.
   const guideCard = guideShown ? GUIDE_CARDS[guideLine!] : null;
+  // The last step closes the guide, so it offers a finishing word instead of "Next" (native check, 2026-09-30).
+  const guideStep = t(guideLine === GUIDE_CARDS.length - 1 ? 'room.tutorial.finish' : 'room.tutorial.next');
   const guideTop = guideShown ? Math.max(0, guideTops.block + guideTops.grid + (guideCard ? guideTops.cards[guideCard] ?? 0 : 0) - GUIDE_MARGIN) : null;
   useEffect(() => { if (guideTop !== null) scrollView.current?.scrollTo({ y: guideTop, animated: motion }); }, [guideTop, guideLine, motion]);
   // Native check, 2026-09-30: at the largest text size the 280 pt panel cut the fourth line of the first Polish guide line.
@@ -218,8 +220,8 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
     </Animated.ScrollView>
     {guideShown && <DialoguePanel frame={guideFrame}
       speaker="guide" lineId={`rules-${guideLine}`} text={bindShortWords(t(`oath.guide.${guideLine! + 1}`), i18n.language)} playerName="" portrait={null} allowed={motion} more={guideLine! < 3}
-      continueLabel={t('room.tutorial.next')} onContinue={() => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide()}
-      controls={{ step: { count: `${guideLine! + 1} / ${GUIDE_CARDS.length}`, label: t('room.tutorial.next'), text: true, onPress: () => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide() } }}
+      continueLabel={guideStep} onContinue={() => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide()}
+      controls={{ step: { count: `${guideLine! + 1} / ${GUIDE_CARDS.length}`, label: guideStep, text: true, onPress: () => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide() } }}
       dismissLabel={t('room.guide.skip')} onDismiss={closeGuide} />}
   </SafeAreaView></SceneSurface>;
 }
