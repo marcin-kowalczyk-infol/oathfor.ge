@@ -449,10 +449,10 @@ Defects found and fixed, each with a failing test first:
 | The month grid had no weekday names. | A Monday-first weekday row from `Intl`, hidden from VoiceOver, absent in the large-text list. | aa4f553. Rechecked "pon. … niedz." |
 | Today's time sheet opened on 18:00, already past, with a disabled action. | It opens on the first minute after server now. | aa4f553. Rechecked, 23:30 with the action enabled. |
 | The last guide step said "Dalej". | "Zakończ" / "Finish". | aa4f553. Rechecked in Polish. |
-| A single featured seal's chip spanned the whole screen width. | Seal columns keep the three-seal width. | aa4f553. Rechecked. |
+| A single featured seal's chip spanned the whole screen width. | Seal columns keep the three-seal width. | aa4f553. Rechecked with one seal and with the returning player's three seals, chips level and equal. |
 | English guide step 3 said "a quarter hour after the deadline". | "15 minutes after the deadline". | aa4f553. Checked in the catalog only. |
 | Found by review, not natively: each sheet used the "now" of the last render, so an idle form opened on a past, disabled time. | Each sheet reads the server-corrected instant when it opens. | b7f5a6c. The reviewer's case (render 22:50, open 22:56) showed 22:51 disabled, then passed. Native: form idle from 23:42:41 to 23:45:15, the time sheet opened on 23:44 with "Ustaw godzinę" enabled. |
 
-Open (owner questions): the draft value lines of the proof, review, reward, consequence and pause cards, the DUMMY reward and consequence icons, English History rows in 12-hour time while the new cards use 24-hour time, the prefix in "Przegląd do 2 d 22 h" / "Review until 2 d 22 h", which expects a point in time, and a busy `Action` that now looks muted like a disabled one.
+Open (owner questions): the draft value lines of the proof, review, reward, consequence and pause cards, the DUMMY reward and consequence icons, English History rows in 12-hour time while the new cards use 24-hour time, the prefix in "Przegląd do 2 d 22 h" / "Review until 2 d 22 h", which expects a point in time, a busy `Action` that now looks muted like a disabled one, and the 640 ms hourglass loop, chosen so the sand visibly moves at 44 pt.
 
 Not observed natively: iPhone SE 3 (pending, including the Polish weekday "niedz." at 375 pt), VoiceOver, Reduce Motion for the stepped hourglass, a Release build and physical devices. The Oath screen art awaits owner visual acceptance.
