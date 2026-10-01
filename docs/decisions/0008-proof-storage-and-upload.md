@@ -1,6 +1,6 @@
 # ADR 0008: Proof capture, upload and private storage
 
-Status: accepted, 2026-10-01. Capture sources, limits and crop are owner decisions. Storage port and upload protocol are local engineering decisions confirmed by the owner. Nothing below is implemented yet.
+Status: accepted, 2026-10-01. Capture sources, limits and crop are owner decisions. Storage port and upload protocol are local engineering decisions confirmed by the owner. Implemented in MVP-07: JPEG normalizer, private filesystem adapter, multipart upload, staging purge and the mobile capture and transport. The S3-compatible adapter (MVP-14) and signed-device acceptance are pending.
 
 ## Context
 
