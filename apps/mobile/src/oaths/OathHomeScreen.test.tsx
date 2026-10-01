@@ -5,6 +5,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { OathHomeScreen } from './OathHomeScreen';
+import { tokens } from '../ui/tokens';
 import type { OathController, OathControllerState } from './controller';
 import type { Oath } from '../api/oathSchema';
 import type { ProofController, ProofControllerState } from '../proof/proofController';
@@ -657,6 +658,31 @@ test.each([
 
 const interrupted = 'The proof upload was interrupted. A copy is waiting on this device. The server has not confirmed receipt yet.';
 const record = (oathId = id) => ({ version: 1 as const, accountId: '10000000-0000-4000-8000-000000000001', characterId, oathId, submissionId: receipt.submissionId, mode: 'photo' as const, fileName: `${receipt.submissionId}.jpg` });
+test('Today keeps cards of one heading close, and spaces a new heading or a card under an upload line', async () => {
+  const pending = (n: number) => oath({ id: `20000000-0000-4000-8000-00000000001${n}`, state: 'proof_pending', reason: null, review: null, proof: { ...receipt, submissionId: `40000000-0000-4000-8000-00000000001${n}` } });
+  const active = (n: number) => oath({ id: `20000000-0000-4000-8000-00000000002${n}`, state: 'active', reason: null, review: null });
+  const items = [pending(1), pending(2), active(1), active(2)];
+  const f = setup(items); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(items[2].id), oath: null });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await screen.findByText(interrupted);
+  const entry = (item: Oath) => screen.getByTestId(`oath-entry-${item.id}`);
+  // Only the Oath with a waiting copy carries an upload line. The other rows render none.
+  expect(screen.getAllByTestId('upload-interrupted')).toHaveLength(1);
+  expect(within(entry(items[2])).getByTestId('upload-interrupted')).toBeOnTheScreen();
+  expect(StyleSheet.flatten(entry(items[0]).props.style).marginTop).toBeUndefined();
+  expect(entry(items[1])).toHaveStyle({ marginTop: tokens.space.item });
+  expect(entry(items[2])).toHaveStyle({ marginTop: tokens.space.section });
+  expect(entry(items[3])).toHaveStyle({ marginTop: tokens.space.section });
+});
+test('Today without a waiting copy renders no upload line and keeps same-heading cards close', async () => {
+  const items = [1, 2].map(n => oath({ id: `20000000-0000-4000-8000-00000000003${n}`, state: 'active', reason: null, review: null }));
+  const f = setup(items);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proofController().controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  expect(await screen.findAllByRole('button', { name: /Open Oath: Running/ })).toHaveLength(2);
+  expect(screen.queryByTestId('upload-interrupted')).toBeNull();
+  expect(screen.getByTestId(`oath-entry-${items[1].id}`)).toHaveStyle({ marginTop: tokens.space.item });
+});
 test('a pending local record shows the interrupted upload on its Today row, and a resend receipt updates the row', async () => {
   const active = oath({ state: 'active', reason: null, review: null });
   const f = setup([active]); const proof = proofController();

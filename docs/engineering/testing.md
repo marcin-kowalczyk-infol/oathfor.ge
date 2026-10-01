@@ -458,3 +458,77 @@ Resolved by owner decision, 2026-10-01: History rows use 24-hour time with a two
 Open (owner questions): the draft value lines of the proof, review, reward, consequence and pause cards, the DUMMY reward and consequence icons, a busy `Action` that now looks muted like a disabled one, and the 640 ms hourglass loop, chosen so the sand visibly moves at 44 pt.
 
 Not observed natively: iPhone SE 3 (pending, including the Polish weekday "niedz." at 375 pt), VoiceOver, Reduce Motion for the stepped hourglass, a Release build and physical devices. The Oath screen art awaits owner visual acceptance.
+
+## Proof submission acceptance (MVP-07), 2026-10-01
+
+The implementation landed in T01 to T10 (c9b22e8, 73c8fe7, a8d23aa, 752ae34, f15687e, c1109c8, 1c24bad, 71aa7a9, d3208ad, 20ee972, b5341e8). T11 ran the checks below. Rules: [ADR 0008](../decisions/0008-proof-storage-and-upload.md), [proof contract](api-contract.md#proof-submission-contract).
+
+| Layer | Status | Result |
+| --- | --- | --- |
+| (a) API unit and integration tests | Ran | `check_api.py` PASS: unit 162 tests, integration 408 tests, PHPStan and the HTTP smoke check. `check_docker.py` PASS |
+| (a) Mobile jest and typecheck | Ran | Counts in the line below the table |
+| (b) Real HTTP with curl | Ran | Compose API in the isolated project `oathforge-t11http`, torn down after. Accounts, sessions with synthetic bearers and characters seeded by SQL. Oaths created through the real preview and accept endpoints. Authentication code unchanged, so this is not signed-device evidence |
+| (c) Wire check from the demo build | Ran | Real `proofClient` and upload path from the demo development build on the iPhone 18 Pro simulator to a local capture server, DUMMY bearer. See the [demo README](../../apps/mobile/demo/README.md#dummy-wire-check-mvp-07-t11) |
+| (d) DUMMY demo flows | Ran | iPhone 18 Pro, Polish and English, room layout |
+| (e) Native and operational gates | Not run | Listed at the end of this section |
+
+Mobile final run on Node 24.21.0: 96 suites and 1358 tests passed, typecheck clean.
+
+(b) Real HTTP observations:
+
+| Request | Result |
+| --- | --- |
+| Multipart photo, 1600 x 1200 JPEG with an EXIF APP1 segment (make, model, GPS) | 201 with `receivedAt`, revision 1, assessment `queued`. Oath `proof_pending`. `Cache-Control: no-store, private` |
+| Identical retry | 200 with the same proof and `receivedAt` |
+| Owner image read | 200 `image/jpeg`, no-store private, `nosniff`. Bytes start with FFD8FF, hold no APP1 segment and no Exif bytes, and decode to 1600 x 1200 |
+| Image or detail read by another account | 404 `not_found`. No bearer gives 401 |
+| JPEG of 10 MiB + 1 byte, and 12.5 MiB above `upload_max_filesize` | 422 `too_large` (field `image` observed for the 10 MiB + 1 byte case) |
+| Body above `post_max_size` 13M | 413 `request_too_large` JSON, no-store, after the fix below |
+| PNG, also when labelled `image/jpeg` | 422 `unsupported_type` |
+| Missing declaration | 422 `declaration_required` |
+| State after the refusals | A second Oath still `active` with `proof` null. One row, one stored object, staging empty |
+| API and worker logs, about 576 KB | No storage key, bearer, digest or image bytes |
+
+Defect found by (b) and fixed: a body above `post_max_size` returned 200 `text/html`, because PHP printed its startup warning before the headers. The API image ini in `apps/api/Dockerfile` now sets `display_errors = stderr` and `display_startup_errors = Off`. The same request then returned the 413 JSON, and `check_docker.py` and `check_api.py` passed again.
+
+(c) Wire check, with synthetic media added by `simctl addmedia`: a 4032 x 3024 JPEG with EXIF orientation 6 and fake GPS, a 1320 x 2868 PNG workout screenshot and a HEIC made from the JPEG.
+
+| Case | Result |
+| --- | --- |
+| Photos picker | PHPicker opened without a library permission prompt. It offers "Location Included" by default |
+| Captured request | `multipart/form-data` from `expo/fetch` with Content-Length framing. `Authorization: Bearer` present (DUMMY, 43 characters), no cookie. Parts in order: `submissionId` (UUID), `mode=photo`, `declaration=true`, `image` with filename `<submissionId>.jpg` and type `image/jpeg` |
+| Image bytes | FFD8FF to FFD9, 2160 x 2880. The rotated photo is redrawn upright with the long edge 2880. EXIF holds only the iOS encoder defaults: Orientation 1, X and Y resolution 72, resolution unit, color space and pixel dimensions. Empty GPS IFD, no make, model or dates. An APP13 Photoshop segment is present. The API re-encode removes all of it, see (b) |
+| Capture server answers 503 | Unavailable message, copy kept, Send again and "Delete the copy on this device" |
+| 302 to `capture-redirect.invalid` | Unavailable, copy kept, the same `submissionId` resent. Whether the redirect was refused or DNS failed cannot be told apart |
+| Server resets after 65,536 of 334,196 body bytes | Unavailable quickly, copy kept |
+| Interface restart with a kept copy | Automatic resend with the same `submissionId`. The first send, the manual resend and the restart resend carried byte-identical images (same SHA-256) |
+
+(d) DUMMY demo flows on the iPhone 18 Pro:
+
+| Observed | Result |
+| --- | --- |
+| Active detail | "Prześlij dowód" / "Submit proof" |
+| Proof screen | Żaromir's intro, two route cards with the snapshot rules, crop caveat, camera and Photos buttons, preview, declaration checkbox and caveat. Send stays disabled with "Dodaj obraz." / "Add an image.", then "Potwierdź deklarację ukończenia." until the declaration is confirmed |
+| Previews | Rotated JPEG shown upright. PNG screenshot legible |
+| Receipt | Detail shows "Ocena trwa" / "Assessment pending", the `oath.proofPending` copy and "Czas odebrania: 1 paź 2026, 16:27 · Warszawa" / "Receipt time: Oct 1, 2026 at 16:27 · Warsaw". The time is the DUMMY server clock fixed at scenario load |
+| Today | The `proof_pending` Oath under "Sprawy w toku" / "Cases in progress" with "Ocena trwa" / "Assessment pending". An interrupted copy shows under the active row with Send again (EN), which turned it into Assessment pending |
+| "Lose next proof reply" | Proof screen shows unavailable. Back on the Oath only the receipt shows, the replay runs quietly, with no interrupted line or delete |
+| Built app | `pl.lproj/InfoPlist.strings` holds the Polish camera and photo library descriptions. English base strings in `Info.plist`. ATS allows local networking from the Expo template, no config change |
+
+Visual defects found in (d) were fixed and rechecked on the 18 Pro: proof screen after a cold relaunch with equal button heights when an English label wraps, section headings on plaques over the seal art, 12 pt between Today cards in one section.
+
+(e) Not run, with the reason:
+
+| Gate | Reason |
+| --- | --- |
+| Real app build and signed-device upload to the real API | No signed-device session. The app's multipart body was seen only by the capture server |
+| Camera route, camera permission prompt and denied state, device orientation | The simulator has no camera |
+| Polish permission prompt text at runtime | Not triggered. Strings checked in the built app only |
+| iPhone SE 3 | Pending by owner instruction |
+| VoiceOver, Dynamic Type, simple layout | Not run in this check |
+| iCloud-only photo download, HEIC pick | No iCloud library. The HEIC file was added but not picked |
+| Upload abort by the 60 s timeout, large real photos | Not exercised |
+| Reverse proxy body limits | No proxy in the local runtime |
+| Scheduling and monitoring of `app:proof:purge-staging` | Deployment gate, like `app:oath:reconcile` |
+| S3-compatible storage adapter | MVP-14 |
+| Assessment consumer | MVP-08. No consumer exists by design, so worker consumption was not checked |

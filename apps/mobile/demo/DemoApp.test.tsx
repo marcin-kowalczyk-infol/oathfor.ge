@@ -45,3 +45,19 @@ test('a control arms one lost proof reply for checking an interrupted upload', a
   await fireEvent.press(screen.getByText(pl.loseProof));
   expect(screen.getByText(pl.proofArmed)).toBeOnTheScreen();
 });
+
+test('the DUMMY wire check switch shows the capture address and survives a scenario change', async () => {
+  await render(<DemoApp />);
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  const toggle = () => screen.getByRole('switch', { name: pl.wireCheck });
+  expect(toggle()).not.toBeChecked();
+  await fireEvent.press(toggle());
+  expect(toggle()).toBeChecked();
+  expect(screen.getByText(`${pl.wireCheckNotice} http://127.0.0.1:18099`)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByText(pl.returning));
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  expect(toggle()).toBeChecked();
+  await fireEvent.press(toggle());
+  expect(toggle()).not.toBeChecked();
+  expect(screen.queryByText(/127\.0\.0\.1/)).toBeNull();
+});

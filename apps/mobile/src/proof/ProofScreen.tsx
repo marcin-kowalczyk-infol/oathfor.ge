@@ -134,6 +134,16 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel }: { o
     void send.finally(() => { if (sending.current === send) sending.current = null; });
   }
 
+  function notice(source: ProofSource) {
+    const shown = notices[source];
+    if (!shown) return null;
+    return <View testID={`proof-notice-${source}`} accessibilityLiveRegion="polite" style={styles.notice}>
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noticeText}>{t(shown.kind === 'denied' ? (source === 'camera' ? 'proof.cameraDenied' : 'proof.libraryUnavailable') : `proof.${source}Unavailable`)}</Text>
+      {shown.kind === 'denied' && !shown.canAskAgain
+        && <Action label={t('proof.openSettings')} variant="secondary" onPress={() => { void Linking.openSettings().catch(() => {}); }} />}
+    </View>;
+  }
+
   const back = <BackLink label={backLabel} onPress={onBack} />;
   const head = <>
     <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('proof.submit')}</Text>
@@ -195,21 +205,22 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel }: { o
         </View>
       </View>
       <View style={styles.section}>
-        <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t('proof.imageHeading')}</Text>
+        <View style={styles.sectionHead}>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t('proof.imageHeading')}</Text>
+        </View>
         <View style={styles.note}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.crop')}</Text></View>
+        {/* Side by side, both buttons take the taller one's height. Notices name their source, so they go under the pair. */}
         <View testID="proof-sources" style={[styles.sources, simple ? styles.stacked : styles.paired]}>
           {(['camera', 'library'] as const).map(source => <View key={source} style={simple ? styles.full : styles.half}>
             <Pressable accessibilityRole="button" accessibilityLabel={t(`proof.${source}`)} accessibilityState={{ disabled: busy || capturing !== null, busy: capturing === source }}
-              disabled={busy || capturing !== null} onPress={() => { void choose(source); }} style={({ pressed }) => [styles.source, pressed && styles.pressed]}>
+              disabled={busy || capturing !== null} onPress={() => { void choose(source); }} style={({ pressed }) => [styles.source, !simple && styles.sourceFill, pressed && styles.pressed]}>
               <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.sourceLabel}>{t(`proof.${source}`)}</Text>
             </Pressable>
-            {notices[source] && <View accessibilityLiveRegion="polite" style={styles.notice}>
-              <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noticeText}>{t(notices[source]!.kind === 'denied' ? (source === 'camera' ? 'proof.cameraDenied' : 'proof.libraryUnavailable') : `proof.${source}Unavailable`)}</Text>
-              {notices[source]!.kind === 'denied' && !(notices[source] as { canAskAgain: boolean }).canAskAgain
-                && <Action label={t('proof.openSettings')} variant="secondary" onPress={() => { void Linking.openSettings().catch(() => {}); }} />}
-            </View>}
+            {simple && notice(source)}
           </View>)}
         </View>
+        {!simple && notice('camera')}
+        {!simple && notice('library')}
         {capturing && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('proof.preparing')}</Text>}
         {imageFailed && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('proof.imageFailed')} /></View>}
         {image && <Image testID="proof-preview" accessibilityLabel={t('proof.preview')} accessibilityRole="image" accessible source={{ uri: image.uri }} resizeMode="contain"
@@ -245,7 +256,8 @@ const styles = StyleSheet.create({
   title: { color: '#f3dfbd', fontFamily: tokens.font.display, fontSize: tokens.title, lineHeight: 36, textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
   activity: { color: tokens.color.primary, fontSize: 14, lineHeight: 20, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', marginTop: -16 },
   section: { gap: 12 },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  // The seal wall behind the form is busy, so each heading sits on a plaque like the cards below it.
+  sectionHead: { ...panel, flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'flex-start', maxWidth: '100%', paddingVertical: 6, paddingHorizontal: 14 },
   heading: { flexShrink: 1, color: '#f3dfbd', fontFamily: tokens.font.display, fontSize: 21, lineHeight: 29, textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
   routes: { gap: 10 },
   route: { ...panel, gap: 10, padding: 14, borderWidth: 2 },
@@ -263,10 +275,11 @@ const styles = StyleSheet.create({
   noteHeading: { color: tokens.color.primary, fontSize: 15, fontWeight: '700' },
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
   sources: { gap: 10 },
-  paired: { flexDirection: 'row', alignItems: 'flex-start' },
+  paired: { flexDirection: 'row', alignItems: 'stretch' },
   stacked: { flexDirection: 'column' },
   half: { flex: 1, gap: 8 },
   full: { alignSelf: 'stretch', gap: 8 },
+  sourceFill: { flexGrow: 1 },
   source: { minHeight: 56, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16, borderWidth: 2, borderColor: '#8a6436', backgroundColor: 'rgba(32, 25, 19, 0.96)', alignItems: 'center', justifyContent: 'center' },
   sourceLabel: { color: '#f4deb7', fontSize: tokens.body, lineHeight: 24, fontWeight: '600', textAlign: 'center' },
   notice: { gap: 4 },

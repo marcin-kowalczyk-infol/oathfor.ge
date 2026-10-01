@@ -15,5 +15,9 @@
   "loseProof": "Zgub odpowiedź na dowód",
   "proofArmed": "Następna odpowiedź na dowód zostanie zgubiona. Serwer demonstracyjny zapisze dowód, a ponowne wysłanie zwróci to samo potwierdzenie.",
   "add": "Dodaj demonstracyjną Przysięgę",
-  "resetHint": "Scenariusze usuwają wszystkie dane demonstracyjne."
+  "resetHint": "Scenariusze usuwają wszystkie dane demonstracyjne.",
+  "wireCheck": "DUMMY: wysyłaj dowód do lokalnego serwera przechwytującego",
+  "wireCheckOn": "włączone",
+  "wireCheckOff": "wyłączone",
+  "wireCheckNotice": "Prawdziwy klient dowodu wysyła każdy dowód z tokenem DUMMY do serwera przechwytującego. Najpierw go uruchom. Adres:"
 }

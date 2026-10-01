@@ -12,6 +12,7 @@ import type { ArtStyle } from '../src/art/registry';
 import type { ProofClient } from '../src/proof/proofClient';
 import { cacheProofFiles } from '../src/proof/proofFiles';
 import type { PendingProof } from '../src/proof/proofPendingStorage';
+import { createWireCheckProofClient } from './wireCheck';
 
 import CATALOG from '../../api/resources/oath/workout_oath_v1.json';
 const accountId = '10000000-0000-4000-8000-000000000001';
@@ -65,6 +66,8 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     now: initialNow, expired: false, offline: false, loseNext: false, revision: 1, counter: 1,
     // A lost proof reply: the DUMMY server records the receipt but the answer never arrives, so the next send replays it.
     loseNextProof: false,
+    // DUMMY wire check: proof goes through the real client to the local capture server. Everything else stays DUMMY.
+    wireCheck: false,
     profile: { profile: { locale, timezone: 'Europe/Warsaw', intention: completed ? 'regular_activity' : null, companionIntroduced: completed, notificationPreference: completed ? 'disabled' : null }, onboardingStatus: completed ? 'complete' : 'pending' } as ProfileEnvelope,
     session: { version: 1, kind: 'active', session: { token, expiresAt: iso(initialNow + 86400000) } } as SessionEnvelope,
     // A returning player has two DUMMY characters to switch between, Radomir active. An empty or new account starts with creation.
@@ -165,10 +168,13 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
       return success(pauseSummary());
     },
   };
-  // DUMMY proof receipt. It mirrors the API order: replay by submissionId, cutoff, then state. No image is read or kept.
+  // DUMMY proof receipt. It mirrors the API order: replay by submissionId, cutoff, then state. No image is read or kept unless the wire check is on.
+  const wireProofApi = createWireCheckProofClient();
+  // One object for the whole runtime: the proof controller is memoized on it, so the switch is read on every send.
   const proofApi: ProofClient = {
-    async submit(bearer, oathId, submission) {
+    async submit(bearer, oathId, submission, signal) {
       const denied = guard(bearer); if (denied) return denied;
+      if (state.wireCheck) return wireProofApi.submit(bearer, oathId, submission, signal);
       if (!active()) return { kind: 'proof_error', code: 'character_required' };
       const oath = state.oaths.find(item => item.id === oathId && own(item));
       if (!oath) return { kind: 'proof_error', code: 'not_found' };

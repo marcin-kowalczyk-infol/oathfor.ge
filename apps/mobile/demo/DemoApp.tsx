@@ -5,6 +5,7 @@ import { AuthScreen } from '../src/auth/AuthScreen';
 import { LocalizationProvider } from '../src/localization/LocalizationProvider';
 import type { Locale } from '../src/localization/locale';
 import { createDummy } from './runtime';
+import { WIRE_CHECK_BASE_URL } from './wireCheck';
 import en from './locales/en.json';
 import pl from './locales/pl.json';
 
@@ -30,7 +31,12 @@ export default function DemoApp() {
   const [, repaint] = useState(0);
   const copy = locale === 'pl' ? pl : en;
   const restart = () => setMount(value => value + 1);
-  function reset(complete: boolean, populated = complete) { setDummy(createDummy(locale, complete, populated)); restart(); setControls(false); }
+  function reset(complete: boolean, populated = complete) {
+    const next = createDummy(locale, complete, populated);
+    // The wire check is a transport setting, not scenario data, so a scenario keeps it.
+    next.state.wireCheck = dummy.state.wireCheck;
+    setDummy(next); restart(); setControls(false);
+  }
   function language(next: Locale) { dummy.state.profile.profile.locale = next; setLocale(next); restart(); }
   const buttons: [string, () => void][] = [
     [copy.new, () => reset(false)], [copy.empty, () => reset(true, false)], [copy.returning, () => reset(true)],
@@ -53,6 +59,10 @@ export default function DemoApp() {
         {buttons.map(([label, action]) => <Pressable key={label} accessibilityRole="button" style={styles.button} onPress={action}><Text style={styles.text}>{label}</Text></Pressable>)}
         {dummy.state.loseNext && <Text accessibilityRole="alert" style={styles.text}>{copy.armed}</Text>}
         {dummy.state.loseNextProof && <Text accessibilityRole="alert" style={styles.text}>{copy.proofArmed}</Text>}
+        <Pressable accessibilityRole="switch" accessibilityState={{ checked: dummy.state.wireCheck }} accessibilityLabel={copy.wireCheck} style={styles.button} onPress={() => { dummy.state.wireCheck = !dummy.state.wireCheck; repaint(value => value + 1); }}>
+          <Text style={styles.text}>{copy.wireCheck} · {dummy.state.wireCheck ? copy.wireCheckOn : copy.wireCheckOff}</Text>
+        </Pressable>
+        {dummy.state.wireCheck && <Text style={styles.text}>{copy.wireCheckNotice} {WIRE_CHECK_BASE_URL}</Text>}
         <Pressable accessibilityRole="button" style={styles.button} onPress={() => setControls(false)}><Text style={styles.text}>{copy.close}</Text></Pressable>
       </ScrollView></SafeAreaView>
     </Modal>

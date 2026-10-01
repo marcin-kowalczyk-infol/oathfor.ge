@@ -1,6 +1,6 @@
 # Architecture
 
-Status: API [liveness and identity contracts](api-contract.md), local PostgreSQL/Redis transport, mobile account/onboarding and account-owned profile persistence implemented. Oath/proof/reward responsibilities below remain planned; see [local infrastructure decision](../decisions/0002-local-infrastructure.md). Stack and deployment choice: [ADR 0001](../decisions/0001-project-foundation.md).
+Status: API [liveness and identity contracts](api-contract.md), local PostgreSQL/Redis transport, mobile account/onboarding and account-owned profile persistence implemented. Oath creation, tracking and pause are implemented. Proof submission with private filesystem storage is implemented (MVP-07, 2026-10-01). Proof assessment, rewards and the S3-compatible adapter remain planned. See [local infrastructure decision](../decisions/0002-local-infrastructure.md). Stack and deployment choice: [ADR 0001](../decisions/0001-project-foundation.md).
 
 ## Boundaries
 
@@ -11,7 +11,7 @@ Status: API [liveness and identity contracts](api-contract.md), local PostgreSQL
 | PostgreSQL | Durable Oaths, proof metadata, outcomes and progression ledger |
 | Messenger workers | Asynchronous verification, reminders and summaries |
 | Redis | Messenger Streams transport implemented locally; cache use deferred |
-| S3-compatible storage | Private proof objects with controlled lifecycle. Initial adapter is a private filesystem volume behind a `ProofStorage` port, planned in [ADR 0008](../decisions/0008-proof-storage-and-upload.md). The S3-compatible adapter follows in MVP-14 |
+| S3-compatible storage | Private proof objects with controlled lifecycle. The private filesystem adapter behind the `ProofStorage` port is implemented (MVP-07, [ADR 0008](../decisions/0008-proof-storage-and-upload.md)). The S3-compatible adapter is pending in MVP-14 |
 | OpenAI | Evidence assessment and constrained companion wording |
 | TypeSafe (processor approved, layer proposed) | Typed rule judgments over transcribed proof text and screening of generated companion wording, see [ADR 0007](../decisions/0007-typed-judgment-provider.md) |
 | RevenueCat | Subscription integration; backend maintains validated entitlements |

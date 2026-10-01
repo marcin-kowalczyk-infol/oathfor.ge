@@ -262,6 +262,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   // While a hearth request waits for Today, only the hearth shows at the creation screen's framing. Creation or the list with its notice follows.
   // The same surface stays mounted, so its close-ups are already decoded.
   const waiting = available && hearthRequest;
+  // Today shows each Oath's interrupted upload under its card. Worked out once, so the next card knows whether a line sits above it.
+  const uploads = route === 'list' && view === 'today' ? (list?.items ?? []).map(item => upload(item, false)) : [];
   return <SceneSurface place={place} drop={interactiveForge && !waiting ? LIST_DROP : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}>{waiting ? <SafeAreaView testID="hearth-waiting" style={styles.safeArea}><View style={styles.content}>
     {forgeNavigation && (interactiveForge
       ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />
@@ -306,25 +308,32 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       </View>}
       {route === 'list' && <>
         {view === 'today' && !!list?.items.length && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.section}>{t('forge.all')}</Text>}
-        {list?.items.map((item, index) => <View key={item.id} style={styles.entry}>
-          {view === 'today' && (index === 0 || category(item) !== category(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
-          {view === 'today' && (index === 0 || category(item) !== category(list.items[index - 1]) || group(item) !== group(list.items[index - 1])) && <Text accessibilityRole="header" style={styles.group}>{group(item)}</Text>}
-          <Pressable accessibilityRole="button" accessibilityLabel={summary(item)} accessibilityValue={{ text: t(`oath.states.${item.state}`) }} onPress={() => { void openDetail(item.id); }}
-            style={({ pressed }) => [styles.journalEntry, !interactiveForge && styles.stackedEntry, pressed && styles.pressedEntry]}>
-            <View style={styles.emblems}>
-              <ActivityEmblem activity={item.snapshot.activity} size={76} />
-              <View style={styles.stateBadge}><StateSeal state={item.state} size={36} /></View>
-            </View>
-            <View style={styles.entryCopy}>
-              <Text style={styles.activity}>{item.snapshot.copy[locale].activity}</Text>
-              {view === 'today' && <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>}
-              {/* History rows show the result seal, the activity and when it closed, in the Oath's own zone. */}
-              <Text style={styles.deadline}>{view === 'history' ? compactStoredTime(item.terminalAt ? wallTimeIn(item.terminalAt, item.snapshot.deadline.timezone) : item.snapshot.deadline.local, locale) : shortStoredTime(item.snapshot.deadline.local, locale, false)}</Text>
-              {view === 'today' && <CountdownChip oath={item} clock={controller.clock} onElapsed={elapsed} />}
-            </View>
-          </Pressable>
-          {view === 'today' && upload(item, false)}
-        </View>)}
+        {/* Cards of one heading stand close together. A new heading or an upload line under the previous card opens a section's space. */}
+        {list && !!list.items.length && <View testID="oath-entries">{list.items.map((item, index) => {
+          const previous = list.items[index - 1];
+          const newCategory = view === 'today' && (index === 0 || category(item) !== category(previous));
+          const newGroup = view === 'today' && (newCategory || group(item) !== group(previous));
+          const spaced = index > 0 && (view !== 'today' || newGroup || !!uploads[index - 1]);
+          return <View key={item.id} testID={`oath-entry-${item.id}`} style={[styles.entry, index > 0 && { marginTop: spaced ? tokens.space.section : tokens.space.item }]}>
+            {newCategory && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
+            {newGroup && <Text accessibilityRole="header" style={styles.group}>{group(item)}</Text>}
+            <Pressable accessibilityRole="button" accessibilityLabel={summary(item)} accessibilityValue={{ text: t(`oath.states.${item.state}`) }} onPress={() => { void openDetail(item.id); }}
+              style={({ pressed }) => [styles.journalEntry, !interactiveForge && styles.stackedEntry, pressed && styles.pressedEntry]}>
+              <View style={styles.emblems}>
+                <ActivityEmblem activity={item.snapshot.activity} size={76} />
+                <View style={styles.stateBadge}><StateSeal state={item.state} size={36} /></View>
+              </View>
+              <View style={styles.entryCopy}>
+                <Text style={styles.activity}>{item.snapshot.copy[locale].activity}</Text>
+                {view === 'today' && <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>}
+                {/* History rows show the result seal, the activity and when it closed, in the Oath's own zone. */}
+                <Text style={styles.deadline}>{view === 'history' ? compactStoredTime(item.terminalAt ? wallTimeIn(item.terminalAt, item.snapshot.deadline.timezone) : item.snapshot.deadline.local, locale) : shortStoredTime(item.snapshot.deadline.local, locale, false)}</Text>
+                {view === 'today' && <CountdownChip oath={item} clock={controller.clock} onElapsed={elapsed} />}
+              </View>
+            </Pressable>
+            {uploads[index]}
+          </View>;
+        })}</View>}
         {!loading && !failed && list?.items.length === 0 && view === 'today' && <CompanionBubble message={t('oathHome.emptyToday')} />}
         {failed && <><View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.loadError')} /></View><Action label={t('oath.retry')} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
         {list?.nextCursor && !failed && <Action label={t('oathHome.more')} busy={loading} onPress={() => { void loadList(view, true); }} />}

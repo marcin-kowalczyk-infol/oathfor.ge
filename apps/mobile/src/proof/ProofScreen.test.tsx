@@ -121,6 +121,17 @@ test('a denied camera shows its message and the library still gives an image', a
   expect(screen.getByRole('button', { name: 'Wybierz ze Zdjęć' })).toBeEnabled();
 });
 
+// Side by side the notice goes under the pair, so it never stretches one button of the row. Stacked, it stays under its own button.
+test.each([[402, 1, false], [340, 1, true]] as const)('at %i pt and text scale %d a denied camera notice sits inside the sources: %s', async (width, fontScale, inside) => {
+  size(width, fontScale);
+  jest.mocked(Picker.requestCameraPermissionsAsync).mockResolvedValue({ status: 'denied', granted: false, canAskAgain: false, expires: 'never' } as never);
+  await show();
+  await fireEvent.press(screen.getByRole('button', { name: 'Zrób zdjęcie' }));
+  expect(await screen.findByTestId('proof-notice-camera')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Otwórz Ustawienia' })).toBeOnTheScreen();
+  expect(within(screen.getByTestId('proof-sources')).queryByTestId('proof-notice-camera') !== null).toBe(inside);
+});
+
 test('a granted camera takes the photo with the same options, a camera that cannot open leaves the library usable', async () => {
   await show();
   await fireEvent.press(screen.getByRole('button', { name: 'Zrób zdjęcie' }));

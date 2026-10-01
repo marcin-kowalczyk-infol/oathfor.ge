@@ -89,7 +89,7 @@ T01 specifies the contract with a synthetic content placeholder; actual Apple Fi
 
 ## Time policy
 
-Status: **T02 accepted local decision: owner approval, 2026-09-24.** The owner accepted the complete time-policy proposal, including inclusive completion and receipt boundaries, offline/retry behavior and timezone interpretation. They neither change T01 evidence requirements nor complete T03–T06. No runtime behavior is implemented.
+Status: **T02 accepted local decision: owner approval, 2026-09-24.** The owner accepted the complete time-policy proposal, including inclusive completion and receipt boundaries, offline/retry behavior and timezone interpretation. They neither change T01 evidence requirements nor complete T03–T06. Implemented MVP-07, 2026-10-01: the API records receipt `R` with the durable submission, refuses a first receipt after `S`, moves the Oath to `proof_pending` and returns the original receipt for an identical retry ([proof contract](../engineering/api-contract.md#proof-submission-contract)). The incident review route and real-device upload remain pending.
 
 ### Committed times
 
@@ -340,7 +340,7 @@ Owner accepted neutral withdrawal for scheduled/active commitments without final
 
 ## Review and retention
 
-Status: **T06 accepted local decision: owner approval, 2026-09-24.** All three appeal/reconciliation, retention/operator and deletion questions were explicitly accepted. Periods below are local product/engineering choices, not legal retention requirements, compliance claims or existing support guarantees. T03 review and T05 pause rules remain accepted. This section specifies the additional appeal/data-lifecycle contract to implement in MVP-08/14.
+Status: **T06 accepted local decision: owner approval, 2026-09-24.** All three appeal/reconciliation, retention/operator and deletion questions were explicitly accepted. Periods below are local product/engineering choices, not legal retention requirements, compliance claims or existing support guarantees. T03 review and T05 pause rules remain accepted. This section specifies the additional appeal/data-lifecycle contract to implement in MVP-08/14. Implemented MVP-07, 2026-10-01: only the purge of unfinalized staging after 24 hours, through `app:proof:purge-staging`. Its scheduling and every other rule here remain pending.
 
 ### Responsibility and access
 
@@ -474,11 +474,11 @@ The correction message describes the lifetime limit, not the remaining count; a 
 | --- | --- | --- |
 | iOS-only MVP, PL/EN and externalized translations | Owner instructions, 2026-09-24 | Accepted; full product locale runtime and native verification pending |
 | Initiation title, declaration and separate photo/record criteria | Owner T01 decision, 2026-09-24 | Accepted; Apple Fitness is a candidate, real PL/EN examples not inspected |
-| Completion/receipt deadlines and timezone semantics | Owner T02 approval, 2026-09-24 | Accepted; no product clock/upload implementation |
+| Completion/receipt deadlines and timezone semantics | Owner T02 approval, 2026-09-24 | Accepted. Receipt, cutoff and retry replay implemented in the MVP-07 API, 2026-10-01. Signed-device upload pending |
 | Corrections, provider escalation, review and neutral closure | Both owner T03 approvals, 2026-09-24 | Accepted; provider/model/queue/operator acceptance pending |
 | XP, Recovery, upgrades/reuse and five-level curve | Three owner T04 approvals, 2026-09-24 | Accepted; MVP-03 selected static unlock exports, runtime/native validation pending |
 | Pause/withdrawal, fixed Recovery windows and Minimum Quest deferral | Both owner T05 approvals, 2026-09-24 | Accepted; no native reminder/pause implementation |
-| Appeals, retention/operator responsibility and deletion | Three owner T06 approvals, 2026-09-24 | Accepted; actual service configuration, deletion and restore verification required |
+| Appeals, retention/operator responsibility and deletion | Three owner T06 approvals, 2026-09-24 | Accepted. 24-hour staging purge command implemented in MVP-07, 2026-10-01, unscheduled. Actual service configuration, deletion and restore verification required |
 
 Remaining needs are explicit handoff gates, not unresolved core game-policy choices:
 

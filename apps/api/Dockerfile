@@ -8,7 +8,8 @@ RUN apt-get update \
     && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/*
 # Proof uploads: ADR 0008 allows JPEG up to 10 MB, multipart overhead needs headroom.
-RUN printf 'upload_max_filesize = 12M\npost_max_size = 13M\n' > /usr/local/etc/php/conf.d/proof-upload.ini
+# A displayed startup warning, such as a body over post_max_size, is printed before the headers and turns 413 JSON into 200 HTML. CLI warnings go to stderr.
+RUN printf 'upload_max_filesize = 12M\npost_max_size = 13M\ndisplay_errors = stderr\ndisplay_startup_errors = Off\n' > /usr/local/etc/php/conf.d/proof-upload.ini
 # Private proof volume mount point. A fresh named volume copies this mode.
 RUN mkdir -p /var/lib/oathforge/proofs && chmod 0700 /var/lib/oathforge/proofs
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
