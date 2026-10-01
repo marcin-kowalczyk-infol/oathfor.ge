@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { Dimensions } from 'react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { AuthView, type AuthViewProps } from './AuthView';
 
@@ -50,4 +51,54 @@ test('recovery explains unavailable Apple sign-in, pending revocation and confir
   await view.rerender(fixture({ kind: 'cleanup_required', serverRevoked: true }));
   expect(screen.getByText('The server has confirmed sign-out, but this device still needs to finish clearing the saved session. Try again.')).toBeOnTheScreen();
   expect(screen.getAllByRole('button')).toHaveLength(1);
+});
+
+// MVP-22-A3 (clarity.md decision 3): an error after the player's own sign-in replaces the description, at most one filled
+// button in every state, PL and EN at 200% text.
+const size = (fontScale: number) => Dimensions.set({ window: { width: 402, height: 874, scale: 3, fontScale }, screen: { width: 402, height: 874, scale: 3, fontScale } });
+afterEach(() => size(1));
+const filled = () => screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0);
+const show = (locale: 'pl' | 'en', state: AuthViewProps['state'], availability: AuthViewProps['availability'] = 'available') =>
+  render(<LocalizationProvider initialLocale={locale}><AuthView onLogin={jest.fn()} onRetry={jest.fn()} onLogout={jest.fn()} state={state} availability={availability} /></LocalizationProvider>);
+
+test.each([
+  ['pl', 'Ta próba logowania jest już nieważna. Zaloguj się przez Apple jeszcze raz.', 'Zaloguj się przez Apple, aby rozpocząć swoją drogę lub wrócić do konta.'],
+  ['en', 'This sign-in attempt is no longer valid. Sign in with Apple again.', 'Sign in with Apple to begin your journey or return to your account.'],
+] as const)('%s a spent sign-in attempt replaces the description with its short line', async (locale, error, description) => {
+  await show(locale, { kind: 'signed_out', error: { kind: 'fresh_challenge' } });
+  expect(screen.getByText(error)).toBeOnTheScreen();
+  expect(screen.queryByText(description)).toBeNull();
+  expect(screen.getByTestId('native-apple-button')).toBeOnTheScreen();
+});
+
+test('while Apple sign-in is unavailable the reason stays instead of an older error', async () => {
+  await show('en', { kind: 'signed_out', error: { kind: 'unavailable', retry: 'request' } }, 'unavailable');
+  expect(screen.getByText('Sign in with Apple is unavailable on this device right now.')).toBeOnTheScreen();
+  expect(screen.queryByText('We could not finish signing you in. Check your connection and start a new sign-in attempt.')).toBeNull();
+});
+
+test.each([
+  ['pl', 'Wylogowanie nie jest zakończone, zapis sesji na urządzeniu zawiódł. Spróbuj ponownie przed logowaniem.'],
+  ['en', 'Sign-out is not complete because the saved session on this device failed. Try again before signing in.'],
+] as const)('%s an unconfirmed cleanup says so in two sentences with one filled retry', async (locale, line) => {
+  await show(locale, { kind: 'cleanup_required', serverRevoked: false });
+  expect(screen.getByText(line)).toBeOnTheScreen();
+  expect(filled()).toHaveLength(1);
+});
+
+const states: [string, AuthViewProps['state'], AuthViewProps['availability']][] = [
+  ['signed out', { kind: 'signed_out' }, 'available'],
+  ['signed out, Apple unavailable', { kind: 'signed_out' }, 'unavailable'],
+  ['signed out after a rate limit', { kind: 'signed_out', error: { kind: 'rate_limited', retry: 'request', retryAfterSeconds: 30 } }, 'available'],
+  ['authenticating', { kind: 'authenticating' }, 'available'],
+  ['verification unavailable', { kind: 'verification_unavailable' }, 'available'],
+  ['revocation pending', { kind: 'revocation_pending' }, 'available'],
+  ['cleanup required', { kind: 'cleanup_required', serverRevoked: true }, 'available'],
+  ['authenticated', { kind: 'authenticated', account, expiresAt }, 'available'],
+];
+test.each((['pl', 'en'] as const).flatMap(locale => states.map(([name, state, availability]) => [locale, name, state, availability] as const)))('%s %s at text scale 2 shows a heading and at most one filled button', async (locale, _name, state, availability) => {
+  size(2);
+  await show(locale, state, availability);
+  expect(screen.getByRole('header')).toBeOnTheScreen();
+  expect(filled().length).toBeLessThanOrEqual(1);
 });

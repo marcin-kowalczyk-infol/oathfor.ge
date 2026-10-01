@@ -66,8 +66,6 @@ const shared = [
   // Kept long, not debt: folded text stays unchanged (rule 2). The detail folds oathHome.uploadInterrupted behind "Pełny opis",
   // A2 folds notifications.future. No slice A task touches the proof errors.
   'notifications.future', 'oathHome.uploadInterrupted', 'proof.errors.unavailable', 'proof.errors.rateLimited', 'proof.errors.sendFailed',
-  // A3.
-  'auth.cleanupUnconfirmed',
   // A4.
   'character.pending', 'character.rateLimited_one', 'character.rateLimited_other',
   // A5.
@@ -88,7 +86,7 @@ test('Polish says "zobowiąz…" only under oath.sections', () => {
 });
 
 // Slice A "what next" lines (clarity.md rule 1 and decision 3): at most 12 Polish words and two sentences. Required error
-// sentences are exempt from the word cap only, so they are not listed here (oathHome.pauseError, notifications.error_save).
+// sentences are exempt from the word cap only, so they are not listed here (oathHome.pauseError, notifications.error_save, auth.cleanupUnconfirmed).
 const at = (catalog: Group, key: string) => key.split('.').reduce<unknown>((node, part) => (node as Group)?.[part], catalog);
 const sliceA = [
   // A1.
@@ -97,6 +95,8 @@ const sliceA = [
   // A2.
   'onboarding.unconfirmed', 'onboarding.intentionRequired', 'onboarding.error_intention', 'onboarding.notificationsPending', 'onboarding.reviewPending',
   'onboarding.error_save', 'onboarding.error_complete',
+  // A3.
+  'auth.freshChallenge',
   // onboarding.companionIntroduction is Żaromir's introduction (13 words, plan copy), held by the two-sentence guard only.
 ];
 test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages', key => {

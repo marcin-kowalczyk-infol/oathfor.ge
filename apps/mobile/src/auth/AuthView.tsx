@@ -54,9 +54,10 @@ export function AuthView({ state, availability, onLogin, onRetry, onLogout }: Au
   return <SafeAreaView style={styles.safeArea}>
     <ScrollView contentContainerStyle={styles.content}>
       <Text accessibilityRole="header" style={styles.title}>{heading}</Text>
+      {/* An error after the player's own sign-in replaces the description (docs/product/clarity.md decision 3).
+          While Apple sign-in is unavailable that reason stays, because it explains the missing button. */}
       <View style={styles.status} accessibilityLiveRegion="polite">
-        <Text style={styles.body}>{description}</Text>
-        {error && <Text style={styles.body}>{error}</Text>}
+        {error && availability === 'available' ? <Text accessibilityRole="alert" style={styles.body}>{error}</Text> : <Text style={styles.body}>{description}</Text>}
       </View>
       {state.kind === 'signed_out' && availability === 'available' && <AppleAuthentication.AppleAuthenticationButton
         testID="native-apple-button"

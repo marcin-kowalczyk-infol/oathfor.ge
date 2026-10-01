@@ -88,8 +88,9 @@ The owner delegated these choices on 2026-10-01 ("work without further approvals
 
 ## Later
 
-- Remaining screen groups against the rules above: main menu, character, sign-in, Forge room dialogues. One task each.
+- Remaining screen groups against the rules above: main menu, character, Forge room dialogues. One task each.
 - Settings and the pause review follow the rules since MVP-22-A1. Every pause fact is a plain line, an error replaces the intro line and Żaromir does not speak there.
 - Onboarding follows the rules since MVP-22-A2. Short step lines, Żaromir's introduction in his bubble, the notification explanations folded behind one link.
+- Sign-in follows the rules since MVP-22-A3. An error after the player's own sign-in replaces the description, except while Apple sign-in is unavailable, whose reason stays because it explains the missing button.
 - Reward clarity: show the reward from the snapshot before and after the result. Depends on MVP-09 for granted XP.
 - Push reminders and urging by Żaromir outside the app: MVP-06.
