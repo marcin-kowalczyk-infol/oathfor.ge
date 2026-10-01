@@ -11,7 +11,7 @@ Status: API [liveness and identity contracts](api-contract.md), local PostgreSQL
 | PostgreSQL | Durable Oaths, proof metadata, outcomes and progression ledger |
 | Messenger workers | Asynchronous verification, reminders and summaries |
 | Redis | Messenger Streams transport implemented locally; cache use deferred |
-| S3-compatible storage | Private proof objects with controlled lifecycle |
+| S3-compatible storage | Private proof objects with controlled lifecycle. Initial adapter is a private filesystem volume behind a `ProofStorage` port, planned in [ADR 0008](../decisions/0008-proof-storage-and-upload.md). The S3-compatible adapter follows in MVP-14 |
 | OpenAI | Evidence assessment and constrained companion wording |
 | TypeSafe (processor approved, layer proposed) | Typed rule judgments over transcribed proof text and screening of generated companion wording, see [ADR 0007](../decisions/0007-typed-judgment-provider.md) |
 | RevenueCat | Subscription integration; backend maintains validated entitlements |

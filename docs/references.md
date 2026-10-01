@@ -17,6 +17,7 @@ Official documentation / original practice sources reviewed on **2026-09-23**. R
 | [Expo environment](https://docs.expo.dev/guides/environment-variables/) | Public client variables |
 | [TypeScript strict](https://www.typescriptlang.org/tsconfig/strict.html) | Type checking |
 | [React Native accessibility](https://reactnative.dev/docs/accessibility) | Accessible controls |
+| [Expo ImagePicker](https://docs.expo.dev/versions/latest/sdk/imagepicker/) | Proof capture sources and permissions, reviewed 2026-10-01 |
 | [OWASP authorization](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html) | Resource access |
 | [OWASP uploads](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html) | Proof uploads |
 | [OWASP logging](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html) | Sensitive data exclusions |

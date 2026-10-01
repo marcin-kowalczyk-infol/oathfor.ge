@@ -30,7 +30,7 @@ The player sees both evidence contracts before committing and chooses either mod
 
 An accepted evidence assessment means only that the image satisfies the selected visible-content criteria. Fulfillment additionally relies on the player’s declaration and backend eligibility checks. It is not independent verification of exercise. The accepted T02/T03 sections define timing eligibility, ambiguous/rejected follow-up and final outcomes. Reward amounts are specified in T04; this document implements no runtime behavior.
 
-Do not require faces, names, body photos, maps, GPS permission or matching upload location. Do not collect or depend on EXIF for this contract. Permit cropping or redacting private areas while preserving required evidence fields; missing metadata is not proof of fraud. The capture/gallery mechanism and upload limits remain downstream implementation details to resolve before MVP-07; this contract makes no camera-only provenance claim.
+Do not require faces, names, body photos, maps, GPS permission or matching upload location. Do not collect or depend on EXIF for this contract. Permit cropping or redacting private areas while preserving required evidence fields. Missing metadata is not proof of fraud. This contract makes no camera-only provenance claim. Owner decision, 2026-10-01: both routes accept a camera photo or an image chosen from the photo library. The upload is one JPEG with the long edge at most 2880 px and at most 10 MB. There is no in-app crop, so the player crops or covers private parts in Photos first. Details: [ADR 0008](../decisions/0008-proof-storage-and-upload.md).
 
 ### Photo evidence
 
