@@ -126,7 +126,7 @@ test('ambiguous confirmation exposes only same-identity retry and renders author
   expect(await screen.findByRole('button', { name: 'Check confirmation' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Commit to the Oath' })).toBeNull(); expect(screen.queryByLabelText('Completion time')).toBeNull();
   const snapshot = { ...f.envelope.preview.snapshot, activation: { mode: 'now', time: { local: '2026-10-24T02:00:00', timezone: 'Europe/Warsaw', offset: '+02:00', explicitOffset: false, utc: '2026-10-24T00:00:00Z' } } };
-  jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'success', value: { oath: { id, characterId, snapshot, state: 'active', createdAt: '2026-10-24T00:00:00Z', activatedAt: '2026-10-24T00:00:00Z', terminalAt: null, reason: null, review: null }, serverTime: '2026-10-24T00:00:00Z' } });
+  jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'success', value: { oath: { id, characterId, snapshot, state: 'active', createdAt: '2026-10-24T00:00:00Z', activatedAt: '2026-10-24T00:00:00Z', terminalAt: null, reason: null, review: null, proof: null }, serverTime: '2026-10-24T00:00:00Z' } });
   await fireEvent.press(screen.getByRole('button', { name: 'Check confirmation' }));
   expect(await screen.findByText('Status: Active')).toBeOnTheScreen();
   expect(jest.mocked(f.api.confirm).mock.calls[1][1]).toEqual(jest.mocked(f.api.confirm).mock.calls[0][1]);
@@ -196,7 +196,7 @@ test('date, time and zone controls announce their selected values', async () => 
 
 test('confirmed creation clears the parent draft and explicit new Oath starts empty', async () => {
   const f = setup(); f.controller.start(); const onDraftChange = jest.fn();
-  jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'success', value: { oath: { id, characterId, snapshot: f.envelope.preview.snapshot, state: 'active', createdAt: '2026-10-24T00:00:00Z', activatedAt: '2026-10-24T00:00:00Z', terminalAt: null, reason: null, review: null }, serverTime: '2026-10-24T00:00:00Z' } });
+  jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'success', value: { oath: { id, characterId, snapshot: f.envelope.preview.snapshot, state: 'active', createdAt: '2026-10-24T00:00:00Z', activatedAt: '2026-10-24T00:00:00Z', terminalAt: null, reason: null, review: null, proof: null }, serverTime: '2026-10-24T00:00:00Z' } });
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onDraftChange={onDraftChange} /></LocalizationProvider>);
   await fillDeadline();
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
@@ -377,7 +377,7 @@ describe('the review at the largest text size', () => {
   });
 });
 
-const confirmed = (oathId: string, snapshot: unknown): Awaited<ReturnType<OathClient['confirm']>> => ({ kind: 'success' as const, value: { oath: { id: oathId, characterId, snapshot: snapshot as never, state: 'active', createdAt: '2026-10-24T00:00:00Z', activatedAt: '2026-10-24T00:00:00Z', terminalAt: null, reason: null, review: null }, serverTime: '2026-10-24T00:00:00Z' } });
+const confirmed = (oathId: string, snapshot: unknown): Awaited<ReturnType<OathClient['confirm']>> => ({ kind: 'success' as const, value: { oath: { id: oathId, characterId, snapshot: snapshot as never, state: 'active', createdAt: '2026-10-24T00:00:00Z', activatedAt: '2026-10-24T00:00:00Z', terminalAt: null, reason: null, review: null, proof: null }, serverTime: '2026-10-24T00:00:00Z' } });
 test('the seal is stamped only after the server confirms, once, also after a lost reply', async () => {
   const f = setup(); f.controller.start();
   const oathId = '20000000-0000-4000-8000-0000000000a1';

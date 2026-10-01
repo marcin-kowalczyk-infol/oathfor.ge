@@ -119,7 +119,9 @@ const sectionKeys = ['activation', 'timing', 'evidence', 'photo', 'activityRecor
 export type RuleCopy = { title: string; subtitle: string; promise: string; declaration: string; activity: string; sections: Record<typeof sectionKeys[number], string> };
 export type Snapshot = typeof policy & { activity: Activity; activation: { mode: 'now' | 'scheduled'; time: ResolvedTime | null }; deadline: ResolvedTime & { receiptCutoff: string }; copy: { pl: RuleCopy; en: RuleCopy } };
 export type OathState = 'scheduled' | 'active' | 'proof_pending' | 'needs_more_evidence' | 'review_pending' | 'fulfilled' | 'missed' | 'unresolved' | 'withdrawn';
-export type Oath = { id: string; characterId: string; state: OathState; snapshot: Snapshot; createdAt: string; activatedAt: string | null; terminalAt: string | null; reason: string | null; review: null | { enteredAt: string; closesAt: string } };
+// Owner-only proof metadata. The image is fetched separately, so no URL or storage key is part of it.
+export type Proof = { submissionId: string; mode: 'photo' | 'activity_record'; revision: number; receivedAt: string; assessment: 'queued' };
+export type Oath = { id: string; characterId: string; state: OathState; snapshot: Snapshot; createdAt: string; activatedAt: string | null; terminalAt: string | null; reason: string | null; review: null | { enteredAt: string; closesAt: string }; proof: Proof | null };
 export type Preview = { id: string; snapshot: Snapshot };
 export type PreviewEnvelope = { preview: Preview; characterId: string; serverTime: string };
 export type StoredPreviewEnvelope = { preview: Preview; characterId: string; oathId: string | null };
@@ -180,8 +182,14 @@ export function isPreviewEnvelope(value: unknown): value is PreviewEnvelope { re
 export function isStoredPreviewEnvelope(value: unknown): value is StoredPreviewEnvelope { return exact(value, ['preview', 'characterId', 'oathId']) && preview(value.preview) && isUuid(value.characterId) && (value.oathId === null || isUuid(value.oathId)); }
 const states = ['scheduled', 'active', 'proof_pending', 'needs_more_evidence', 'review_pending', 'fulfilled', 'missed', 'unresolved', 'withdrawn'];
 const terminalStates = ['fulfilled', 'missed', 'unresolved', 'withdrawn'];
+// Closed lists like `states`. A new mode or assessment needs explicit client support.
+function proof(value: unknown): value is Proof {
+  return exact(value, ['submissionId', 'mode', 'revision', 'receivedAt', 'assessment']) && isUuid(value.submissionId)
+    && (value.mode === 'photo' || value.mode === 'activity_record') && Number.isSafeInteger(value.revision) && (value.revision as number) >= 1
+    && utc(value.receivedAt) && value.assessment === 'queued';
+}
 export function isOath(value: unknown): value is Oath {
-  if (!exact(value, ['id', 'characterId', 'state', 'snapshot', 'createdAt', 'activatedAt', 'terminalAt', 'reason', 'review']) || !isUuid(value.id) || !isUuid(value.characterId)
+  if (!exact(value, ['id', 'characterId', 'state', 'snapshot', 'createdAt', 'activatedAt', 'terminalAt', 'reason', 'review', 'proof']) || !(value.proof === null || proof(value.proof)) || !isUuid(value.id) || !isUuid(value.characterId)
     || !states.includes(value.state as string) || !isSnapshot(value.snapshot, true) || !utc(value.createdAt)
     || !(value.activatedAt === null || utc(value.activatedAt)) || !(value.terminalAt === null || utc(value.terminalAt))
     || !(value.reason === null || (typeof value.reason === 'string' && /^[a-z][a-z0-9_]{0,63}$/.test(value.reason) && value.reason !== 'account_paused'))) return false;

@@ -82,7 +82,8 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     const row: Oath = { id: id(), characterId: state.activeCharacterId ?? characterId, state: kind, snapshot: snapshot(kind === 'scheduled' ? 'mobility' : kind === 'withdrawn' ? 'strength_training' : 'running', { mode: scheduled ? 'scheduled' : 'now', time: resolved(activation) }, resolved(deadline)),
       createdAt: iso(scheduled ? state.now - 86400000 : activation), activatedAt: scheduled ? null : iso(activation),
       terminalAt: kind === 'withdrawn' ? iso(state.now - 1000 + delta) : null, reason: kind === 'withdrawn' ? 'character_paused' : kind === 'review_pending' ? 'service_availability_unknown' : null,
-      review: kind === 'review_pending' ? { enteredAt: iso(state.now - 3600000), closesAt: iso(state.now + 255600000) } : null };
+      // No seeded state holds a receipt, so no DUMMY Oath carries proof metadata.
+      review: kind === 'review_pending' ? { enteredAt: iso(state.now - 3600000), closesAt: iso(state.now + 255600000) } : null, proof: null };
     state.oaths.push(row); state.revision++; return row;
   }
   if (populated) { seed('scheduled'); seed('active'); seed('review_pending'); for (let i = 0; i < 22; i++) seed('withdrawn', -i * 60000); }
@@ -131,7 +132,7 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
       if (rules.activation.time && Date.parse(rules.activation.time.utc) <= state.now) return { kind: 'oath_error', code: 'activation_elapsed' };
       if (Date.parse(rules.deadline.utc) <= state.now) return { kind: 'oath_error', code: 'deadline_not_after_activation' };
       rules.activation.time ??= resolved(state.now, rules.deadline.timezone);
-      const oath: Oath = { id: id(), characterId: owner!, snapshot: rules, state: rules.activation.mode === 'now' ? 'active' : 'scheduled', createdAt: iso(state.now), activatedAt: rules.activation.mode === 'now' ? iso(state.now) : null, terminalAt: null, reason: null, review: null };
+      const oath: Oath = { id: id(), characterId: owner!, snapshot: rules, state: rules.activation.mode === 'now' ? 'active' : 'scheduled', createdAt: iso(state.now), activatedAt: rules.activation.mode === 'now' ? iso(state.now) : null, terminalAt: null, reason: null, review: null, proof: null };
       state.oaths.push(oath); state.accepted.set(input.previewId, oath.id); state.requests.set(input.requestId, input.previewId); state.revision++;
       if (state.loseNext) { state.loseNext = false; return unavailable(); }
       return success({ oath: clone(oath), serverTime: iso(state.now) });

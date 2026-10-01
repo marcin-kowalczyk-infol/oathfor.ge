@@ -31,7 +31,7 @@ import { isOathEnvelope, isOathListEnvelope, isPauseEnvelope, isPreviewInput, is
 function oath() {
   const value = preview();
   value.preview.snapshot.activation = { mode: 'scheduled', time: { local: '2026-10-24T20:00:00', timezone: 'UTC', offset: '+00:00', explicitOffset: false, utc: '2026-10-24T20:00:00Z' } };
-  return { oath: { id, characterId, snapshot: value.preview.snapshot, state: 'scheduled', createdAt: value.serverTime, activatedAt: null as string | null, terminalAt: null as string | null, reason: null as string | null, review: null as { enteredAt: string; closesAt: string } | null }, serverTime: value.serverTime };
+  return { oath: { id, characterId, snapshot: value.preview.snapshot, state: 'scheduled', createdAt: value.serverTime, activatedAt: null as string | null, terminalAt: null as string | null, reason: null as string | null, review: null as { enteredAt: string; closesAt: string } | null, proof: null }, serverTime: value.serverTime };
 }
 
 test.each([

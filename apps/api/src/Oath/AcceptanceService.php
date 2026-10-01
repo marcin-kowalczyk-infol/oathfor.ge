@@ -62,6 +62,6 @@ final class AcceptanceService
     {
         $row = $this->connection->fetchAssociative('SELECT * FROM oath WHERE account_id = ? AND id = ?', [$accountId, $id]);
         if (false === $row) { throw new \LogicException('Persisted commitment missing.'); }
-        return new AcceptanceResult(['oath' => OathRepresentation::fromRow($row), 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now)], $created);
+        return new AcceptanceResult(['oath' => OathRepresentation::fromOne($this->connection, $row), 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now)], $created);
     }
 }

@@ -81,8 +81,9 @@ final class SubmissionService
         $this->connection->executeStatement("UPDATE oath SET state = 'proof_pending' WHERE id = ?", [$oathId]);
         $updated = $this->connection->fetchAssociative('SELECT * FROM oath WHERE id = ?', [$oathId]);
         if (false === $updated) { throw new \LogicException('Locked Oath missing.'); }
-        $receivedAt = gmdate('Y-m-d\TH:i:s\Z', $now);
-        return new SubmissionResult(['proof' => ['submissionId' => $input->submissionId, 'mode' => $input->mode, 'receivedAt' => $receivedAt, 'revision' => 1, 'assessment' => 'queued'], 'oath' => OathRepresentation::fromRow($updated), 'serverTime' => $receivedAt], true);
+        // The new row is the Oath's latest revision, so the Oath representation already carries this receipt.
+        $representation = OathRepresentation::fromOne($this->connection, $updated);
+        return new SubmissionResult(['proof' => $representation['proof'], 'oath' => $representation, 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now)], true);
     }
     /**
      * Answers a request whose submissionId this account already used. The conflict depends only on the caller's own row,
@@ -97,6 +98,6 @@ final class SubmissionService
         // Detail reads are scoped to the active character, so a replay is too. Another character's Oath stays not_found.
         $oath = $this->connection->fetchAssociative('SELECT * FROM oath WHERE account_id = ? AND character_id = ? AND id = ?', [$accountId, $characterId, $oathId]);
         if (false === $oath) { return new OathFailure('not_found', 404); }
-        return new SubmissionResult(['proof' => ['submissionId' => $input->submissionId, 'mode' => $prior['mode'], 'receivedAt' => gmdate('Y-m-d\TH:i:s\Z', (int) $prior['received_at']), 'revision' => (int) $prior['revision'], 'assessment' => $prior['assessment_status']], 'oath' => OathRepresentation::fromRow($oath), 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now)], false);
+        return new SubmissionResult(['proof' => OathRepresentation::proof(['submission_id' => $input->submissionId] + $prior), 'oath' => OathRepresentation::fromOne($this->connection, $oath), 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now)], false);
     }
 }
