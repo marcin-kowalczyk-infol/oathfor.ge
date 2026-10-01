@@ -49,7 +49,7 @@ def main() -> int:
         return error.returncode or 1
     finally:
         # This UUID project was created by this invocation, never a user's existing project.
-        subprocess.run([*compose, 'down', '--volumes', '--remove-orphans'], cwd=ROOT, env=env, check=True, timeout=600)
+        subprocess.run([*compose, 'down', '--volumes', '--remove-orphans', '--rmi', 'local'], cwd=ROOT, env=env, check=True, timeout=600)
 
 
 if __name__ == '__main__':

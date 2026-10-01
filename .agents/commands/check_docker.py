@@ -99,7 +99,7 @@ def main() -> int:
             print(run('logs', '--no-color', '--tail', '40', check=False).stdout)
             return 1
         finally:
-            run('down', '--volumes', '--remove-orphans', timeout=120)
+            run('down', '--volumes', '--remove-orphans', '--rmi', 'local', timeout=120)
 
 
 if __name__ == '__main__':
