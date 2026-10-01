@@ -1,21 +1,27 @@
 import pl from './locales/pl/messages.json';
 import en from './locales/en/messages.json';
 import { ZAROMIR_POOLS } from '../companion/zaromirLine';
+import { pathTimeText } from '../oaths/compactStoredTime';
 
 type Group = Record<string, unknown>;
 const group = (catalog: Group, ...path: string[]) => path.reduce<Group>((node, key) => (node?.[key] ?? {}) as Group, catalog);
-// Realistic values for the caps (docs/product/clarity.md decision 3): a short weekday date with time, and a date.
-const sample = (text: string) => text.replace('{{time}}', 'pt 30 wrz, 18:30').replace('{{date}}', '30 wrz 2026');
+// The caps (docs/product/clarity.md decision 3) are measured with the detail's own formatter at its longest regular output,
+// a Sunday ("niedz" in Polish). The offset added in the one repeated autumn hour is left out, decision 3 says "about 70".
+const longest = { pl: pathTimeText({ local: '2026-09-27T18:30:00', timezone: 'Europe/Warsaw', offset: '+02:00' }, 'pl'), en: pathTimeText({ local: '2026-09-27T18:30:00', timezone: 'Europe/Warsaw', offset: '+02:00' }, 'en') };
+const sample = (text: string, locale: 'pl' | 'en' = 'pl') => text.replace('{{time}}', longest[locale]).replace('{{date}}', longest[locale]);
 const words = (text: string) => text.trim().split(/\s+/).length;
 const sentences = (text: string) => text.split(/[.!?](?:\s|$)/).filter(part => part.trim()).length;
 const nextKeys = ['scheduled', 'active', 'activeSoon', 'cutoff', 'interrupted', 'assessing', 'needsMore', 'review', 'closed', 'fulfilled', 'missed', 'unresolved', 'withdrawn'];
 
-test.each(nextKeys)('path.next.%s fits 12 Polish words and 70 characters', key => {
-  const line = group(pl, 'path', 'next')[key];
+test('the cap sample is the formatter output', () => {
+  expect(longest).toEqual({ pl: 'niedz 27 wrz 18:30', en: 'Sun, Sep 27, 18:30' });
+});
+
+test.each(nextKeys.flatMap(key => [['pl', key], ['en', key]] as const))('%s path.next.%s fits 12 words and 70 characters with real times', (locale, key) => {
+  const line = group(locale === 'pl' ? pl : en, 'path', 'next')[key];
   expect(typeof line).toBe('string');
-  expect(typeof group(en, 'path', 'next')[key]).toBe('string');
-  expect(words(sample(line as string))).toBeLessThanOrEqual(12);
-  expect(sample(line as string).length).toBeLessThanOrEqual(70);
+  expect(words(sample(line as string, locale))).toBeLessThanOrEqual(12);
+  expect(sample(line as string, locale).length).toBeLessThanOrEqual(70);
 });
 
 test.each(Object.entries(ZAROMIR_POOLS))('zaromir.%s has %i lines in both languages, each short', (situation, size) => {

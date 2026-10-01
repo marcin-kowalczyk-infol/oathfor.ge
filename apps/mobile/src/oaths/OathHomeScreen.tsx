@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { bindShortWords } from '../localization/typography';
 import type { GuideStorage } from '../forge/guideStorage';
 import { Animated, AppState, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -11,7 +11,7 @@ import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import { SceneDoor } from '../ui/SceneDoor';
 import { BackLink } from '../ui/BackLink';
-import { compactStoredTime, shortStoredTime, wallTimeIn } from './compactStoredTime';
+import { compactStoredTime, pathTimeText, shortStoredTime, wallTimeIn } from './compactStoredTime';
 import { CountdownChip } from './CountdownChip';
 import { OathRuleCards } from './OathRuleCards';
 import { LIST_DROP, SceneSurface, type ForgePlace } from '../ui/SceneSurface';
@@ -25,14 +25,27 @@ import { OathScreen, type OathCreationDraft } from './OathScreen';
 import type { OathController } from './controller';
 import { layoutMode } from '../ui/layoutMode';
 import { useArt } from '../art/ArtProvider';
-import type { ProofController, ProofControllerState } from '../proof/proofController';
+import type { ProofController, ProofControllerError, ProofControllerState } from '../proof/proofController';
 import { deviceProof, deviceProofError, heldByServer, type ProofSubject } from './deviceProof';
 import { errorMessage, ProofScreen } from '../proof/ProofScreen';
 import { zoneLabel } from './zoneLabel';
+import { oathPath } from './oathPath';
+import { ruleIcon } from './oathArt';
+import { SpriteFrame } from '../forge/Sprite';
+import { StepTrack } from '../ui/StepTrack';
+import { NextCard } from '../ui/NextCard';
+import { ZaromirLine } from '../ui/ZaromirLine';
+import { Disclosure } from '../ui/Disclosure';
+import { zaromirSeed } from '../companion/zaromirLine';
 type ViewName = 'today' | 'history';
 // Without a proof controller nothing is waiting on the device.
 const noProof: ProofControllerState = { kind: 'idle' };
 const noProofStore = { subscribe: () => () => {}, getState: () => noProof };
+const HOUR = 3600000;
+// A longer timeout overflows and fires at once, so far moments are reached in steps.
+const LONGEST_TIMER = 2 ** 31 - 1;
+/** Errors the player must act on before anything else. They replace the detail's line (docs/product/clarity.md decision 3). */
+const required = (error: ProofControllerError) => ['proof_refused', 'reauthenticate', 'file_missing', 'upload_rejected', 'proof_error'].includes(error.kind);
 /** flown: the room already flew into the place, so its screen opens without a second zoom. */
 /** onReturn names the place on screen, so the room flies back out of it. */
 export type ForgeNavigation = { request: { id: number; target: 'create' | ViewName; flown?: boolean } | null; onReturn(place: 'hearth' | 'seals' | 'chronicle'): void };
@@ -40,7 +53,7 @@ export type ForgeNavigation = { request: { id: number; target: 'create' | ViewNa
 /** network: a reconnect reloads the visible list, like a return to the foreground. */
 /** proof: the shell's one proof controller. An active detail offers "Submit proof" only when it is given. */
 export function OathHomeScreen({ controller, timezone, forgeNavigation, reload = 0, rulesGuideStorage, network, proof }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; reload?: number; rulesGuideStorage?: GuideStorage; network?: NetworkEvents; proof?: ProofController }) {
-  const chronicleIcon = useArt().talk.chronicle;
+  const art = useArt(); const chronicleIcon = art.talk.chronicle;
   const { t, i18n } = useTranslation(); const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
   const interactiveForge = layoutMode(width, fontScale) === 'room';
@@ -79,7 +92,6 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   // The device's unresolved proof (MVP-07-T10). Its Oath shows the interrupted upload until the server answers a resend.
   const proofState = useSyncExternalStore(proof?.subscribe ?? noProofStore.subscribe, proof?.getState ?? noProofStore.getState);
   const proofReady = proofState.kind === 'ready' ? proofState : null;
-  const uploadOathId = proofReady?.pending?.oathId;
   // The Oath whose upload the player resumed or deleted here. A refusal clears the record, so its reason shows through this.
   // An answer that was already there is not news, so the error at the press is kept to tell them apart.
   const [subject, setSubject] = useState<ProofSubject>(null);
@@ -151,6 +163,28 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     if (!current(epoch) || detailId.current !== id) return;
     if (result.kind === 'success' && result.value.oath.id === id) setDetail(result.value.oath);
   }
+  // The detail's line moves at two moments the chip does not mark: an hour before D, and at S, when the window for proof closes.
+  // At S the detail asks the server again, quietly. Until it answers the line already says the window closed.
+  const [, rerender] = useReducer((value: number) => value + 1, 0);
+  const shownDetail = route === 'detail' ? detail : null;
+  useEffect(() => {
+    if (!shownDetail || shownDetail.state !== 'active') return;
+    const oathId = shownDetail.id, cutoff = Date.parse(shownDetail.snapshot.deadline.receiptCutoff), soon = Date.parse(shownDetail.snapshot.deadline.utc) - HOUR;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    function arm() {
+      clearTimeout(timer); timer = undefined;
+      const now = controller.clock.now();
+      if (now === null || now > cutoff) return;
+      const at = now < soon ? soon : cutoff + 1;
+      timer = setTimeout(() => {
+        rerender();
+        const later = controller.clock.now();
+        if (later !== null && later > cutoff) void refreshDetail(oathId); else arm();
+      }, Math.min(at - now, LONGEST_TIMER));
+    }
+    const stop = controller.clock.subscribe(arm); arm();
+    return () => { clearTimeout(timer); stop(); };
+  }, [shownDetail, controller]);
   // The server's receipt is the detail now, shown as pending assessment.
   function showReceipt(oath: Oath) {
     generation.current++; detailId.current = oath.id;
@@ -182,23 +216,63 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     setSubject({ oathId, before: proofReady?.error }); void proof.discard();
   }
   /**
-   * The interrupted upload of one Oath: Today offers the resend, the Oath's own detail also offers delete. Nothing here claims a receipt.
+   * The interrupted upload of one Today row: the row offers the resend. Nothing here claims a receipt.
    * A final refusal stays on the row and the detail until the player dismisses it in the detail or sends again.
    */
-  function upload(oath: Oath, own: boolean) {
+  function upload(oath: Oath) {
     const oathId = oath.id;
     const status = deviceProof(oath, proofState, subject);
     if (status === 'none') return null;
     const error = deviceProofError(oath, proofState, subject);
     const message = status === 'sending' || status === 'deleting' ? t(status === 'deleting' ? 'proof.deleting' : 'proof.sending') : error ? errorMessage(error, t) : t('oathHome.uploadInterrupted');
     return <View testID="upload-interrupted" style={styles.upload}>
-      <View accessibilityLiveRegion="polite">{own ? <CompanionBubble message={message} /> : <Text style={styles.uploadText}>{message}</Text>}</View>
-      {status === 'waiting' && <>
-        <Action label={t('proof.retry')} onPress={() => resume(oathId)} />
-        {own && <Action label={t('proof.discard')} variant="secondary" onPress={() => discard(oathId)} />}
-      </>}
-      {own && status === 'refused' && <Action label={t('proof.dismiss')} variant="secondary" onPress={() => proof?.dismissRefusal()} />}
+      <View accessibilityLiveRegion="polite"><Text style={styles.uploadText}>{message}</Text></View>
+      {status === 'waiting' && <Action label={t('proof.retry')} onPress={() => resume(oathId)} />}
     </View>;
+  }
+  /**
+   * The detail on the shared pieces (docs/product/clarity.md decisions 11 and 14): track, the "now and next" card, Żaromir's line,
+   * then one link to the rules. The card's line is the path's next step, or the device's send status, or a refusal the player must act on.
+   * Facts that sat in the status panel and other errors wait behind "Pełny opis". Only the server's answer changes the state shown.
+   */
+  function detailPath(oath: Oath) {
+    const zone = oath.snapshot.deadline.timezone;
+    const status = deviceProof(oath, proofState, subject);
+    const error = deviceProofError(oath, proofState, subject);
+    const now = controller.clock.now();
+    // Without a list the pause is unknown, and the path keeps Żaromir silent where a pause could apply.
+    const path = oathPath(oath, status, list ? list.paused : null, now);
+    const time = path.next.time ? pathTimeText(path.next.time, locale) : undefined;
+    const line = status === 'sending' || status === 'deleting' ? t(status === 'deleting' ? 'proof.deleting' : 'proof.sending')
+      : error && required(error) ? errorMessage(error, t) : t(path.next.key, { time, date: time });
+    const stored = (instant: string) => compactStoredTime(wallTimeIn(instant, zone), locale);
+    // Only the server's receipt shows this. The receipt time is the server's, in the Oath's own zone.
+    const received = oath.state === 'proof_pending' ? oath.proof : null;
+    const facts: { text: string; time?: true }[] = [];
+    if (received) facts.push({ text: t('oath.proofPending') }, { text: t('oathHome.receivedAt', { time: `${stored(received.receivedAt)} · ${zoneLabel(zone, t)}` }), time: true });
+    if (oath.review) facts.push({ text: t('oathHome.reviewDeadline', { deadline: stored(oath.review.closesAt) }), time: true });
+    if (oath.terminalAt) facts.push({ text: t('oathHome.closedAt', { time: stored(oath.terminalAt) }), time: true });
+    if (oath.reason === 'service_availability_unknown') facts.push({ text: t('oathHome.unknownAvailability') });
+    if (oath.reason === 'character_paused') facts.push({ text: t('oathHome.withdrawn') });
+    // The interrupted copy's explanation, or the passing error of its last resend.
+    const device = status === 'waiting' || status === 'failed' ? error && !required(error) ? errorMessage(error, t) : status === 'waiting' ? t('oathHome.uploadInterrupted') : null : null;
+    const details = facts.length || device ? <View style={styles.facts}>
+      {facts.map(fact => <Text key={fact.text} style={fact.time ? styles.statusTime : styles.statusReason}>{fact.text}</Text>)}
+      {device && <Text testID="upload-interrupted" style={styles.statusReason}>{device}</Text>}
+    </View> : undefined;
+    // The only filled action. A copy waiting on the device is resent, never replaced by a new one.
+    const action = !proof ? undefined : path.action === 'submitProof' ? { label: t('proof.submit'), onPress: () => { setSubject(null); setRoute('proof'); } }
+      : path.action === 'sendAgain' ? { label: t('proof.retry'), onPress: () => resume(oath.id) } : undefined;
+    const secondary = proof && status === 'waiting' ? <Action label={t('proof.discard')} variant="secondary" onPress={() => discard(oath.id)} />
+      : proof && status === 'refused' ? <Action label={t('proof.dismiss')} variant="secondary" onPress={() => proof.dismissRefusal()} /> : undefined;
+    return <>
+      <StepTrack path={path} state={oath.state} activityEmblem={oath.snapshot.activity} />
+      <NextCard oath={oath} clock={controller.clock} line={line} onElapsed={() => { void refreshDetail(oath.id); }} action={action} secondary={secondary} details={details} />
+      <ZaromirLine situation={path.zaromir} seed={path.zaromir ? zaromirSeed(oath.id, path.zaromir, now, zone) : ''} />
+      <Disclosure label={t('path.rules')} icon={<SpriteFrame sheet={art.oaths.ruleIcons} index={ruleIcon.fullRules} width={36} />}>
+        <OathRuleCards snapshot={oath.snapshot} head="promise" fold={false} />
+      </Disclosure>
+    </>;
   }
   // A replay of a submission the server holds returns the original receipt and clears the record. Once per submission while this screen lives.
   const replayed = useRef(new Set<string>());
@@ -257,7 +331,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   // The same surface stays mounted, so its close-ups are already decoded.
   const waiting = available && hearthRequest;
   // Today shows each Oath's interrupted upload under its card. Worked out once, so the next card knows whether a line sits above it.
-  const uploads = route === 'list' && view === 'today' ? (list?.items ?? []).map(item => upload(item, false)) : [];
+  const uploads = route === 'list' && view === 'today' ? (list?.items ?? []).map(item => upload(item)) : [];
   return <SceneSurface place={place} drop={interactiveForge && !waiting ? LIST_DROP : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}>{waiting ? <SafeAreaView testID="hearth-waiting" style={styles.safeArea}><View style={styles.content}>
     {forgeNavigation && (interactiveForge
       ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />
@@ -341,27 +415,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
             <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.detailTitle}>{detail.snapshot.copy[locale].title}</Text>
             <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.detailActivity}>{detail.snapshot.copy[locale].activity}</Text>
           </View>
-          {/* One centred panel answers where the Oath stands: state, time left, the closing moment in the Oath's zone and why. */}
-          <View testID="detail-status" style={styles.statusPanel}>
-            <View accessible accessibilityLabel={t('oath.state', { state: t(`oath.states.${detail.state}`) })} accessibilityLiveRegion="polite" style={styles.detailState}>
-              <StateSeal state={detail.state} size={56} />
-              <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.detailStateLabel}>{t(`oath.states.${detail.state}`)}</Text>
-            </View>
-            <CountdownChip oath={detail} clock={controller.clock} size="large" onElapsed={() => { void refreshDetail(detail.id); }} />
-            {detail.review && <Text style={styles.statusTime}>{t('oathHome.reviewDeadline', { deadline: compactStoredTime(wallTimeIn(detail.review.closesAt, detail.snapshot.deadline.timezone), locale) })}</Text>}
-            {detail.terminalAt && <Text style={styles.statusTime}>{t('oathHome.closedAt', { time: compactStoredTime(wallTimeIn(detail.terminalAt, detail.snapshot.deadline.timezone), locale) })}</Text>}
-            {detail.reason === 'service_availability_unknown' && <Text style={styles.statusReason}>{t('oathHome.unknownAvailability')}</Text>}
-            {detail.reason === 'character_paused' && <Text style={styles.statusReason}>{t('oathHome.withdrawn')}</Text>}
-            {/* Only the server's receipt shows this. The receipt time is the server's, in the Oath's own zone. */}
-            {detail.state === 'proof_pending' && detail.proof && <>
-              <Text style={styles.statusReason}>{t('oath.proofPending')}</Text>
-              <Text style={styles.statusTime}>{t('oathHome.receivedAt', { time: `${compactStoredTime(wallTimeIn(detail.proof.receivedAt, detail.snapshot.deadline.timezone), locale)} · ${zoneLabel(detail.snapshot.deadline.timezone, t)}` })}</Text>
-            </>}
-          </View>
-          {upload(detail, true)}
-          {/* A copy of this Oath's proof waiting on the device is resent above, never replaced by a new one. */}
-          {proof && detail.state === 'active' && uploadOathId !== detail.id && <Action label={t('proof.submit')} onPress={() => { setSubject(null); setRoute('proof'); }} />}
-          <OathRuleCards snapshot={detail.snapshot} head="promise" />
+          {detailPath(detail)}
         </>}
       </>}
     </>}
@@ -400,13 +454,11 @@ const styles = StyleSheet.create({
   detailHead: { alignItems: 'center', gap: 4, marginTop: -8 },
   detailTitle: { color: '#f3dfbd', fontFamily: tokens.font.display, fontSize: tokens.title, lineHeight: 36, textAlign: 'center', textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
   detailActivity: { color: tokens.color.primary, fontSize: 14, lineHeight: 20, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', textAlign: 'center' },
-  statusPanel: { alignItems: 'center', gap: 14, paddingVertical: 20, paddingHorizontal: 18, borderRadius: 16, borderWidth: 1, borderColor: '#5b4630', backgroundColor: 'rgba(28, 22, 16, 0.94)' },
+  facts: { gap: 10 },
   statusTime: { color: '#ded1bd', fontSize: 15, lineHeight: 22, textAlign: 'center' },
   statusReason: { color: tokens.color.secondary, fontSize: 15, lineHeight: 22, textAlign: 'center' },
   upload: { gap: 10 },
   uploadText: { color: tokens.color.text, fontSize: 15, lineHeight: 22 },
-  detailState: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  detailStateLabel: { color: '#edba78', fontFamily: tokens.font.display, fontSize: 20, lineHeight: 28, flexShrink: 1 },
   emblems: { width: 84, height: 84 },
   stateBadge: { position: 'absolute', right: -6, bottom: -6 },
   parchment: { backgroundColor: 'rgba(27, 24, 20, 0.95)', padding: 18, borderTopWidth: 2, borderTopColor: '#9d7b4d', borderBottomWidth: 2, borderBottomColor: '#5d452c', borderRadius: 5 },

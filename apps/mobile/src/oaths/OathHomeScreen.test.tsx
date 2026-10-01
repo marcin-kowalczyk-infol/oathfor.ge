@@ -38,7 +38,7 @@ test('Today retains overdue review-pending Oaths and opens their authoritative s
   expect(screen.queryByText('Missed')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: /Open Oath: Running/ }));
   expect(await screen.findByLabelText('Status: Under review')).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Full rules' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Oath rules' }));
   expect(await screen.findByText(oath().snapshot.copy.en.sections.appeal)).toBeOnTheScreen();
 });
 test('empty Today has loading, failed retry and explicit creation states', async () => {
@@ -104,6 +104,7 @@ test('a character pause withdrawal explains that resuming does not restore it', 
   const f = setup([withdrawn]);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Full description' }));
   expect(await screen.findByText('Withdrawn when the pause began, and resuming does not restore it. After resuming you can make a new Oath.')).toBeOnTheScreen();
 });
 test('unresolved acceptance remains reachable from Today and cannot be reset into a new creation', async () => {
@@ -507,10 +508,13 @@ test('an active Oath detail shows its countdown, the rule cards and folded full 
   await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath:/ }))[0]);
   await screen.findByLabelText('Status: Active');
   expect(screen.getAllByTestId('countdown-chip').map(chip => chip.props.accessibilityLabel)).toEqual(['Until the deadline 1 day']);
-  expect(screen.getAllByTestId(/^rule-card-/)).toHaveLength(9);
+  // The promise, the cards and the stored rules open together from one link, with no third level.
+  expect(screen.queryByTestId(/^rule-card-/)).toBeNull();
   expect(screen.queryByText(active.snapshot.copy.en.sections.appeal)).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: 'Full rules' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Oath rules' }));
+  expect(screen.getAllByTestId(/^rule-card-/)).toHaveLength(9);
   expect(screen.getByText(active.snapshot.copy.en.sections.appeal)).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Full rules' })).toBeNull();
 });
 
 test('a closed Oath detail shows when it closed instead of a countdown', async () => {
@@ -520,6 +524,8 @@ test('a closed Oath detail shows when it closed instead of a countdown', async (
   await fireEvent.press((await screen.findAllByRole('button', { name: /Otwórz Przysięgę/ }))[0]);
   await screen.findByLabelText('Status: Spełniona');
   expect(screen.queryByTestId('countdown-chip')).toBeNull();
+  expect(screen.getByText('Przysięga spełniona niedz 25 paź 22:30. Wpis zostaje w kronice.')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Pełny opis' }));
   expect(screen.getByText('Zamknięta 25 paź 2026, 22:30')).toBeOnTheScreen();
 });
 
@@ -548,6 +554,9 @@ test('a review detail keeps its state, countdown, closing time in the Oath zone 
   const panel = await screen.findByTestId('detail-status');
   expect(within(panel).getByLabelText('Status: Under review')).toBeOnTheScreen();
   expect(within(panel).getByTestId('countdown-chip')).toBeOnTheScreen();
+  expect(within(panel).getByText('This is not a miss. Under review until Wed, Oct 28, 01:45.')).toBeOnTheScreen();
+  expect(within(panel).queryByText(/The service may have been unavailable then/)).toBeNull();
+  await fireEvent.press(within(panel).getByRole('button', { name: 'Full description' }));
   expect(within(panel).getByText('Review closes Oct 28, 2026 at 01:45')).toBeOnTheScreen();
   expect(within(panel).getByText(/The service may have been unavailable then/)).toBeOnTheScreen();
   expect(screen.queryByText(/GMT/)).toBeNull();
@@ -558,7 +567,8 @@ test('the Polish review closing time uses the same short date as a closed Oath',
   const f = setup(); f.controller.clock.observe(serverTime);
   await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
   await fireEvent.press((await screen.findAllByRole('button', { name: /Otwórz Przysięgę/ }))[0]);
-  expect(await screen.findByText('Pod rozwagą do 28 paź 2026, 01:45')).toBeOnTheScreen();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Pełny opis' }));
+  expect(screen.getByText('Pod rozwagą do 28 paź 2026, 01:45')).toBeOnTheScreen();
 });
 
 test('the list refreshes quietly when the app returns to the foreground, a detail stays as it is', async () => {
@@ -646,13 +656,17 @@ test.each([
 
 const receipt = { submissionId: '40000000-0000-4000-8000-000000000001', mode: 'photo' as const, revision: 1, receivedAt: '2026-09-24T18:14:00Z', assessment: 'queued' as const };
 test.each([
-  ['en', 'Proof received, assessment in progress. The receipt time stays recorded even if the assessment takes longer.', 'Receipt time: Sep 24, 2026 at 20:14 · Warsaw'],
-  ['pl', 'Dowód odebrany, ocena trwa. Czas odebrania zostaje zapisany, nawet gdy ocena się przeciąga.', 'Czas odebrania: 24 wrz 2026, 20:14 · Warszawa'],
-] as const)('a %s proof_pending detail shows the assessment copy and the server receipt time in the Oath zone', async (locale, pending, line) => {
+  ['en', 'Proof received. The result will appear here.', 'Full description', 'Proof received, assessment in progress. The receipt time stays recorded even if the assessment takes longer.', 'Receipt time: Sep 24, 2026 at 20:14 · Warsaw'],
+  ['pl', 'Dowód odebrany. Wynik pojawi się tutaj.', 'Pełny opis', 'Dowód odebrany, ocena trwa. Czas odebrania zostaje zapisany, nawet gdy ocena się przeciąga.', 'Czas odebrania: 24 wrz 2026, 20:14 · Warszawa'],
+] as const)('a %s proof_pending detail keeps the receipt explanation and time in the Oath zone behind the full description', async (locale, next, more, pending, line) => {
   const f = setup([oath({ state: 'proof_pending', reason: null, review: null, proof: receipt })]);
   await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
   await fireEvent.press(await screen.findByRole('button', { name: /^(Open Oath|Otwórz Przysięgę): / }));
-  expect(await screen.findByText(pending)).toBeOnTheScreen();
+  expect(await screen.findByText(next)).toBeOnTheScreen();
+  expect(screen.queryByText(pending)).toBeNull();
+  expect(screen.queryByText(line)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: more }));
+  expect(screen.getByText(pending)).toBeOnTheScreen();
   expect(screen.getByText(line)).toBeOnTheScreen();
 });
 
@@ -705,7 +719,10 @@ test('a pending local record shows the interrupted upload on its detail, and onl
   proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
-  expect(await screen.findByText(interrupted)).toBeOnTheScreen();
+  expect(await screen.findByText('Proof not received. The copy is here, ready to send again.')).toBeOnTheScreen();
+  expect(screen.queryByText(interrupted)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Full description' }));
+  expect(screen.getByText(interrupted)).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Submit proof' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Delete the copy on this device' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Send again' }));
@@ -718,8 +735,7 @@ test('a pending local record shows the interrupted upload on its detail, and onl
   expect(screen.queryByText(/^Evidence received/)).toBeNull();
   await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: oath({ state: 'proof_pending', reason: null, review: null, proof: receipt }) }));
   expect(await screen.findByLabelText('Status: Assessment pending')).toBeOnTheScreen();
-  expect(screen.getByText('Proof received, assessment in progress. The receipt time stays recorded even if the assessment takes longer.')).toBeOnTheScreen();
-  expect(screen.getByText('Receipt time: Sep 24, 2026 at 20:14 · Warsaw')).toBeOnTheScreen();
+  expect(screen.getByText('Proof received. The result will appear here.')).toBeOnTheScreen();
   expect(screen.queryByText(interrupted)).toBeNull();
 });
 test('a lost reply leaves a received Oath with its record, which is replayed once quietly and never shown as interrupted', async () => {
@@ -732,7 +748,7 @@ test('a lost reply leaves a received Oath with its record, which is replayed onc
   await waitFor(() => expect(proof.controller.recover).toHaveBeenCalledTimes(1));
   expect(screen.queryByText(interruptedPl)).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: /Otwórz Przysięgę/ }));
-  expect(await screen.findByText('Dowód odebrany, ocena trwa. Czas odebrania zostaje zapisany, nawet gdy ocena się przeciąga.')).toBeOnTheScreen();
+  expect(await screen.findByText('Dowód odebrany. Wynik pojawi się tutaj.')).toBeOnTheScreen();
   expect(screen.queryByText(interruptedPl)).toBeNull();
   expect(screen.queryByRole('button', { name: 'Usuń kopię z tego urządzenia' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Wyślij ponownie' })).toBeNull();
@@ -751,7 +767,7 @@ test.each([
   ['oath_not_active', { kind: 'proof_refused', code: 'oath_not_active', state: 'review_pending' }, 'This Oath is no longer waiting for proof. Check its current status.'],
   ['receipt_cutoff_passed', { kind: 'proof_refused', code: 'receipt_cutoff_passed' }, 'The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.'],
 ] as const)('resuming a stale record refused with %s shows the server reason once the record is cleared', async (_, error, reason) => {
-  const f = setup([oath()]); const proof = proofController();
+  const f = setup([activeThursday()]); const proof = proofController();
   proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
@@ -812,4 +828,94 @@ test('a refusal for one Oath stays off another Oath row and detail', async () =>
   await screen.findByLabelText('Status: Active');
   expect(screen.queryByText(cutoff)).toBeNull();
   expect(screen.queryByRole('button', { name: 'Got it' })).toBeNull();
+});
+
+// MVP-22-T09: the detail on the shared pieces (docs/product/clarity.md decisions 11 and 14).
+// A Thursday deadline outside the repeated autumn hour, so the line shows no offset.
+function activeThursday(patch: Partial<Oath> = {}) {
+  const item = oath({ state: 'active', reason: null, review: null, ...patch });
+  item.snapshot = { ...item.snapshot, deadline: { ...item.snapshot.deadline, local: '2026-10-29T02:30:00', offset: '+01:00', utc: '2026-10-29T01:30:00Z', receiptCutoff: '2026-10-29T01:45:00Z' } };
+  return item;
+}
+const filled = () => screen.queryAllByText('◆', { includeHiddenElements: true });
+test.each([
+  ['pl', /^Etap 2 z 4, Trening/, 'Trening i dowód do czw 29 paź 02:30.', 'Prześlij dowód'],
+  ['en', /^Step 2 of 4, Workout/, 'Workout and proof by Thu, Oct 29, 02:30.', 'Submit proof'],
+] as const)('a %s active detail shows the track, one line and exactly one filled action, then Żaromir', async (locale, track, line, submit) => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const f = setup([activeThursday()]); f.controller.clock.observe(serverTime);
+  await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} proof={proofController().controller} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /^(Open Oath|Otwórz Przysięgę): / }));
+  expect(await screen.findByLabelText(track)).toBeOnTheScreen();
+  expect(within(screen.getByTestId('detail-status')).getByText(line)).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: submit })).toBeOnTheScreen();
+  expect(filled()).toHaveLength(1);
+  expect(screen.getByTestId('zaromir-bust', { includeHiddenElements: true })).toBeOnTheScreen();
+});
+test('the repeated autumn hour carries its offset in the line', async () => {
+  const f = setup([oath({ state: 'active', reason: null, review: null })]); f.controller.clock.observe('2026-10-24T00:00:00Z');
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  expect(await screen.findByText('Workout and proof by Sun, Oct 25, 02:30 (UTC+02:00).')).toBeOnTheScreen();
+});
+test('an interrupted upload shows its badge words, one filled "Send again" and the delete as an outline action', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const f = setup([activeThursday()]); f.controller.clock.observe(serverTime); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} proof={proof.controller} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Otwórz Przysięgę/ }));
+  expect(await screen.findByLabelText('Etap 2 z 4, Trening, Nie dotarł')).toBeOnTheScreen();
+  expect(screen.getByText('Dowód nie dotarł. Kopia czeka tu na ponowne wysłanie.')).toBeOnTheScreen();
+  expect(filled()).toHaveLength(1);
+  expect(screen.getByRole('button', { name: 'Wyślij ponownie' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Usuń kopię z tego urządzenia' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Prześlij dowód' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Usuń kopię z tego urządzenia' }));
+  expect(proof.controller.discard).toHaveBeenCalledTimes(1);
+});
+test('a required refusal replaces the line, a passing network error stays behind the full description', async () => {
+  const f = setup([activeThursday()]); f.controller.clock.observe(serverTime); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Send again' }));
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: record(), oath: null, error: { kind: 'unavailable', retry: 'request' } }));
+  expect(screen.getByText('Proof not received. The copy is here, ready to send again.')).toBeOnTheScreen();
+  expect(screen.queryByText(/Could not reach the server/)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Full description' }));
+  expect(screen.getByText(/Could not reach the server/)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Send again' }));
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: record(), oath: null, error: { kind: 'reauthenticate' } }));
+  expect(screen.getByText('Sign in again. The proof copy is waiting on this device.')).toBeOnTheScreen();
+  expect(screen.queryByText('Proof not received. The copy is here, ready to send again.')).toBeNull();
+});
+test.each([
+  ['paused', true],
+  ['not paused', false],
+] as const)('a proof_pending detail on a %s list shows Żaromir only when the pause is off', async (_, paused) => {
+  const pending = oath({ state: 'proof_pending', reason: null, review: null, proof: receipt });
+  const f = setup([pending]); jest.mocked(f.controller.list).mockResolvedValue(page([pending], null, paused));
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Otwórz Przysięgę/ }));
+  await screen.findByText('Dowód odebrany. Wynik pojawi się tutaj.');
+  expect(screen.queryAllByTestId('zaromir-bust', { includeHiddenElements: true })).toHaveLength(paused ? 0 : 1);
+  expect(screen.queryAllByLabelText(/^Żaromir: /)).toHaveLength(paused ? 0 : 1);
+});
+test('an active detail asks the server again when the window for proof closes, and the line says it closed', async () => {
+  jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-10-29T01:44:50Z'));
+  try {
+    const active = activeThursday();
+    const f = setup([active]); f.controller.clock.observe('2026-10-29T01:44:50Z');
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proofController().controller} timezone="UTC" /></LocalizationProvider>);
+    await act(async () => { await Promise.resolve(); });
+    await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath:/ }))[0]);
+    expect(await screen.findByText('Workout finished by the deadline? Submit proof by Thu, Oct 29, 02:45.')).toBeOnTheScreen();
+    expect(f.controller.detail).toHaveBeenCalledTimes(1);
+    await act(async () => { jest.advanceTimersByTime(11000); });
+    expect(f.controller.detail).toHaveBeenCalledTimes(2);
+    expect(await screen.findByText('The proof window has closed. The Forge is settling the state.')).toBeOnTheScreen();
+    expect(filled()).toHaveLength(0);
+    await act(async () => { jest.advanceTimersByTime(600000); });
+    expect(f.controller.detail).toHaveBeenCalledTimes(2);
+  } finally { jest.useRealTimers(); }
 });

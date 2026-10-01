@@ -22,7 +22,7 @@ const spoken = (card: RuleCard) => (card.time && card.lines.length > 1 ? [card.l
  * The accepted rules as the promise, the declaration and short cards, with the complete stored rules one touch away
  * (owner decision Q1: folded under "Pełne zasady"). The folded text is the unchanged SnapshotRules.
  */
-export function OathRuleCards({ snapshot, highlight = null, head = 'full', onCardsLayout, onCardLayout }: { snapshot: Snapshot; highlight?: RuleCardId | null; /** promise: the detail shows its own emblem and title above, so only the promise opens the rules. */ head?: 'full' | 'promise'; /** Top of the card grid inside this view. */ onCardsLayout?(y: number): void; /** Top of each card inside the grid. */ onCardLayout?(id: RuleCardId, y: number): void }) {
+export function OathRuleCards({ snapshot, highlight = null, head = 'full', fold = true, onCardsLayout, onCardLayout }: { snapshot: Snapshot; highlight?: RuleCardId | null; /** promise: the detail shows its own emblem and title above, so only the promise opens the rules. */ head?: 'full' | 'promise'; /** false: the caller already folds the whole block (the detail's "Zasady Przysięgi"), so the stored rules follow the cards directly, two levels at most. */ fold?: boolean; /** Top of the card grid inside this view. */ onCardsLayout?(y: number): void; /** Top of each card inside the grid. */ onCardLayout?(id: RuleCardId, y: number): void }) {
   const oathArt = useArt().oaths;
   const { t, i18n } = useTranslation();
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
@@ -58,9 +58,9 @@ export function OathRuleCards({ snapshot, highlight = null, head = 'full', onCar
         </View>
       </View>)}
     </View>
-    <Disclosure label={t('oath.fullRules')} icon={<SpriteFrame sheet={oathArt.ruleIcons} index={ruleIcon.fullRules} width={36} />}>
+    {fold ? <Disclosure label={t('oath.fullRules')} icon={<SpriteFrame sheet={oathArt.ruleIcons} index={ruleIcon.fullRules} width={36} />}>
       <SnapshotRules snapshot={snapshot} />
-    </Disclosure>
+    </Disclosure> : <SnapshotRules snapshot={snapshot} />}
   </View>;
 }
 const styles = StyleSheet.create({
