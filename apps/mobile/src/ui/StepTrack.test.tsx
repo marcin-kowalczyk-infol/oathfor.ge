@@ -22,7 +22,8 @@ test('an active Oath shows four labelled steps in a row, read as one sentence', 
   expect(StyleSheet.flatten(track.props.style)).toMatchObject({ flexDirection: 'row' });
   for (const label of ['Przysięga', 'Trening', 'Ocena', 'Wynik']) expect(screen.getByText(label)).toBeOnTheScreen();
   for (const id of ['step-node-1-done', 'step-node-2-current', 'step-node-3-future', 'step-node-4-future']) expect(screen.getByTestId(id, hidden)).toBeTruthy();
-  // A short label shrinks a little but never ends in an ellipsis.
+  // A short label shrinks a little, then takes a second line, never an ellipsis.
+  expect(screen.getByText('Przysięga').props).toMatchObject({ numberOfLines: 2, adjustsFontSizeToFit: true });
   expect(screen.getByText('Przysięga').props.minimumFontScale).toBeGreaterThanOrEqual(0.85);
 });
 
@@ -30,6 +31,8 @@ test('an interrupted upload puts the badge on the workout step and names it', as
   await show(path({ badge: 'interrupted', action: 'sendAgain', zaromir: 'interrupted' }), 'active');
   expect(screen.getByTestId('step-track')).toHaveProp('accessibilityLabel', 'Etap 2 z 4, Trening, Nie dotarł');
   expect(screen.getByTestId('step-node-2-current', hidden)).toContainElement(screen.getByTestId('step-badge-interrupted', hidden));
+  // The amber badge carries its words under the step in the row too (clarity rule 4).
+  expect(screen.getByTestId('step-words', hidden)).toHaveTextContent('Nie dotarł');
 });
 
 test('a scheduled Oath has the oath step done with the waiting badge on it', async () => {
@@ -40,7 +43,8 @@ test('a scheduled Oath has the oath step done with the waiting badge on it', asy
 
 test('a withdrawn Oath that never started shows dashed skipped steps, says so, and ends on its result seal', async () => {
   await show(path({ step: 4, steps: ['done', 'skipped', 'skipped', 'current'], badge: 'result' }), 'withdrawn');
-  expect(screen.getByTestId('step-track')).toHaveProp('accessibilityLabel', 'Etap 4 z 4, Wynik. Pominięte etapy: Trening, Ocena');
+  expect(screen.getByTestId('step-track')).toHaveProp('accessibilityLabel', 'Etap 4 z 4, Wynik, Wycofana. Pominięte etapy: Trening, Ocena');
+  expect(screen.getByTestId('step-words', hidden)).toHaveTextContent('Wycofana');
   expect(StyleSheet.flatten(screen.getByTestId('step-node-2-skipped', hidden).props.style)).toMatchObject({ borderStyle: 'dashed' });
   expect(screen.getByTestId('step-node-4-current', hidden)).toContainElement(screen.getByTestId('state-seal-withdrawn', hidden));
   expect(screen.queryByTestId(/^step-badge-/, hidden)).toBeNull();
@@ -73,4 +77,27 @@ test('the compact track is four pips with the short state label', async () => {
 test('a compact result names the state', async () => {
   await show(path({ step: 4, steps: ['done', 'done', 'done', 'current'], badge: 'result' }), 'fulfilled', { variant: 'compact', locale: 'en' });
   expect(screen.getByText('Fulfilled')).toBeOnTheScreen();
+  expect(screen.getByTestId('step-track')).toHaveProp('accessibilityLabel', 'Step 4 of 4, Result, Fulfilled');
+});
+
+test('the compact track speaks its visible state label', async () => {
+  await show(path({}), 'active', { variant: 'compact' });
+  expect(screen.getByText('Aktywna')).toBeOnTheScreen();
+  expect(screen.getByTestId('step-track')).toHaveProp('accessibilityLabel', 'Etap 2 z 4, Trening, Aktywna');
+});
+
+test('a vertical result names the state under the result step', async () => {
+  size(320, 1);
+  await show(path({ step: 4, steps: ['done', 'done', 'done', 'current'], badge: 'result' }), 'missed');
+  expect(screen.getByText('Niewykonana')).toBeOnTheScreen();
+  expect(screen.getByTestId('step-track')).toHaveProp('accessibilityLabel', 'Etap 4 z 4, Wynik, Niewykonana');
+});
+
+test('the vertical list draws one connector per row, from each node to the next row, so growing rows stay joined', async () => {
+  size(320, 1);
+  await show(path({ badge: 'interrupted' }), 'active');
+  for (const row of [1, 2, 3]) expect(StyleSheet.flatten(screen.getByTestId(`step-segment-${row}`, hidden).props.style)).toMatchObject({ position: 'absolute', top: 16, bottom: -12 });
+  expect(screen.queryByTestId('step-segment-4', hidden)).toBeNull();
+  // Nodes sit at the top of their rows, so a segment always starts at its node centre.
+  expect(StyleSheet.flatten(screen.getByTestId('step-row-2', hidden).props.style)).toMatchObject({ alignItems: 'flex-start' });
 });

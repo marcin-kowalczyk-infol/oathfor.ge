@@ -14,7 +14,7 @@ import { tokens } from './tokens';
 const STEPS = ['oath', 'workout', 'assessment', 'result'] as const;
 /** Cells of the step badge sheet. Assessment reuses the hourglass of waiting. The result has no corner badge, its seal is the step icon. */
 const BADGE_CELL: Partial<Record<NonNullable<PathBadge>, number>> = { interrupted: 0, needsMore: 1, review: 2, waiting: 3, assessing: 3 };
-const NODE = 32, ICON = 24, BADGE = 20, PIP = 8;
+const NODE = 32, ICON = 24, BADGE = 20, PIP = 8, LIST_GAP = 12;
 const HIGHLIGHT = '#e0a84f', BRONZE = '#8c602e', RING = '#5b4630', GROUND = '#1c1610';
 
 /**
@@ -28,18 +28,24 @@ export function StepTrack({ path, state, variant = 'full', activityEmblem }: { p
   const oathArt = useArt().oaths;
   const current = path.step - 1;
   const cell = path.badge === null ? undefined : BADGE_CELL[path.badge];
-  const badgeWords = cell === undefined ? null : t(`path.badge.${path.badge}`);
+  // The result has no corner badge, its words are the decided state.
+  const badgeWords = path.badge === 'result' ? t(`oath.states.${state}`) : cell === undefined ? null : t(`path.badge.${path.badge}`);
   const stepLabel = (index: number) => t(`path.steps.${STEPS[index]}`);
   const skipped = path.steps.flatMap((status, index) => status === 'skipped' ? [stepLabel(index)] : []);
   const sentence = badgeWords ? t('path.trackBadge', { step: path.step, label: stepLabel(current), badge: badgeWords }) : t('path.track', { step: path.step, label: stepLabel(current) });
   const label = skipped.length ? `${sentence}. ${t('path.skippedSteps', { steps: skipped.join(', ') })}` : sentence;
 
-  if (variant === 'compact') return <View testID="step-track" accessible accessibilityLabel={label} style={styles.compact}>
-    <View style={styles.pips}>
-      {path.steps.map((status, index) => <View key={index} testID={`step-pip-${index + 1}-${status}`} style={[styles.pip, pipStyles[status]]} />)}
-    </View>
-    <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.compactLabel}>{badgeWords ?? t(`forge.sealState.${state}`)}</Text>
-  </View>;
+  if (variant === 'compact') {
+    // The row speaks the label it shows.
+    const shown = badgeWords ?? t(`forge.sealState.${state}`);
+    const spoken = t('path.trackBadge', { step: path.step, label: stepLabel(current), badge: shown });
+    return <View testID="step-track" accessible accessibilityLabel={skipped.length ? `${spoken}. ${t('path.skippedSteps', { steps: skipped.join(', ') })}` : spoken} style={styles.compact}>
+      <View style={styles.pips}>
+        {path.steps.map((status, index) => <View key={index} testID={`step-pip-${index + 1}-${status}`} style={[styles.pip, pipStyles[status]]} />)}
+      </View>
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.compactLabel}>{shown}</Text>
+    </View>;
+  }
 
   const icon = (index: number, status: StepStatus) => {
     const dim = status === 'future' || status === 'skipped' ? styles.dim : null;
@@ -56,8 +62,9 @@ export function StepTrack({ path, state, variant = 'full', activityEmblem }: { p
   </View>;
 
   if (layoutMode(width, fontScale) === 'simple') return <View testID="step-track" accessible accessibilityLabel={label} style={styles.list}>
-    <View style={styles.listLine} />
-    {path.steps.map((status, index) => <View key={index} style={styles.listRow}>
+    {path.steps.map((status, index) => <View key={index} testID={`step-row-${index + 1}`} style={styles.listRow}>
+      {/* Each row draws its own segment from its node centre to the next row, so a row that grows keeps the line joined. */}
+      {index < path.steps.length - 1 && <View testID={`step-segment-${index + 1}`} style={styles.segment} />}
       {node(status, index)}
       <View style={styles.listText}>
         <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, labelStyles[status]]}>{stepLabel(index)}</Text>
@@ -71,8 +78,9 @@ export function StepTrack({ path, state, variant = 'full', activityEmblem }: { p
     <View style={styles.rowLine} />
     {path.steps.map((status, index) => <View key={index} style={styles.column}>
       {node(status, index)}
-      {/* One word per step. It shrinks to 0.85 before it could be cut. */}
-      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={[styles.label, styles.centred, labelStyles[status]]}>{stepLabel(index)}</Text>
+      {/* One word per step. It shrinks to 0.85, then takes a second line, never an ellipsis. */}
+      <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85} style={[styles.label, styles.centred, labelStyles[status]]}>{stepLabel(index)}</Text>
+      {index === current && badgeWords && <Text testID="step-words" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.small, styles.centred]}>{badgeWords}</Text>}
     </View>)}
   </View>;
 }
@@ -82,16 +90,18 @@ const styles = StyleSheet.create({
   // The line runs between the first and the last node centre, behind the nodes.
   rowLine: { position: 'absolute', left: '12.5%', right: '12.5%', top: 8 + NODE / 2 - 1, height: 2, backgroundColor: RING },
   column: { flex: 1, alignItems: 'center', gap: 6 },
-  list: { flexDirection: 'column', gap: 12, paddingTop: 8 },
-  listLine: { position: 'absolute', left: NODE / 2 - 1, top: 8 + NODE / 2, bottom: NODE / 2, width: 2, backgroundColor: RING },
-  listRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  listText: { flex: 1, gap: 2 },
+  list: { flexDirection: 'column', gap: LIST_GAP, paddingTop: 8 },
+  segment: { position: 'absolute', left: NODE / 2 - 1, top: NODE / 2, bottom: -LIST_GAP, width: 2, backgroundColor: RING },
+  listRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  // The first line sits level with the node, more lines grow downwards.
+  listText: { flex: 1, gap: 2, minHeight: NODE, justifyContent: 'center' },
   node: { width: NODE, height: NODE, borderRadius: NODE / 2, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: -8, right: -10 },
   dim: { opacity: 0.4 },
   label: { fontSize: 13, lineHeight: 18 },
   centred: { textAlign: 'center' },
   words: { color: tokens.color.secondary, fontSize: 14, lineHeight: 20 },
+  small: { color: tokens.color.secondary, fontSize: 12, lineHeight: 16 },
   compact: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   pips: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   pip: { width: PIP, height: PIP, borderRadius: PIP / 2, borderWidth: 1 },

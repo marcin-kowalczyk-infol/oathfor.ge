@@ -70,9 +70,11 @@ test('Żaromir urges only in the last hour, between the deadline and the cutoff,
 });
 
 // Review finding, 2026-10-01: after the cutoff nothing asks for proof. The server settles the state at its next answer.
-test('after the cutoff the line says the window has closed and no action is offered', () => {
+test('after the cutoff the line says the window has closed, only a waiting copy keeps its resend', () => {
   expect(oathPath(oath(), 'none', false, S + MIN)).toEqual({ step: 2, steps: ['done', 'current', 'future', 'future'], badge: null, next: { key: 'path.next.closed' }, action: null, zaromir: null });
-  expect(oathPath(oath(), 'waiting', false, S + MIN)).toMatchObject({ badge: 'interrupted', next: { key: 'path.next.closed' }, action: null, zaromir: null });
+  // Review of T05 to T08b: the server replays a recorded submission at any time (SubmissionService), so a waiting copy keeps its resend.
+  // The line stays the calm interrupted one and Żaromir stays silent.
+  expect(oathPath(oath(), 'waiting', false, S + MIN)).toEqual({ step: 2, steps: ['done', 'current', 'future', 'future'], badge: 'interrupted', next: { key: 'path.next.interrupted' }, action: 'sendAgain', zaromir: null });
   expect(oathPath(oath(), 'waiting', false, S)).toMatchObject({ next: { key: 'path.next.interrupted' }, action: 'sendAgain' });
 });
 

@@ -49,8 +49,11 @@ export function oathPath(oath: Oath, device: DeviceProof, paused: boolean | null
     const deadline = Date.parse(oath.snapshot.deadline.utc), cutoff = Date.parse(oath.snapshot.deadline.receiptCutoff);
     const closed = now !== null && now > cutoff;
     const steps: OathPath['steps'] = ['done', 'current', 'future', 'future'];
-    // After the cutoff nothing asks for proof. The server settles the state at its next answer, an interrupted copy keeps its badge.
-    if (closed) return path(2, steps, device === 'waiting' ? 'interrupted' : null, { key: 'path.next.closed' }, null, null);
+    // After the cutoff nothing asks for new proof. The server settles the state at its next answer.
+    // A copy already waiting keeps its resend: the server replays a recorded submission at any time and refuses an unrecorded one honestly.
+    if (closed) return device === 'waiting'
+      ? path(2, steps, 'interrupted', { key: 'path.next.interrupted' }, 'sendAgain', null)
+      : path(2, steps, null, { key: 'path.next.closed' }, null, null);
     if (device === 'waiting') return path(2, steps, 'interrupted', { key: 'path.next.interrupted' }, 'sendAgain', 'interrupted');
     const late = now !== null && now > deadline, soon = !late && now !== null && deadline - now < HOUR;
     const situation = late ? 'cutoff' : soon ? 'activeSoon' : 'active';
