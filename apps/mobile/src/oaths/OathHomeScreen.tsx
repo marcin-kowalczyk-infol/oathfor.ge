@@ -25,7 +25,8 @@ import { OathScreen, type OathCreationDraft } from './OathScreen';
 import type { OathController } from './controller';
 import { layoutMode } from '../ui/layoutMode';
 import { useArt } from '../art/ArtProvider';
-import type { ProofController, ProofControllerError, ProofControllerState } from '../proof/proofController';
+import type { ProofController, ProofControllerState } from '../proof/proofController';
+import { deviceProof, deviceProofError, heldByServer, type ProofSubject } from './deviceProof';
 import { errorMessage, ProofScreen } from '../proof/ProofScreen';
 import { zoneLabel } from './zoneLabel';
 type ViewName = 'today' | 'history';
@@ -81,8 +82,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const uploadOathId = proofReady?.pending?.oathId;
   // The Oath whose upload the player resumed or deleted here. A refusal clears the record, so its reason shows through this.
   // An answer that was already there is not news, so the error at the press is kept to tell them apart.
-  const [subject, setSubject] = useState<{ oathId: string; before?: ProofControllerError } | null>(null);
-  const subjectError = subject && proofReady?.error && proofReady.error !== subject.before ? proofReady.error : undefined;
+  const [subject, setSubject] = useState<ProofSubject>(null);
   // A final refusal of a recorded proof, also from the automatic resend on load. The controller keeps its Oath after clearing the record.
   const lastRefusal = proofReady?.lastRefusal;
   const current = (epoch: number) => epoch === generation.current;
@@ -187,31 +187,25 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
    */
   function upload(oath: Oath, own: boolean) {
     const oathId = oath.id;
-    // After a lost reply the server already holds this submission. Its replay runs quietly below, so nothing reads as interrupted.
-    if (received(oath)) return null;
-    const waiting = uploadOathId === oathId;
-    const refused = lastRefusal?.oathId === oathId ? lastRefusal : undefined;
-    const error: ProofControllerError | undefined = refused ? { kind: 'proof_refused', code: refused.code, ...(refused.state ? { state: refused.state } : {}) }
-      : subject?.oathId === oathId && subjectError?.kind !== 'proof_refused' ? subjectError : undefined;
-    if (!waiting && !error) return null;
-    const busy = !!proofReady?.busy;
-    const message = busy && waiting ? t(proofReady?.deleting ? 'proof.deleting' : 'proof.sending') : error ? errorMessage(error, t) : t('oathHome.uploadInterrupted');
+    const status = deviceProof(oath, proofState, subject);
+    if (status === 'none') return null;
+    const error = deviceProofError(oath, proofState, subject);
+    const message = status === 'sending' || status === 'deleting' ? t(status === 'deleting' ? 'proof.deleting' : 'proof.sending') : error ? errorMessage(error, t) : t('oathHome.uploadInterrupted');
     return <View testID="upload-interrupted" style={styles.upload}>
       <View accessibilityLiveRegion="polite">{own ? <CompanionBubble message={message} /> : <Text style={styles.uploadText}>{message}</Text>}</View>
-      {waiting && !busy && <>
+      {status === 'waiting' && <>
         <Action label={t('proof.retry')} onPress={() => resume(oathId)} />
         {own && <Action label={t('proof.discard')} variant="secondary" onPress={() => discard(oathId)} />}
       </>}
-      {own && refused && !waiting && <Action label={t('proof.dismiss')} variant="secondary" onPress={() => proof?.dismissRefusal()} />}
+      {own && status === 'refused' && <Action label={t('proof.dismiss')} variant="secondary" onPress={() => proof?.dismissRefusal()} />}
     </View>;
   }
-  const received = (oath: Oath) => !!proofReady?.pending && oath.id === proofReady.pending.oathId && oath.proof?.submissionId === proofReady.pending.submissionId;
   // A replay of a submission the server holds returns the original receipt and clears the record. Once per submission while this screen lives.
   const replayed = useRef(new Set<string>());
   useEffect(() => {
     const pending = proofReady?.pending;
     if (!proof || !pending || proofReady.busy || replayed.current.has(pending.submissionId)) return;
-    if (![detail, ...(list?.items ?? [])].some(item => item && received(item))) return;
+    if (![detail, ...(list?.items ?? [])].some(item => item && heldByServer(item, proofState))) return;
     replayed.current.add(pending.submissionId); void proof.recover();
   }, [proofReady, detail, list]);
   function create(recover = false) {
