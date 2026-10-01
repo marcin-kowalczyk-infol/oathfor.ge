@@ -144,6 +144,7 @@ export const currentArt: ArtSet = {
     ruleIcons: oathSheet(require('../../assets/oaths/rule-icons-v01.png'), 5, 2),
     sealStamp: oathSheet(require('../../assets/oaths/seal-stamp-v01.png'), 4, 2),
     sealSparks: oathSheet(require('../../assets/oaths/seal-sparks-v01.png'), 4, 2),
+    stepBadges: oathSheet(require('../../assets/oaths/step-badges-v01.png'), 4, 1),
   },
   // The owner's six starters, each drawn thin and heavy (docs/art/player-preset-assets.md).
   presets: {

@@ -725,6 +725,7 @@
     },
     "track": "Step {{step}} of 4, {{label}}",
     "trackBadge": "Step {{step}} of 4, {{label}}, {{badge}}",
+    "skippedSteps": "Skipped steps: {{steps}}",
     "badge": {
       "waiting": "Awaiting start",
       "interrupted": "Not received",

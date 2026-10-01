@@ -57,15 +57,22 @@ describe('art registry', () => {
     const art = resolveArt('cinematic');
     const all = sources({ presets: art.presets, playerMotion: art.playerMotion, stations: art.stations, panel: { fill: art.panel.fill, plate: art.panel.plate, rune: art.panel.rune }, talk: art.talk, oaths: art.oaths,
       activityObjects: art.activityObjects, stateSeals: art.stateSeals, haze: art.haze, menuTools: art.menuTools });
-    expect(all).toHaveLength(24 + 13 + 3 + 3 + 2 + 5 + 4);
+    expect(all).toHaveLength(24 + 13 + 3 + 3 + 2 + 6 + 4);
     // The frame tiles are v02, with the v01 row profile (panel-frame-v02).
     for (const key of ['corner', 'edgeH', 'edgeV'] as const) expect(file(art.panel[key])).toMatch(/^panel-.*-cinematic-v02\.png$/);
     for (const name of all) expect(name).toMatch(/-cinematic-v01\.(png|jpg)$/);
     for (const id of Object.keys(currentArt.presets)) for (const build of ['thin', 'heavy'] as const) expect(file(art.presets[id][build].figure)).toBe(`${id.replace('_', '-')}-${build}-figure-cinematic-v01.png`);
     // Sheets keep the v01 cell layout, so frame indices such as ruleIcon stay valid.
     const layout = (value: { cols: number; rows: number; aspect: number }) => [value.cols, value.rows, value.aspect];
-    for (const key of ['hourglass', 'ruleIcons', 'sealStamp', 'sealSparks'] as const) expect(layout(art.oaths[key])).toEqual(layout(currentArt.oaths[key]));
+    for (const key of ['hourglass', 'ruleIcons', 'sealStamp', 'sealSparks', 'stepBadges'] as const) expect(layout(art.oaths[key])).toEqual(layout(currentArt.oaths[key]));
     expect(layout(art.playerMotion['starter_02.thin'].walk.front)).toEqual(layout(currentArt.playerMotion['starter_02.thin'].walk.front));
+  });
+
+  // Step badges (MVP-22): interrupted, needsMore, review, waiting, one row of 96 px cells.
+  test('each style has its own step badge sheet of four square cells', () => {
+    expect(file(currentArt.oaths.stepBadges.source)).toBe('step-badges-v01.png');
+    expect(file(resolveArt('cinematic').oaths.stepBadges.source)).toBe('step-badges-cinematic-v01.png');
+    expect([currentArt.oaths.stepBadges.cols, currentArt.oaths.stepBadges.rows, currentArt.oaths.stepBadges.aspect]).toEqual([4, 1, 1]);
   });
 
   test('each style places the hearth flame on its own close-up', () => {

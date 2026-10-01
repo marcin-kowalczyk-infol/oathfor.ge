@@ -157,5 +157,6 @@ export const cinematicArt: ArtOverrides = {
     ruleIcons: oathSheet(require('../../assets/oaths/rule-icons-cinematic-v01.png'), 5, 2),
     sealStamp: oathSheet(require('../../assets/oaths/seal-stamp-cinematic-v01.png'), 4, 2),
     sealSparks: oathSheet(require('../../assets/oaths/seal-sparks-cinematic-v01.png'), 4, 2),
+    stepBadges: oathSheet(require('../../assets/oaths/step-badges-cinematic-v01.png'), 4, 1),
   },
 };

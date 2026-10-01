@@ -53,6 +53,23 @@ Rule icon indexes:
 
 Master SHA-256: `oath-rule-icons-v01.png` `a58dfedba7ddbab7b31428b4534db74408d33c3a354d8871edd141ed2a92c529`, `talk-icons-v01.png` `0a6ff9a726f5d3c01bbf170c9a57608ec9e3defa9844feae2337a465b9a49f83`, `oath-seal-stamp-v04.png` `48b3c62a5ef50dc8887c9258073fa2f6c4345cbd9e749aaaf5d80bbf6c46fd07`, `oath-seal-sparks-v01.png` `2510e4bce034c38b4cbed1a5262f9bfdef746098839642a67076c142cb0e2894`, `countdown-hourglass-v05.png` `d32ff9bdf464aea48fff43978199fbf459796d2535bbe8cd7ca8293f41eb9056`.
 
+## Step badges (MVP-22)
+
+Local selection, 2026-10-01 (MVP-22-T06, art task T13 folded in). Candidate art for the corner badge on the [step track](../product/clarity.md#step-track). Owner visual acceptance and the native 20 pt check are pending.
+
+Provenance: built-in `image_gen`, two calls on 2026-10-01, one per style, from the brief in ignored `graphics/mvp-22/codex-brief-step-badges.md`. Model version and seed were not exposed. Exact prompts sit beside the masters in ignored `graphics/mvp-22/incoming/` as `oath-step-badges-v01.prompt.txt` and `oath-step-badges-cinematic-v01.prompt.txt`. Ignored `graphics/mvp-22/export-step-badges.sh` (ImageMagick 7.1.2-26) cut each object from its 2172 × 724 master, fitted it within 88 × 88 without stretching and centred it in a 96 × 96 cell. Alpha below 8 is cleared and 250 to 254 is raised to 255, as above. No symbol was redrawn. The report with alpha bounds is ignored `graphics/mvp-22/incoming/oath-step-badges-v01.md`. The files were copied byte for byte.
+
+| Export | Master | Size / mode | Use | Cells | SHA-256 |
+| --- | --- | --- | --- | --- | --- |
+| `step-badges-v01.png` | `oath-step-badges-current-master` | 384 × 96 RGBA | Step track corner badge, current style | 4 × 1 of 96 × 96: interrupted "!", needsMore "?", review scales, waiting hourglass | `23f7f24577f2da4ccbc6a9ea8cf7dc659bc38aa6539756cd47230ccd126d2685` |
+| `step-badges-cinematic-v01.png` | `oath-step-badges-cinematic-master` | 384 × 96 RGBA | Step track corner badge, cinematic style | Same cells | `325229cf897226c1a4779f0b7c060b5a884f93f6a3295f857ae6c631bc78ce2b` |
+
+The app reads `oaths.stepBadges` by cell: interrupted 0, needsMore 1, review 2, waiting 3. Assessing reuses the hourglass in cell 3. A result has no badge, its state seal is the step icon.
+
+Master SHA-256: `oath-step-badges-current-master.png` `24895b54d8b9440f8dd6be15f26ad57401595af95d3d000919f2ed6c8ad7e69a`, `oath-step-badges-cinematic-master.png` `7d8b68c044ecb79078d2bd0e1fbab7b5563423a8a8da4a49d5a62ed3bf21afa3`.
+
+Checks: the previews over `#1E140D` and the light check over `#F3EBDD` show no halo, matte or pale fringe (visual inspection, 2026-10-01). Every cell keeps at least 4 px of clear margin. The amber "!" and the bronze "?" differ by glyph and colour, the scales and the hourglass by silhouette. The cinematic scales keep chain detail that merges into thin supports at 18 px.
+
 ## Checks
 
 - Stamp and hourglass frames are pixel identical outside the animated region of the master, mapped to the export with a 3 px resampling margin.

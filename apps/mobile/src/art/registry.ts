@@ -66,7 +66,8 @@ export type ArtSet = {
   effects: Record<'hearthLoop' | 'hearthBurst' | 'doorMist' | 'candle' | 'wisp' | 'sealStar' | 'sealTree' | 'sealWolf' | 'bookSigns', Sheet>;
   panel: Record<'corner' | 'edgeH' | 'edgeV' | 'fill' | 'plate' | 'rune', number>;
   talk: Record<'oaths' | 'chronicle', number>;
-  oaths: { hourglass: Sheet; hourglassStill: number; ruleIcons: Sheet; sealStamp: Sheet; sealSparks: Sheet };
+  /** stepBadges: one row of four cells, interrupted, needsMore, review, waiting (docs/art/oath-screens-assets.md). */
+  oaths: { hourglass: Sheet; hourglassStill: number; ruleIcons: Sheet; sealStamp: Sheet; sealSparks: Sheet; stepBadges: Sheet };
   presets: Record<string, Record<CharacterBuild, PresetArt>>;
   /** Player sprite sheets by `${presetId}.${build}`. */
   playerMotion: Record<string, FigureSheets>;

@@ -751,6 +751,7 @@
     },
     "track": "Etap {{step}} z 4, {{label}}",
     "trackBadge": "Etap {{step}} z 4, {{label}}, {{badge}}",
+    "skippedSteps": "Pominięte etapy: {{steps}}",
     "badge": {
       "waiting": "Czeka na start",
       "interrupted": "Nie dotarł",
