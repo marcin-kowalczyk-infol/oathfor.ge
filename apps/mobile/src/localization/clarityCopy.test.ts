@@ -66,8 +66,6 @@ const shared = [
   // Kept long, not debt: folded text stays unchanged (rule 2). The detail folds oathHome.uploadInterrupted behind "Pełny opis",
   // A2 folds notifications.future. No slice A task touches the proof errors.
   'notifications.future', 'oathHome.uploadInterrupted', 'proof.errors.unavailable', 'proof.errors.rateLimited', 'proof.errors.sendFailed',
-  // A2.
-  'notifications.error_save', 'onboarding.error_save', 'onboarding.notificationsPending', 'onboarding.reviewPending', 'onboarding.error_complete', 'onboarding.companionIntroduction',
   // A3.
   'auth.cleanupUnconfirmed',
   // A4.
@@ -83,19 +81,23 @@ test.each(['pl', 'en'] as const)('%s catalog lines keep at most two sentences, a
 });
 
 // "zobowiązanie" is the legal word for the stored rule sections only. Player lines say Przysięga.
-const obligationExceptions = ['onboarding.companionIntroduction' /* A2 */, 'room.descriptions.seals', 'room.guide.seals' /* A5 */];
+const obligationExceptions = ['room.descriptions.seals', 'room.guide.seals' /* A5 */];
 test('Polish says "zobowiąz…" only under oath.sections', () => {
   const found = catalogs.pl.filter(([key, text]) => /zobowiąz/i.test(text) && !key.startsWith('oath.sections.')).map(([key]) => key);
   expect(found.sort()).toEqual([...obligationExceptions].sort());
 });
 
 // Slice A "what next" lines (clarity.md rule 1 and decision 3): at most 12 Polish words and two sentences. Required error
-// sentences are exempt from the word cap only, so they are not listed here (oathHome.pauseError).
+// sentences are exempt from the word cap only, so they are not listed here (oathHome.pauseError, notifications.error_save).
 const at = (catalog: Group, key: string) => key.split('.').reduce<unknown>((node, part) => (node as Group)?.[part], catalog);
 const sliceA = [
   // A1.
   'oathHome.pauseIntro', 'oathHome.paused', 'oathHome.pauseChanged', 'oathHome.loadError', 'oath.error.character_changed',
   'settings.language.error', 'settings.notifications.permission_unavailable',
+  // A2.
+  'onboarding.unconfirmed', 'onboarding.intentionRequired', 'onboarding.error_intention', 'onboarding.notificationsPending', 'onboarding.reviewPending',
+  'onboarding.error_save', 'onboarding.error_complete',
+  // onboarding.companionIntroduction is Żaromir's introduction (13 words, plan copy), held by the two-sentence guard only.
 ];
 test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages', key => {
   const [line, english] = [at(pl, key), at(en, key)];
@@ -103,4 +105,9 @@ test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages',
   expect(words(line as string)).toBeLessThanOrEqual(12);
   expect(sentences(line as string)).toBeLessThanOrEqual(2);
   expect(sentences(english as string)).toBeLessThanOrEqual(2);
+});
+
+test('Polish player lines name the onboarding intention "cel", the accepted label itself stays', () => {
+  expect(catalogs.pl.filter(([, text]) => /intencj/i.test(text)).map(([key]) => key)).toEqual([]);
+  expect(group(pl, 'onboarding').intention).toBe('Chcę regularnie podejmować aktywność');
 });

@@ -5,6 +5,7 @@ import { useTranslation } from '../localization/LocalizationProvider';
 import { CompanionArt } from '../companion/CompanionProgress';
 import { NotificationView, type NotificationViewProps } from './NotificationView';
 import { Action } from '../ui/Action';
+import { CompanionBubble } from '../ui/CompanionBubble';
 import { tokens } from '../ui/tokens';
 import type { BasicsDraft, OnboardingState } from './controller';
 
@@ -32,7 +33,8 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
   if (ready) {
     if (complete) { heading = t('onboarding.trialTitle'); description = t('onboarding.trialPending'); }
     else if (basics) description = t('onboarding.unconfirmed');
-    else if (!profile?.companionIntroduced) { heading = t('onboarding.companionTitle'); description = t('onboarding.companionIntroduction'); }
+    // Żaromir introduces himself in his own bubble above Dalej, so the plain description stays empty here.
+    else if (!profile?.companionIntroduced) { heading = t('onboarding.companionTitle'); description = ''; }
     else if (profile.notificationPreference === null) { heading = t('onboarding.notificationsTitle'); description = t('onboarding.notificationsPending'); }
     else { heading = t('onboarding.reviewTitle'); description = t('onboarding.reviewPending'); }
   }
@@ -41,7 +43,7 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
   return <SafeAreaView style={styles.safeArea}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text accessibilityRole="header" style={styles.title}>{heading}</Text>
-      <Text style={styles.body} accessibilityLiveRegion="polite">{description}</Text>
+      {description !== '' && <Text style={styles.body} accessibilityLiveRegion="polite">{description}</Text>}
       {basics && ready && <>
         <View style={styles.group}>
           <Text style={styles.label}>{t('onboarding.language')}</Text>
@@ -74,6 +76,7 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
             {...(reason ? { disabled: true, unavailableReason: reason } : { disabled: false })} />}
       </>}
       {introduction && ready && <>
+        <View accessibilityLiveRegion="polite"><CompanionBubble message={t('onboarding.companionIntroduction')} /></View>
         {ready.error && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('onboarding.introductionError')}</Text>}
         <Action label={t(ready.error ? 'auth.retry' : 'onboarding.continue')}
           onPress={ready.error === 'load' ? onRetry : onIntroduce} busy={ready.busy} />

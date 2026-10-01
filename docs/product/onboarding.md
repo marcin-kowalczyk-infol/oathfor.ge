@@ -29,6 +29,8 @@ PL: “Jestem Żaromir, strażnik związany z Welesem. Będę ci towarzyszył na
 
 EN: “I am Zharomir, a guardian linked to Veles. I will accompany you on the path of your Oath. You choose the commitment; I help you remember its rules and the steps available to you.”
 
+Superseded on 2026-10-02: the introduction is now two sentences, shown in Żaromir's bubble above "Dalej". PL "Jestem Żaromir, strażnik związany z Welesem. Pomogę Ci pamiętać zasady i kolejne kroki." EN "I am Zharomir, a guardian linked to Veles. I will help you remember the rules and your next steps." See [clarity](clarity.md).
+
 The explicit continuation saves `companionIntroduced: true`. A failed save offers retry and does not pretend the step is finished.
 
 ## Notification preference and this device
@@ -37,11 +39,15 @@ Local choice: account preference and OS permission describe different things. `e
 
 “Enable” first saves enabled, then requests permission only as part of that explicit action. If saving fails, show retry or skip and do not prompt. “Not now” saves disabled without a prompt. Read device permission on screen entry and foreground; never request automatically on mount, restart or return from Settings. If interrupted after preference save, resume with the saved preference and current OS status. Explicit permission retry is available only when the OS permits asking again; otherwise offer Settings and continuation. Failure to open Settings must leave continuation usable.
 
+Superseded on 2026-10-02: the notification step shows only the saved preference, the line that reminders are not sent yet and the buttons. The account and device explanations fold behind "Jak działają powiadomienia" / "How notifications work". The device line stays visible only for denied, unavailable and provisional permission, because those change what the player can do. See [clarity](clarity.md).
+
 Denied, unavailable, provisional and ephemeral permission all have accurate copy and permit continuation after the preference is saved. Quiet authorization is not a promise of alert delivery. Ignore a permission result arriving after logout. This epic registers no push token, schedules no notification and installs no foreground delivery handler. Sources: [Expo SDK57 notifications](https://docs.expo.dev/versions/v57.0.0/sdk/notifications/) (checked 2026-09-24), [companion boundaries](../art/companion.md); the sequencing and account/device separation are local choices.
 
 ## Bilingual copy handoff
 
 These local labels preserve the accepted meaning; implementation can adjust surrounding phrasing naturally in each language without changing the rules.
+
+Superseded on 2026-10-02: player lines around the intention call it "cel" / "goal", for example "Cel: Chcę regularnie podejmować aktywność". The intention label itself is unchanged. See [clarity](clarity.md).
 
 | Purpose | Polish | English |
 | --- | --- | --- |

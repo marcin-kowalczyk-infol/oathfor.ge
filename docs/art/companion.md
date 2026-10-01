@@ -13,6 +13,8 @@ Original fiction: Weles entrusted this guardian with accompanying people along t
 | Polish | Jestem Żaromir, strażnik związany z Welesem. Będę ci towarzyszył na drodze Przysięgi. Ty wybierasz zobowiązanie; ja pomagam pamiętać jego zasady i dostępne kroki. |
 | English | I am Zharomir, a guardian linked to Veles. I will accompany you on the path of your Oath. You choose the commitment; I help you remember its rules and the steps available to you. |
 
+Superseded on 2026-10-02: onboarding shows a shorter introduction in two sentences, PL "Jestem Żaromir, strażnik związany z Welesem. Pomogę Ci pamiętać zasady i kolejne kroki." EN "I am Zharomir, a guardian linked to Veles. I will help you remember the rules and your next steps." The identity above is unchanged. See [clarity](../product/clarity.md).
+
 ## Form and continuity brief
 
 T02 refinement: the [selected concept references](companion-assets.md) retain a relaxed arm, lantern near the knee and a longer cloak rear panel. These observed refinements supersede the original hip-height/squat-lantern and short-rear-cloak details below; preserve the same side and carry in future exports.
