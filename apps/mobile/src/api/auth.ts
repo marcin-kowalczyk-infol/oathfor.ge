@@ -16,7 +16,7 @@ export type AuthResponse = {
   body: { getReader(): { read(): Promise<{ done: boolean; value?: Uint8Array }>; cancel(): Promise<unknown>; releaseLock(): void } } | null;
 };
 export type AuthTransport = (url: string, init: {
-  method: string; headers: Record<string, string>; body?: string; signal: AbortSignal;
+  method: string; headers: Record<string, string>; body?: string | FormData; signal: AbortSignal;
   redirect: 'error'; credentials: 'omit';
 }) => Promise<AuthResponse>;
 

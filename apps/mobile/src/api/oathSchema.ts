@@ -205,6 +205,8 @@ export function isOath(value: unknown): value is Oath {
   if (value.reason === 'service_availability_unknown' && (value.state !== 'review_pending' || value.review === null)) return false;
   return true;
 }
+export { proof as isProof };
+export function isOathState(value: unknown): value is OathState { return typeof value === 'string' && states.includes(value); }
 export function isOathEnvelope(value: unknown): value is OathEnvelope { return exact(value, ['oath', 'serverTime']) && isOath(value.oath) && utc(value.serverTime); }
 export function isOathListEnvelope(value: unknown): value is OathListEnvelope {
   return exact(value, ['items', 'nextCursor', 'total', 'serverTime', 'paused', 'characterId']) && isUuid(value.characterId) && Array.isArray(value.items) && value.items.length <= 100

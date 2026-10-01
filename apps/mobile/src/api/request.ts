@@ -3,6 +3,8 @@ import type { AuthFailure, AuthResult, AuthResponse, AuthTransport, Retry } from
 
 const MAX_RESPONSE_BYTES = 64 * 1024;
 const REQUEST_TIMEOUT_MS = 10000;
+// Uploads carry up to the 10 MiB server limit. 60 s covers that at about 1.4 Mbit/s uplink.
+export const UPLOAD_TIMEOUT_MS = 60000;
 const secretPattern = /^[A-Za-z0-9_-]{43}$/;
 export const isSecret = (value: unknown): value is string => typeof value === 'string' && secretPattern.test(value);
 export function exact(value: unknown, keys: string[]): value is Record<string, unknown> {
@@ -22,13 +24,17 @@ export type ClientOptions = { baseUrl: string; development?: boolean; transport?
 export type RequestPolicy<F> = {
   maxResponseBytes?: number;
   mapStructuredError?: (status: number, error: unknown) => F | undefined;
+  /** Whole-request limit. Defaults to 10 s, uploads pass UPLOAD_TIMEOUT_MS. */
+  timeoutMs?: number;
 };
+/** A JSON text or a multipart body. FormData sets its own multipart boundary. */
+export type RequestBody = string | FormData;
 
 export function createBoundedRequest<F = never>(options: ClientOptions, mapError?: (path: string, status: number, code: unknown) => F | undefined) {
   const transport: AuthTransport = options.transport ?? expoFetch;
   const origin = baseOrigin(options.baseUrl, options.development === true);
   async function request<T>(path: string, method: string, status: number | readonly number[], validate: (value: unknown, status: number) => value is T,
-    body?: string, token?: string, signal?: AbortSignal, policy: RequestPolicy<F> = {}): Promise<AuthResult<T> | F> {
+    body?: RequestBody, token?: string, signal?: AbortSignal, policy: RequestPolicy<F> = {}): Promise<AuthResult<T> | F> {
     const accepts = (candidate: number) => typeof status === 'number' ? candidate === status : status.includes(candidate);
     const maxBytes = policy.maxResponseBytes ?? MAX_RESPONSE_BYTES;
     const retry: Retry = path.endsWith('/exchange') ? 'fresh_login' : 'request';
@@ -55,11 +61,11 @@ export function createBoundedRequest<F = never>(options: ClientOptions, mapError
     };
     const onAbort = () => stop({ kind: 'cancelled' });
     signal?.addEventListener('abort', onAbort);
-    const timeout = setTimeout(() => stop(unavailable), REQUEST_TIMEOUT_MS);
+    const timeout = setTimeout(() => stop(unavailable), policy.timeoutMs ?? REQUEST_TIMEOUT_MS);
     const perform = async (): Promise<AuthResult<T> | F> => {
       try {
         const headers: Record<string, string> = { Accept: 'application/json' };
-        if (body !== undefined) headers['Content-Type'] = 'application/json';
+        if (typeof body === 'string') headers['Content-Type'] = 'application/json';
         if (token !== undefined) headers.Authorization = `Bearer ${token}`;
         const response = await transport(`${origin}${path}`, { method, headers, body, signal: controller.signal, redirect: 'error', credentials: 'omit' });
         if (controller.signal.aborted) return unavailable;
