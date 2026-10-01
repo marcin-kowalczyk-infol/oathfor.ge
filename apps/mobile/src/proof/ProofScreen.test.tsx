@@ -76,8 +76,8 @@ test('without the declaration the send action is disabled with an accessible hin
   expect(send).toHaveProp('accessibilityHint', 'Potwierdź deklarację ukończenia.');
   await fireEvent.press(send);
   expect(f.controller.submit).not.toHaveBeenCalled();
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'Potwierdzam deklarację ukończenia' }));
-  expect(screen.getByRole('checkbox', { name: 'Potwierdzam deklarację ukończenia' })).toBeChecked();
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Potwierdzam ukończenie treningu z tej Przysięgi' }));
+  expect(screen.getByRole('checkbox', { name: 'Potwierdzam ukończenie treningu z tej Przysięgi' })).toBeChecked();
   await fireEvent.press(screen.getByRole('button', { name: 'Prześlij dowód' }));
   expect(f.controller.submit).toHaveBeenCalledWith({ oathId, mode: 'photo', source: normalized });
 });
@@ -89,7 +89,7 @@ async function pickFromLibrary(route: RegExp = /Zdjęcie kontekstu/) {
 }
 async function readyToSend(route?: RegExp) {
   await pickFromLibrary(route);
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'Potwierdzam deklarację ukończenia' }));
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Potwierdzam ukończenie treningu z tej Przysięgi' }));
 }
 
 test('a 4032 × 3024 pick is resized to a 2880 long edge and saved as JPEG 0.85, without EXIF or in-app editing', async () => {
@@ -184,9 +184,9 @@ test.each([['pl', 375, 1, 'row'], ['en', 402, 1, 'row'], ['pl', 340, 1, 'column'
   expect(screen.getByText(value.snapshot.copy[locale].sections.photo)).toBeOnTheScreen();
   expect(screen.getByText(value.snapshot.copy[locale].sections.activityRecord)).toBeOnTheScreen();
   expect(screen.getByText(value.snapshot.copy[locale].declaration)).toBeOnTheScreen();
-  expect(screen.getByText(pl ? 'AI ocenia widoczne elementy dowodu. Sam obraz nie potwierdza ukończenia treningu, jego czasu trwania ani tego, kto go wykonał.'
-    : 'AI assesses visible evidence. The image alone does not verify workout completion, duration or who performed it.')).toBeOnTheScreen();
-  expect(screen.getByText(pl ? /najpierw przytnij obraz albo zasłoń ten fragment w aplikacji Zdjęcia/ : /crop the image or cover that part in the Photos app first/)).toBeOnTheScreen();
+  expect(screen.getByText(pl ? 'AI ocenia tylko to, co widać na obrazie. Obraz nie pokaże ukończenia, czasu trwania ani osoby na treningu, dlatego Kuźnia opiera się też na Twojej deklaracji.'
+    : 'AI assesses only what the image shows. An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.')).toBeOnTheScreen();
+  expect(screen.getByText(pl ? /Prywatne fragmenty przytnij lub zasłoń wcześniej w Zdjęciach/ : /Crop or cover anything private in Photos first/)).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: pl ? 'Prześlij dowód' : 'Submit proof' })).toHaveProp('accessibilityHint', pl ? 'Wybierz rodzaj dowodu.' : 'Choose the type of evidence.');
   expect(screen.getByTestId('proof-sources')).toHaveStyle({ flexDirection: direction });
 });
@@ -197,7 +197,7 @@ test('sending shows no success until the server answers, then hands back the ret
   await fireEvent.press(screen.getByRole('button', { name: 'Prześlij dowód' }));
   const pending = { version: 1 as const, accountId: '10000000-0000-4000-8000-000000000001', characterId, oathId, submissionId: '40000000-0000-4000-8000-000000000001', mode: 'photo' as const, fileName: '40000000-0000-4000-8000-000000000001.jpg' };
   await act(async () => f.change({ kind: 'ready', busy: true, pending, oath: null }));
-  expect(screen.getByText('Wysyłanie dowodu. Przysięga zmieni stan dopiero po odpowiedzi serwera.')).toBeOnTheScreen();
+  expect(screen.getByText('Dowód w drodze. Stan Przysięgi zmieni się, gdy serwer odpowie.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Wyślij ponownie' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Usuń kopię z tego urządzenia' })).toBeNull();
   expect(f.onDone).not.toHaveBeenCalled();
@@ -226,7 +226,7 @@ test('an unreachable server keeps the copy with send-again and discard, and clai
 });
 
 test.each([
-  [{ kind: 'proof_refused', code: 'receipt_cutoff_passed' }, 'The evidence deadline has passed. The server did not accept this proof.', true],
+  [{ kind: 'proof_refused', code: 'receipt_cutoff_passed' }, 'The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.', true],
   [{ kind: 'proof_refused', code: 'oath_not_active', state: 'review_pending' }, 'This Oath is no longer waiting for proof. Check its current status.', true],
   [{ kind: 'too_large' }, 'This image is too large to send. Choose another one.', false],
   [{ kind: 'file_missing' }, 'The saved copy of the image is no longer on this device. Choose the image again.', false],
@@ -237,7 +237,7 @@ test.each([
   await fireEvent.press(screen.getByRole('radio', { name: /Context photo/ }));
   await fireEvent.press(screen.getByRole('button', { name: 'Choose from Photos' }));
   await screen.findByLabelText('Chosen image');
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'I confirm the completion declaration' }));
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'I confirm I completed this Oath’s workout' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Submit proof' }));
   await act(async () => f.change({ kind: 'ready', busy: false, pending: null, oath: null, error: error as ProofControllerState extends infer S ? S extends { error?: infer E } ? E : never : never }));
   expect(screen.getByText(message)).toBeOnTheScreen();
@@ -278,7 +278,7 @@ test("another Oath's receipt or refusal does not close this form, clear its imag
   // A proof for another Oath, resumed in the background, resolves while this form is open.
   await act(async () => f.change({ kind: 'ready', busy: true, pending: pendingFor(otherOathId), oath: null }));
   await act(async () => f.change({ kind: 'ready', busy: false, pending: null, oath: null, error: { kind: 'proof_refused', code: 'receipt_cutoff_passed' } }));
-  expect(screen.queryByText('The evidence deadline has passed. The server did not accept this proof.')).toBeNull();
+  expect(screen.queryByText('The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.')).toBeNull();
   expect(screen.getByRole('button', { name: 'Submit proof' })).toBeOnTheScreen();
   await act(async () => f.change({ kind: 'ready', busy: false, pending: null, oath: null, error: { kind: 'proof_refused', code: 'unreadable_image', field: 'image' } }));
   expect(screen.getByLabelText('Chosen image')).toBeOnTheScreen();

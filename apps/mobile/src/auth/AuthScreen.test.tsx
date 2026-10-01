@@ -617,7 +617,7 @@ test('a confirmed pause returns to Settings, refreshes the summary and reloads t
   expect(await screen.findByText('Character paused')).toBeOnTheScreen();
   await enterRoom();
   await useStation('Seals', 'View current Oaths');
-  expect(await screen.findByText('Gameplay is paused. Existing reviews continue. Withdrawn Oaths will not return.')).toBeOnTheScreen();
+  expect(await screen.findByText('Pause is on. Oaths in progress continue, withdrawn ones do not return.')).toBeOnTheScreen();
 });
 
 test('sign-out in Settings returns to the sign-in screen', async () => {

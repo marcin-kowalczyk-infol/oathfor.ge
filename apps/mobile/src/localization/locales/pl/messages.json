@@ -230,7 +230,7 @@
       "active": "Aktywna",
       "proof_pending": "Ocena trwa",
       "needs_more_evidence": "Potrzebne uzupełnienie",
-      "review_pending": "W trakcie rozpatrywania",
+      "review_pending": "Pod rozwagą",
       "fulfilled": "Spełniona",
       "missed": "Niewykonana",
       "unresolved": "Nierozstrzygnięta",
@@ -255,7 +255,7 @@
       "consequence": "Konsekwencje",
       "pause": "Pauza",
       "recovery": "Zadanie Powrotu",
-      "review": "Poprawki i rozpatrywanie",
+      "review": "Poprawki i rozwaga",
       "appeal": "Odwołania i usuwanie"
     },
     "cards": {
@@ -282,11 +282,11 @@
         "title": "Dowód"
       },
       "review": {
-        "title": "Rozpatrzenie",
-        "line_one": "Rozpatrzenie trwa do {{count}} dnia",
-        "line_few": "Rozpatrzenie trwa do {{count}} dni",
-        "line_many": "Rozpatrzenie trwa do {{count}} dni",
-        "line_other": "Rozpatrzenie trwa do {{count}} dnia"
+        "title": "Rozwaga",
+        "line_one": "Rozwaga trwa do {{count}} dnia",
+        "line_few": "Rozwaga trwa do {{count}} dni",
+        "line_many": "Rozwaga trwa do {{count}} dni",
+        "line_other": "Rozwaga trwa do {{count}} dnia"
       },
       "reward": {
         "title": "Nagroda",
@@ -317,7 +317,7 @@
     "made": "Przysięga złożona",
     "madeDeadline": "Termin: {{time}}",
     "viewOath": "Zobacz Przysięgę",
-    "proofPending": "Dowód odebrany. Ocena trwa. Opóźnienie oceny nie zmienia zarejestrowanego czasu odebrania dowodu."
+    "proofPending": "Dowód odebrany, ocena trwa. Czas odebrania zostaje zapisany, nawet gdy ocena się przeciąga."
   },
   "oathHome": {
     "today": "Dzisiaj",
@@ -329,7 +329,7 @@
     "more": "Wczytaj więcej",
     "open": "Otwórz Przysięgę: {{activity}}, {{deadline}}",
     "group": "{{date}} · {{timezone}}",
-    "paused": "Rozgrywka jest wstrzymana. Sprawy w toku są nadal rozpatrywane. Wycofane Przysięgi nie powrócą.",
+    "paused": "Pauza jest włączona. Przysięgi w toku trwają dalej, wycofane nie wrócą.",
     "pauseTitle": "Sprawdź skutki pauzy",
     "pauseIntro": "Przed potwierdzeniem sprawdź każdą Przysięgę poniżej. Pauza nie przedłuża terminów.",
     "withdraw": "Zostaną wycofane",
@@ -340,13 +340,13 @@
     "pauseChanged": "Twoje Przysięgi się zmieniły. Sprawdź zaktualizowaną listę przed potwierdzeniem pauzy.",
     "pauseError": "Nie udało się potwierdzić zmiany pauzy. Przed kolejną próbą wczytaj jej bieżący stan.",
     "reviewPause": "Wczytaj ponownie skutki pauzy",
-    "reviewDeadline": "Rozpatrzenie kończy się {{deadline}}",
-    "unknownAvailability": "Dostępność usługi jest niepewna. Ta Przysięga jest rozpatrywana, a nie oznaczona jako niewykonana.",
-    "withdrawn": "Wycofana po włączeniu pauzy. Wznowienie nie przywróci tej Przysięgi.",
+    "reviewDeadline": "Rozwaga kończy się {{deadline}}",
+    "unknownAvailability": "Usługa mogła być wtedy niedostępna. Dlatego ta Przysięga jest pod rozwagą, a nie niewykonana.",
+    "withdrawn": "Wycofana przy włączeniu pauzy, wznowienie jej nie przywraca. Po wznowieniu można złożyć nową Przysięgę.",
     "detailError": "Nie udało się wczytać tej Przysięgi. Spróbuj ponownie.",
     "future": "Zaplanowane",
-    "current": "Aktywne zobowiązania",
-    "pending": "Sprawy w toku",
+    "current": "Trwające",
+    "pending": "Czekają na wynik",
     "summary": "{{activity}} · {{deadline}}",
     "historyLine": "Każdy wpis to Twoja historia w Kuźni.",
     "historyEmpty": "Kronika czeka na pierwszy wpis.",
@@ -367,7 +367,7 @@
       "active": "Aktywna",
       "proof_pending": "Ocena trwa",
       "needs_more_evidence": "Do uzupełnienia",
-      "review_pending": "Rozpatrywana",
+      "review_pending": "Pod rozwagą",
       "fulfilled": "Spełniona",
       "missed": "Niewykonana",
       "unresolved": "Nierozstrzygnięta",
@@ -574,9 +574,9 @@
         "4": "Złożonych zasad nikt już nie zmieni, także Kuźnia. Inna obietnica to nowa Przysięga."
       },
       "seals": {
-        "1": "Pieczęcie to Twoje bieżące Przysięgi: zaplanowane, trwające i te, które czekają na rozpatrzenie.",
+        "1": "Pieczęcie to Twoje bieżące Przysięgi: zaplanowane, trwające i te, które są pod rozwagą.",
         "2": "Każda Przysięga trzyma czas w swojej strefie. Zmiana strefy w telefonie go nie przesunie.",
-        "3": "O stanie decyduje Kuźnia, nie zegar w telefonie. Gdy minie ostatni termin z zasad, Przysięga czeka na rozpatrzenie. To nie jest niewykonanie."
+        "3": "O stanie decyduje Kuźnia, nie zegar w telefonie. Gdy minie ostatni termin z zasad, Przysięga jest pod rozwagą. To nie jest niewykonanie."
       },
       "chronicle": {
         "1": "Kronika przechowuje zakończone Przysięgi razem z ich wynikiem.",
@@ -585,7 +585,7 @@
       "door": {
         "1": "Drzwi prowadzą do menu. Tam zmienisz postać albo stworzysz nową, najwyżej trzy.",
         "2": "Każda postać ma własne Przysięgi, własną kronikę i własną pauzę.",
-        "3": "Pauzę włączysz w Ustawieniach. Wycofuje zaplanowane i trwające Przysięgi tej postaci. Te w rozpatrzeniu czekają dalej.",
+        "3": "Pauzę włączysz w Ustawieniach. Wycofuje zaplanowane i trwające Przysięgi tej postaci. Te pod rozwagą czekają dalej.",
         "4": "W czasie pauzy nie złożysz nowej Przysięgi. Wznowienie zdejmuje pauzę, ale nie przywraca wycofanych."
       }
     },
@@ -671,7 +671,7 @@
   "proof": {
     "submit": "Prześlij dowód",
     "back": "Wróć do Przysięgi",
-    "intro": "Wybierz rodzaj dowodu, dodaj jeden obraz i potwierdź ukończenie treningu. Przysięga zmieni stan dopiero, gdy serwer odbierze dowód.",
+    "intro": "Trzy kroki, jeden obraz. Przysięga zmieni stan, gdy serwer odbierze dowód.",
     "routeHeading": "Rodzaj dowodu",
     "routes": {
       "photo": {
@@ -684,7 +684,7 @@
       }
     },
     "imageHeading": "Obraz",
-    "crop": "W aplikacji nie przytniesz obrazu. Jeśli widać na nim coś prywatnego, najpierw przytnij obraz albo zasłoń ten fragment w aplikacji Zdjęcia. Zachowaj elementy wymagane przez zasady.",
+    "crop": "W tej aplikacji nie da się przyciąć obrazu. Prywatne fragmenty przytnij lub zasłoń wcześniej w Zdjęciach, zostawiając to, czego wymagają zasady.",
     "camera": "Zrób zdjęcie",
     "library": "Wybierz ze Zdjęć",
     "preview": "Wybrany obraz",
@@ -694,15 +694,15 @@
     "libraryUnavailable": "Nie udało się otworzyć Zdjęć. Zrób zdjęcie aparatem albo spróbuj ponownie.",
     "imageFailed": "Nie udało się przygotować obrazu. Wybierz go ponownie.",
     "openSettings": "Otwórz Ustawienia",
-    "confirm": "Potwierdzam deklarację ukończenia",
+    "confirm": "Potwierdzam ukończenie treningu z tej Przysięgi",
     "caveatHeading": "Ocena dowodu",
-    "caveat": "AI ocenia widoczne elementy dowodu. Sam obraz nie potwierdza ukończenia treningu, jego czasu trwania ani tego, kto go wykonał.",
+    "caveat": "AI ocenia tylko to, co widać na obrazie. Obraz nie pokaże ukończenia, czasu trwania ani osoby na treningu, dlatego Kuźnia opiera się też na Twojej deklaracji.",
     "missing": {
       "route": "Wybierz rodzaj dowodu.",
       "image": "Dodaj obraz.",
       "declaration": "Potwierdź deklarację ukończenia."
     },
-    "sending": "Wysyłanie dowodu. Przysięga zmieni stan dopiero po odpowiedzi serwera.",
+    "sending": "Dowód w drodze. Stan Przysięgi zmieni się, gdy serwer odpowie.",
     "loading": "Przygotowuję wysyłanie…",
     "notActive": "Ta Przysięga nie przyjmuje teraz dowodu.",
     "pending": "Dowód zapisany na tym urządzeniu czeka na wysłanie. Serwer go jeszcze nie odebrał.",
@@ -713,12 +713,12 @@
     "dismiss": "Rozumiem",
     "storageUnavailable": "Nie udało się bezpiecznie odczytać zapisanego dowodu. Uruchom aplikację ponownie i spróbuj jeszcze raz.",
     "errors": {
-      "receiptCutoffPassed": "Termin przyjęcia dowodu minął. Serwer nie przyjął tego dowodu.",
+      "receiptCutoffPassed": "Czas na dowód minął i serwer go nie przyjął. Wróć do Przysięgi, by zobaczyć jej stan.",
       "oathNotActive": "Ta Przysięga nie czeka już na dowód. Sprawdź jej aktualny stan.",
       "alreadySubmitted": "Dowód dla tej Przysięgi został już odebrany.",
       "tooLarge": "Ten obraz jest za duży, by go wysłać. Wybierz inny.",
       "unreadable": "Serwer nie mógł odczytać tego obrazu. Wybierz inny.",
-      "refused": "Serwer nie przyjął tego dowodu. Wybierz obraz i spróbuj ponownie.",
+      "refused": "Serwer nie przyjął tego dowodu. Wybierz obraz ponownie albo wróć do Przysięgi i sprawdź jej stan.",
       "uploadRejected": "Serwer nie otrzymał obrazu. Wyślij go ponownie albo usuń kopię z tego urządzenia i wybierz obraz od nowa.",
       "unavailable": "Nie udało się połączyć z serwerem. Dowód nie został jeszcze odebrany. Kopia czeka na tym urządzeniu.",
       "rateLimited": "Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie. Kopia czeka na tym urządzeniu.",
@@ -728,6 +728,127 @@
       "characterRequired": "Wybierz postać, aby kontynuować. Kopia dowodu czeka na tym urządzeniu.",
       "character": "Ta Przysięga należy do postaci, która nie jest teraz aktywna. Kopia dowodu czeka na tym urządzeniu.",
       "sendFailed": "Nie udało się wysłać dowodu. Kopia czeka na tym urządzeniu. Spróbuj ponownie."
+    },
+    "introFull": "Wybierz rodzaj dowodu, dodaj jeden obraz i potwierdź ukończenie treningu. Przysięga zmieni stan dopiero, gdy serwer odbierze dowód.",
+    "steps": {
+      "type": "Rodzaj dowodu",
+      "image": "Obraz",
+      "confirm": "Potwierdzenie"
+    },
+    "change": "Zmień",
+    "privacyLine": "Prywatne fragmenty zasłoń w Zdjęciach, zanim wybierzesz obraz.",
+    "aiLine": "AI ocenia tylko to, co widać na obrazie.",
+    "rulesLink": "Zasady dowodu",
+    "cropMore": "Jak ukryć szczegóły",
+    "aiMore": "O ocenie dowodu"
+  },
+  "path": {
+    "steps": {
+      "oath": "Przysięga",
+      "workout": "Trening",
+      "assessment": "Ocena",
+      "result": "Wynik"
+    },
+    "track": "Etap {{step}} z 4, {{label}}",
+    "trackBadge": "Etap {{step}} z 4, {{label}}, {{badge}}",
+    "badge": {
+      "waiting": "Czeka na start",
+      "interrupted": "Nie dotarł",
+      "assessing": "Ocena trwa",
+      "needsMore": "Do uzupełnienia",
+      "review": "Pod rozwagą",
+      "skipped": "Pominięty"
+    },
+    "next": {
+      "scheduled": "Przysięga zacznie się {{time}}.",
+      "active": "Trening i dowód do {{time}}.",
+      "activeSoon": "Niecała godzina. Trening i dowód do {{time}}.",
+      "cutoff": "Trening skończony w terminie? Prześlij dowód do {{time}}.",
+      "interrupted": "Dowód nie dotarł. Kopia czeka tu na ponowne wysłanie.",
+      "assessing": "Dowód odebrany. Wynik pojawi się tutaj.",
+      "needsMore": "Dowód wymaga uzupełnienia. To nie jest niewykonanie.",
+      "review": "To nie jest niewykonanie. Pod rozwagą do {{time}}.",
+      "fulfilled": "Przysięga spełniona {{date}}. Wpis zostaje w kronice.",
+      "missed": "Przysięga zamknięta {{date}} jako niewykonana.",
+      "unresolved": "Bez rozstrzygnięcia. To nie jest niewykonanie.",
+      "withdrawn": "Wycofana {{date}} przy włączeniu pauzy."
+    },
+    "more": "Pełny opis",
+    "rules": "Zasady Przysięgi"
+  },
+  "zaromir": {
+    "scheduled": {
+      "0": "Przysięga czeka na swój start. Warto już teraz wiedzieć, gdzie zrobisz trening.",
+      "1": "Do startu jest jeszcze czas. Przygotuj, co trzeba, kiedy zechcesz.",
+      "2": "Start już wykuty. Pomyśl, o której i gdzie ruszysz.",
+      "3": "Ta Przysięga ruszy o czasie. Do tego czasu nic nie trzeba robić.",
+      "4": "Plan już stoi. Gdy przyjdzie pora, będę przy palenisku."
+    },
+    "active": {
+      "0": "Przysięga trwa. Kiedy trening będzie za Tobą, prześlij dowód.",
+      "1": "Czas jest po Twojej stronie. Wybierz porę i miejsce, które Ci pasują.",
+      "2": "Ogień płonie równo. Najpierw trening, potem dowód, w swoim tempie.",
+      "3": "Do terminu jest jeszcze czas. Dobrze wiedzieć, o której wyruszysz.",
+      "4": "Po treningu wróć tu z dowodem. Będę czekać przy pieczęci."
+    },
+    "activeSoon": {
+      "0": "Do terminu została niecała godzina. To dobra chwila, by ruszyć.",
+      "1": "Zostało mniej niż godzina. Jeśli trening już za Tobą, prześlij dowód.",
+      "2": "Ogień przygasa, termin jest blisko. Ruszaj, gdy tylko możesz.",
+      "3": "Termin jest blisko, zostaje niecała godzina. Trening teraz, dowód zaraz po nim."
+    },
+    "cutoff": {
+      "0": "Okno na dowód jeszcze trwa. Prześlij go, jeśli trening był przed terminem.",
+      "1": "Trening skończony w terminie? Okno na dowód jeszcze trwa.",
+      "2": "Świeca jeszcze płonie. Jeśli trening zakończył się w terminie, prześlij dowód teraz."
+    },
+    "interrupted": {
+      "0": "To nie Twoja wina. Kopia dowodu czeka, wyślij ją ponownie."
+    },
+    "assessing": {
+      "0": "Dowód dotarł. Teraz razem czekamy na ocenę.",
+      "1": "Dowód jest już w Kuźni. Wynik pojawi się tutaj.",
+      "2": "Dowód przesłany, to był ważny krok. Możesz odpocząć.",
+      "3": "Ogień zrobił swoje, teraz ocena. Na razie nic więcej nie trzeba.",
+      "4": "Dowód odebrany. Reszta należy teraz do oceny."
+    },
+    "review": {
+      "0": "Ta Przysięga czeka na rozwagę i to nie jest niewykonanie."
+    },
+    "fulfilled": {
+      "0": "Przysięga spełniona. Ten trening zostaje na Twojej drodze.",
+      "1": "Słowo dotrzymane, trening zapisany w kronice. Kolejna Przysięga, kiedy zechcesz.",
+      "2": "Ogień przyjął ten trening. Dobra, równa robota.",
+      "3": "Spełniona Przysięga to kolejny krok na szlaku. Odpocznij, zanim ruszysz dalej.",
+      "4": "Ten trening się liczy. Palenisko czeka na następną Przysięgę."
+    },
+    "missed": {
+      "0": "Palenisko jest gotowe na nową Przysięgę. Ruszymy, gdy zechcesz.",
+      "1": "Wcześniejsze ślady zostają w kronice. Gdy zechcesz, wykujemy nową Przysięgę.",
+      "2": "Następna Przysięga może być mniejsza i bliżej Twojego dnia. Palenisko poczeka."
+    },
+    "unresolved": {
+      "0": "Tego nie dało się rozstrzygnąć i to nie jest niewykonanie.",
+      "1": "Brak rozstrzygnięcia to nie porażka. Palenisko czeka na kolejną Przysięgę, gdy zechcesz."
+    },
+    "withdrawn": {
+      "0": "Ta Przysięga odeszła razem z pauzą. Nowa może zacząć się, kiedy zechcesz.",
+      "1": "Pauza była Twoim wyborem. Palenisko czeka na nową Przysięgę.",
+      "2": "Dobrze, że jesteś z powrotem. Nową Przysięgę wykujemy, gdy zechcesz."
+    },
+    "confirmed": {
+      "0": "Przysięga złożona i już trwa. Pomyśl, kiedy i gdzie zrobisz trening.",
+      "1": "Słowo wykute w ogniu. Teraz trening, w swoim tempie, a potem dowód.",
+      "2": "Pieczęć przyłożona. Wybierz porę i miejsce, które pasują do Twojego dnia."
+    },
+    "confirmedScheduled": {
+      "0": "Przysięga złożona, start już ustalony. Do tego czasu możesz spokojnie się przygotować.",
+      "1": "Słowo wykute, czeka na swój start. Dobrze wiedzieć, gdzie wtedy zrobisz trening."
+    },
+    "proofScreen": {
+      "0": "Trzy kroki: rodzaj, obraz i potwierdzenie. Pójdziemy po kolei.",
+      "1": "Wybierz rodzaj, dodaj obraz, potwierdź. Resztę zrobi Kuźnia.",
+      "2": "Dowód to tylko trzy kroki. Zacznij od rodzaju."
     }
   }
 }

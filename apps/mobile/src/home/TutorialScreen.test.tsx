@@ -36,7 +36,7 @@ test.each([['pl', pl], ['en', en]] as const)('the %s screen shows the intro and 
   expect(order.every(index => index >= 0)).toBe(true);
   expect(order).toEqual([...order].sort((a, b) => a - b));
   expect(expected.flat().length - expected.length).toBe(13);
-  if (locale === 'pl') expect(texts).toContain('O\u00A0stanie decyduje Kuźnia, nie zegar w\u00A0telefonie. Gdy minie ostatni termin z\u00A0zasad, Przysięga czeka na rozpatrzenie. To nie jest niewykonanie.');
+  if (locale === 'pl') expect(texts).toContain('O\u00A0stanie decyduje Kuźnia, nie zegar w\u00A0telefonie. Gdy minie ostatni termin z\u00A0zasad, Przysięga jest pod rozwagą. To nie jest niewykonanie.');
 });
 
 test('back to menu calls onBack once', async () => {

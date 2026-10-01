@@ -72,9 +72,9 @@ const sealOath = (state: string) => ({
 
 test('a seal names its state in one short line while the button speaks the full state', async () => {
   await render(<LocalizationProvider initialLocale="pl"><ForgeHub items={[sealOath('review_pending'), sealOath('needs_more_evidence')]} onOpen={jest.fn()} /></LocalizationProvider>);
-  expect(screen.getByText('Rozpatrywana')).toHaveProp('numberOfLines', 1);
+  expect(screen.getByText('Pod rozwagą')).toHaveProp('numberOfLines', 1);
   expect(screen.getByText('Do uzupełnienia')).toHaveProp('numberOfLines', 1);
-  expect(screen.getAllByTestId('forge-seal')[0]).toHaveProp('accessibilityLabel', expect.stringContaining('W trakcie rozpatrywania'));
+  expect(screen.getAllByTestId('forge-seal')[0]).toHaveProp('accessibilityLabel', expect.stringContaining('Pod rozwagą'));
 });
 
 test('seal countdowns stack the label over one unbroken value', async () => {

@@ -309,7 +309,7 @@
     "made": "Oath made",
     "madeDeadline": "Deadline: {{time}}",
     "viewOath": "View the Oath",
-    "proofPending": "Evidence received. Assessment is in progress. Assessment delays do not change the receipt time."
+    "proofPending": "Proof received, assessment in progress. The receipt time stays recorded even if the assessment takes longer."
   },
   "oathHome": {
     "today": "Today",
@@ -321,7 +321,7 @@
     "more": "Load more",
     "open": "Open Oath: {{activity}}, {{deadline}}",
     "group": "{{date}} · {{timezone}}",
-    "paused": "Gameplay is paused. Existing reviews continue. Withdrawn Oaths will not return.",
+    "paused": "Pause is on. Oaths in progress continue, withdrawn ones do not return.",
     "pauseTitle": "Review pause",
     "pauseIntro": "Review every Oath below before confirming. Pause does not extend deadlines.",
     "withdraw": "Will be withdrawn",
@@ -333,12 +333,12 @@
     "pauseError": "We could not confirm the pause change. Reload its current status before trying again.",
     "reviewPause": "Reload pause review",
     "reviewDeadline": "Review closes {{deadline}}",
-    "unknownAvailability": "Service availability is uncertain. This Oath is under review, not marked missed.",
-    "withdrawn": "Withdrawn when gameplay was paused. Resuming does not restore this Oath.",
+    "unknownAvailability": "The service may have been unavailable then. So this Oath is under review, not marked missed.",
+    "withdrawn": "Withdrawn when the pause began, and resuming does not restore it. After resuming you can make a new Oath.",
     "detailError": "We could not load this Oath. Try again.",
     "future": "Scheduled",
-    "current": "Active commitments",
-    "pending": "Cases in progress",
+    "current": "Active",
+    "pending": "Awaiting result",
     "summary": "{{activity}} · {{deadline}}",
     "historyLine": "Every entry is part of your story in the Forge.",
     "historyEmpty": "The chronicle is waiting for its first entry.",
@@ -645,7 +645,7 @@
   "proof": {
     "submit": "Submit proof",
     "back": "Back to the Oath",
-    "intro": "Choose the type of evidence, add one image and confirm that you completed the workout. The Oath changes only when the server receives the proof.",
+    "intro": "Three steps, one image. The Oath changes when the server receives the proof.",
     "routeHeading": "Type of evidence",
     "routes": {
       "photo": {
@@ -658,7 +658,7 @@
       }
     },
     "imageHeading": "Image",
-    "crop": "You cannot crop the image in the app. If it shows something private, crop the image or cover that part in the Photos app first. Keep the details the rules require.",
+    "crop": "This app cannot crop the image. Crop or cover anything private in Photos first, keeping what the rules require.",
     "camera": "Take a photo",
     "library": "Choose from Photos",
     "preview": "Chosen image",
@@ -668,15 +668,15 @@
     "libraryUnavailable": "Photos could not open. Take a photo with the camera or try again.",
     "imageFailed": "The image could not be prepared. Choose it again.",
     "openSettings": "Open Settings",
-    "confirm": "I confirm the completion declaration",
+    "confirm": "I confirm I completed this Oath’s workout",
     "caveatHeading": "Evidence assessment",
-    "caveat": "AI assesses visible evidence. The image alone does not verify workout completion, duration or who performed it.",
+    "caveat": "AI assesses only what the image shows. An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.",
     "missing": {
       "route": "Choose the type of evidence.",
       "image": "Add an image.",
       "declaration": "Confirm the completion declaration."
     },
-    "sending": "Sending your proof. The Oath changes only when the server answers.",
+    "sending": "Proof on its way. The Oath changes when the server answers.",
     "loading": "Getting ready to send…",
     "notActive": "This Oath is not accepting proof now.",
     "pending": "A proof saved on this device is waiting to be sent. The server has not received it yet.",
@@ -687,12 +687,12 @@
     "dismiss": "Got it",
     "storageUnavailable": "We could not safely read the saved proof. Restart the app and try again.",
     "errors": {
-      "receiptCutoffPassed": "The evidence deadline has passed. The server did not accept this proof.",
+      "receiptCutoffPassed": "The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.",
       "oathNotActive": "This Oath is no longer waiting for proof. Check its current status.",
       "alreadySubmitted": "Proof for this Oath has already been received.",
       "tooLarge": "This image is too large to send. Choose another one.",
       "unreadable": "The server could not read this image. Choose another one.",
-      "refused": "The server did not accept this proof. Choose an image and try again.",
+      "refused": "The server did not accept this proof. Choose the image again, or go back to the Oath and check its state.",
       "uploadRejected": "The server did not receive the image. Send it again, or delete the copy on this device and choose a new image.",
       "unavailable": "Could not reach the server. The proof has not been received yet. A copy is waiting on this device.",
       "rateLimited": "Too many attempts. Wait a moment and try again. A copy is waiting on this device.",
@@ -702,6 +702,127 @@
       "characterRequired": "Choose a character to continue. The proof copy is waiting on this device.",
       "character": "This Oath belongs to a character that is not active now. The proof copy is waiting on this device.",
       "sendFailed": "The proof could not be sent. A copy is waiting on this device. Try again."
+    },
+    "introFull": "Choose the type of evidence, add one image and confirm that you completed the workout. The Oath changes only when the server receives the proof.",
+    "steps": {
+      "type": "Proof type",
+      "image": "Image",
+      "confirm": "Confirmation"
+    },
+    "change": "Change",
+    "privacyLine": "Cover anything private in Photos before you choose.",
+    "aiLine": "AI assesses only what the image shows.",
+    "rulesLink": "Proof rules",
+    "cropMore": "How to hide details",
+    "aiMore": "About the assessment"
+  },
+  "path": {
+    "steps": {
+      "oath": "Oath",
+      "workout": "Workout",
+      "assessment": "Assessment",
+      "result": "Result"
+    },
+    "track": "Step {{step}} of 4, {{label}}",
+    "trackBadge": "Step {{step}} of 4, {{label}}, {{badge}}",
+    "badge": {
+      "waiting": "Awaiting start",
+      "interrupted": "Not received",
+      "assessing": "Assessing",
+      "needsMore": "Needs evidence",
+      "review": "Under review",
+      "skipped": "Skipped"
+    },
+    "next": {
+      "scheduled": "The Oath begins {{time}}.",
+      "active": "Workout and proof by {{time}}.",
+      "activeSoon": "Under an hour left. Workout and proof by {{time}}.",
+      "cutoff": "Workout finished by the deadline? Submit proof by {{time}}.",
+      "interrupted": "Proof not received. The copy is here, ready to send again.",
+      "assessing": "Proof received. The result will appear here.",
+      "needsMore": "The proof needs more evidence. This is not a miss.",
+      "review": "This is not a miss. Under review until {{time}}.",
+      "fulfilled": "Oath fulfilled {{date}}. The entry stays in the chronicle.",
+      "missed": "Oath closed {{date}} as missed.",
+      "unresolved": "No outcome was decided. This is not a miss.",
+      "withdrawn": "Withdrawn {{date}} when the pause began."
+    },
+    "more": "Full description",
+    "rules": "Oath rules"
+  },
+  "zaromir": {
+    "scheduled": {
+      "0": "The Oath is waiting for its start. It helps to know already where you will train.",
+      "1": "There is still time before the start. Get ready whenever you like.",
+      "2": "The start is set. Think about when and where you will begin.",
+      "3": "This Oath starts on time. Until then there is nothing to do.",
+      "4": "The plan is in place. When the time comes, I will be at the hearth."
+    },
+    "active": {
+      "0": "The Oath is under way. Once the workout is done, submit your proof.",
+      "1": "Time is on your side. Pick a time and place that suit you.",
+      "2": "The fire burns steady. Workout first, then proof, at your own pace.",
+      "3": "There is still time before the deadline. It helps to know when you will set out.",
+      "4": "After the workout, come back here with your proof. I will wait by the seal."
+    },
+    "activeSoon": {
+      "0": "Under an hour to the deadline. This is a good moment to set out.",
+      "1": "Under an hour left. If the workout is behind you, submit your proof.",
+      "2": "The fire is burning low, the deadline is close. Set out as soon as you can.",
+      "3": "The deadline is close, under an hour left. Workout now, proof right after."
+    },
+    "cutoff": {
+      "0": "The proof window is still open. Submit it if the workout ended by the deadline.",
+      "1": "Workout finished by the deadline? The proof window is still open.",
+      "2": "The candle is still burning. If the workout ended by the deadline, submit your proof now."
+    },
+    "interrupted": {
+      "0": "That is not your fault. The proof copy is waiting, send it again."
+    },
+    "assessing": {
+      "0": "Your proof has arrived. Now we wait for the assessment together.",
+      "1": "The proof is in the Forge now. The result will appear here.",
+      "2": "Proof submitted, that was an important step. You can rest now.",
+      "3": "The fire has done its part, now comes the assessment. Nothing more is needed for now.",
+      "4": "Proof received. The rest is now up to the assessment."
+    },
+    "review": {
+      "0": "This Oath is under review, and that is not a miss."
+    },
+    "fulfilled": {
+      "0": "Oath fulfilled. This workout stays on your path.",
+      "1": "Word kept, the workout is in the chronicle. Another Oath whenever you like.",
+      "2": "The fire has taken this workout. Good, steady work.",
+      "3": "A fulfilled Oath is another step on the trail. Rest before you go on.",
+      "4": "This workout counts. The hearth is ready for the next Oath."
+    },
+    "missed": {
+      "0": "The hearth is ready for a new Oath. We set out whenever you want.",
+      "1": "Your earlier marks stay in the chronicle. When you want, we can forge a new Oath.",
+      "2": "The next Oath can be smaller and closer to your day. The hearth will wait."
+    },
+    "unresolved": {
+      "0": "This could not be decided, and that is not a miss.",
+      "1": "Having no outcome is not a failure. The hearth is waiting for another Oath whenever you like."
+    },
+    "withdrawn": {
+      "0": "This Oath ended with the pause. A new one can begin whenever you like.",
+      "1": "The pause was your choice. The hearth is waiting for a new Oath.",
+      "2": "Good to have you back. We can forge a new Oath when you want."
+    },
+    "confirmed": {
+      "0": "The Oath is made and already under way. Think about when and where you will train.",
+      "1": "Your word is forged. Now the workout, at your own pace, then the proof.",
+      "2": "The seal is set. Pick a time and place that fit your day."
+    },
+    "confirmedScheduled": {
+      "0": "The Oath is made and its start is set. Until then, you can get ready calmly.",
+      "1": "Your word is forged and waits for its start. It helps to know where you will train then."
+    },
+    "proofScreen": {
+      "0": "Three steps: type, image and confirmation. We will take them in order.",
+      "1": "Choose the type, add an image, confirm. The Forge does the rest.",
+      "2": "Proof is just three steps. Start with the type."
     }
   }
 }
