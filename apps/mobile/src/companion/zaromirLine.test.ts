@@ -10,9 +10,11 @@ test('picks with 32-bit FNV-1a', () => {
   expect(pickLine('foobar', 2 ** 32)).toBe(0xbf9cf968);
 });
 
-test('the same seed gives the same line', () => {
-  const seed = zaromirSeed(id, 'active', lateEvening, 'Europe/Warsaw');
-  expect(pickLine(seed, 5)).toBe(pickLine(seed, 5));
+test('the seed keeps one local day of the Oath and changes on the next', () => {
+  // 2026-10-02 in Warsaw (UTC+2) runs from 22:00 UTC the day before to 21:59:59 UTC.
+  const seed = (instant: string) => zaromirSeed(id, 'active', Date.parse(instant), 'Europe/Warsaw');
+  expect(seed('2026-10-01T22:01:00Z')).toBe(seed('2026-10-02T21:59:00Z'));
+  expect(seed('2026-10-02T21:59:00Z')).not.toBe(seed('2026-10-02T22:01:00Z'));
 });
 
 test('50 Oaths reach every line of a pool of 4', () => {

@@ -56,7 +56,8 @@ export function oathPath(oath: Oath, device: DeviceProof, paused: boolean | null
   if (pending) {
     const [badge, key, situation] = pending;
     const time = oath.state === 'review_pending' && oath.review ? { time: at(oath.review.closesAt) } : {};
-    return path(3, ['done', 'done', 'current', 'future'], badge, { key, ...time }, null, situation);
+    // The reconciler sends an Oath to review past S without a received proof. Its workout step never happened here.
+    return path(3, ['done', oath.proof === null ? 'skipped' : 'done', 'current', 'future'], badge, { key, ...time }, null, situation);
   }
   // Terminal. Without a proof, or without a start, the workout and its assessment never happened.
   const reached: StepStatus = oath.proof === null || oath.activatedAt === null ? 'skipped' : 'done';

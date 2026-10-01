@@ -52,3 +52,9 @@ test('a kept record still waits when its resend failed, so the resend stays offe
   expect(deviceProof(oath(), ready({ error: offline }), { oathId: A })).toBe('waiting');
   expect(deviceProofError(oath(), ready({ error: offline }), { oathId: A })).toBe(offline);
 });
+
+test('a kept record outranks an earlier refusal of the same Oath, and the refusal is still the message', () => {
+  const state = ready({ lastRefusal: { oathId: A, submissionId, code: 'receipt_cutoff_passed' } });
+  expect(deviceProof(oath(), state, null)).toBe('waiting');
+  expect(deviceProofError(oath(), state, null)).toEqual({ kind: 'proof_refused', code: 'receipt_cutoff_passed' });
+});
