@@ -418,7 +418,7 @@ Not observed natively: VoiceOver (the simulator does not run it, a sampled stati
 
 ## Oath screens acceptance (MVP-21), 2026-09-30
 
-Demo development build on the iPhone 18 Pro, iOS 27.0, with Metro, in the fresh and returning player scenarios, Polish and English, cinematic and classic styles. Motion was recorded at 60 frames per second and read frame by frame. The implementation landed in T01 to T12 (cfb11a9, e260310, 5f0b264, 66c04e2, ed8f176, 1abe3c6, e5e3c3f, 428acb0, 1414bad, c81cafa, 05eae96, a87caea), the fixes below in T13. The full mobile suite passed with 86 suites and 1133 tests, and the typecheck was clean (Node 26). Cinematic rule icons, the stamp and sparks and the largest text are recorded in the two sections above.
+Demo development build on the iPhone 18 Pro, iOS 27.0, with Metro, in the fresh and returning player scenarios, Polish and English, cinematic and classic styles. Motion was recorded at 60 frames per second and read frame by frame. The implementation landed in T01 to T12 (cfb11a9, e260310, 5f0b264, 66c04e2, ed8f176, 1abe3c6, e5e3c3f, 428acb0, 1414bad, c81cafa, 05eae96, a87caea), the fixes below in T13. The full mobile suite passed with 86 suites and 1133 tests, and the typecheck was clean (Node 24.21.0 via npx). Cinematic rule icons, the stamp and sparks and the largest text are recorded in the two sections above.
 
 Demo limit, not an app defect: the DUMMY server time is frozen at app launch (`initialNow` in `apps/mobile/demo/runtime.ts`), and every fetch observes it again. Demo countdowns therefore lag the wall clock and can step back up after a fetch, for example "Do terminu 5 min" on the confirmation and "6 min" in the detail a minute later.
 
