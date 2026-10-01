@@ -251,7 +251,7 @@ Use the durable [reconciler design](../product/oaths.md#durable-reconciliation-a
 
 ## Proof submission contract
 
-Status: first submission implemented in MVP-07-T03, 2026-10-01, with integration tests. Retry identity, the pause race, the owner read and the staging purge follow in T04 to T07. Local engineering contract under [ADR 0008](../decisions/0008-proof-storage-and-upload.md) and the [first-loop rules](../product/first-loop.md#committed-times). Bearer, no-store and the safe error envelope apply.
+Status: first submission implemented in MVP-07-T03 and retry identity in MVP-07-T04, 2026-10-01, with integration tests. The pause race, the owner read and the staging purge follow in T05 to T07. Local engineering contract under [ADR 0008](../decisions/0008-proof-storage-and-upload.md) and the [first-loop rules](../product/first-loop.md#committed-times). Bearer, no-store and the safe error envelope apply.
 
 `POST /api/oaths/{id}/proofs` takes one `multipart/form-data` body with exactly these parts. `submissionId` is a client UUID in canonical lowercase text. `mode` is `photo` or `activity_record`. `declaration` is the literal string `true`. `image` is one JPEG file.
 
@@ -265,11 +265,21 @@ Request checks:
 
 The API normalizes the image, hashes the received bytes with SHA-256 and stages the normalized bytes before it takes any lock. It then locks the account, the session and the owner's Oaths, samples receipt time `R`, rechecks the session and reconciles. Checks after the locks:
 - An invalid session returns 401 `unauthenticated`. No active character returns 409 `character_required`.
-- An Oath of another account or of another character, or a malformed ID, returns 404 `not_found`.
+- A `submissionId` this account already used is a retry. The lookup is scoped to the account and comes before the Oath lookup, the cutoff check and the state check. See retry identity below.
+- An Oath of another account or of another character returns 404 `not_found`. A malformed Oath ID already returns 404 before staging and the locks, even for a reused `submissionId`.
 - `R` after the receipt cutoff S with no proof row returns 409 `receipt_cutoff_passed`. The reconciliation that moved the Oath to `review_pending` still commits. This check comes before the state check.
 - A `proof_pending` Oath returns 409 `proof_already_submitted`. Corrections belong to a later slice.
 - Any other state than `active` returns 409 `{"error":{"code":"oath_not_active","state":"<state>"}}`.
 
 Success stores revision 1 with `received_at = R` and assessment `queued`, and moves the Oath from `active` to `proof_pending`. It returns 201 `{"proof":{"submissionId","mode","receivedAt","revision":1,"assessment":"queued"},"oath":{...},"serverTime"}`. `oath` uses the Oath representation above. No message is dispatched yet. The assessment worker of MVP-08 reads queued rows.
 
-Promotion from staging to permanent storage is the last step before commit, so a committed row never points at a staged object the purge could remove. Every refusal after staging removes the staged copy. If the commit fails after promotion, the API checks whether any committed row references the object and deletes it when none does. A commit can succeed even though the API saw an error, so a referenced object stays. When that check itself fails, the object stays and the response is still 503. Storage or database failure returns 503 `temporarily_unavailable`. Responses and logs never contain the storage key, image bytes or declaration text. DBAL query logging is off in every environment, because it would log SQL parameters. Reusing a `submissionId` for another Oath currently fails with 503 at the unique constraint. T04 turns it into 409 `idempotency_conflict`.
+Retry identity follows [T02-04](../product/first-loop.md#committed-times). A request whose `submissionId` this account already used is compared with that row:
+- The same Oath ID, the same SHA-256 of the received image bytes and the same `mode` return 200 with the body shape of 201. `proof` holds the original `receivedAt`, revision and assessment. `oath` is the current Oath after reconciliation, and `serverTime` is the time of the retry. This holds at any later time, even after S, so a retry is never reclassified as late. The declaration needs no comparison, because only `true` passes the request checks.
+- A different image, a different `mode` or a different Oath ID returns 409 `idempotency_conflict`. The first row stays unchanged and nothing is written for the other Oath. The answer depends only on the caller's own row, so it reveals nothing about the requested Oath or another account, as in Oath acceptance.
+- The same request for an Oath whose character is no longer active returns 404 `not_found`, as detail reads do.
+- Another account using the same `submissionId` value makes its own new submission.
+- The hash covers the received bytes, not the normalized output, so the match does not depend on GD output staying stable. A changed image that fails normalization still gets its 422 before any lock.
+
+A retry stages its own copy before the locks. That copy is removed like any refusal, so a replay leaves only the original object. Two identical requests at the same time meet at the account lock. The second one finds the committed row and replays it. The result is one row, one object, one 201 and one 200 with the same `receivedAt`. The unique constraint is never reached.
+
+Promotion from staging to permanent storage is the last step before commit, so a committed row never points at a staged object the purge could remove. Every refusal after staging removes the staged copy. If the commit fails after promotion, the API checks whether any committed row references the object and deletes it when none does. A commit can succeed even though the API saw an error, so a referenced object stays. When that check itself fails, the object stays and the response is still 503. Storage or database failure returns 503 `temporarily_unavailable`. Responses and logs never contain the storage key, image bytes or declaration text. DBAL query logging is off in every environment, because it would log SQL parameters.

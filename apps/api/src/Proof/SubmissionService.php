@@ -33,13 +33,14 @@ final class SubmissionService
                 $received = $this->receive($account, $bearer, $oathId, $input, $sha256, $key);
                 // Promotion is the last step before commit, so a finalized row never points at a staged object the purge could remove.
                 // If the commit fails after it, the finally block below removes the unreferenced object.
-                if ($received instanceof SubmissionResult) { $this->storage->promote($key); $promoted = true; }
+                if ($received instanceof SubmissionResult && $received->created) { $this->storage->promote($key); $promoted = true; }
                 return $received;
             });
         } catch (\Doctrine\DBAL\Exception|\RuntimeException) {
             return $result = new OathFailure('temporarily_unavailable', 503);
         } finally {
-            if (null !== $key && !$result instanceof SubmissionResult) { $this->discard($key, $promoted); }
+            // A replay keeps the original object. Its own fresh copy is discarded like any refusal.
+            if (null !== $key && !($result instanceof SubmissionResult && $result->created)) { $this->discard($key, $promoted); }
         }
     }
     /**
@@ -65,6 +66,9 @@ final class SubmissionService
         if (false === $row || 'active' !== $row['status'] || false === $session || null !== $session['revoked_at'] || $now >= $session['expires_at']) { return new OathFailure('unauthenticated', 401); }
         if (null === $row['active_character_id']) { return new OathFailure('character_required', 409); }
         $this->reconciler->reconcileLocked($locked, $now);
+        // A retry is matched before the cutoff and state checks, so a finalized receipt survives any later time (T02-04).
+        $prior = $this->connection->fetchAssociative('SELECT oath_id, mode, content_sha256, revision, received_at, assessment_status FROM proof_submission WHERE account_id = ? AND submission_id = ?', [$account->id, $input->submissionId]);
+        if (false !== $prior) { return $this->replay($account->id, $row['active_character_id'], $oathId, $input, $sha256, $prior, $now); }
         // Re-read after reconciliation, because the locked rows are stale. Another account or character sees not_found.
         $oath = $this->connection->fetchAssociative('SELECT * FROM oath WHERE account_id = ? AND character_id = ? AND id = ?', [$account->id, $row['active_character_id'], $oathId]);
         if (false === $oath) { return new OathFailure('not_found', 404); }
@@ -78,6 +82,21 @@ final class SubmissionService
         $updated = $this->connection->fetchAssociative('SELECT * FROM oath WHERE id = ?', [$oathId]);
         if (false === $updated) { throw new \LogicException('Locked Oath missing.'); }
         $receivedAt = gmdate('Y-m-d\TH:i:s\Z', $now);
-        return new SubmissionResult(['proof' => ['submissionId' => $input->submissionId, 'mode' => $input->mode, 'receivedAt' => $receivedAt, 'revision' => 1, 'assessment' => 'queued'], 'oath' => OathRepresentation::fromRow($updated), 'serverTime' => $receivedAt]);
+        return new SubmissionResult(['proof' => ['submissionId' => $input->submissionId, 'mode' => $input->mode, 'receivedAt' => $receivedAt, 'revision' => 1, 'assessment' => 'queued'], 'oath' => OathRepresentation::fromRow($updated), 'serverTime' => $receivedAt], true);
+    }
+    /**
+     * Answers a request whose submissionId this account already used. The conflict depends only on the caller's own row,
+     * never on the requested Oath, so it reveals nothing about another account or character (AcceptanceService precedent).
+     * The declaration needs no comparison, because only a confirmed declaration reaches this point or the table.
+     *
+     * @param array<string, mixed> $prior
+     */
+    private function replay(string $accountId, string $characterId, string $oathId, SubmissionInput $input, string $sha256, array $prior, int $now): SubmissionResult|OathFailure
+    {
+        if ($prior['oath_id'] !== $oathId || $prior['mode'] !== $input->mode || !hash_equals((string) $prior['content_sha256'], $sha256)) { return new OathFailure('idempotency_conflict', 409); }
+        // Detail reads are scoped to the active character, so a replay is too. Another character's Oath stays not_found.
+        $oath = $this->connection->fetchAssociative('SELECT * FROM oath WHERE account_id = ? AND character_id = ? AND id = ?', [$accountId, $characterId, $oathId]);
+        if (false === $oath) { return new OathFailure('not_found', 404); }
+        return new SubmissionResult(['proof' => ['submissionId' => $input->submissionId, 'mode' => $prior['mode'], 'receivedAt' => gmdate('Y-m-d\TH:i:s\Z', (int) $prior['received_at']), 'revision' => (int) $prior['revision'], 'assessment' => $prior['assessment_status']], 'oath' => OathRepresentation::fromRow($oath), 'serverTime' => gmdate('Y-m-d\TH:i:s\Z', $now)], false);
     }
 }

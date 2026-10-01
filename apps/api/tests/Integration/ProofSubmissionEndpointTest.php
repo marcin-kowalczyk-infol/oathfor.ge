@@ -217,6 +217,99 @@ final class ProofSubmissionEndpointTest extends WebTestCase
         self::assertSame([$first['storage_key']], $this->stored('objects'));
     }
 
+    public function testIdenticalRetryAfterCutoffReturnsTheOriginalReceipt(): void
+    {
+        $oath = $this->createOath();
+        // T02-04: finalized at 18:14Z, response lost, the same request retried at 18:16Z after S.
+        $this->clock->time = $this->cutoff($oath) - 60;
+        $this->submit($oath);
+        self::assertSame(201, $this->client->getResponse()->getStatusCode());
+        $original = $this->body();
+        $rows = $this->connection->fetchAllAssociative('SELECT * FROM proof_submission');
+        $this->clock->time = $this->cutoff($oath) + 60;
+
+        $this->submit($oath);
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertResponseHeaderSame('Cache-Control', 'no-store, private');
+        $body = $this->body();
+        self::assertSame('2027-01-15T18:14:00Z', $original['proof']['receivedAt']);
+        self::assertSame($original['proof'], $body['proof']);
+        self::assertSame('proof_pending', $body['oath']['state']);
+        self::assertSame($oath, $body['oath']['id']);
+        self::assertSame('2027-01-15T18:16:00Z', $body['serverTime']);
+        self::assertSame($rows, $this->connection->fetchAllAssociative('SELECT * FROM proof_submission'));
+        self::assertSame('proof_pending', $this->connection->fetchOne('SELECT state FROM oath WHERE id = ?', [$oath]));
+        // The replay staged its own copy before the locks. Only the original object remains.
+        self::assertSame([], $this->stored('staged'));
+        self::assertSame([$rows[0]['storage_key']], $this->stored('objects'));
+    }
+
+    public function testChangedImageOrModeUnderTheSameSubmissionConflicts(): void
+    {
+        $oath = $this->createOath();
+        $this->clock->time = self::D;
+        $this->submit($oath);
+        $rows = $this->connection->fetchAllAssociative('SELECT * FROM proof_submission');
+        self::assertCount(1, $rows);
+
+        file_put_contents($this->upload, $this->makeJpeg(65, 64));
+        $this->submit($oath, image: new UploadedFile($this->upload, 'proof.jpg', 'image/jpeg', null, true));
+        $this->assertError(409, ['code' => 'idempotency_conflict']);
+        $this->submit($oath, ['mode' => 'activity_record']);
+        $this->assertError(409, ['code' => 'idempotency_conflict']);
+
+        self::assertSame($rows, $this->connection->fetchAllAssociative('SELECT * FROM proof_submission'));
+        self::assertSame([], $this->stored('staged'));
+        self::assertSame([$rows[0]['storage_key']], $this->stored('objects'));
+    }
+
+    public function testReusedSubmissionForAnotherOathConflictsAndWritesNothing(): void
+    {
+        $first = $this->createOath();
+        $second = $this->createOath();
+        // The clock stays at the start, so the later createOath can still pick a deadline in the future.
+        $this->submit($first);
+        $rows = $this->connection->fetchAllAssociative('SELECT * FROM proof_submission');
+
+        $this->submit($second);
+        $this->assertError(409, ['code' => 'idempotency_conflict']);
+        self::assertSame('active', $this->connection->fetchOne('SELECT state FROM oath WHERE id = ?', [$second]));
+        // After a switch, the reused ID on the new character's Oath conflicts without naming the first Oath.
+        // The first Oath belongs to an inactive character now, so even its identical retry is not_found, as in detail reads.
+        CharacterFixture::activate($this->connection, self::ACCOUNT, 2);
+        $third = $this->createOath();
+        $this->submit($third);
+        $this->assertError(409, ['code' => 'idempotency_conflict']);
+        $this->submit($first);
+        $this->assertError(404, ['code' => 'not_found']);
+
+        self::assertSame('active', $this->connection->fetchOne('SELECT state FROM oath WHERE id = ?', [$third]));
+        self::assertSame($rows, $this->connection->fetchAllAssociative('SELECT * FROM proof_submission'));
+        self::assertSame([], $this->stored('staged'));
+        self::assertSame([$rows[0]['storage_key']], $this->stored('objects'));
+    }
+
+    public function testAnotherAccountUsingTheSameSubmissionIdMakesItsOwnSubmission(): void
+    {
+        $first = $this->createOath();
+        $this->submit($first);
+        self::assertSame(201, $this->client->getResponse()->getStatusCode());
+        $other = '00000000-0000-4000-8000-000000000002';
+        $this->connection->insert('account', ['id' => $other, 'created_at' => $this->clock->time, 'onboarding_status' => 'complete']);
+        CharacterFixture::activate($this->connection, $other);
+        $this->connection->executeStatement('UPDATE app_session SET account_id = ?', [$other]);
+        $second = $this->createOath();
+
+        $this->submit($second);
+
+        self::assertSame(201, $this->client->getResponse()->getStatusCode());
+        self::assertSame($second, $this->body()['oath']['id']);
+        self::assertSame([[self::ACCOUNT, $first], [$other, $second]], array_map(static fn (array $row): array => [$row['account_id'], $row['oath_id']], $this->connection->fetchAllAssociative('SELECT account_id, oath_id FROM proof_submission WHERE submission_id = ? ORDER BY account_id', [self::SUBMISSION])));
+        self::assertCount(2, $this->stored('objects'));
+        self::assertSame([], $this->stored('staged'));
+    }
+
     public function testOnlyTheOwningAccountAndActiveCharacterCanSubmit(): void
     {
         $own = $this->createOath();

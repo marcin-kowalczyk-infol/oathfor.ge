@@ -28,5 +28,5 @@ final class ProofSubmissionController
         $token = $this->tokens->extractAccessToken($request);
         return $this->respond(null === $token ? new OathFailure('unauthenticated', 401) : $this->submissions->submit($token, $id, $input));
     }
-    private function respond(SubmissionResult|OathFailure $result): JsonResponse { return new JsonResponse($result instanceof OathFailure ? $result->toArray() : $result->body, $result instanceof OathFailure ? $result->status : 201, ['Cache-Control' => 'no-store']); }
+    private function respond(SubmissionResult|OathFailure $result): JsonResponse { return new JsonResponse($result instanceof OathFailure ? $result->toArray() : $result->body, $result instanceof OathFailure ? $result->status : ($result->created ? 201 : 200), ['Cache-Control' => 'no-store']); }
 }
