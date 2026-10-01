@@ -7,8 +7,8 @@ export type PathBadge = 'waiting' | 'interrupted' | 'assessing' | 'needsMore' | 
 /** `proofScreen`, `confirmed` and `confirmedScheduled` come from their screens, never from `oathPath`. */
 export type ZaromirSituation = 'scheduled' | 'active' | 'activeSoon' | 'cutoff' | 'interrupted' | 'assessing' | 'review'
   | 'fulfilled' | 'missed' | 'unresolved' | 'withdrawn' | 'confirmed' | 'confirmedScheduled' | 'proofScreen';
-/** A stored wall time in the Oath's zone, unformatted. */
-export type PathTime = { local: string; timezone: string };
+/** A stored wall time in the Oath's zone, unformatted. The offset tells apart the hour that repeats when summer time ends. */
+export type PathTime = { local: string; timezone: string; offset: string };
 export type OathPath = {
   step: 1 | 2 | 3 | 4;
   steps: [StepStatus, StepStatus, StepStatus, StepStatus];
@@ -19,6 +19,11 @@ export type OathPath = {
 };
 
 const HOUR = 3600000;
+/** The zone offset of an instant, from its wall time: "+01:00". */
+function offsetOf(instant: string, local: string): string {
+  const minutes = Math.round((Date.parse(`${local}Z`) - Date.parse(instant)) / 60000), size = Math.abs(minutes);
+  return `${minutes < 0 ? '-' : '+'}${String(Math.floor(size / 60)).padStart(2, '0')}:${String(size % 60).padStart(2, '0')}`;
+}
 const assessment: Partial<Record<OathState, [PathBadge, string, ZaromirSituation | null]>> = {
   proof_pending: ['assessing', 'path.next.assessing', 'assessing'],
   needs_more_evidence: ['needsMore', 'path.next.needsMore', null],
@@ -31,8 +36,8 @@ const assessment: Partial<Record<OathState, [PathBadge, string, ZaromirSituation
  */
 export function oathPath(oath: Oath, device: DeviceProof, paused: boolean | null, now: number | null): OathPath {
   const zone = oath.snapshot.deadline.timezone;
-  const at = (instant: string): PathTime => ({ local: wallTimeIn(instant, zone), timezone: zone });
-  const own = ({ local, timezone }: PathTime): PathTime => ({ local, timezone });
+  const at = (instant: string): PathTime => { const local = wallTimeIn(instant, zone); return { local, timezone: zone, offset: offsetOf(instant, local) }; };
+  const own = ({ local, timezone, offset }: PathTime): PathTime => ({ local, timezone, offset });
   const speaks = paused === false || (paused === null && (oath.state === 'scheduled' || oath.state === 'active'));
   // While a send or delete runs nothing is asked and nothing is said.
   const busy = device === 'sending' || device === 'deleting';
@@ -44,10 +49,11 @@ export function oathPath(oath: Oath, device: DeviceProof, paused: boolean | null
     const deadline = Date.parse(oath.snapshot.deadline.utc), cutoff = Date.parse(oath.snapshot.deadline.receiptCutoff);
     const closed = now !== null && now > cutoff;
     const steps: OathPath['steps'] = ['done', 'current', 'future', 'future'];
-    // An interrupted upload is urged only before the cutoff. After it the server's next answer decides.
-    if (device === 'waiting') return path(2, steps, 'interrupted', { key: 'path.next.interrupted' }, 'sendAgain', closed ? null : 'interrupted');
+    // After the cutoff nothing asks for proof. The server settles the state at its next answer, an interrupted copy keeps its badge.
+    if (closed) return path(2, steps, device === 'waiting' ? 'interrupted' : null, { key: 'path.next.closed' }, null, null);
+    if (device === 'waiting') return path(2, steps, 'interrupted', { key: 'path.next.interrupted' }, 'sendAgain', 'interrupted');
     const late = now !== null && now > deadline, soon = !late && now !== null && deadline - now < HOUR;
-    const situation = closed ? null : late ? 'cutoff' : soon ? 'activeSoon' : 'active';
+    const situation = late ? 'cutoff' : soon ? 'activeSoon' : 'active';
     // Between D and S the line names S, the moment the window for proof closes. The chip already reads elapsed.
     const next = late ? { key: 'path.next.cutoff', time: at(oath.snapshot.deadline.receiptCutoff) } : { key: soon ? 'path.next.activeSoon' : 'path.next.active', time: own(oath.snapshot.deadline) };
     return path(2, steps, null, next, 'submitProof', situation);

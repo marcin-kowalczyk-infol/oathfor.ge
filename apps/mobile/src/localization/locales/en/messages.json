@@ -287,7 +287,7 @@
     "more": "Load more",
     "open": "Open Oath: {{activity}}, {{deadline}}",
     "group": "{{date}} · {{timezone}}",
-    "paused": "Pause is on. Oaths in progress continue, withdrawn ones do not return.",
+    "paused": "Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.",
     "pauseTitle": "Review pause",
     "pauseIntro": "Review every Oath below before confirming. Pause does not extend deadlines.",
     "withdraw": "Will be withdrawn",
@@ -611,7 +611,7 @@
   "proof": {
     "submit": "Submit proof",
     "back": "Back to the Oath",
-    "intro": "Three steps, one image. The Oath changes when the server receives the proof.",
+    "intro": "Three steps, one image. The Oath changes only when the server receives the proof.",
     "routeHeading": "Type of evidence",
     "routes": {
       "photo": {
@@ -642,7 +642,7 @@
       "image": "Add an image.",
       "declaration": "Confirm the completion declaration."
     },
-    "sending": "Proof on its way. The Oath changes when the server answers.",
+    "sending": "Proof on its way. The Oath changes only when the server answers.",
     "loading": "Getting ready to send…",
     "notActive": "This Oath is not accepting proof now.",
     "pending": "A proof saved on this device is waiting to be sent. The server has not received it yet.",
@@ -705,6 +705,7 @@
       "active": "Workout and proof by {{time}}.",
       "activeSoon": "Under an hour left. Workout and proof by {{time}}.",
       "cutoff": "Workout finished by the deadline? Submit proof by {{time}}.",
+      "closed": "The proof window has closed. The Forge is settling the state.",
       "interrupted": "Proof not received. The copy is here, ready to send again.",
       "assessing": "Proof received. The result will appear here.",
       "needsMore": "The proof needs more evidence. This is not a miss.",

@@ -221,7 +221,7 @@
       "consequence": "Konsekwencje",
       "pause": "Pauza",
       "recovery": "Zadanie Powrotu",
-      "review": "Poprawki i rozwaga",
+      "review": "Poprawki i czas pod rozwagą",
       "appeal": "Odwołania i usuwanie"
     },
     "cards": {
@@ -248,11 +248,11 @@
         "title": "Dowód"
       },
       "review": {
-        "title": "Rozwaga",
-        "line_one": "Rozwaga trwa do {{count}} dnia",
-        "line_few": "Rozwaga trwa do {{count}} dni",
-        "line_many": "Rozwaga trwa do {{count}} dni",
-        "line_other": "Rozwaga trwa do {{count}} dnia"
+        "title": "Pod rozwagą",
+        "line_one": "Pod rozwagą do {{count}} dnia",
+        "line_few": "Pod rozwagą do {{count}} dni",
+        "line_many": "Pod rozwagą do {{count}} dni",
+        "line_other": "Pod rozwagą do {{count}} dnia"
       },
       "reward": {
         "title": "Nagroda",
@@ -295,7 +295,7 @@
     "more": "Wczytaj więcej",
     "open": "Otwórz Przysięgę: {{activity}}, {{deadline}}",
     "group": "{{date}} · {{timezone}}",
-    "paused": "Pauza jest włączona. Przysięgi w toku trwają dalej, wycofane nie wrócą.",
+    "paused": "Pauza jest włączona. Przysięgi czekające na wynik trwają dalej, wycofane nie wrócą.",
     "pauseTitle": "Sprawdź skutki pauzy",
     "pauseIntro": "Przed potwierdzeniem sprawdź każdą Przysięgę poniżej. Pauza nie przedłuża terminów.",
     "withdraw": "Zostaną wycofane",
@@ -306,7 +306,7 @@
     "pauseChanged": "Twoje Przysięgi się zmieniły. Sprawdź zaktualizowaną listę przed potwierdzeniem pauzy.",
     "pauseError": "Nie udało się potwierdzić zmiany pauzy. Przed kolejną próbą wczytaj jej bieżący stan.",
     "reviewPause": "Wczytaj ponownie skutki pauzy",
-    "reviewDeadline": "Rozwaga kończy się {{deadline}}",
+    "reviewDeadline": "Pod rozwagą do {{deadline}}",
     "unknownAvailability": "Usługa mogła być wtedy niedostępna. Dlatego ta Przysięga jest pod rozwagą, a nie niewykonana.",
     "withdrawn": "Wycofana przy włączeniu pauzy, wznowienie jej nie przywraca. Po wznowieniu można złożyć nową Przysięgę.",
     "detailError": "Nie udało się wczytać tej Przysięgi. Spróbuj ponownie.",
@@ -637,7 +637,7 @@
   "proof": {
     "submit": "Prześlij dowód",
     "back": "Wróć do Przysięgi",
-    "intro": "Trzy kroki, jeden obraz. Przysięga zmieni stan, gdy serwer odbierze dowód.",
+    "intro": "Trzy kroki, jeden obraz. Przysięga zmieni stan dopiero, gdy serwer odbierze dowód.",
     "routeHeading": "Rodzaj dowodu",
     "routes": {
       "photo": {
@@ -668,7 +668,7 @@
       "image": "Dodaj obraz.",
       "declaration": "Potwierdź deklarację ukończenia."
     },
-    "sending": "Dowód w drodze. Stan Przysięgi zmieni się, gdy serwer odpowie.",
+    "sending": "Dowód w drodze. Stan Przysięgi zmieni się dopiero, gdy serwer odpowie.",
     "loading": "Przygotowuję wysyłanie…",
     "notActive": "Ta Przysięga nie przyjmuje teraz dowodu.",
     "pending": "Dowód zapisany na tym urządzeniu czeka na wysłanie. Serwer go jeszcze nie odebrał.",
@@ -731,6 +731,7 @@
       "active": "Trening i dowód do {{time}}.",
       "activeSoon": "Niecała godzina. Trening i dowód do {{time}}.",
       "cutoff": "Trening skończony w terminie? Prześlij dowód do {{time}}.",
+      "closed": "Czas na dowód minął. Kuźnia ustala stan.",
       "interrupted": "Dowód nie dotarł. Kopia czeka tu na ponowne wysłanie.",
       "assessing": "Dowód odebrany. Wynik pojawi się tutaj.",
       "needsMore": "Dowód wymaga uzupełnienia. To nie jest niewykonanie.",
@@ -765,7 +766,7 @@
       "3": "Termin jest blisko, zostaje niecała godzina. Trening teraz, dowód zaraz po nim."
     },
     "cutoff": {
-      "0": "Okno na dowód jeszcze trwa. Prześlij go, jeśli trening był przed terminem.",
+      "0": "Okno na dowód trwa. Prześlij go, jeśli trening skończył się przed terminem.",
       "1": "Trening skończony w terminie? Okno na dowód jeszcze trwa.",
       "2": "Świeca jeszcze płonie. Jeśli trening zakończył się w terminie, prześlij dowód teraz."
     },
@@ -780,7 +781,7 @@
       "4": "Dowód odebrany. Reszta należy teraz do oceny."
     },
     "review": {
-      "0": "Ta Przysięga czeka na rozwagę i to nie jest niewykonanie."
+      "0": "Ta Przysięga jest pod rozwagą i to nie jest niewykonanie."
     },
     "fulfilled": {
       "0": "Przysięga spełniona. Ten trening zostaje na Twojej drodze.",

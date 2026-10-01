@@ -216,7 +216,7 @@ test('paused Forge makes the paused state visible without a creation affordance 
   const f = setup([]);
   jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  expect(await screen.findByText('Pause is on. Oaths in progress continue, withdrawn ones do not return.')).toBeOnTheScreen();
+  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Create an Oath' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Pause and resume' })).toBeNull();
 });
@@ -298,7 +298,7 @@ test('hearth navigation on a paused account shows the pause notice instead of ne
   const f = setup([]); jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
   jest.mocked(f.controller.resetCreation).mockReturnValue(true);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
-  expect(await screen.findByText('Pause is on. Oaths in progress continue, withdrawn ones do not return.')).toBeOnTheScreen();
+  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.')).toBeOnTheScreen();
   expect(f.controller.resetCreation).not.toHaveBeenCalled();
   expect(screen.queryByLabelText('Completion date')).toBeNull();
 });
@@ -558,7 +558,7 @@ test('the Polish review closing time uses the same short date as a closed Oath',
   const f = setup(); f.controller.clock.observe(serverTime);
   await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
   await fireEvent.press((await screen.findAllByRole('button', { name: /Otwórz Przysięgę/ }))[0]);
-  expect(await screen.findByText('Rozwaga kończy się 28 paź 2026, 01:45')).toBeOnTheScreen();
+  expect(await screen.findByText('Pod rozwagą do 28 paź 2026, 01:45')).toBeOnTheScreen();
 });
 
 test('the list refreshes quietly when the app returns to the foreground, a detail stays as it is', async () => {
@@ -693,7 +693,7 @@ test('a pending local record shows the interrupted upload on its Today row, and 
   await fireEvent.press(screen.getByRole('button', { name: 'Send again' }));
   expect(proof.controller.recover).toHaveBeenCalledTimes(1);
   await act(async () => proof.change({ kind: 'ready', busy: true, pending: record(), oath: null }));
-  expect(screen.getByText('Proof on its way. The Oath changes when the server answers.')).toBeOnTheScreen();
+  expect(screen.getByText('Proof on its way. The Oath changes only when the server answers.')).toBeOnTheScreen();
   const row = () => screen.getByRole('button', { name: /Open Oath: Running/ });
   expect(row().props.accessibilityValue).toEqual({ text: 'Active' });
   await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: oath({ state: 'proof_pending', reason: null, review: null, proof: receipt }) }));
@@ -712,7 +712,7 @@ test('a pending local record shows the interrupted upload on its detail, and onl
   expect(proof.controller.recover).toHaveBeenCalledTimes(1);
   // While the upload runs nothing claims a receipt.
   await act(async () => proof.change({ kind: 'ready', busy: true, pending: record(), oath: null }));
-  expect(screen.getByText('Proof on its way. The Oath changes when the server answers.')).toBeOnTheScreen();
+  expect(screen.getByText('Proof on its way. The Oath changes only when the server answers.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Send again' })).toBeNull();
   expect(screen.getByLabelText('Status: Active')).toBeOnTheScreen();
   expect(screen.queryByText(/^Evidence received/)).toBeNull();

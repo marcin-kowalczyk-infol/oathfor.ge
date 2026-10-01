@@ -13,19 +13,20 @@ function oath(patch: Partial<Oath> = {}): Oath {
 }
 const terminal = (state: OathState) => oath({ state, terminalAt: '2026-10-25T01:00:00Z', proof: received });
 const D = Date.parse('2026-10-25T00:30:00Z'), S = Date.parse('2026-10-25T00:45:00Z'), MIN = 60000;
-const warsaw = (local: string) => ({ local, timezone: 'Europe/Warsaw' });
+// 2026-10-25 ends summer time in Warsaw at 01:00Z, so 02:00 to 02:59 local happens twice. The offset tells them apart.
+const warsaw = (local: string, offset: string) => ({ local, timezone: 'Europe/Warsaw', offset });
 
 test.each([
-  ['scheduled', oath({ state: 'scheduled', activatedAt: null }), 1, ['done', 'future', 'future', 'future'], 'waiting', 'path.next.scheduled', warsaw('2026-10-24T02:00:00'), null, 'scheduled'],
-  ['active', oath(), 2, ['done', 'current', 'future', 'future'], null, 'path.next.active', warsaw('2026-10-25T02:30:00'), 'submitProof', 'active'],
+  ['scheduled', oath({ state: 'scheduled', activatedAt: null }), 1, ['done', 'future', 'future', 'future'], 'waiting', 'path.next.scheduled', warsaw('2026-10-24T02:00:00', '+02:00'), null, 'scheduled'],
+  ['active', oath(), 2, ['done', 'current', 'future', 'future'], null, 'path.next.active', warsaw('2026-10-25T02:30:00', '+02:00'), 'submitProof', 'active'],
   ['proof_pending', oath({ state: 'proof_pending', proof: received }), 3, ['done', 'done', 'current', 'future'], 'assessing', 'path.next.assessing', undefined, null, 'assessing'],
   ['needs_more_evidence', oath({ state: 'needs_more_evidence', proof: received }), 3, ['done', 'done', 'current', 'future'], 'needsMore', 'path.next.needsMore', undefined, null, null],
-  ['review_pending', oath({ state: 'review_pending', proof: received, review: { enteredAt: '2026-10-25T00:45:01Z', closesAt: '2026-10-28T00:45:01Z' } }), 3, ['done', 'done', 'current', 'future'], 'review', 'path.next.review', warsaw('2026-10-28T01:45:01'), null, 'review'],
-  ['review_pending without a proof', oath({ state: 'review_pending', reason: 'service_availability_unknown', review: { enteredAt: '2026-10-25T00:45:01Z', closesAt: '2026-10-28T00:45:01Z' } }), 3, ['done', 'skipped', 'current', 'future'], 'review', 'path.next.review', warsaw('2026-10-28T01:45:01'), null, 'review'],
-  ['fulfilled', terminal('fulfilled'), 4, ['done', 'done', 'done', 'current'], 'result', 'path.next.fulfilled', warsaw('2026-10-25T02:00:00'), null, 'fulfilled'],
-  ['missed', terminal('missed'), 4, ['done', 'done', 'done', 'current'], 'result', 'path.next.missed', warsaw('2026-10-25T02:00:00'), null, 'missed'],
-  ['unresolved', terminal('unresolved'), 4, ['done', 'done', 'done', 'current'], 'result', 'path.next.unresolved', warsaw('2026-10-25T02:00:00'), null, 'unresolved'],
-  ['withdrawn', terminal('withdrawn'), 4, ['done', 'done', 'done', 'current'], 'result', 'path.next.withdrawn', warsaw('2026-10-25T02:00:00'), null, 'withdrawn'],
+  ['review_pending', oath({ state: 'review_pending', proof: received, review: { enteredAt: '2026-10-25T00:45:01Z', closesAt: '2026-10-28T00:45:01Z' } }), 3, ['done', 'done', 'current', 'future'], 'review', 'path.next.review', warsaw('2026-10-28T01:45:01', '+01:00'), null, 'review'],
+  ['review_pending without a proof', oath({ state: 'review_pending', reason: 'service_availability_unknown', review: { enteredAt: '2026-10-25T00:45:01Z', closesAt: '2026-10-28T00:45:01Z' } }), 3, ['done', 'skipped', 'current', 'future'], 'review', 'path.next.review', warsaw('2026-10-28T01:45:01', '+01:00'), null, 'review'],
+  ['fulfilled', terminal('fulfilled'), 4, ['done', 'done', 'done', 'current'], 'result', 'path.next.fulfilled', warsaw('2026-10-25T02:00:00', '+01:00'), null, 'fulfilled'],
+  ['missed', terminal('missed'), 4, ['done', 'done', 'done', 'current'], 'result', 'path.next.missed', warsaw('2026-10-25T02:00:00', '+01:00'), null, 'missed'],
+  ['unresolved', terminal('unresolved'), 4, ['done', 'done', 'done', 'current'], 'result', 'path.next.unresolved', warsaw('2026-10-25T02:00:00', '+01:00'), null, 'unresolved'],
+  ['withdrawn', terminal('withdrawn'), 4, ['done', 'done', 'done', 'current'], 'result', 'path.next.withdrawn', warsaw('2026-10-25T02:00:00', '+01:00'), null, 'withdrawn'],
 ] as const)('%s maps to its step, badge, line, action and situation', (_, value, step, steps, badge, key, time, action, zaromir) => {
   expect(oathPath(value, 'none', false, null)).toEqual({ step, steps, badge, next: time ? { key, time } : { key }, action, zaromir });
 });
@@ -60,13 +61,25 @@ test('Żaromir is silent while paused, and while the pause is unknown except bef
 
 test('Żaromir urges only in the last hour, between the deadline and the cutoff, and for an interrupted upload before the cutoff', () => {
   expect(oathPath(oath(), 'none', false, D - 60 * MIN)).toMatchObject({ zaromir: 'active', next: { key: 'path.next.active' } });
-  expect(oathPath(oath(), 'none', false, D - 59 * MIN)).toMatchObject({ zaromir: 'activeSoon', next: { key: 'path.next.activeSoon', time: warsaw('2026-10-25T02:30:00') } });
+  expect(oathPath(oath(), 'none', false, D - 59 * MIN)).toMatchObject({ zaromir: 'activeSoon', next: { key: 'path.next.activeSoon', time: warsaw('2026-10-25T02:30:00', '+02:00') } });
   expect(oathPath(oath(), 'none', false, D).zaromir).toBe('activeSoon');
-  expect(oathPath(oath(), 'none', false, D + MIN)).toMatchObject({ zaromir: 'cutoff', next: { key: 'path.next.cutoff', time: warsaw('2026-10-25T02:45:00') } });
+  expect(oathPath(oath(), 'none', false, D + MIN)).toMatchObject({ zaromir: 'cutoff', next: { key: 'path.next.cutoff', time: warsaw('2026-10-25T02:45:00', '+02:00') } });
   expect(oathPath(oath(), 'none', false, S).zaromir).toBe('cutoff');
   expect(oathPath(oath(), 'none', false, S + MIN).zaromir).toBeNull();
   expect(oathPath(oath(), 'waiting', false, S).zaromir).toBe('interrupted');
-  expect(oathPath(oath(), 'waiting', false, S + MIN)).toMatchObject({ badge: 'interrupted', action: 'sendAgain', zaromir: null });
+});
+
+// Review finding, 2026-10-01: after the cutoff nothing asks for proof. The server settles the state at its next answer.
+test('after the cutoff the line says the window has closed and no action is offered', () => {
+  expect(oathPath(oath(), 'none', false, S + MIN)).toEqual({ step: 2, steps: ['done', 'current', 'future', 'future'], badge: null, next: { key: 'path.next.closed' }, action: null, zaromir: null });
+  expect(oathPath(oath(), 'waiting', false, S + MIN)).toMatchObject({ badge: 'interrupted', next: { key: 'path.next.closed' }, action: null, zaromir: null });
+  expect(oathPath(oath(), 'waiting', false, S)).toMatchObject({ next: { key: 'path.next.interrupted' }, action: 'sendAgain' });
+});
+
+test('a deadline in the repeated autumn hour keeps its own offset for the deadline and the cutoff', () => {
+  const second = oath({ snapshot: { ...oath().snapshot, deadline: { local: '2026-10-25T02:30:00', timezone: 'Europe/Warsaw', offset: '+01:00', explicitOffset: true, utc: '2026-10-25T01:30:00Z', receiptCutoff: '2026-10-25T01:45:00Z' } } });
+  expect(oathPath(second, 'none', false, null).next.time).toEqual(warsaw('2026-10-25T02:30:00', '+01:00'));
+  expect(oathPath(second, 'none', false, Date.parse('2026-10-25T01:31:00Z')).next).toEqual({ key: 'path.next.cutoff', time: warsaw('2026-10-25T02:45:00', '+01:00') });
 });
 
 test('the proof screen keeps the conditional cutoff line between the deadline and the cutoff', () => {

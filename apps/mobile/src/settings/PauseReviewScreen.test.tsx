@@ -89,7 +89,7 @@ test('resume only sends the flag, and a failed change requires current-state rel
   const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), true) });
   jest.mocked(f.controller.pause).mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' }).mockResolvedValueOnce({ kind: 'success', value: pauseSummary() });
   await show(f);
-  expect(await screen.findByText('Pause is on. Oaths in progress continue, withdrawn ones do not return.')).toBeOnTheScreen();
+  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.')).toBeOnTheScreen();
   await fireEvent.press(await screen.findByRole('button', { name: 'Resume gameplay' }));
   expect(jest.mocked(f.controller.pause).mock.calls[0][0]).toEqual({ paused: false });
   expect(screen.queryByRole('button', { name: 'Resume gameplay' })).toBeNull();

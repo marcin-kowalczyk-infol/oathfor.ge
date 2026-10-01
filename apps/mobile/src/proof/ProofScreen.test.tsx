@@ -197,7 +197,7 @@ test('sending shows no success until the server answers, then hands back the ret
   await fireEvent.press(screen.getByRole('button', { name: 'Prześlij dowód' }));
   const pending = { version: 1 as const, accountId: '10000000-0000-4000-8000-000000000001', characterId, oathId, submissionId: '40000000-0000-4000-8000-000000000001', mode: 'photo' as const, fileName: '40000000-0000-4000-8000-000000000001.jpg' };
   await act(async () => f.change({ kind: 'ready', busy: true, pending, oath: null }));
-  expect(screen.getByText('Dowód w drodze. Stan Przysięgi zmieni się, gdy serwer odpowie.')).toBeOnTheScreen();
+  expect(screen.getByText('Dowód w drodze. Stan Przysięgi zmieni się dopiero, gdy serwer odpowie.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Wyślij ponownie' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Usuń kopię z tego urządzenia' })).toBeNull();
   expect(f.onDone).not.toHaveBeenCalled();

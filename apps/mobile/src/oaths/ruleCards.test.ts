@@ -18,7 +18,7 @@ const time = (cards: ReturnType<typeof ruleCards>, id: string) => cards.find(car
 test('Polish cards carry the snapshot values in order', () => {
   const cards = build(snapshot(), 'pl');
   expect(cards.map(card => card.id)).toEqual(['start', 'deadline', 'cutoff', 'proof', 'review', 'reward', 'consequence', 'fixed', 'pause']);
-  expect(cards.map(card => card.title)).toEqual(['Start', 'Termin', 'Ostatni moment na dowód', 'Dowód', 'Rozwaga', 'Nagroda', 'Jeśli nie zdążysz', 'Zasady są stałe', 'Pauza']);
+  expect(cards.map(card => card.title)).toEqual(['Start', 'Termin', 'Ostatni moment na dowód', 'Dowód', 'Pod rozwagą', 'Nagroda', 'Jeśli nie zdążysz', 'Zasady są stałe', 'Pauza']);
   expect(line(cards, 'start')).toBe('Od razu po złożeniu');
   // A half-width card breaks a long date line anywhere. The hour stands alone, the day and zone sit under it.
   expect(time(cards, 'deadline')).toBe('18:00');
@@ -27,7 +27,7 @@ test('Polish cards carry the snapshot values in order', () => {
   expect(line(cards, 'cutoff')).toBe('15 minut po terminie');
   expect(time(cards, 'start')).toBeUndefined();
   expect(line(cards, 'proof')).toBe('Zdjęcie albo zapis aktywności');
-  expect(line(cards, 'review')).toBe('Rozwaga trwa do 3 dni');
+  expect(line(cards, 'review')).toBe('Pod rozwagą do 3 dni');
   expect(line(cards, 'reward')).toBe('40 XP za zdjęcie, 50 XP za zapis aktywności');
   expect(line(cards, 'consequence')).toBe('Nie tracisz zdobytego XP. Możesz podjąć Zadanie Powrotu za 15 XP.');
   expect(line(cards, 'fixed')).toBe('Po złożeniu zasady się nie zmienią.');
@@ -56,6 +56,6 @@ test('numbers come from the snapshot, not from the current policy', () => {
     Object.assign(value.recovery, { totalXp: 20 });
   }), 'pl');
   expect(line(cards, 'reward')).toBe('45 XP za zdjęcie, 55 XP za zapis aktywności');
-  expect(line(cards, 'review')).toBe('Rozwaga trwa do 1 dnia');
+  expect(line(cards, 'review')).toBe('Pod rozwagą do 1 dnia');
   expect(line(cards, 'consequence')).toContain('20 XP');
 });
