@@ -1,3 +1,8 @@
 services:
     App\Tests\Fixtures\ProbeHandler:
         autoconfigure: true
+
+    # Records log calls so tests can assert that no proof bytes or storage keys are logged.
+    App\Tests\Fixtures\RecordingLogger:
+        decorates: logger
+        arguments: ['@.inner']

@@ -2,6 +2,8 @@ doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
         server_version: '17'
+        # The debug default logs every SQL parameter, which would include session digests and proof storage keys.
+        logging: false
         options:
             !php/const PDO::ATTR_TIMEOUT: 2
 

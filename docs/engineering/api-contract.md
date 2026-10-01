@@ -248,3 +248,28 @@ Mobile retry identity choice (local engineering decision, 2026-09-25): use the v
 ### Reconciliation ownership
 
 Use the durable [reconciler design](../product/oaths.md#durable-reconciliation-and-acceptance-limits): persisted due times, a bounded command and shared transactional read/pause reconciliation, account lock before ordered Oath locks. At exactly activation, activate once. At exactly S, normal first receipt remains eligible; only now>S follows absent-proof resolution. Unknown availability routes to review with fixed V and V+72h, no assumed healthy-service miss. Reads must not return a fabricated terminal outcome. Review timer enforcement/closure, receipts, outcome settlement, Recovery and scheduling deployment remain explicitly owned downstream; a successful MVP-05 test is not their acceptance.
+
+## Proof submission contract
+
+Status: first submission implemented in MVP-07-T03, 2026-10-01, with integration tests. Retry identity, the pause race, the owner read and the staging purge follow in T04 to T07. Local engineering contract under [ADR 0008](../decisions/0008-proof-storage-and-upload.md) and the [first-loop rules](../product/first-loop.md#committed-times). Bearer, no-store and the safe error envelope apply.
+
+`POST /api/oaths/{id}/proofs` takes one `multipart/form-data` body with exactly these parts. `submissionId` is a client UUID in canonical lowercase text. `mode` is `photo` or `activity_record`. `declaration` is the literal string `true`. `image` is one JPEG file.
+
+Request checks:
+- A missing or invalid bearer returns 401 `unauthenticated` from the firewall, before any other check.
+- Another media type returns 415 `unsupported_media_type`. A declared length above PHP `post_max_size` returns 413 `request_too_large`, because PHP then drops every part.
+- A query string, an unknown part, a part sent as an array or several files return 400 `invalid_request`.
+- Field errors return 422 `{"error":{"code","field"}}`. Codes are `invalid_submission_id`, `invalid_mode`, `declaration_required` and `image_required`. A file above the PHP upload limit or above 10 MiB is `too_large` with field `image`.
+- A partial upload or another server-side upload fault returns 503 `temporarily_unavailable`, so the client keeps its copy and retries.
+- After the session is confirmed and the Oath ID is well formed, the image is normalized. Its failures are 422 `too_large`, `unsupported_type`, `too_many_pixels` or `unreadable_image`, all with field `image`.
+
+The API normalizes the image, hashes the received bytes with SHA-256 and stages the normalized bytes before it takes any lock. It then locks the account, the session and the owner's Oaths, samples receipt time `R`, rechecks the session and reconciles. Checks after the locks:
+- An invalid session returns 401 `unauthenticated`. No active character returns 409 `character_required`.
+- An Oath of another account or of another character, or a malformed ID, returns 404 `not_found`.
+- `R` after the receipt cutoff S with no proof row returns 409 `receipt_cutoff_passed`. The reconciliation that moved the Oath to `review_pending` still commits. This check comes before the state check.
+- A `proof_pending` Oath returns 409 `proof_already_submitted`. Corrections belong to a later slice.
+- Any other state than `active` returns 409 `{"error":{"code":"oath_not_active","state":"<state>"}}`.
+
+Success stores revision 1 with `received_at = R` and assessment `queued`, and moves the Oath from `active` to `proof_pending`. It returns 201 `{"proof":{"submissionId","mode","receivedAt","revision":1,"assessment":"queued"},"oath":{...},"serverTime"}`. `oath` uses the Oath representation above. No message is dispatched yet. The assessment worker of MVP-08 reads queued rows.
+
+Promotion from staging to permanent storage is the last step before commit, so a committed row never points at a staged object the purge could remove. Every refusal after staging removes the staged copy. If the commit fails after promotion, the API checks whether any committed row references the object and deletes it when none does. A commit can succeed even though the API saw an error, so a referenced object stays. When that check itself fails, the object stays and the response is still 503. Storage or database failure returns 503 `temporarily_unavailable`. Responses and logs never contain the storage key, image bytes or declaration text. DBAL query logging is off in every environment, because it would log SQL parameters. Reusing a `submissionId` for another Oath currently fails with 503 at the unique constraint. T04 turns it into 409 `idempotency_conflict`.

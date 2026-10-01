@@ -49,6 +49,8 @@ final class CharacterMigrationTest extends KernelTestCase
     public function testMigrationIsReversible(): void
     {
         $this->connection->executeStatement('TRUNCATE account CASCADE');
+        // Proof submissions reference player characters, so that later table is removed first and restored last.
+        $this->migration('Version20261001100000', '--down');
         $this->migration('Version20260927100000', '--down');
         $this->migration('Version20260926120000', '--down');
         $this->migration('Version20260926110000', '--down');
@@ -56,7 +58,7 @@ final class CharacterMigrationTest extends KernelTestCase
         try {
             self::assertFalse($this->connection->fetchOne("SELECT to_regclass('player_character') IS NOT NULL"));
             self::assertSame(0, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'active_character_id'"));
-        } finally { foreach (['Version20260926100000', 'Version20260926110000', 'Version20260926120000', 'Version20260927100000'] as $version) { $this->migration($version, '--up'); } }
+        } finally { foreach (['Version20260926100000', 'Version20260926110000', 'Version20260926120000', 'Version20260927100000', 'Version20261001100000'] as $version) { $this->migration($version, '--up'); } }
         self::assertSame(1, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'player_character' AND column_name = 'paused'"));
         self::assertSame(1, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'player_character' AND column_name = 'build'"));
         self::assertSame(0, $this->connection->fetchOne("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'account' AND column_name = 'gameplay_paused'"));
