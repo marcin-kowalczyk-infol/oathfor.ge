@@ -11,6 +11,11 @@ const roomAnchors = { hearth: { x: 0.515, y: 0.45 }, seals: { x: 0.22, y: 0.52 }
 /** Illustrated place behind functional screens. Content owns scrolling and safe areas. */
 /** In the room layout the Oath lists and the detail lower their close-up by this fraction of the screen into the band under the tabs. */
 export const LIST_DROP = 0.3;
+/**
+ * The detail has no title or tabs, so its close-up rises above the screen's top and the emblem meets the middle plinth sooner (MVP-22-T09c).
+ * On a 402 x 874 pt phone the surface is about 768 pt tall and the plinth sits about 272 pt below the close-up's top, so -0.026 puts it 252 pt down.
+ */
+export const DETAIL_DROP = -0.026;
 
 export function SceneSurface({ children, place = 'room', approach = null, drop = 0, scroll }: { children: ReactNode; place?: ForgePlace; approach?: number | null; drop?: number; scroll?: Animated.Value }) {
   const window = useWindowDimensions();

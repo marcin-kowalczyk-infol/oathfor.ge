@@ -14,7 +14,7 @@ import { BackLink } from '../ui/BackLink';
 import { compactStoredTime, pathTimeText, shortStoredTime, wallTimeIn } from './compactStoredTime';
 import { CountdownChip } from './CountdownChip';
 import { OathRuleCards } from './OathRuleCards';
-import { LIST_DROP, SceneSurface, type ForgePlace } from '../ui/SceneSurface';
+import { DETAIL_DROP, LIST_DROP, SceneSurface, type ForgePlace } from '../ui/SceneSurface';
 import { StateSeal } from '../ui/StateSeal';
 import { CompanionBubble } from '../ui/CompanionBubble';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
@@ -326,34 +326,40 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   if (available && route === 'proof' && detail && proof) return <ProofScreen key={detail.id} oath={detail} controller={proof} backLabel={t('proof.back')}
     onBack={() => { void openDetail(detail.id); }} onDone={showReceipt} />;
   if (available && route === 'create') return <OathScreen approach={approach?.place === 'hearth' ? approach.id : null} controller={controller} timezone={timezone} rulesGuideStorage={rulesGuideStorage} onViewOath={id => { void openDetail(id); }} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? returnLabel : undefined} backPlain={!!forgeNavigation && !interactiveForge} onBack={forgeNavigation ? () => forgeNavigation.onReturn('hearth') : () => { void loadList('today'); }} />;
-  // In the room layout every list and detail leaves a band under the tabs (Today's hub, the chronicle band, the detail emblem). The close-up is lowered into it.
+  // In the room layout every list leaves a band under the tabs (Today's hub, the chronicle band). The close-up is lowered into it.
+  // The detail has no title or tabs, so its close-up rises and the emblem meets the plinth higher, which keeps the card's action on screen (MVP-22-T09c).
   // While a hearth request waits for Today, only the hearth shows at the creation screen's framing. Creation or the list with its notice follows.
   // The same surface stays mounted, so its close-ups are already decoded.
   const waiting = available && hearthRequest;
   // Today shows each Oath's interrupted upload under its card. Worked out once, so the next card knows whether a line sits above it.
   const uploads = route === 'list' && view === 'today' ? (list?.items ?? []).map(item => upload(item)) : [];
-  return <SceneSurface place={place} drop={interactiveForge && !waiting ? LIST_DROP : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}>{waiting ? <SafeAreaView testID="hearth-waiting" style={styles.safeArea}><View style={styles.content}>
-    {forgeNavigation && (interactiveForge
+  // Without the lowered close-up behind it, or wherever the artwork starts under it, the header stands on a solid band so its text never sits on the art.
+  const solidHeader = !interactiveForge || route === 'detail';
+  return <SceneSurface place={place} drop={interactiveForge && !waiting ? route === 'detail' ? DETAIL_DROP : LIST_DROP : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}>{waiting ? <SafeAreaView testID="hearth-waiting" style={styles.safeArea}><View style={styles.content}>
+    {forgeNavigation && <View testID="screen-header" style={[styles.header, !interactiveForge && styles.solidHeader]}>{interactiveForge
       ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />
-      : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />)}
+      : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />}</View>}
     <SlowNotice text={t('oathHome.loading')} />
   </View></SafeAreaView> : <SafeAreaView style={styles.safeArea}><Animated.ScrollView testID="oath-list-scroll" style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content}
     refreshControl={available && route === 'list' ? <RefreshControl refreshing={pulling} onRefresh={() => pull()} tintColor={tokens.color.primary} /> : undefined} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
-    {forgeNavigation && (interactiveForge
-      ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />
-      : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />)}
-    <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t(route === 'detail' ? 'forge.detail' : view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>
+    {/* The detail shows no screen title and no tabs, so its line and action stay above the fold (docs/product/clarity.md rule 1, MVP-22-T09c). */}
+    {(forgeNavigation || route !== 'detail') && <View testID="screen-header" style={[styles.header, solidHeader && styles.solidHeader]}>
+      {forgeNavigation && (interactiveForge
+        ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />
+        : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />)}
+      {route !== 'detail' && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t(view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>}
+      {available && route !== 'detail' && <View style={[styles.navigation, !interactiveForge && styles.stackedNavigation]}>{(['today', 'history'] as const).map(destination => <Pressable key={destination}
+        accessibilityRole="button" accessibilityLabel={t(`oathHome.${destination}`)} accessibilityState={{ selected: route === 'list' && view === destination }}
+        onPress={() => { void loadList(destination); }} style={[styles.tab, !interactiveForge && styles.stackedTab, route === 'list' && view === destination && styles.selectedTab]}>
+        {/* Tabs are sans functional text, capped because the MVP-05 native check saw them break mid-word at the maximum size. */}
+        <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.label}>{t(`oathHome.${destination}`)}</Text>
+      </Pressable>)}</View>}
+    </View>}
     {!available && <>
       <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
       {account.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
     </>}
     {available && <>
-      <View style={[styles.navigation, !interactiveForge && styles.stackedNavigation]}>{(['today', 'history'] as const).map(destination => <Pressable key={destination}
-        accessibilityRole="button" accessibilityLabel={t(`oathHome.${destination}`)} accessibilityState={{ selected: route === 'list' && view === destination }}
-        onPress={() => { void loadList(destination); }} style={[styles.tab, !interactiveForge && styles.stackedTab, route === 'list' && view === destination && styles.selectedTab]}>
-        {/* Tabs are sans functional text, capped because the MVP-05 native check saw them break mid-word at the maximum size. */}
-        <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.label}>{t(`oathHome.${destination}`)}</Text>
-      </Pressable>)}</View>
       {route === 'list' && list?.paused && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.paused')} /></View>}
       {route === 'list' && busyNotice && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('forge.busy')} /></View>}
       {/* The lowered chronicle close-up shows its book in this band, so no text crosses it. */}
@@ -409,8 +415,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       {route === 'detail' && <>
         {failed && <><CompanionBubble message={t('oathHome.detailError')} /><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current); }} /></>}
         {detail && <>
-          {/* In the room layout the emblem stands on the middle plinth of the lowered seal wall, the text starts on the floor below it. */}
-          <View style={[styles.detailHero, interactiveForge && styles.detailWall]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={detail.snapshot.activity} size={108} /></View>
+          {/* In the room layout the emblem stands on the middle plinth of the seal wall, the text starts on the floor below it. */}
+          <View testID={interactiveForge ? 'detail-wall' : undefined} style={[styles.detailHero, interactiveForge && styles.detailWall]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={detail.snapshot.activity} size={108} /></View>
           <View style={styles.detailHead}>
             <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.detailTitle}>{detail.snapshot.copy[locale].title}</Text>
             <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.detailActivity}>{detail.snapshot.copy[locale].activity}</Text>
@@ -435,6 +441,9 @@ const styles = StyleSheet.create({
   historyIcon: { width: 48, height: 48 },
   historyTotal: { color: tokens.color.primary, fontSize: 32, fontWeight: '700' },
   historyLabel: { color: tokens.color.text, fontSize: 17, flexShrink: 1 },
+  header: { gap: tokens.space.section },
+  // Full bleed from the screen's top edge. Canvas, not a scrim, because the busiest part of every close-up sits right under it.
+  solidHeader: { marginHorizontal: -tokens.space.card, marginTop: -24, paddingHorizontal: tokens.space.card, paddingTop: 24, paddingBottom: tokens.space.small, backgroundColor: tokens.color.canvas },
   content: { flexGrow: 1, paddingHorizontal: tokens.space.card, paddingTop: 24, paddingBottom: 36, gap: tokens.space.section },
   entry: { gap: 10 },
   // The list opens under the seal wall with a rule and a display heading, then state and date step down in size.
@@ -448,8 +457,8 @@ const styles = StyleSheet.create({
   state: { color: '#edba78', fontSize: 15, lineHeight: 22 },
   deadline: { color: '#ded1bd', fontSize: 14, lineHeight: 22 },
   detailHero: { alignItems: 'center', paddingTop: 4 },
-  // Matches the Today hub band, so the emblem meets the same plinth whether the list or the detail is open.
-  detailWall: { height: 262, justifyContent: 'flex-end', paddingTop: 0 },
+  // With DETAIL_DROP the emblem's foot lands on the middle plinth 252 pt below the surface top: 24 + 64 door + 8 + 24 gap + 132.
+  detailWall: { height: 132, justifyContent: 'flex-end', paddingTop: 0 },
   chronicleBand: { height: 262 },
   detailHead: { alignItems: 'center', gap: 4, marginTop: -8 },
   detailTitle: { color: '#f3dfbd', fontFamily: tokens.font.display, fontSize: tokens.title, lineHeight: 36, textAlign: 'center', textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },

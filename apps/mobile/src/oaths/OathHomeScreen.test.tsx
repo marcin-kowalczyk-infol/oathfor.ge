@@ -6,6 +6,7 @@ import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { OathHomeScreen } from './OathHomeScreen';
 import { tokens } from '../ui/tokens';
+import { DETAIL_DROP, LIST_DROP } from '../ui/SceneSurface';
 import type { OathController, OathControllerState } from './controller';
 import type { Oath } from '../api/oathSchema';
 import type { ProofController, ProofControllerState } from '../proof/proofController';
@@ -93,10 +94,10 @@ test('Today, History and detail render no pause control and no sign-out, which l
   await screen.findByText('Under review');
   const absent = () => { for (const name of ['Pause and resume', 'Sign out']) expect(screen.queryByRole('button', { name })).toBeNull(); expect(screen.queryByText('Ⅱ')).toBeNull(); };
   absent();
-  await fireEvent.press(screen.getByRole('button', { name: /Open Oath: Running/ }));
-  await screen.findByLabelText('Status: Under review'); absent();
   await fireEvent.press(screen.getByRole('button', { name: 'History' }));
   await screen.findByTestId('history-header'); absent();
+  await fireEvent.press(screen.getByRole('button', { name: /Open Oath: Running/ }));
+  await screen.findByLabelText('Status: Under review'); absent();
   expect(f.controller.getPause).not.toHaveBeenCalled();
 });
 test('a character pause withdrawal explains that resuming does not restore it', async () => {
@@ -137,7 +138,9 @@ test('Polish history uses localized copy and offers neither pause nor sign-out',
 test('late list and detail responses cannot replace the newly selected screen', async () => {
   const f = setup(); const late = deferred<Awaited<ReturnType<OathController['list']>>>();
   jest.mocked(f.controller.list).mockReturnValueOnce(late.promise).mockResolvedValueOnce(page([]));
-  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  // The detail has no tabs (MVP-22-T09c), so the room's request is what leaves it while its answer is late.
+  const screenWith = (request: { id: number; target: 'history' } | null) => <LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request, onReturn: jest.fn() }} /></LocalizationProvider>;
+  const view = await render(screenWith(null));
   await fireEvent.press(screen.getByRole('button', { name: 'History' }));
   expect(await screen.findByText('The chronicle is waiting for its first entry.')).toBeOnTheScreen();
   await act(async () => late.resolve(page([oath()])));
@@ -145,7 +148,7 @@ test('late list and detail responses cannot replace the newly selected screen', 
   await fireEvent.press(screen.getByRole('button', { name: 'Today' })); await screen.findByText('Under review');
   const detail = deferred<Awaited<ReturnType<OathController['detail']>>>(); jest.mocked(f.controller.detail).mockReturnValueOnce(detail.promise);
   await fireEvent.press(screen.getByRole('button', { name: /Open Oath:/ }));
-  await fireEvent.press(screen.getByRole('button', { name: 'History' }));
+  await view.rerender(screenWith({ id: 1, target: 'history' }));
   await act(async () => detail.resolve({ kind: 'success', value: { oath: oath(), serverTime } }));
   expect(screen.queryByLabelText('Status: Under review')).toBeNull(); expect(screen.getByRole('header', { name: 'History' })).toBeOnTheScreen();
 });
@@ -259,13 +262,13 @@ test('a hearth request shows only the hearth while Today loads, never the hidden
   const hidden = { includeHiddenElements: true };
   const frames: { detail: boolean; list: boolean; hearth: boolean }[] = [];
   let recording = false;
-  const record = () => frames.push({ detail: screen.queryAllByText('Oath details', hidden).length > 0, list: screen.queryAllByText('Your Oaths', hidden).length > 0, hearth: !!screen.queryByTestId('forge-place-hearth', hidden) });
+  const record = () => frames.push({ detail: !!screen.queryByTestId('detail-status', hidden), list: screen.queryAllByText('Your Oaths', hidden).length > 0, hearth: !!screen.queryByTestId('forge-place-hearth', hidden) });
   const screenWith = (request: { id: number; target: 'create' } | null) => <Profiler id="home" onRender={() => { if (recording) record(); }}>
     <LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request, onReturn: jest.fn() }} /></LocalizationProvider>
   </Profiler>;
   const view = await render(screenWith(null));
   await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath: Running/ }))[0]);
-  expect(await screen.findByText('Oath details')).toBeOnTheScreen();
+  expect(await screen.findByTestId('detail-status')).toBeOnTheScreen();
   const closeUp = screen.getByTestId('forge-closeup-image', hidden);
   jest.mocked(f.controller.list).mockReturnValueOnce(today.promise);
   recording = true;
@@ -319,7 +322,9 @@ test('each Oath carries a state seal beside its short label in the list and in d
 test('each functional screen stands in its own Forge place', async () => {
   const f = setup(); jest.mocked(f.controller.resetCreation).mockReturnValue(true);
   const place = (name: string) => screen.queryByTestId(`forge-place-${name}`, { includeHiddenElements: true });
-  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  // The detail has no tabs (MVP-22-T09c), so the room's request brings Today back.
+  const screenWith = (request: { id: number; target: 'today' } | null) => <LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request, onReturn: jest.fn() }} /></LocalizationProvider>;
+  const view = await render(screenWith(null));
   await screen.findAllByText('Under review');
   expect(place('seals')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'History' }));
@@ -328,7 +333,7 @@ test('each functional screen stands in its own Forge place', async () => {
   await fireEvent.press(screen.getAllByRole('button', { name: /Open Oath: Running/ })[0]);
   await screen.findByLabelText('Status: Under review');
   expect(place('seals')).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Today' }));
+  await view.rerender(screenWith({ id: 1, target: 'today' }));
   await screen.findAllByText('Under review');
   await fireEvent.press(screen.getAllByRole('button', { name: 'Create an Oath' })[0]);
   expect(await screen.findByLabelText('Completion date')).toBeOnTheScreen();
@@ -830,6 +835,52 @@ test('a refusal for one Oath stays off another Oath row and detail', async () =>
   expect(screen.queryByRole('button', { name: 'Got it' })).toBeNull();
 });
 
+// MVP-22-T09c native check on a 402 x 874 pt phone: the screen title, the tabs and the tall wall band pushed the card's action below the fold.
+test('the room detail drops the screen title and tabs, keeps the door back and stands on a shorter wall band', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const f = setup(); const onReturn = jest.fn();
+  const hidden = { includeHiddenElements: true };
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn }} /></LocalizationProvider>);
+  await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath: Running/ }))[0]);
+  await screen.findByTestId('detail-status');
+  expect(screen.queryByRole('header', { name: 'Oath details' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Today' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
+  // The lowered seal wall is shorter than the list's 262 pt band, and the close-up rises with it so the emblem keeps its plinth.
+  expect(StyleSheet.flatten(screen.getByTestId('detail-wall', hidden).props.style).height).toBeLessThan(262);
+  expect(DETAIL_DROP).toBeLessThan(LIST_DROP);
+  expect(StyleSheet.flatten(screen.getByTestId('forge-closeup-image', hidden).props.style).top).toBeCloseTo(844 * DETAIL_DROP);
+  // The door now stands where the artwork begins, so its band is solid.
+  expect(StyleSheet.flatten(screen.getByTestId('screen-header').props.style)).toMatchObject({ backgroundColor: tokens.color.canvas });
+  await fireEvent.press(screen.getByRole('button', { name: 'Return to the Forge' }));
+  expect(onReturn).toHaveBeenCalledWith('seals');
+});
+test('the room list keeps its title and tabs above the lowered artwork without a solid band', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const f = setup();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await screen.findAllByRole('button', { name: /Open Oath: Running/ });
+  const header = screen.getByTestId('screen-header');
+  expect(within(header).getByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
+  expect(StyleSheet.flatten(header.props.style).backgroundColor).toBeUndefined();
+});
+// MVP-22-T09c native check at the largest standard text: the back link, the title and the tabs sat on the busy room image.
+test('in the simple layout the list and the detail headers stand on a solid band, never on the artwork', async () => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const f = setup();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await screen.findAllByRole('button', { name: /Open Oath: Running/ });
+  let header = screen.getByTestId('screen-header');
+  expect(StyleSheet.flatten(header.props.style)).toMatchObject({ backgroundColor: tokens.color.canvas });
+  for (const name of ['Back to menu', 'Today', 'History']) expect(within(header).getByRole('button', { name })).toBeOnTheScreen();
+  expect(within(header).getByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getAllByRole('button', { name: /Open Oath: Running/ })[0]);
+  await screen.findByTestId('detail-status');
+  header = screen.getByTestId('screen-header');
+  expect(StyleSheet.flatten(header.props.style)).toMatchObject({ backgroundColor: tokens.color.canvas });
+  expect(within(header).getByRole('button', { name: 'Back to menu' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Today' })).toBeNull();
+});
 // MVP-22-T09: the detail on the shared pieces (docs/product/clarity.md decisions 11 and 14).
 // A Thursday deadline outside the repeated autumn hour, so the line shows no offset.
 function activeThursday(patch: Partial<Oath> = {}) {

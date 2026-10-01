@@ -14,7 +14,7 @@ const sentences = (text: string) => text.split(/[.!?](?:\s|$)/).filter(part => p
 const nextKeys = ['scheduled', 'active', 'activeSoon', 'cutoff', 'interrupted', 'assessing', 'needsMore', 'review', 'closed', 'fulfilled', 'missed', 'unresolved', 'withdrawn'];
 
 test('the cap sample is the formatter output', () => {
-  expect(longest).toEqual({ pl: 'niedz 27 wrz 18:30', en: 'Sun, Sep 27, 18:30' });
+  expect(longest).toEqual({ pl: 'niedz\u00a027\u00a0wrz\u00a018:30', en: 'Sun,\u00a0Sep\u00a027,\u00a018:30' });
 });
 
 test.each(nextKeys.flatMap(key => [['pl', key], ['en', key]] as const))('%s path.next.%s fits 12 words and 70 characters with real times', (locale, key) => {

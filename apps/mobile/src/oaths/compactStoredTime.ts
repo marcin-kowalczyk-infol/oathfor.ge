@@ -43,11 +43,13 @@ export function wallTimeIn(instant: string, zone: string): string {
 /**
  * The one formatter for the path lines ({{time}} and {{date}}, MVP-22-T09): the short day with its time, "czw 29 paź 02:30".
  * In the hour that repeats when summer time ends the stored offset follows, so the two 02:30 differ: "niedz 25 paź 02:30 (UTC+02:00)".
+ * Its parts are joined by no-break spaces, so a line never ends between the date and the time (native check, MVP-22-T09c).
  */
 export function pathTimeText(time: { local: string; timezone: string; offset: string }, locale: Locale): string {
   const text = shortStoredTime(time.local, locale, true);
-  return repeatedWallTime(time) ? `${text} (UTC${time.offset})` : text;
+  return (repeatedWallTime(time) ? `${text} (UTC${time.offset})` : text).replace(/ /g, NO_BREAK);
 }
+const NO_BREAK = '\u00a0';
 const HOUR = 3600000;
 /** True when another instant shows the same wall time in the zone, which only the offset tells apart. */
 function repeatedWallTime({ local, timezone, offset }: { local: string; timezone: string; offset: string }): boolean {
