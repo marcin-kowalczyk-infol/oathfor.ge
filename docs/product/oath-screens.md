@@ -117,7 +117,7 @@ Proof verdict updates (owner decision, 2026-09-29, not implemented, because the 
 
 ### 5. History and detail (item 6)
 
-History rows show the result seal, the activity and a compact date, and touching a row opens the detail. The rows show no further text. The compact date uses 24-hour time in both languages, for example "30 wrz 2026, 23:12" / "Sep 30, 2026 at 23:12" (owner decision, 2026-10-01).
+History rows show the result seal, the activity and a compact date, and touching a row opens the detail. The rows show no further text. The compact date uses 24-hour time with a two-digit hour in both languages, for example "30 wrz 2026, 23:12" / "Sep 30, 2026 at 23:12" (owner decision, 2026-10-01).
 
 In the room layout the chronicle close-up is lowered like the seal wall, so the book fills a band under the tabs and no text crosses it (native check, 2026-09-29).
 

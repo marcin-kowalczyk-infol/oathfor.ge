@@ -6,9 +6,9 @@ export function compactStoredTime(local: string, locale: Locale): string {
   const day = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'pl-PL', {
     timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric',
   }).format(date);
-  // Owner decision, 2026-10-01: English uses 24-hour time with a two-digit hour, like the cards.
+  // Owner decisions, 2026-10-01: both languages use 24-hour time with a two-digit hour, like the cards.
   const time = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'pl-PL', {
-    timeZone: 'UTC', hour: locale === 'en' ? '2-digit' : 'numeric', minute: '2-digit', hourCycle: 'h23',
+    timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   }).format(date);
   return `${day}${locale === 'en' ? ' at ' : ', '}${time}`;
 }

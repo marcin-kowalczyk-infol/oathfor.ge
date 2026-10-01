@@ -554,7 +554,7 @@ test('the Polish review closing time uses the same short date as a closed Oath',
   const f = setup(); f.controller.clock.observe(serverTime);
   await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
   await fireEvent.press((await screen.findAllByRole('button', { name: /Otwórz Przysięgę/ }))[0]);
-  expect(await screen.findByText('Rozpatrzenie kończy się 28 paź 2026, 1:45')).toBeOnTheScreen();
+  expect(await screen.findByText('Rozpatrzenie kończy się 28 paź 2026, 01:45')).toBeOnTheScreen();
 });
 
 test('the list refreshes quietly when the app returns to the foreground, a detail stays as it is', async () => {
