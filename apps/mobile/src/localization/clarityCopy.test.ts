@@ -1,5 +1,7 @@
 import pl from './locales/pl/messages.json';
 import en from './locales/en/messages.json';
+import plTime from './locales/pl/timePicker.json';
+import enTime from './locales/en/timePicker.json';
 import { ZAROMIR_POOLS } from '../companion/zaromirLine';
 import { pathTimeText } from '../oaths/compactStoredTime';
 
@@ -53,4 +55,38 @@ test('the pending proof lines keep that nothing changes before the server answer
   expect(group(pl, 'proof').sending).toMatch(/dopiero/);
   expect(group(en, 'proof').introFull).toMatch(/only/);
   expect(group(en, 'proof').sending).toMatch(/only/);
+});
+
+// MVP-22-A0 (clarity.md rule 7 applied catalog-wide): every catalog line keeps at most two sentences.
+// Each exception names the task that shortens it. A fixed key must leave the list, so the list cannot go stale.
+const flat = (node: unknown, prefix = ''): [string, string][] => typeof node === 'string' ? [[prefix, node]]
+  : Object.entries((node ?? {}) as Group).flatMap(([key, value]) => flat(value, prefix ? `${prefix}.${key}` : key));
+const catalogs = { pl: [...flat(pl), ...flat(plTime, 'timePicker')], en: [...flat(en), ...flat(enTime, 'timePicker')] };
+const shared = [
+  // Kept long, not debt: folded text stays unchanged (rule 2). The detail folds oathHome.uploadInterrupted behind "Pełny opis",
+  // A2 folds notifications.future. No slice A task touches the proof errors.
+  'notifications.future', 'oathHome.uploadInterrupted', 'proof.errors.unavailable', 'proof.errors.rateLimited', 'proof.errors.sendFailed',
+  // A1.
+  'settings.language.error',
+  // A2.
+  'notifications.error_save', 'onboarding.error_save', 'onboarding.notificationsPending', 'onboarding.reviewPending', 'onboarding.error_complete', 'onboarding.companionIntroduction',
+  // A3.
+  'auth.cleanupUnconfirmed',
+  // A4.
+  'character.pending', 'character.rateLimited_one', 'character.rateLimited_other',
+  // A5.
+  'room.guide.hearth', 'room.tutorial.seals.3', 'room.tutorial.door.3',
+];
+const longLines: Record<'pl' | 'en', string[]> = { pl: [...shared, 'character.rateLimited_few', 'character.rateLimited_many'], en: shared };
+
+test.each(['pl', 'en'] as const)('%s catalog lines keep at most two sentences, apart from the listed exceptions', locale => {
+  const over = catalogs[locale].filter(([, text]) => sentences(text) > 2).map(([key]) => key);
+  expect(over.sort()).toEqual([...longLines[locale]].sort());
+});
+
+// "zobowiązanie" is the legal word for the stored rule sections only. Player lines say Przysięga.
+const obligationExceptions = ['onboarding.companionIntroduction' /* A2 */, 'room.descriptions.seals', 'room.guide.seals' /* A5 */];
+test('Polish says "zobowiąz…" only under oath.sections', () => {
+  const found = catalogs.pl.filter(([key, text]) => /zobowiąz/i.test(text) && !key.startsWith('oath.sections.')).map(([key]) => key);
+  expect(found.sort()).toEqual([...obligationExceptions].sort());
 });
