@@ -101,40 +101,6 @@
     "working": "Working…",
     "statusAnnouncement": "{{heading}}. {{description}}"
   },
-  "status": {
-    "proof_pending": {
-      "heading": "Assessment pending",
-      "description": "Evidence received. Assessment has not finished."
-    },
-    "needs_more_evidence": {
-      "heading": "More evidence needed",
-      "description": "Check missing information, remaining attempts and the deadline."
-    },
-    "review_pending": {
-      "heading": "Under review",
-      "description": "The case awaits a decision. This is not a miss."
-    },
-    "fulfilled": {
-      "heading": "Fulfilled",
-      "description": "View the confirmed outcome and awarded XP."
-    },
-    "missed": {
-      "heading": "Missed",
-      "description": "Earlier XP remains. Recovery is offered only while eligible."
-    },
-    "recovered": {
-      "heading": "Recovered",
-      "description": "Recovery completed. The earlier missed Oath remains in history."
-    },
-    "unresolved": {
-      "heading": "Unresolved",
-      "description": "No new XP and no miss. An already activated Recovery keeps its rules."
-    },
-    "withdrawn": {
-      "heading": "Withdrawn",
-      "description": "No XP and no miss. Resuming does not restore this commitment."
-    }
-  },
   "companion": {
     "speaker": "Zharomir",
     "wanderer": {

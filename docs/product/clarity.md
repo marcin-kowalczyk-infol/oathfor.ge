@@ -31,7 +31,7 @@ Each rule names its source or is marked as a local decision. Research checked 20
 
 ## Shared pieces
 
-All three are built on existing components (`StateSeal`, `StatusCard`, `CompanionBubble`, `Action`, `CountdownChip`). No API change.
+All three are built on existing components (`StateSeal`, `CompanionBubble`, `Action`, `CountdownChip`). The card `NextCard` replaced the unused `StatusCard` (MVP-22-T07). No API change.
 
 ### Step track
 
