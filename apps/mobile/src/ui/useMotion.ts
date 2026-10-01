@@ -35,3 +35,21 @@ export function useMotionAllowed(): boolean {
   }, []);
   return allowed && !suspended;
 }
+
+/**
+ * The system Reduce Motion preference alone, true until it is known. Layout choices that must not flip with a system alert
+ * (a permission prompt makes the app inactive for a moment) depend on this, not on useMotionAllowed (MVP-22-T12c).
+ */
+export function useReduceMotion(): boolean {
+  const [reduced, setReduced] = useState(true);
+  useEffect(() => {
+    let mounted = true;
+    let preferenceKnown = false;
+    const motion = AccessibilityInfo.addEventListener('reduceMotionChanged', value => { preferenceKnown = true; if (mounted) setReduced(value); });
+    void AccessibilityInfo.isReduceMotionEnabled().then(value => {
+      if (mounted && !preferenceKnown) setReduced(value);
+    }).catch(() => { /* Keep the steps open if the preference is unavailable. */ });
+    return () => { mounted = false; motion.remove(); };
+  }, []);
+  return reduced;
+}

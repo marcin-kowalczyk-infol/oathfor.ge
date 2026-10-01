@@ -170,7 +170,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
       {detail && <>
         {/* After the stamp (clarity.md decision 13): emblem, header, the track with the Oath step done, the large countdown,
             one merged line with state, deadline and zone, Żaromir's line, then one filled action. The pause is unknown here,
-            and a just made Oath is scheduled or active, so he may speak. */}
+            and a pause withdraws scheduled and active Oaths, so he speaks only for those two states. */}
         <View style={styles.confirmed}>
           <SealStamp width={scrollWidth} sealed={stamped.has(oath.id)} onDone={() => { stamped.add(oath.id); setSealed(oath.id); announceMade(oath); }} />
           {stamped.has(oath.id) && <>
@@ -182,8 +182,9 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
           </>}
         </View>
         {stamped.has(oath.id) && (() => {
-          const situation = oath.state === 'scheduled' ? 'confirmedScheduled' : 'confirmed';
-          return <ZaromirLine situation={situation} seed={zaromirSeed(oath.id, situation, controller.clock.now(), oath.snapshot.deadline.timezone)} />;
+          // A replayed acceptance can return an Oath that already moved on, so only a scheduled or active one hears the greeting (MVP-22-T12c).
+          const situation = oath.state === 'scheduled' ? 'confirmedScheduled' : oath.state === 'active' ? 'confirmed' : null;
+          return <ZaromirLine situation={situation} seed={situation ? zaromirSeed(oath.id, situation, controller.clock.now(), oath.snapshot.deadline.timezone) : ''} />;
         })()}
         {stamped.has(oath.id) && onViewOath && <Action label={t('oath.viewOath')} onPress={() => onViewOath(oath.id)} />}
         {stamped.has(oath.id) && onBack && <Action label={backLabel ?? t('oathHome.today')} variant="secondary" direction="back" onPress={onBack} />}

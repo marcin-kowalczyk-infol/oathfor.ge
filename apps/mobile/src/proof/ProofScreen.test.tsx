@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
-import { Dimensions } from 'react-native';
+import { AccessibilityInfo, Dimensions } from 'react-native';
 import * as Picker from 'expo-image-picker';
 import { ImageManipulator } from 'expo-image-manipulator';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
@@ -48,6 +48,8 @@ const context = { resize: jest.fn(), renderAsync: jest.fn(), release: jest.fn() 
 const saveAsync = jest.fn();
 beforeEach(() => {
   jest.clearAllMocks();
+  // Steps stay open under Reduce Motion. The fold tests turn it off (MVP-22-T12c).
+  jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
   mockDeleted.splice(0);
   rendered = { width: 2880, height: 2160 };
   context.resize.mockImplementation(() => context);
@@ -384,6 +386,8 @@ const filled = () => screen.queryAllByText('◆', { includeHiddenElements: true 
 const clockAt = (iso: string) => { const clock = createServerClock(); clock.observe(iso); return clock; };
 // Motion counts only in the foreground, and the jest AppState has no current state, so the fold tests bring the app forward.
 function foreground() { const previous = AppState.currentState; AppState.currentState = 'active'; return () => { AppState.currentState = previous; }; }
+/** The system allows motion, so finished steps fold. */
+function motion() { jest.mocked(AccessibilityInfo.isReduceMotionEnabled).mockResolvedValue(false); }
 
 test('the top shows the compact step badge, Żaromir and the full introduction behind one link', async () => {
   await show('pl', oath(), fakeController(), clockAt('2026-10-24T12:00:00Z'));
@@ -406,7 +410,7 @@ test('between the deadline and the cutoff Żaromir keeps the conditional cutoff 
 });
 
 test('a chosen type and a chosen image fold to one-line summaries that "Zmień" reopens', async () => {
-  const restore = foreground();
+  const restore = foreground(); motion();
   try {
     await show('pl');
     await act(async () => { await Promise.resolve(); });
@@ -429,7 +433,9 @@ test('a chosen type and a chosen image fold to one-line summaries that "Zmień" 
 
 test.each([['simple layout', 340], ['Reduce Motion', 402]] as const)('in the %s every step stays open after a choice', async (_, width) => {
   size(width, 1);
-  const restore = width === 340 ? foreground() : () => {};
+  // Both cases run in the foreground. The simple layout allows motion, Reduce Motion is on (the default of this file).
+  const restore = foreground();
+  if (width === 340) motion();
   try {
     await show('pl');
     await act(async () => { await Promise.resolve(); });
@@ -448,7 +454,7 @@ test('while the proof is sent the button is busy and Żaromir is absent', async 
   expect(screen.getByRole('button', { name: 'Prześlij dowód' })).toHaveProp('accessibilityState', expect.objectContaining({ busy: true }));
   expect(screen.queryByLabelText(/^Żaromir: /)).toBeNull();
   expect(screen.getByText('Dowód w drodze. Stan Przysięgi zmieni się dopiero, gdy serwer odpowie.')).toBeOnTheScreen();
-  expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
+  expect(screen.queryByTestId('zaromir-bust', { includeHiddenElements: true })).toBeNull();
 });
 
 test.each([
@@ -475,4 +481,69 @@ test('a closed window shows one card line and one filled way back', async () => 
   expect(within(screen.getByTestId('proof-closed')).getByText('The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.')).toBeOnTheScreen();
   expect(filled()).toHaveLength(1);
   expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
+});
+
+// MVP-22-T12c: review findings on T11.
+test('the proof rules stay reachable after the type step folds', async () => {
+  const restore = foreground(); motion();
+  try {
+    await show('pl');
+    await act(async () => { await Promise.resolve(); });
+    await fireEvent.press(screen.getByRole('radio', { name: /Zdjęcie kontekstu/ }));
+    expect(screen.getByText('✓ Zdjęcie kontekstu')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Zasady dowodu' }));
+    expect(screen.getByText(oath().snapshot.copy.pl.sections.photo)).toBeOnTheScreen();
+  } finally { restore(); }
+});
+
+test('a system alert that sends the app to the background does not unfold the finished steps', async () => {
+  const listeners: ((state: string) => void)[] = [];
+  const original = jest.mocked(AppState.addEventListener).getMockImplementation();
+  const subscription = jest.spyOn(AppState, 'addEventListener').mockImplementation(((_: string, listener: (state: string) => void) => { listeners.push(listener); return { remove: jest.fn() }; }) as never);
+  const restore = foreground(); motion();
+  try {
+    await show('pl');
+    await act(async () => { await Promise.resolve(); });
+    await fireEvent.press(screen.getByRole('radio', { name: /Zdjęcie kontekstu/ }));
+    expect(screen.getByText('✓ Zdjęcie kontekstu')).toBeOnTheScreen();
+    // A permission alert makes the app inactive for a moment.
+    await act(async () => { listeners.forEach(listener => listener('inactive')); });
+    expect(screen.getByText('✓ Zdjęcie kontekstu')).toBeOnTheScreen();
+    expect(screen.queryByRole('radio', { name: /Zapis aktywności/ })).toBeNull();
+  } finally { restore(); subscription.mockImplementation(original); }
+});
+
+test('between the deadline and the cutoff the card line names the cutoff', async () => {
+  await show('pl', oath(), fakeController(), clockAt('2026-10-25T00:35:00Z'));
+  expect(screen.getByText(/^Trening skończony w terminie\? Prześlij dowód do .*25 paź.*02:45/)).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Prześlij dowód' })).toBeOnTheScreen();
+});
+
+test('after the cutoff the screen says the window closed and offers no send', async () => {
+  const f = await show('pl', oath(), fakeController(), clockAt('2026-10-25T00:46:00Z'));
+  expect(screen.getByText('Czas na dowód minął. Kuźnia ustala stan.')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Prześlij dowód' })).toBeNull();
+  expect(filled()).toHaveLength(1);
+  await fireEvent.press(screen.getByRole('button', { name: 'Wróć do Przysięgi' }));
+  expect(f.onBack).toHaveBeenCalled();
+});
+
+test('the open screen moves to the cutoff line after the deadline and closes after the cutoff', async () => {
+  jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-10-25T00:29:00Z'));
+  try {
+    await show('pl', oath(), fakeController(), clockAt('2026-10-25T00:29:00Z'));
+    expect(screen.queryByText(/^Trening skończony w terminie\?/)).toBeNull();
+    await act(async () => { jest.advanceTimersByTime(2 * 60000); });
+    expect(screen.getByText(/^Trening skończony w terminie\?/)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Prześlij dowód' })).toBeOnTheScreen();
+    await act(async () => { jest.advanceTimersByTime(15 * 60000); });
+    expect(screen.getByText('Czas na dowód minął. Kuźnia ustala stan.')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Prześlij dowód' })).toBeNull();
+  } finally { jest.useRealTimers(); }
+});
+
+test.each([['before', '2026-10-25T00:40:00Z', 1], ['after', '2026-10-25T00:46:00Z', 0]] as const)('an own waiting copy %s the cutoff (%s) shows %i Żaromir bust', async (_, at, count) => {
+  await show('pl', oath(), fakeController({ kind: 'ready', busy: false, pending: pendingFor(oathId), oath: null }), clockAt(at));
+  expect(within(screen.getByTestId('proof-pending')).getByText('Dowód zapisany na tym urządzeniu czeka na wysłanie. Serwer go jeszcze nie odebrał.')).toBeOnTheScreen();
+  expect(screen.queryAllByTestId('zaromir-bust', { includeHiddenElements: true })).toHaveLength(count);
 });

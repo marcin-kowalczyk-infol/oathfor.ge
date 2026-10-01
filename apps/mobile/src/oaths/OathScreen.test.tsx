@@ -497,6 +497,20 @@ test('Polish card and a scheduled Oath counting down to its start', async () => 
   const zaromir = screen.getByLabelText(/^Żaromir: /).props.accessibilityLabel.replace('Żaromir: ', '');
   expect(['Przysięga złożona, start już ustalony. Do tego czasu możesz spokojnie się przygotować.', 'Słowo wykute, czeka na swój start. Dobrze wiedzieć, gdzie wtedy zrobisz trening.']).toContain(zaromir);
 });
+// MVP-22-T12c: a replayed acceptance can return an Oath that has already moved on. Żaromir greets only a scheduled or active one.
+test('a replayed acceptance that returns a withdrawn Oath shows no Żaromir greeting', async () => {
+  const f = setup(); f.controller.start();
+  const value = confirmed('20000000-0000-4000-8000-0000000000b3', f.envelope.preview.snapshot);
+  if (value.kind === 'success') Object.assign(value.value.oath, { state: 'withdrawn', reason: 'character_paused', terminalAt: '2026-10-24T06:00:00Z' });
+  jest.mocked(f.api.confirm).mockResolvedValueOnce(value);
+  await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
+  await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+  expect(await screen.findByRole('header', { name: 'Oath made' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'View the Oath' })).toBeOnTheScreen();
+  expect(screen.queryByLabelText(/^Zharomir: /)).toBeNull();
+  expect(screen.queryAllByTestId('zaromir-bust', { includeHiddenElements: true })).toHaveLength(0);
+});
 
 // Native check, 2026-09-30, iPhone 18 Pro at the largest accessibility size in Polish: beside the picture and the marker
 // "Bieganie", "Trening siłowy" and "W przyszłym terminie" broke mid-word. In the simple layout the label gets its own full-width line.

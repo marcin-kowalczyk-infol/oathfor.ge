@@ -14,10 +14,12 @@ import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { Disclosure } from '../ui/Disclosure';
 import { StepTrack } from '../ui/StepTrack';
 import { ZaromirLine } from '../ui/ZaromirLine';
-import { useMotionAllowed } from '../ui/useMotion';
+import { useReduceMotion } from '../ui/useMotion';
 import { zaromirSeed } from '../companion/zaromirLine';
 import { deviceProof } from '../oaths/deviceProof';
 import { oathPath, proofScreenSituation } from '../oaths/oathPath';
+import { pathTimeText } from '../oaths/compactStoredTime';
+import { usePathMoments } from '../oaths/usePathMoments';
 import type { ServerClock } from '../oaths/serverClock';
 import { SceneSurface } from '../ui/SceneSurface';
 import { Text } from '../ui/Text';
@@ -71,7 +73,10 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
   const { width, fontScale } = useWindowDimensions();
   const simple = layoutMode(width, fontScale) === 'simple';
   // Folding moves the content under the finger, so the simple layout and Reduce Motion keep every step open.
-  const folds = useMotionAllowed() && !simple;
+  // Only the preference counts: a permission alert makes the app inactive for a moment and must not unfold the steps (MVP-22-T12c).
+  const folds = !useReduceMotion() && !simple;
+  // The proof window moves just after D and closes just after S. The open screen follows it without the server.
+  usePathMoments(oath, clock);
   // The finished step the player opened again with "Zmień". A new choice there folds it back.
   const [reopened, setReopened] = useState<'type' | 'image' | null>(null);
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
@@ -200,11 +205,17 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
     </>;
   } else if (error?.kind === 'proof_refused' && closingCodes.has(error.code)) {
     body = card('proof-closed', errorMessage(error, t), <Action label={t('proof.back')} onPress={onBack} />);
+  } else if (!busy && path.action !== 'submitProof') {
+    // Past S the window is closed. Nothing asks for proof until the server settles the state (clarity.md decision 6).
+    body = card('proof-window-closed', t(path.next.key), <Action label={t('proof.back')} onPress={onBack} />);
   } else {
     const typeFolded = folds && mode !== null && reopened !== 'type';
+    // Between D and S the card line names S, the moment the window closes.
+    const cutoffTime = path.next.key === 'path.next.cutoff' && path.next.time ? pathTimeText(path.next.time, locale) : null;
     const imageFolded = folds && image !== null && reopened !== 'image';
     body = <>
       <Disclosure label={t('path.more')}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.introFull')}</Text></Disclosure>
+      {cutoffTime && card('proof-cutoff', t('path.next.cutoff', { time: cutoffTime }))}
       {/* While sending Żaromir is silent (decision 5). Between D and S he keeps the conditional cutoff line. */}
       {!busy && speaker(proofScreenSituation(path))}
       <View style={styles.section}>
@@ -229,14 +240,14 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
             </Pressable>;
           })}
         </View>
-        {/* The committed evidence rules of both routes, moved behind one link (rule 2). */}
+        </>}
+        {/* The committed evidence rules of both routes, moved behind one link (rule 2). It stays under the folded summary too. */}
         <Disclosure label={t('proof.rulesLink')}><View style={styles.note}>
           {routes.map(route => <View key={route.mode} style={styles.ruleGroup}>
             <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noteHeading}>{t(`proof.routes.${route.mode}.title`)}</Text>
             <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.rule}>{copy.sections[route.rule]}</Text>
           </View>)}
         </View></Disclosure>
-        </>}
       </View>
       <View style={styles.section}>
         <StepHead number={2} title={t('proof.steps.image')} />

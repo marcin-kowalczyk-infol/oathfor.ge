@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { bindShortWords } from '../localization/typography';
 import type { GuideStorage } from '../forge/guideStorage';
 import { Animated, AppState, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
@@ -30,6 +30,7 @@ import { deviceProof, deviceProofError, heldByServer, type ProofSubject } from '
 import { errorMessage, ProofScreen } from '../proof/ProofScreen';
 import { zoneLabel } from './zoneLabel';
 import { oathPath } from './oathPath';
+import { usePathMoments } from './usePathMoments';
 import { ruleIcon } from './oathArt';
 import { SpriteFrame } from '../forge/Sprite';
 import { StepBadge, StepTrack } from '../ui/StepTrack';
@@ -41,9 +42,6 @@ type ViewName = 'today' | 'history';
 // Without a proof controller nothing is waiting on the device.
 const noProof: ProofControllerState = { kind: 'idle' };
 const noProofStore = { subscribe: () => () => {}, getState: () => noProof };
-const HOUR = 3600000;
-// A longer timeout overflows and fires at once, so far moments are reached in steps.
-const LONGEST_TIMER = 2 ** 31 - 1;
 /** flown: the room already flew into the place, so its screen opens without a second zoom. */
 /** onReturn names the place on screen, so the room flies back out of it. */
 export type ForgeNavigation = { request: { id: number; target: 'create' | ViewName; flown?: boolean } | null; onReturn(place: 'hearth' | 'seals' | 'chronicle'): void };
@@ -83,6 +81,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const [list, setList] = useState<OathListEnvelope | null>(null);
   // How many rows the first page of the shown list held, so a merge on return knows which kept rows were page 1.
   const firstPage = useRef(0);
+  // The cursor a return from a detail kept from the old pages. The server may refuse it once the list changed (MVP-22-T12c).
+  const keptCursor = useRef<string | null>(null);
   const [loading, setLoading] = useState(false);
   const loadingNow = useRef(false); loadingNow.current = loading;
   const [failed, setFailed] = useState(false);
@@ -125,6 +125,11 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     const result = await controller.list({ view: nextView, ...(cursor ? { cursor } : {}) });
     if (!current(epoch)) return;
     if (!quiet) setLoading(false);
+    // A kept cursor the server no longer accepts gives way to a full first page, never to an error the player cannot fix.
+    if (append && cursor && cursor === keptCursor.current && (result.kind === 'invalid_request' || (result.kind === 'oath_error' && result.code === 'invalid_request'))) {
+      keptCursor.current = null;
+      return loadList(nextView);
+    }
     if (result.kind !== 'success') { setFailed(true); return; }
     // The fresh first page replaces the old first page, so a row it no longer holds is gone. Rows of later pages stay, without
     // any the fresh page now holds, with the cursor past them. When the fresh page says nothing follows, it is the whole list.
@@ -132,10 +137,11 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       const fresh = new Set(result.value.items.map(item => item.id));
       const later = kept.items.slice(firstPage.current).filter(item => !fresh.has(item.id));
       firstPage.current = result.value.items.length;
+      keptCursor.current = kept.nextCursor;
       setList({ ...result.value, nextCursor: kept.nextCursor, items: [...result.value.items, ...later] });
       return result.value;
     }
-    if (!append) firstPage.current = result.value.items.length;
+    if (!append) { firstPage.current = result.value.items.length; keptCursor.current = null; }
     // Live pagination can repeat rows after server changes; keep the returned order of new rows.
     const existing = new Set(previous?.items.map(item => item.id));
     setList({ ...result.value, items: previous ? [...previous.items, ...result.value.items.filter(item => !existing.has(item.id))] : result.value.items });
@@ -192,30 +198,9 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     if (!current(epoch) || detailId.current !== id) return;
     if (result.kind === 'success' && result.value.oath.id === id) setDetail(result.value.oath);
   }
-  // The detail's line moves at three moments the chip does not mark: under an hour before D, just after D and just after S.
-  // oathPath compares strictly, so each moment is its boundary plus 1 ms. Just after D the line changes on the device, also offline.
-  // Just after S the detail asks the server again, quietly. Until it answers the line already says the window closed.
-  const [, rerender] = useReducer((value: number) => value + 1, 0);
+  // The detail's line moves at three moments the chip does not mark. Just after S the detail asks the server again, quietly.
   const shownDetail = route === 'detail' ? detail : null;
-  useEffect(() => {
-    if (!shownDetail || shownDetail.state !== 'active') return;
-    const oathId = shownDetail.id, cutoff = Date.parse(shownDetail.snapshot.deadline.receiptCutoff), deadline = Date.parse(shownDetail.snapshot.deadline.utc);
-    const moments = [deadline - HOUR + 1, deadline + 1, cutoff + 1];
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    function arm() {
-      clearTimeout(timer); timer = undefined;
-      const now = controller.clock.now();
-      const at = now === null ? undefined : moments.find(moment => moment > now);
-      if (now === null || at === undefined) return;
-      timer = setTimeout(() => {
-        rerender();
-        const later = controller.clock.now();
-        if (later !== null && later > cutoff) void refreshDetail(oathId); else arm();
-      }, Math.min(at - now, LONGEST_TIMER));
-    }
-    const stop = controller.clock.subscribe(arm); arm();
-    return () => { clearTimeout(timer); stop(); };
-  }, [shownDetail, controller]);
+  usePathMoments(shownDetail, controller.clock, oathId => { void refreshDetail(oathId); });
   function openFromList(id: string) {
     void openDetail(id, view, offset.current);
   }
@@ -463,7 +448,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
           return <View key={item.id} testID={`oath-entry-${item.id}`} style={[styles.entry, index > 0 && { marginTop: spaced ? tokens.space.section : tokens.space.item }]}>
             {newCategory && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
             {newGroup && <Text accessibilityRole="header" style={styles.group}>{group(item)}</Text>}
-            <Pressable accessibilityRole="button" accessibilityLabel={summary(item)} accessibilityValue={{ text: t(`oath.states.${item.state}`) }} onPress={() => openFromList(item.id)}
+            <Pressable accessibilityRole="button" accessibilityLabel={summary(item)} accessibilityValue={{ text: interruptedIds.has(item.id) ? `${t(`oath.states.${item.state}`)}, ${t('path.badge.interrupted')}` : t(`oath.states.${item.state}`) }} onPress={() => openFromList(item.id)}
               style={({ pressed }) => [styles.journalEntry, !interactiveForge && styles.stackedEntry, pressed && styles.pressedEntry]}>
               <View style={styles.emblems}>
                 <ActivityEmblem activity={item.snapshot.activity} size={76} />
@@ -484,7 +469,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         })}</View>}
         {/* Żaromir does not suggest a workout while paused (clarity.md rule 8). The pause note above says what holds. */}
         {!loading && !failed && list?.items.length === 0 && view === 'today' && !list.paused && <CompanionBubble message={t('oathHome.emptyToday')} />}
-        {failed && <><View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.loadError')} /></View><Action label={t('oath.retry')} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
+        {failed && <><View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.loadError')} /></View><Action label={t('oath.retry')} variant={listAction} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
         {list?.nextCursor && !failed && <Action label={t('oathHome.more')} variant={listAction} busy={loading} onPress={() => { void loadList(view, true); }} />}
       </>}
       {route === 'detail' && <>

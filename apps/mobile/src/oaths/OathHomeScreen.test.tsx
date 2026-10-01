@@ -1303,3 +1303,50 @@ test('going back after the server closed a first-page row drops that row and kee
   expect(screen.getByRole('button', { name: /Open Oath: Running/ })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: /Open Oath: Mobility/ })).toBeOnTheScreen();
 });
+// MVP-22-T12c: review findings on T10 to T12b.
+test('an interrupted Today row speaks its compact label in its value', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const f = setup([activeThursday()]); f.controller.clock.observe(serverTime); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} proof={proof.controller} timezone="UTC" /></LocalizationProvider>);
+  const row = await screen.findByRole('button', { name: /Otwórz Przysięgę/ });
+  expect(row).toHaveProp('accessibilityValue', { text: 'Aktywna, Nie dotarł' });
+});
+test('a refused kept cursor after the return from a detail loads the first page again', async () => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const first = oath(), second = oath({ id: '20000000-0000-4000-8000-000000000002' });
+  second.snapshot = { ...second.snapshot, copy: { ...second.snapshot.copy, en: { ...second.snapshot.copy.en, activity: 'Mobility' } } };
+  const f = setup([first]);
+  jest.mocked(f.controller.list).mockResolvedValueOnce(page([first], 'cursor1')).mockResolvedValueOnce(page([second], 'cursor2')).mockResolvedValueOnce(page([first], 'cursor1'))
+    .mockResolvedValueOnce({ kind: 'oath_error', code: 'invalid_request' } as never).mockResolvedValueOnce(page([first, second]));
+  jest.mocked(f.controller.detail).mockResolvedValue({ kind: 'success', value: { oath: second, serverTime } });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Load more' }));
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Mobility/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Today' }));
+  await waitFor(() => expect(f.controller.list).toHaveBeenCalledTimes(3));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Load more' }));
+  expect(jest.mocked(f.controller.list).mock.calls[3][0]).toEqual({ view: 'today', cursor: 'cursor2' });
+  await waitFor(() => expect(f.controller.list).toHaveBeenCalledTimes(5));
+  expect(jest.mocked(f.controller.list).mock.calls[4][0]).toEqual({ view: 'today' });
+  expect(await screen.findByRole('button', { name: /Open Oath: Mobility/ })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+});
+test('the list Retry steps back to an outline while a row offers "Wyślij ponownie"', async () => {
+  const listeners: ((state: string) => void)[] = [];
+  const original = jest.mocked(AppState.addEventListener).getMockImplementation();
+  const subscription = jest.spyOn(AppState, 'addEventListener').mockImplementation(((_: string, listener: (state: string) => void) => { listeners.push(listener); return { remove: jest.fn() }; }) as never);
+  try {
+    Dimensions.set({ window: phone(1), screen: phone(1) });
+    const f = setup([activeThursday()]); f.controller.clock.observe(serverTime); const proof = proofController();
+    proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+    await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} proof={proof.controller} timezone="UTC" /></LocalizationProvider>);
+    await screen.findByRole('button', { name: /Otwórz Przysięgę/ });
+    jest.mocked(f.controller.list).mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' } as never);
+    await act(async () => { listeners.forEach(listener => listener('active')); });
+    const retry = await screen.findByRole('button', { name: 'Spróbuj ponownie' });
+    expect(within(retry).queryByText('◆', { includeHiddenElements: true })).toBeNull();
+    expect(filled()).toHaveLength(1);
+    expect(within(screen.getByRole('button', { name: 'Wyślij ponownie' })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
+  } finally { subscription.mockImplementation(original); }
+});
