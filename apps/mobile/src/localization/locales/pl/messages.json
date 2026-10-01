@@ -348,7 +348,7 @@
   },
   "character": {
     "title": "Wykuj swoją postać",
-    "intro": "Wybierz wygląd, budowę, imię i tytuł, którym Kuźnia będzie się do Ciebie zwracać.",
+    "intro": "Wybierz wygląd, budowę, imię i tytuł.",
     "preview": "Podgląd: {{name}}, {{title}}",
     "unnamed": "Bez imienia",
     "untitled": "Tytuł niewybrany",
@@ -372,7 +372,7 @@
       "separator": "Spacja, łącznik lub apostrof może stać tylko pojedynczo, między dwiema literami."
     },
     "titles": "Tytuł",
-    "titlesHint": "Forma decyduje o tytule i o tym, jak Kuźnia zwraca się do Ciebie.",
+    "titlesHint": "Tytuł ustala, jak Kuźnia się do Ciebie zwraca.",
     "form": {
       "masculine": "Obrońca Przysięgi",
       "masculineDetail": "forma męska",
@@ -390,12 +390,12 @@
     "unmetLook": "Wybierz wygląd, aby przejść dalej.",
     "loading": "Wczytuję Twoje postacie…",
     "storageUnavailable": "To urządzenie nie odczytało zapisanych wyborów. Spróbuj ponownie.",
-    "pending": "Połączenie zerwało się, zanim Kuźnia odpowiedziała. Postać {{name}} czeka zapisana na tym urządzeniu. Spróbuj ponownie, aby dokończyć.",
+    "pending": "Połączenie zerwało się przed odpowiedzią Kuźni. Postać {{name}} czeka na tym urządzeniu, spróbuj ponownie.",
     "finishing": "Kończę tworzenie postaci {{name}}…",
-    "rateLimited_one": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana na tym urządzeniu. Spróbuj ponownie za {{count}} sekundę.",
-    "rateLimited_few": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana na tym urządzeniu. Spróbuj ponownie za {{count}} sekundy.",
-    "rateLimited_many": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana na tym urządzeniu. Spróbuj ponownie za {{count}} sekund.",
-    "rateLimited_other": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana na tym urządzeniu. Spróbuj ponownie za {{count}} sekundy.",
+    "rateLimited_one": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana, spróbuj ponownie za {{count}} sekundę.",
+    "rateLimited_few": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana, spróbuj ponownie za {{count}} sekundy.",
+    "rateLimited_many": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana, spróbuj ponownie za {{count}} sekund.",
+    "rateLimited_other": "Kuźnia prosi o krótką przerwę. Postać {{name}} czeka zapisana, spróbuj ponownie za {{count}} sekundy.",
     "error": {
       "invalid_character_name": "Kuźnia nie przyjęła tego imienia. Wybierz inne.",
       "invalid_preset": "Ten wygląd nie jest już dostępny. Wczytaj wygląd ponownie i wybierz jeszcze raz.",

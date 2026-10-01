@@ -66,12 +66,10 @@ const shared = [
   // Kept long, not debt: folded text stays unchanged (rule 2). The detail folds oathHome.uploadInterrupted behind "Pełny opis",
   // A2 folds notifications.future. No slice A task touches the proof errors.
   'notifications.future', 'oathHome.uploadInterrupted', 'proof.errors.unavailable', 'proof.errors.rateLimited', 'proof.errors.sendFailed',
-  // A4.
-  'character.pending', 'character.rateLimited_one', 'character.rateLimited_other',
   // A5.
   'room.guide.hearth', 'room.tutorial.seals.3', 'room.tutorial.door.3',
 ];
-const longLines: Record<'pl' | 'en', string[]> = { pl: [...shared, 'character.rateLimited_few', 'character.rateLimited_many'], en: shared };
+const longLines: Record<'pl' | 'en', string[]> = { pl: shared, en: shared };
 
 test.each(['pl', 'en'] as const)('%s catalog lines keep at most two sentences, apart from the listed exceptions', locale => {
   const over = catalogs[locale].filter(([, text]) => sentences(text) > 2).map(([key]) => key);
@@ -97,6 +95,9 @@ const sliceA = [
   'onboarding.error_save', 'onboarding.error_complete',
   // A3.
   'auth.freshChallenge',
+  // A4.
+  'character.intro', 'character.titlesHint',
+  // character.pending and character.rateLimited_* (14 PL words, plan copy) are refusal lines, held by the two-sentence guard.
   // onboarding.companionIntroduction is Żaromir's introduction (13 words, plan copy), held by the two-sentence guard only.
 ];
 test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages', key => {
@@ -110,4 +111,12 @@ test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages',
 test('Polish player lines name the onboarding intention "cel", the accepted label itself stays', () => {
   expect(catalogs.pl.filter(([, text]) => /intencj/i.test(text)).map(([key]) => key)).toEqual([]);
   expect(group(pl, 'onboarding').intention).toBe('Chcę regularnie podejmować aktywność');
+});
+
+test('the character rate limit keeps every Polish plural form with the name and the count', () => {
+  expect(Object.keys(group(pl, 'character')).filter(key => key.startsWith('rateLimited_')).sort()).toEqual(['rateLimited_few', 'rateLimited_many', 'rateLimited_one', 'rateLimited_other']);
+  expect(Object.keys(group(en, 'character')).filter(key => key.startsWith('rateLimited_')).sort()).toEqual(['rateLimited_one', 'rateLimited_other']);
+  for (const catalog of [pl, en]) for (const [key, text] of Object.entries(group(catalog, 'character'))) {
+    if (key.startsWith('rateLimited_')) expect(text).toEqual(expect.stringMatching(/\{\{name\}\}.*\{\{count\}\}/));
+  }
 });

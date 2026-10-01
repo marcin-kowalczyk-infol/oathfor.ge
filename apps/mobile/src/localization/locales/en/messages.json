@@ -340,7 +340,7 @@
   },
   "character": {
     "title": "Forge your character",
-    "intro": "Choose a look, a build, a name and the title the Forge will call you by.",
+    "intro": "Choose a look, build, name and title.",
     "preview": "Preview: {{name}}, {{title}}",
     "unnamed": "Unnamed",
     "untitled": "Title not chosen",
@@ -382,10 +382,10 @@
     "unmetLook": "Choose a look to continue.",
     "loading": "Gathering your characters…",
     "storageUnavailable": "This device could not read your saved choices. Try again.",
-    "pending": "The connection dropped before the Forge answered. {{name}} is saved on this device. Try again to finish.",
+    "pending": "The connection dropped before the Forge answered. {{name}} waits on this device, try again.",
     "finishing": "Finishing {{name}}…",
-    "rateLimited_one": "The Forge asks for a short pause. {{name}} is saved on this device. Try again in {{count}} second.",
-    "rateLimited_other": "The Forge asks for a short pause. {{name}} is saved on this device. Try again in {{count}} seconds.",
+    "rateLimited_one": "The Forge asks for a short break. {{name}} is saved, try again in {{count}} second.",
+    "rateLimited_other": "The Forge asks for a short break. {{name}} is saved, try again in {{count}} seconds.",
     "error": {
       "invalid_character_name": "The Forge did not accept this name. Choose another one.",
       "invalid_preset": "That look is no longer available. Reload the looks and choose again.",

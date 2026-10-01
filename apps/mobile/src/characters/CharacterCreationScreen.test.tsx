@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AccessibilityInfo, AppState, Dimensions, StyleSheet } from 'react-native';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { CharacterCreationScreen, emptyCreationDraft, type CharacterCreationDraft } from './CharacterCreationScreen';
 import type { CharacterControllerState } from './controller';
@@ -135,7 +135,7 @@ test('a stored creation prefills its values and retries it instead of creating a
   expect(screen.getByRole('radio', { name: 'Look 3 of 4', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Stout build', selected: true })).toBeDisabled();
   expect(screen.getByTestId('character-figure').props.source).toBe(presetArt(currentArt.presets, 'starter_03', 'heavy')!.figure);
-  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device. Try again to finish.')).toBeOnTheScreen();
+  expect(screen.getByText('The connection dropped before the Forge answered. Zoya waits on this device, try again.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Create character' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
   expect(f.onRetry).toHaveBeenCalledTimes(1); expect(f.onCreate).not.toHaveBeenCalled();
@@ -212,7 +212,7 @@ test('the name field announces the current name problem as its hint', async () =
 
 test('a pending creation keeps the pending message for non-storage errors', async () => {
   await setup(ready({ pendingCreation: pending, error: { kind: 'configuration' } })); await act(async () => {});
-  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device. Try again to finish.')).toBeOnTheScreen();
+  expect(screen.getByText('The connection dropped before the Forge answered. Zoya waits on this device, try again.')).toBeOnTheScreen();
 });
 
 test('a rate limit disables Retry until the server wait has elapsed', async () => {
@@ -220,9 +220,9 @@ test('a rate limit disables Retry until the server wait has elapsed', async () =
   try {
     const f = await setup(ready({ pendingCreation: pending, error: { kind: 'rate_limited', retry: 'request', retryAfterSeconds: 2 } })); await act(async () => {});
     expect(screen.getByRole('button', { name: 'Try again' })).toBeDisabled();
-    expect(screen.getAllByText('The Forge asks for a short pause. Zoya is saved on this device. Try again in 2 seconds.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('The Forge asks for a short break. Zoya is saved, try again in 2 seconds.').length).toBeGreaterThan(0);
     await act(async () => { jest.advanceTimersByTime(1000); });
-    expect(screen.getAllByText('The Forge asks for a short pause. Zoya is saved on this device. Try again in 1 second.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('The Forge asks for a short break. Zoya is saved, try again in 1 second.').length).toBeGreaterThan(0);
     await act(async () => { jest.advanceTimersByTime(1000); });
     expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled();
     await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
@@ -277,7 +277,7 @@ test('an unresolved creation hides the way back and still explains itself withou
   await render(<LocalizationProvider initialLocale="en"><CharacterCreationScreen state={ready({ pendingCreation: pending })} draft={emptyCreationDraft} onDraft={jest.fn()} onCreate={jest.fn()} onRetry={jest.fn()} onReload={jest.fn()} onCancel={onCancel} /></LocalizationProvider>);
   await act(async () => {});
   expect(screen.queryByRole('button', { name: 'Back to characters' })).toBeNull();
-  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device. Try again to finish.')).toBeOnTheScreen();
+  expect(screen.getByText('The connection dropped before the Forge answered. Zoya waits on this device, try again.')).toBeOnTheScreen();
 });
 
 test('creation opened from the change screen offers a way back when nothing is pending', async () => {
@@ -355,4 +355,49 @@ test('open controls keep full opacity', async () => {
   await setup(); await act(async () => {});
   expect(StyleSheet.flatten(nameField().props.style).opacity).toBeUndefined();
   for (const radio of screen.getAllByRole('radio')) expect(StyleSheet.flatten(radio.props.style).opacity).toBeUndefined();
+});
+
+// MVP-22-A4 (clarity.md rules 1, 3 and 9): short intro and hints, two-sentence pending lines in every Polish plural form,
+// at most one filled button in every state, PL and EN at 200% text.
+const filled = () => screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0);
+
+test.each([
+  ['pl', 'Wybierz wygląd, budowę, imię i tytuł.', 'Tytuł ustala, jak Kuźnia się do Ciebie zwraca.'],
+  ['en', 'Choose a look, build, name and title.', 'In English every form reads Oathkeeper. The form sets how Polish text addresses you.'],
+] as const)('%s intro is one short line and the title hint says what the title does', async (locale, intro, hint) => {
+  await setup(ready(), locale); await act(async () => {});
+  expect(screen.getByText(intro)).toBeOnTheScreen();
+  expect(screen.getByText(hint)).toBeOnTheScreen();
+});
+
+test('Polish pending creation waits on the device in two sentences', async () => {
+  await setup(ready({ pendingCreation: pending, error: { kind: 'unavailable', retry: 'request' } }), 'pl'); await act(async () => {});
+  expect(screen.getByText('Połączenie zerwało się przed odpowiedzią Kuźni. Postać Zoya czeka na tym urządzeniu, spróbuj ponownie.')).toBeOnTheScreen();
+});
+
+test.each([[1, 'sekundę'], [2, 'sekundy'], [5, 'sekund'], [12, 'sekund'], [22, 'sekundy']] as const)('Polish rate limit of %i uses "%s"', async (seconds, word) => {
+  jest.useFakeTimers();
+  try {
+    await setup(ready({ pendingCreation: pending, error: { kind: 'rate_limited', retry: 'request', retryAfterSeconds: seconds } }), 'pl'); await act(async () => {});
+    expect(screen.getAllByText(`Kuźnia prosi o krótką przerwę. Postać Zoya czeka zapisana, spróbuj ponownie za ${seconds} ${word}.`).length).toBeGreaterThan(0);
+  } finally { jest.useRealTimers(); }
+});
+
+const states: [string, CharacterControllerState][] = [
+  ['loading', { kind: 'loading' } as CharacterControllerState],
+  ['fresh', ready()],
+  ['pending', ready({ pendingCreation: pending, error: { kind: 'unavailable', retry: 'request' } })],
+  ['rate limited', ready({ pendingCreation: pending, error: { kind: 'rate_limited', retry: 'request', retryAfterSeconds: 5 } })],
+  ['busy finishing', ready({ pendingCreation: pending, busy: true })],
+  ['invalid look', ready({ error: { kind: 'character_error', code: 'invalid_preset' } })],
+];
+test.each((['pl', 'en'] as const).flatMap(locale => states.map(([name, state]) => [locale, name, state] as const)))('%s %s at text scale 2 shows one filled button at most', async (locale, _name, state) => {
+  jest.useFakeTimers();
+  try {
+    await atFontScale(2, async () => {
+      await setup(state, locale); await act(async () => {});
+      expect(screen.getByRole('header')).toBeOnTheScreen();
+      expect(filled().length).toBeLessThanOrEqual(1);
+    });
+  } finally { jest.useRealTimers(); }
 });
