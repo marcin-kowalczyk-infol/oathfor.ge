@@ -69,7 +69,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   // Opened from anywhere else (the proof screen, creation, a receipt) the detail goes back to Today.
   const [detailFrom, setDetailFrom] = useState<ViewName>('today');
   const offset = useRef(0);
-  const leftAt = useRef(0);
+  // Where a row opened the detail: that list and its scroll. Only a row sets it, so creation, a receipt or the proof screen return to the top (MVP-22-T12b).
+  const leftAt = useRef<{ view: ViewName; y: number } | null>(null);
   const scrollKey = `${route}-${view}`;
   // One stable object per return, so later renders of the same list never scroll it again.
   const [restore, setRestore] = useState<{ key: string; at: { x: number; y: number } } | null>(null);
@@ -110,7 +111,9 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const lastRefusal = proofReady?.lastRefusal;
   const current = (epoch: number) => epoch === generation.current;
   /** quiet: the shown list stays until the answer replaces it, for automatic refreshes and the pull gesture. */
-  async function loadList(nextView: ViewName, append = false, quiet = false) {
+  /** merge: the return from a detail. Pages loaded beyond the first stay, so the kept scroll still finds its rows (MVP-22-T12b). */
+  async function loadList(nextView: ViewName, append = false, quiet = false, merge = false) {
+    const kept = merge ? list : null;
     const epoch = ++generation.current;
     const previous = append ? list : null;
     const cursor = append ? list?.nextCursor : null;
@@ -121,6 +124,13 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     if (!current(epoch)) return;
     if (!quiet) setLoading(false);
     if (result.kind !== 'success') { setFailed(true); return; }
+    // The fresh first page replaces its own rows. Rows of later pages that it does not hold stay, with the cursor past them.
+    // When the fresh page says nothing follows, it is the whole list, so it replaces everything.
+    if (kept && result.value.nextCursor !== null && kept.items.length > result.value.items.length) {
+      const fresh = new Set(result.value.items.map(item => item.id));
+      setList({ ...result.value, nextCursor: kept.nextCursor, items: [...result.value.items, ...kept.items.filter(item => !fresh.has(item.id))] });
+      return result.value;
+    }
     // Live pagination can repeat rows after server changes; keep the returned order of new rows.
     const existing = new Set(previous?.items.map(item => item.id));
     setList({ ...result.value, items: previous ? [...previous.items, ...result.value.items.filter(item => !existing.has(item.id))] : result.value.items });
@@ -158,9 +168,10 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     // A detail or an unfinished creation stays open. The list loads again when the player returns to it.
     if (available && route === 'list') void loadList(view);
   }, [reload]);
-  /** from: the list the player opened it from. Without one the way back leads to Today. */
-  async function openDetail(id: string, from: ViewName = 'today') {
+  /** from: the list the player opened it from. Without one the way back leads to Today. at: that list's scroll, only when a row opened it. */
+  async function openDetail(id: string, from: ViewName = 'today', at?: number) {
     const epoch = ++generation.current; detailId.current = id;
+    leftAt.current = at === undefined ? null : { view: from, y: at };
     setDetailFrom(from); setRestore(null);
     setRoute('detail'); setDetail(null); setLoading(true); setFailed(false);
     const result = await controller.detail(id);
@@ -201,18 +212,18 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     return () => { clearTimeout(timer); stop(); };
   }, [shownDetail, controller]);
   function openFromList(id: string) {
-    leftAt.current = offset.current;
-    void openDetail(id, view);
+    void openDetail(id, view, offset.current);
   }
-  /** Back from the detail: the list it came from with its rows and scroll kept, refreshed quietly. Another list loads afresh. */
+  /** Back from the detail: the list it came from with its rows kept, refreshed quietly. Another list loads afresh. Only a row's own list gets its scroll back. */
   function returnToList() {
     const keep = route === 'detail' && view === detailFrom && list !== null;
-    void loadList(detailFrom, false, keep);
-    if (keep) setRestore({ key: `list-${detailFrom}`, at: { x: 0, y: leftAt.current } });
+    const at = keep && leftAt.current?.view === detailFrom ? leftAt.current.y : null;
+    void loadList(detailFrom, false, keep, keep);
+    if (at !== null) setRestore({ key: `list-${detailFrom}`, at: { x: 0, y: at } });
   }
   // The server's receipt is the detail now, shown as pending assessment.
   function showReceipt(oath: Oath) {
-    generation.current++; detailId.current = oath.id; setDetailFrom('today'); setRestore(null);
+    generation.current++; detailId.current = oath.id; setDetailFrom('today'); setRestore(null); leftAt.current = null;
     setDetail(oath); setLoading(false); setFailed(false); setRoute('detail');
   }
   // A resend answered with a receipt: the controller holds the server's Oath, so the detail and Today show it.
@@ -232,13 +243,17 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     if (shown.current.route === 'detail' && detailId.current === lastRefusal.oathId) void refreshDetail(lastRefusal.oathId);
     else if (shown.current.route === 'list' && shown.current.available && !loadingNow.current) void loadList(shown.current.view, false, true);
   }, [lastRefusal]);
+  // The detail line the player is waiting on after their own press. It is read out until the first change after the send or delete ends,
+  // so a later timer or language change stays quiet (MVP-22-T12b).
+  const [announcing, setAnnouncing] = useState<{ oathId: string; line: string; busySeen: boolean } | null>(null);
+  function pressed(oathId: string) { setAnnouncing({ oathId, line: shownDetailLine?.oathId === oathId ? shownDetailLine.line : '', busySeen: false }); }
   function resume(oathId: string) {
     if (!proof) return;
-    setSubject({ oathId, before: proofReady?.error }); void proof.recover();
+    setSubject({ oathId, before: proofReady?.error }); pressed(oathId); void proof.recover();
   }
   function discard(oathId: string) {
     if (!proof) return;
-    setSubject({ oathId, before: proofReady?.error }); void proof.discard();
+    setSubject({ oathId, before: proofReady?.error }); pressed(oathId); void proof.discard();
   }
   /**
    * The interrupted upload of one Today row: one line and the resend under the row (docs/product/clarity.md decision 9). Nothing here claims a receipt.
@@ -261,8 +276,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
    * then one link to the rules. The card's line is the path's next step, or the device's send status, or a refusal the player must act on.
    * Facts that sat in the status panel and other errors wait behind "Pełny opis". Only the server's answer changes the state shown.
    */
-  function detailPath(oath: Oath) {
-    const zone = oath.snapshot.deadline.timezone;
+  /** The detail's path and card line, also read by the announcement effect. */
+  function detailLine(oath: Oath) {
     const status = deviceProof(oath, proofState, subject);
     const error = deviceProofError(oath, proofState, subject);
     const now = controller.clock.now();
@@ -272,6 +287,11 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     // A refusal, or any error that followed the player's own resend or delete, replaces the line, so every press has visible feedback (clarity.md decision 3).
     const line = status === 'sending' || status === 'deleting' ? t(status === 'deleting' ? 'proof.deleting' : 'proof.sending')
       : error ? errorMessage(error, t) : t(path.next.key, { time, date: time });
+    return { oathId: oath.id, status, now, path, line, busy: status === 'sending' || status === 'deleting' };
+  }
+  function detailPath(oath: Oath) {
+    const zone = oath.snapshot.deadline.timezone;
+    const { status, now, path, line } = detailLine(oath);
     const stored = (instant: string) => compactStoredTime(wallTimeIn(instant, zone), locale);
     // Only the server's receipt shows this. The receipt time is the server's, in the Oath's own zone.
     const received = oath.state === 'proof_pending' ? oath.proof : null;
@@ -294,13 +314,21 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       : proof && status === 'refused' ? <Action label={t('proof.dismiss')} variant="secondary" onPress={() => proof.dismissRefusal()} /> : undefined;
     return <>
       <StepTrack path={path} state={oath.state} activityEmblem={oath.snapshot.activity} />
-      <NextCard oath={oath} clock={controller.clock} line={line} announceLine={subject?.oathId === oath.id} onElapsed={() => { void refreshDetail(oath.id); }} action={action} secondary={secondary} details={details} />
+      <NextCard oath={oath} clock={controller.clock} line={line} announceLine={announcing?.oathId === oath.id} onElapsed={() => { void refreshDetail(oath.id); }} action={action} secondary={secondary} details={details} />
       <ZaromirLine situation={path.zaromir} seed={path.zaromir ? zaromirSeed(oath.id, path.zaromir, now, zone) : ''} />
       <Disclosure label={t('path.rules')} icon={<SpriteFrame sheet={art.oaths.ruleIcons} index={ruleIcon.fullRules} width={36} />}>
         <OathRuleCards snapshot={oath.snapshot} head="promise" fold={false} />
       </Disclosure>
     </>;
   }
+  const shownDetailLine = route === 'detail' && detail ? detailLine(detail) : null;
+  // NextCard reads the changed line in its own effect, which runs before this one, so clearing here ends the announcement after it.
+  useEffect(() => {
+    if (!announcing) return;
+    if (!shownDetailLine || shownDetailLine.oathId !== announcing.oathId) { setAnnouncing(null); return; }
+    if (shownDetailLine.busy) { if (!announcing.busySeen) setAnnouncing({ ...announcing, busySeen: true }); return; }
+    if (announcing.busySeen || shownDetailLine.line !== announcing.line) setAnnouncing(null);
+  }, [announcing, shownDetailLine?.oathId, shownDetailLine?.line, shownDetailLine?.busy]);
   // A replay of a submission the server holds returns the original receipt and clears the record. Once per submission while this screen lives.
   const replayed = useRef(new Set<string>());
   useEffect(() => {
@@ -381,7 +409,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       {/* The band ends in a short fade, so the artwork under it never starts on a hard edge (native check, MVP-22-T09e). */}
       {solidHeader && <View testID="header-fade" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.headerFade} />}
       {route === 'detail'
-        ? interactiveForge ? <SceneDoor label={t(`oathHome.${detailFrom}`)} onPress={returnToList} /> : <BackLink label={t(`oathHome.${detailFrom}`)} onPress={returnToList} />
+        ? interactiveForge ? <SceneDoor label={t(`oathHome.${detailFrom}`)} hint={t('oathHome.backHint')} onPress={returnToList} /> : <BackLink label={t(`oathHome.${detailFrom}`)} hint={t('oathHome.backHint')} onPress={returnToList} />
         : forgeNavigation && (interactiveForge
           ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />
           : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />)}
@@ -455,7 +483,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         {list?.nextCursor && !failed && <Action label={t('oathHome.more')} variant={listAction} busy={loading} onPress={() => { void loadList(view, true); }} />}
       </>}
       {route === 'detail' && <>
-        {failed && <><CompanionBubble message={t('oathHome.detailError')} /><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current, detailFrom); }} /></>}
+        {failed && <><CompanionBubble message={t('oathHome.detailError')} /><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current, detailFrom, leftAt.current?.view === detailFrom ? leftAt.current.y : undefined); }} /></>}
         {detail && <>
           {/* In the room layout the emblem stands on the middle plinth of the seal wall, the text starts on the floor below it. */}
           <View testID={interactiveForge ? 'detail-wall' : undefined} style={[styles.detailHero, interactiveForge && styles.detailWall]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={detail.snapshot.activity} size={108} /></View>

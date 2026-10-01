@@ -318,6 +318,7 @@
     "historyEmpty": "Kronika czeka na pierwszy wpis.",
     "closedAt": "Zamknięta {{time}}",
     "receivedAt": "Czas odebrania: {{time}}",
+    "backHint": "Wraca do listy",
     "uploadInterrupted": "Wysyłanie dowodu zostało przerwane. Kopia czeka na tym urządzeniu. Serwer jeszcze nie potwierdził odbioru."
   },
   "forge": {

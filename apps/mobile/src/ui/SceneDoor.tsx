@@ -3,8 +3,8 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { useArt } from '../art/ArtProvider';
 
-export function SceneDoor({ label, onPress, disabled = false, maxLines }: { label: string; onPress(): void; disabled?: boolean; maxLines?: number }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.door, { opacity: disabled ? 0.5 : pressed ? 0.7 : 1 }]}>
+export function SceneDoor({ label, onPress, disabled = false, maxLines, hint }: { label: string; onPress(): void; disabled?: boolean; maxLines?: number; hint?: string }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.door, { opacity: disabled ? 0.5 : pressed ? 0.7 : 1 }]}>
     <View testID="scene-door-picture" style={styles.picture} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Image source={useArt().room.image} resizeMode="stretch" style={styles.image} />
     </View>

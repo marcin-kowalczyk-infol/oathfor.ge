@@ -1,5 +1,5 @@
 import { Profiler } from 'react';
-import { AppState, Dimensions, StyleSheet } from 'react-native';
+import { AccessibilityInfo, AppState, Dimensions, StyleSheet } from 'react-native';
 import { createServerClock } from './serverClock';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
@@ -1218,4 +1218,70 @@ test('the solid header fades into the artwork instead of ending on a hard edge',
   const fade = within(screen.getByTestId('screen-header')).getByTestId('header-fade', { includeHiddenElements: true });
   expect(StyleSheet.flatten(fade.props.style)).toMatchObject({ position: 'absolute', top: '100%', height: 24, experimental_backgroundImage: expect.stringContaining(tokens.color.canvas) });
   expect(fade.props.pointerEvents).toBe('none');
+});
+// MVP-22-T12b: review of T09c to T09e.
+const scrollTo = async (y: number) => fireEvent.scroll(screen.getByTestId('oath-list-scroll'), { nativeEvent: { contentOffset: { x: 0, y }, contentSize: { width: 390, height: 3000 }, layoutMeasurement: { width: 390, height: 700 } } });
+test('a detail opened from creation goes back to Today at the top, even after a History row restored its scroll', async () => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const f = setup(); jest.mocked(f.controller.resetCreation).mockReturnValue(true);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'History' }));
+  await screen.findByTestId('history-header');
+  await scrollTo(800);
+  await fireEvent.press(screen.getAllByRole('button', { name: /Open Oath: Running/ })[0]);
+  await fireEvent.press(await screen.findByRole('button', { name: 'History' }));
+  await screen.findByTestId('history-header');
+  expect(screen.getByTestId('oath-list-scroll').props.contentOffset).toEqual({ x: 0, y: 800 });
+  await fireEvent.press(screen.getByRole('button', { name: 'Today' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Create an Oath' }));
+  await act(async () => f.change({ kind: 'ready', busy: false, preview: null, oath: oath(), needsReview: false, pending: null }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'View the Oath' }));
+  await screen.findByTestId('detail-status');
+  await fireEvent.press(screen.getByRole('button', { name: 'Today' }));
+  await screen.findByRole('header', { name: 'Your Oaths' });
+  expect(screen.getByTestId('oath-list-scroll').props.contentOffset).toBeUndefined();
+});
+test('going back to a list with a second page keeps both pages and the scroll', async () => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const first = oath(), second = oath({ id: '20000000-0000-4000-8000-000000000002' });
+  second.snapshot = { ...second.snapshot, copy: { ...second.snapshot.copy, en: { ...second.snapshot.copy.en, activity: 'Mobility' } } };
+  const f = setup([first]);
+  jest.mocked(f.controller.list).mockResolvedValueOnce(page([first], 'cursor1')).mockResolvedValueOnce(page([second])).mockResolvedValueOnce(page([first], 'cursor1'));
+  jest.mocked(f.controller.detail).mockResolvedValue({ kind: 'success', value: { oath: second, serverTime } });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Load more' }));
+  await screen.findByRole('button', { name: /Open Oath: Mobility/ });
+  await scrollTo(300);
+  await fireEvent.press(screen.getByRole('button', { name: /Open Oath: Mobility/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Today' }));
+  await waitFor(() => expect(f.controller.list).toHaveBeenCalledTimes(3));
+  expect(jest.mocked(f.controller.list).mock.calls[2][0]).toEqual({ view: 'today' });
+  expect(screen.getByRole('button', { name: /Open Oath: Running/ })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: /Open Oath: Mobility/ })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
+  expect(screen.getByTestId('oath-list-scroll').props.contentOffset).toEqual({ x: 0, y: 300 });
+});
+test('a changed line is read out after the player sends again, but not a later change nobody pressed for', async () => {
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibilityWithOptions'); announce.mockClear();
+  const f = setup([activeThursday()]); f.controller.clock.observe(serverTime); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Send again' }));
+  await act(async () => proof.change({ kind: 'ready', busy: true, pending: record(), oath: null }));
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: record(), oath: null, error: { kind: 'unavailable', retry: 'request' } }));
+  const spoken = (text: string) => announce.mock.calls.filter(call => call[0].includes(text)).length;
+  expect(spoken('Could not reach the server')).toBe(1);
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: record(), oath: null, error: { kind: 'rate_limited', retry: 'request' } as ProofControllerError }));
+  expect(screen.getByText('Too many attempts. Wait a moment and try again. A copy is waiting on this device.')).toBeOnTheScreen();
+  expect(spoken('Too many attempts')).toBe(0);
+  announce.mockRestore();
+});
+test.each([['en', 'Today', 'Goes back to the list'], ['pl', 'Dzisiaj', 'Wraca do listy']] as const)('the %s detail back control says it goes back to the list', async (locale, label, hint) => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const f = setup();
+  await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await fireEvent.press((await screen.findAllByRole('button', { name: /^(Open Oath|Otwórz Przysięgę): / }))[0]);
+  await screen.findByTestId('detail-status');
+  expect(screen.getByRole('button', { name: label })).toHaveProp('accessibilityHint', hint);
 });

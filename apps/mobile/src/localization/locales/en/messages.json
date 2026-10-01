@@ -310,6 +310,7 @@
     "historyEmpty": "The chronicle is waiting for its first entry.",
     "closedAt": "Closed {{time}}",
     "receivedAt": "Receipt time: {{time}}",
+    "backHint": "Goes back to the list",
     "uploadInterrupted": "The proof upload was interrupted. A copy is waiting on this device. The server has not confirmed receipt yet."
   },
   "forge": {
