@@ -21,7 +21,6 @@ import { oathPath, proofScreenSituation } from '../oaths/oathPath';
 import { pathTimeText } from '../oaths/compactStoredTime';
 import { usePathMoments } from '../oaths/usePathMoments';
 import type { ServerClock } from '../oaths/serverClock';
-import { SceneSurface } from '../ui/SceneSurface';
 import { Text } from '../ui/Text';
 import { tokens } from '../ui/tokens';
 import { captureImage, deleteLocalImage, type ProofSource } from './capture';
@@ -64,7 +63,7 @@ export function errorMessage(error: ProofControllerError, t: Translate): string 
  * Only the server's receipt moves the player on, through onDone with the Oath it returned.
  * MVP-22-T11 (docs/product/clarity.md decision 12): a compact step badge, Żaromir's line and three numbered steps. A finished step folds
  * to a one-line summary with "Zmień", except in the simple layout and under Reduce Motion. Long texts sit behind links.
- * clock: server time for Żaromir's window and day. Without it he speaks the plain proof screen line.
+ * clock: server time for Żaromir's window and day, and for the card line that moves at D and S. Without it he speaks the plain proof screen line.
  */
 export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock }: { oath: Oath; controller: ProofController; onDone(oath: Oath): void; onBack(): void; backLabel: string; clock?: ServerClock }) {
   const { t, i18n } = useTranslation();
@@ -214,7 +213,6 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
     const cutoffTime = path.next.key === 'path.next.cutoff' && path.next.time ? pathTimeText(path.next.time, locale) : null;
     const imageFolded = folds && image !== null && reopened !== 'image';
     body = <>
-      <Disclosure label={t('path.more')}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.introFull')}</Text></Disclosure>
       {cutoffTime && card('proof-cutoff', t('path.next.cutoff', { time: cutoffTime }))}
       {/* While sending Żaromir is silent (decision 5). Between D and S he keeps the conditional cutoff line. */}
       {!busy && speaker(proofScreenSituation(path))}
@@ -275,16 +273,18 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
       <View style={styles.section}>
       <StepHead number={3} title={t('proof.steps.confirm')} />
       <View style={styles.declaration}>
-        <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.declarationHeading}>{t('oath.rules.declaration')}</Text>
+        {/* The stored declaration once, then a short answer. The checkbox speaks the declaration it accepts (MVP-22-T12c). */}
         <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{copy.declaration}</Text>
-        <Pressable accessibilityRole="checkbox" accessibilityLabel={t('proof.confirm')} accessibilityState={{ checked: declared, disabled: busy }} disabled={busy}
+        <Pressable accessibilityRole="checkbox" accessibilityLabel={`${t('proof.confirm')}. ${copy.declaration}`} accessibilityState={{ checked: declared, disabled: busy }} disabled={busy}
           onPress={() => setDeclared(value => !value)} style={({ pressed }) => [styles.check, pressed && styles.pressed]}>
           <View style={[styles.box, declared && styles.boxOn]}>{declared && <Text allowFontScaling={false} style={styles.tick}>✓</Text>}</View>
           <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.checkLabel}>{t('proof.confirm')}</Text>
         </Pressable>
       </View>
       <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.aiLine')}</Text>
+      {/* The full introduction opens with the assessment note, so the top of the screen carries no second link (MVP-22-T12c). */}
       <Disclosure label={t('proof.aiMore')}><View style={styles.note}>
+        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.introFull')}</Text>
         <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noteHeading}>{t('proof.caveatHeading')}</Text>
         <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.caveat')}</Text>
       </View></Disclosure>
@@ -295,9 +295,10 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
       </View>
     </>;
   }
-  return <SceneSurface place="seals"><SafeAreaView style={styles.safeArea}>
+  // Text never sits on artwork, so the whole form stands on the band colour of the detail header (native check, MVP-22-T12c).
+  return <View testID="proof-screen" style={styles.screen}><SafeAreaView style={styles.safeArea}>
     <ScrollView testID="proof-scroll" contentContainerStyle={styles.content}>{back}{head}{body}</ScrollView>
-  </SafeAreaView></SceneSurface>;
+  </SafeAreaView></View>;
 }
 /** A numbered step heading on a plaque, read as "1. Rodzaj dowodu". */
 function StepHead({ number, title }: { number: number; title: string }) {
@@ -319,12 +320,13 @@ function Summary({ choice, change, step, disabled, onChange }: { choice: string;
 }
 const panel = { borderRadius: 16, backgroundColor: 'rgba(28, 22, 16, 0.94)', borderWidth: 1, borderColor: '#5b4630' } as const;
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: tokens.color.canvas },
   safeArea: { flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: tokens.space.card, paddingTop: 24, paddingBottom: 36, gap: tokens.space.section },
   title: { color: '#f3dfbd', fontFamily: tokens.font.display, fontSize: tokens.title, lineHeight: 36, textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
   activity: { color: tokens.color.primary, fontSize: 14, lineHeight: 20, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', marginTop: -16 },
   section: { gap: 12 },
-  // The seal wall behind the form is busy, so each heading sits on a plaque like the cards below it.
+  // Each heading sits on a plaque like the cards below it, numbered for the three steps.
   sectionHead: { ...panel, flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'flex-start', maxWidth: '100%', paddingVertical: 6, paddingHorizontal: 14 },
   heading: { flexShrink: 1, color: '#f3dfbd', fontFamily: tokens.font.display, fontSize: 21, lineHeight: 29, textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
   routes: { gap: 10 },
@@ -364,7 +366,6 @@ const styles = StyleSheet.create({
   noticeText: { color: tokens.color.missed, fontSize: 15, lineHeight: 22 },
   preview: { width: '100%', maxHeight: 360, borderRadius: 12, backgroundColor: '#0d0b09' },
   declaration: { gap: 10, padding: 16, borderRadius: 16, backgroundColor: 'rgba(32, 25, 19, 0.94)', borderLeftWidth: 3, borderLeftColor: tokens.color.primary },
-  declarationHeading: { color: tokens.color.primary, fontSize: 15, fontWeight: '700' },
   check: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   box: { width: 28, height: 28, borderRadius: 6, borderWidth: 2, borderColor: '#a7834c', alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: tokens.color.primary, borderColor: tokens.color.primary },

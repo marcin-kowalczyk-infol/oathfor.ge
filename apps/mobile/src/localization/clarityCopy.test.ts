@@ -98,7 +98,8 @@ const sliceA = [
   // A4.
   'character.intro', 'character.titlesHint',
   // character.pending and character.rateLimited_* (14 PL words, plan copy) are refusal lines, held by the two-sentence guard.
-  // onboarding.companionIntroduction is Żaromir's introduction (13 words, plan copy), held by the two-sentence guard only.
+  // T12c: Żaromir's introduction meets his 12-word cap.
+  'onboarding.companionIntroduction',
 ];
 test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages', key => {
   const [line, english] = [at(pl, key), at(en, key)];

@@ -55,7 +55,7 @@
     "completionLoadError": "We could not check whether your setup is complete. Try again to check your saved progress.",
     "trialTitle": "Trial of the Spark",
     "trialPending": "Creating your first Oath is not available yet. No Oath has started.",
-    "companionIntroduction": "I am Zharomir, a guardian linked to Veles. I will help you remember the rules and your next steps.",
+    "companionIntroduction": "I am Zharomir, a guardian linked to Veles. I will help you remember the rules and steps.",
     "continue": "Continue",
     "introductionError": "We could not confirm this step. Please try again."
   },
@@ -635,7 +635,7 @@
     "libraryUnavailable": "Photos could not open. Take a photo with the camera or try again.",
     "imageFailed": "The image could not be prepared. Choose it again.",
     "openSettings": "Open Settings",
-    "confirm": "I confirm I completed this Oath’s workout",
+    "confirm": "Yes, I confirm",
     "caveatHeading": "Evidence assessment",
     "caveat": "AI assesses only what the image shows. An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.",
     "missing": {

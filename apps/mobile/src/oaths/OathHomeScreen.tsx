@@ -363,7 +363,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   function category(item: Oath) { return item.state === 'scheduled' ? 'future' : item.state === 'active' ? 'current' : 'pending'; }
   function group(item: Oath) {
     const date = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.snapshot.deadline.local}Z`));
-    return t('oathHome.group', { date, timezone: item.snapshot.deadline.timezone });
+    // The zone's readable name, like the detail, never the IANA id (MVP-22-T12c).
+    return t('oathHome.group', { date, timezone: zoneLabel(item.snapshot.deadline.timezone, t) });
   }
   const place: ForgePlace = hearthRequest ? 'hearth' : route === 'detail' ? 'seals' : view === 'history' ? 'chronicle' : 'seals';
   // After the room's own flight the close-up is already in view, so the screen skips its zoom.
@@ -397,7 +398,10 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     {/* Its back control returns to the list it came from under that tab's name (MVP-22-T09e). The list's own goes to the room or the menu. */}
     <View testID="screen-header" style={[styles.header, solidHeader && styles.solidHeader]}>
       {/* The band ends in a short fade, so the artwork under it never starts on a hard edge (native check, MVP-22-T09e). */}
-      {solidHeader && <View testID="header-fade" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.headerFade} />}
+      {/* Solid strips that thin out, so the fade does not depend on gradient support (native check, MVP-22-T12c). */}
+      {solidHeader && <View testID="header-fade" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.headerFade}>
+        {FADE_STEPS.map(opacity => <View key={opacity} testID="header-fade-strip" style={[styles.fadeStrip, { opacity }]} />)}
+      </View>}
       {route === 'detail'
         ? interactiveForge ? <SceneDoor label={t(`oathHome.${detailFrom}`)} hint={t('oathHome.backHint')} onPress={returnToList} /> : <BackLink label={t(`oathHome.${detailFrom}`)} hint={t('oathHome.backHint')} onPress={returnToList} />
         : forgeNavigation && (interactiveForge
@@ -494,6 +498,8 @@ function SlowNotice({ text }: { text: string }) {
   return shown ? <Text accessibilityLiveRegion="polite" style={styles.body}>{text}</Text> : null;
 }
 const SLOW_MS = 500;
+/** Eight 3 pt strips under the solid header, from nearly the band's colour to almost clear. */
+const FADE_STEPS = [0.9, 0.76, 0.62, 0.49, 0.37, 0.26, 0.16, 0.07];
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   historyHeader: { gap: 12 },
@@ -503,7 +509,8 @@ const styles = StyleSheet.create({
   historyLabel: { color: tokens.color.text, fontSize: 17, flexShrink: 1 },
   header: { gap: tokens.space.section },
   // Full bleed from the screen's top edge. Canvas, not a scrim, because the busiest part of every close-up sits right under it.
-  solidHeader: { marginHorizontal: -tokens.space.card, marginTop: -24, paddingHorizontal: tokens.space.card, paddingTop: 24, paddingBottom: tokens.space.small, backgroundColor: tokens.color.canvas },
+  // zIndex: the band and its fade draw above the content that follows them in the scroll.
+  solidHeader: { marginHorizontal: -tokens.space.card, marginTop: -24, paddingHorizontal: tokens.space.card, paddingTop: 24, paddingBottom: tokens.space.small, backgroundColor: tokens.color.canvas, zIndex: 1 },
   content: { flexGrow: 1, paddingHorizontal: tokens.space.card, paddingTop: 24, paddingBottom: 36, gap: tokens.space.section },
   entry: { gap: 10 },
   // The list opens under the seal wall with a rule and a display heading, then state and date step down in size.
@@ -534,7 +541,8 @@ const styles = StyleSheet.create({
   note: { padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#5b4630', backgroundColor: 'rgba(28, 22, 16, 0.94)' },
   noteText: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
   // About 24 pt from the band's own colour to clear, hanging under it.
-  headerFade: { position: 'absolute', left: 0, right: 0, top: '100%', height: 24, experimental_backgroundImage: `linear-gradient(180deg, ${tokens.color.canvas} 0%, rgba(20, 23, 25, 0) 100%)` },
+  headerFade: { position: 'absolute', left: 0, right: 0, top: '100%', height: 24 },
+  fadeStrip: { flex: 1, backgroundColor: tokens.color.canvas },
   parchment: { backgroundColor: 'rgba(27, 24, 20, 0.95)', padding: 18, borderTopWidth: 2, borderTopColor: '#9d7b4d', borderBottomWidth: 2, borderBottomColor: '#5d452c', borderRadius: 5 },
   navigation: { flexDirection: 'row', gap: 24, backgroundColor: 'rgba(17, 19, 21, 0.5)', borderRadius: 8 }, stackedNavigation: { flexDirection: 'column', gap: 8 }, stackedTab: { flex: 0, alignItems: 'flex-start' },
   tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#5d4e39' },

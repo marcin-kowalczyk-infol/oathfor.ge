@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
-import { AccessibilityInfo, Dimensions } from 'react-native';
+import { AccessibilityInfo, Dimensions, StyleSheet } from 'react-native';
+import { tokens } from '../ui/tokens';
 import * as Picker from 'expo-image-picker';
 import { ImageManipulator } from 'expo-image-manipulator';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
@@ -80,8 +81,8 @@ test('without the declaration the send action is disabled with an accessible hin
   expect(send).toHaveProp('accessibilityHint', 'Potwierdź deklarację ukończenia.');
   await fireEvent.press(send);
   expect(f.controller.submit).not.toHaveBeenCalled();
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'Potwierdzam ukończenie treningu z tej Przysięgi' }));
-  expect(screen.getByRole('checkbox', { name: 'Potwierdzam ukończenie treningu z tej Przysięgi' })).toBeChecked();
+  await fireEvent.press(screen.getByRole('checkbox', { name: /Tak, potwierdzam/ }));
+  expect(screen.getByRole('checkbox', { name: /Tak, potwierdzam/ })).toBeChecked();
   await fireEvent.press(screen.getByRole('button', { name: 'Prześlij dowód' }));
   expect(f.controller.submit).toHaveBeenCalledWith({ oathId, mode: 'photo', source: normalized });
 });
@@ -93,7 +94,7 @@ async function pickFromLibrary(route: RegExp = /Zdjęcie kontekstu/) {
 }
 async function readyToSend(route?: RegExp) {
   await pickFromLibrary(route);
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'Potwierdzam ukończenie treningu z tej Przysięgi' }));
+  await fireEvent.press(screen.getByRole('checkbox', { name: /Tak, potwierdzam/ }));
 }
 
 test('a 4032 × 3024 pick is resized to a 2880 long edge and saved as JPEG 0.85, without EXIF or in-app editing', async () => {
@@ -252,7 +253,7 @@ test.each([
   await fireEvent.press(screen.getByRole('radio', { name: /Context photo/ }));
   await fireEvent.press(screen.getByRole('button', { name: 'Choose from Photos' }));
   await screen.findByLabelText('Chosen image');
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'I confirm I completed this Oath’s workout' }));
+  await fireEvent.press(screen.getByRole('checkbox', { name: /Yes, I confirm/ }));
   await fireEvent.press(screen.getByRole('button', { name: 'Submit proof' }));
   await act(async () => f.change({ kind: 'ready', busy: false, pending: null, oath: null, error: error as ProofControllerState extends infer S ? S extends { error?: infer E } ? E : never : never }));
   expect(screen.getByText(message)).toBeOnTheScreen();
@@ -389,7 +390,7 @@ function foreground() { const previous = AppState.currentState; AppState.current
 /** The system allows motion, so finished steps fold. */
 function motion() { jest.mocked(AccessibilityInfo.isReduceMotionEnabled).mockResolvedValue(false); }
 
-test('the top shows the compact step badge, Żaromir and the full introduction behind one link', async () => {
+test('the top shows the compact step badge and Żaromir, the full introduction waits behind the assessment link', async () => {
   await show('pl', oath(), fakeController(), clockAt('2026-10-24T12:00:00Z'));
   expect(screen.getByLabelText('Etap 2 z 4, Trening, Aktywna')).toBeOnTheScreen();
   expect(screen.queryAllByTestId(/^step-node-/, { includeHiddenElements: true })).toHaveLength(0);
@@ -397,9 +398,36 @@ test('the top shows the compact step badge, Żaromir and the full introduction b
   for (const title of ['Rodzaj dowodu', 'Obraz', 'Potwierdzenie']) expect(screen.getAllByText(title).length).toBeGreaterThan(0);
   const full = 'Wybierz rodzaj dowodu, dodaj jeden obraz i potwierdź ukończenie treningu. Przysięga zmieni stan dopiero, gdy serwer odbierze dowód.';
   expect(screen.queryByText(full)).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: 'Pełny opis' }));
+  // MVP-22-T12c (P2): no intro link at the top. The introduction opens with the assessment note.
+  expect(screen.queryByRole('button', { name: 'Pełny opis' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'O ocenie dowodu' }));
   expect(screen.getByText(full)).toBeOnTheScreen();
   expect(filled()).toHaveLength(1);
+});
+
+// MVP-22-T12c: native polish of the proof screen.
+test('the proof screen stands on a solid background, never on the seal wall artwork', async () => {
+  await show('pl');
+  expect(screen.queryByTestId('forge-place-seals', { includeHiddenElements: true })).toBeNull();
+  expect(StyleSheet.flatten(screen.getByTestId('proof-screen').props.style)).toMatchObject({ flex: 1, backgroundColor: tokens.color.canvas });
+});
+
+test('step 3 shows the stored declaration once and a short checkbox that speaks it', async () => {
+  const value = oath();
+  await show('pl', value);
+  expect(screen.queryByText('Wymagane potwierdzenie ukończenia')).toBeNull();
+  expect(screen.getByText(value.snapshot.copy.pl.declaration)).toBeOnTheScreen();
+  const box = screen.getByRole('checkbox', { name: /Tak, potwierdzam/ });
+  expect(within(box).getByText('Tak, potwierdzam')).toBeOnTheScreen();
+  expect(box.props.accessibilityLabel).toContain(value.snapshot.copy.pl.declaration);
+});
+
+test('the English checkbox reads "Yes, I confirm" with the declaration', async () => {
+  const value = oath();
+  await show('en', value);
+  const box = screen.getByRole('checkbox', { name: /Yes, I confirm/ });
+  expect(within(box).getByText('Yes, I confirm')).toBeOnTheScreen();
+  expect(box.props.accessibilityLabel).toContain(value.snapshot.copy.en.declaration);
 });
 
 test('between the deadline and the cutoff Żaromir keeps the conditional cutoff line', async () => {
@@ -475,7 +503,7 @@ test('a closed window shows one card line and one filled way back', async () => 
   await fireEvent.press(screen.getByRole('radio', { name: /Context photo/ }));
   await fireEvent.press(screen.getByRole('button', { name: 'Choose from Photos' }));
   await screen.findByLabelText('Chosen image');
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'I confirm I completed this Oath’s workout' }));
+  await fireEvent.press(screen.getByRole('checkbox', { name: /Yes, I confirm/ }));
   await fireEvent.press(screen.getByRole('button', { name: 'Submit proof' }));
   await act(async () => f.change({ kind: 'ready', busy: false, pending: null, oath: null, error: { kind: 'proof_refused', code: 'receipt_cutoff_passed' } }));
   expect(within(screen.getByTestId('proof-closed')).getByText('The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.')).toBeOnTheScreen();

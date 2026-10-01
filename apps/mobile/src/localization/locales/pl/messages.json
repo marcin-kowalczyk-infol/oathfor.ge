@@ -55,7 +55,7 @@
     "completionLoadError": "Nie udało się sprawdzić, czy przygotowania są zakończone. Spróbuj ponownie sprawdzić zapisany postęp.",
     "trialTitle": "Próba Iskry",
     "trialPending": "Tworzenie pierwszej Przysięgi nie jest jeszcze dostępne. Żadna Przysięga się nie rozpoczęła.",
-    "companionIntroduction": "Jestem Żaromir, strażnik związany z Welesem. Pomogę Ci pamiętać zasady i kolejne kroki.",
+    "companionIntroduction": "Jestem Żaromir, strażnik związany z Welesem. Pomogę Ci pamiętać zasady i kroki.",
     "continue": "Dalej",
     "introductionError": "Nie udało się potwierdzić tego kroku. Spróbuj ponownie."
   },
@@ -661,7 +661,7 @@
     "libraryUnavailable": "Nie udało się otworzyć Zdjęć. Zrób zdjęcie aparatem albo spróbuj ponownie.",
     "imageFailed": "Nie udało się przygotować obrazu. Wybierz go ponownie.",
     "openSettings": "Otwórz Ustawienia",
-    "confirm": "Potwierdzam ukończenie treningu z tej Przysięgi",
+    "confirm": "Tak, potwierdzam",
     "caveatHeading": "Ocena dowodu",
     "caveat": "AI ocenia tylko to, co widać na obrazie. Obraz nie pokaże ukończenia, czasu trwania ani osoby na treningu, dlatego Kuźnia opiera się też na Twojej deklaracji.",
     "missing": {

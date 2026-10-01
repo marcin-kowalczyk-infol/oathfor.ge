@@ -95,8 +95,8 @@ test.each([
 
 
 test.each([
-  ['en', 'Continue', 'I am Zharomir, a guardian linked to Veles. I will help you remember the rules and your next steps.'],
-  ['pl', 'Dalej', 'Jestem Żaromir, strażnik związany z Welesem. Pomogę Ci pamiętać zasady i kolejne kroki.'],
+  ['en', 'Continue', 'I am Zharomir, a guardian linked to Veles. I will help you remember the rules and steps.'],
+  ['pl', 'Dalej', 'Jestem Żaromir, strażnik związany z Welesem. Pomogę Ci pamiętać zasady i kroki.'],
 ] as const)('%s companion introduction retains copy and continuation when decorative art fails', async (locale, next, introduction) => {
   const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
   const state: OnboardingViewProps['state'] = { ...ready, value: { profile: { ...ready.value.profile, locale, timezone: 'Europe/Warsaw', intention: 'regular_activity' }, onboardingStatus: 'pending' } };
@@ -146,8 +146,8 @@ test.each([
 });
 
 test.each([
-  ['pl', 'Jestem Żaromir, strażnik związany z Welesem. Pomogę Ci pamiętać zasady i kolejne kroki.', 'Dalej'],
-  ['en', 'I am Zharomir, a guardian linked to Veles. I will help you remember the rules and your next steps.', 'Continue'],
+  ['pl', 'Jestem Żaromir, strażnik związany z Welesem. Pomogę Ci pamiętać zasady i kroki.', 'Dalej'],
+  ['en', 'I am Zharomir, a guardian linked to Veles. I will help you remember the rules and steps.', 'Continue'],
 ] as const)('%s introduction is Żaromir speaking in his bubble above the continue button', async (locale, line, next) => {
   const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
   const state: OnboardingViewProps['state'] = { ...ready, value: { profile: { ...profile, locale, companionIntroduced: false, notificationPreference: null }, onboardingStatus: 'pending' } };

@@ -444,7 +444,9 @@ test('Today rows count down by state with a short deadline, the zone stays in th
   expect([chip(0), chip(1), chip(2), chip(3)]).toEqual(['Ends in 2 days', 'Starts in 1 day', 'Until the deadline 3 days 1 hour', null]);
   expect(within(rows[2]).getByText('Thu 02:30')).toBeOnTheScreen();
   expect(within(rows[2]).queryByText(/Europe\/Warsaw/)).toBeNull();
-  expect(screen.getAllByRole('header', { name: /Europe\/Warsaw/ }).length).toBeGreaterThan(0);
+  // The group header names the zone like the detail, never the IANA id (MVP-22-T12c, P7).
+  expect(screen.getAllByRole('header', { name: /· Warsaw$/ }).length).toBeGreaterThan(0);
+  expect(screen.queryAllByRole('header', { name: /Europe\/Warsaw/ })).toHaveLength(0);
 });
 
 test('each Today state section labels its own date and zone, even on the same day', async () => {
@@ -453,7 +455,7 @@ test('each Today state section labels its own date and zone, even on the same da
   const f = setup([scheduled, active]);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await screen.findAllByRole('button', { name: /Open Oath:/ });
-  expect(screen.getAllByRole('header', { name: 'October 25, 2026 · Europe/Warsaw' })).toHaveLength(2);
+  expect(screen.getAllByRole('header', { name: 'October 25, 2026 · Warsaw' })).toHaveLength(2);
 });
 
 test('a countdown reaching zero on Today shows time is up and asks the server once, the state stays', async () => {
@@ -1215,9 +1217,20 @@ test('the solid header fades into the artwork instead of ending on a hard edge',
   expect(screen.queryByTestId('header-fade', { includeHiddenElements: true })).toBeNull();
   await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
   await screen.findByTestId('detail-status');
-  const fade = within(screen.getByTestId('screen-header')).getByTestId('header-fade', { includeHiddenElements: true });
-  expect(StyleSheet.flatten(fade.props.style)).toMatchObject({ position: 'absolute', top: '100%', height: 24, experimental_backgroundImage: expect.stringContaining(tokens.color.canvas) });
+  const header = screen.getByTestId('screen-header');
+  const fade = within(header).getByTestId('header-fade', { includeHiddenElements: true });
+  expect(StyleSheet.flatten(fade.props.style)).toMatchObject({ position: 'absolute', top: '100%', height: 24 });
   expect(fade.props.pointerEvents).toBe('none');
+  // MVP-22-T12c (P5): solid strips of the band colour that thin out, so the fade never depends on gradient support,
+  // and the band draws above the content that follows it.
+  const strips = within(fade).getAllByTestId('header-fade-strip', { includeHiddenElements: true }).map(strip => StyleSheet.flatten(strip.props.style));
+  expect(strips.length).toBeGreaterThanOrEqual(6);
+  expect(strips.every(strip => strip.backgroundColor === tokens.color.canvas)).toBe(true);
+  const opacities = strips.map(strip => strip.opacity as number);
+  expect(opacities[0]).toBeGreaterThan(0.8);
+  expect(opacities[opacities.length - 1]).toBeLessThan(0.15);
+  expect(opacities.every((value, index) => index === 0 || value < opacities[index - 1])).toBe(true);
+  expect(StyleSheet.flatten(header.props.style)).toMatchObject({ zIndex: 1 });
 });
 // MVP-22-T12b: review of T09c to T09e.
 const scrollTo = async (y: number) => fireEvent.scroll(screen.getByTestId('oath-list-scroll'), { nativeEvent: { contentOffset: { x: 0, y }, contentSize: { width: 390, height: 3000 }, layoutMeasurement: { width: 390, height: 700 } } });

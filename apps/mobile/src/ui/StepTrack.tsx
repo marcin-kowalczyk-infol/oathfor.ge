@@ -14,7 +14,7 @@ import { tokens } from './tokens';
 const STEPS = ['oath', 'workout', 'assessment', 'result'] as const;
 /** Cells of the step badge sheet. Assessment reuses the hourglass of waiting. The result has no corner badge, its seal is the step icon. */
 const BADGE_CELL: Partial<Record<NonNullable<PathBadge>, number>> = { interrupted: 0, needsMore: 1, review: 2, waiting: 3, assessing: 3 };
-const NODE = 32, ICON = 24, BADGE = 20, PIP = 8, LIST_GAP = 12;
+const NODE = 32, ICON = 24, BADGE = 20, PIP = 8, CURRENT_PIP = 12, LIST_GAP = 12;
 const HIGHLIGHT = '#e0a84f', BRONZE = '#8c602e', RING = '#5b4630', GROUND = '#1c1610';
 
 /** One badge of the step badge sheet, for corners outside the track such as a Today row or a seal (MVP-22-T10). Decorative, the label beside it speaks. */
@@ -40,6 +40,8 @@ export function StepTrack({ path, state, variant = 'full', activityEmblem }: { p
   const badgeWords = path.badge === 'result' ? t(`oath.states.${state}`) : cell === undefined ? null : t(`path.badge.${path.badge}`);
   const stepLabel = (index: number) => t(`path.steps.${STEPS[index]}`);
   const skipped = path.steps.flatMap((status, index) => status === 'skipped' ? [stepLabel(index)] : []);
+  // Visible only where they add meaning: the card header already names every other state. The sentence always keeps them (MVP-22-T12c).
+  const shownWords = path.badge === 'interrupted' ? badgeWords : null;
   const sentence = badgeWords ? t('path.trackBadge', { step: path.step, label: stepLabel(current), badge: badgeWords }) : t('path.track', { step: path.step, label: stepLabel(current) });
   const label = skipped.length ? `${sentence}. ${t('path.skippedSteps', { steps: skipped.join(', ') })}` : sentence;
 
@@ -76,7 +78,7 @@ export function StepTrack({ path, state, variant = 'full', activityEmblem }: { p
       {node(status, index)}
       <View style={styles.listText}>
         <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, labelStyles[status]]}>{stepLabel(index)}</Text>
-        {index === current && badgeWords && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.words}>{badgeWords}</Text>}
+        {index === current && shownWords && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.words}>{shownWords}</Text>}
         {status === 'skipped' && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.words}>{t('path.badge.skipped')}</Text>}
       </View>
     </View>)}
@@ -88,7 +90,7 @@ export function StepTrack({ path, state, variant = 'full', activityEmblem }: { p
       {node(status, index)}
       {/* One word per step on one line. It shrinks to 0.7 and never breaks inside the word. Larger text uses the vertical list. */}
       <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[styles.label, styles.centred, labelStyles[status]]}>{stepLabel(index)}</Text>
-      {index === current && badgeWords && <Text testID="step-words" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.small, styles.centred]}>{badgeWords}</Text>}
+      {index === current && shownWords && <Text testID="step-words" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.small, styles.centred]}>{shownWords}</Text>}
     </View>)}
   </View>;
 }
@@ -127,9 +129,10 @@ const labelStyles = StyleSheet.create({
   future: { color: tokens.color.secondary },
   skipped: { color: tokens.color.secondary },
 });
+// Shape, not only colour (clarity.md rule 5): done is a filled dot, current a larger amber ring, future a thin ring, skipped a short dash (MVP-22-T12c).
 const pipStyles = StyleSheet.create({
   done: { backgroundColor: tokens.color.primary, borderColor: tokens.color.primary },
-  current: { backgroundColor: HIGHLIGHT, borderColor: '#f3dfbd' },
+  current: { width: CURRENT_PIP, height: CURRENT_PIP, borderRadius: CURRENT_PIP / 2, borderWidth: 2, backgroundColor: 'transparent', borderColor: HIGHLIGHT },
   future: { backgroundColor: 'transparent', borderColor: tokens.color.secondary },
-  skipped: { backgroundColor: 'transparent', borderColor: tokens.color.secondary, borderStyle: 'dashed' },
+  skipped: { height: 2, borderRadius: 1, borderWidth: 0, backgroundColor: tokens.color.secondary },
 });
