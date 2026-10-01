@@ -117,7 +117,7 @@ Proof verdict updates (owner decision, 2026-09-29, not implemented, because the 
 
 ### 5. History and detail (item 6)
 
-History rows show the result seal, the activity and a compact date, and touching a row opens the detail. The rows show no further text. The compact date uses 24-hour time with a two-digit hour in both languages, for example "30 wrz 2026, 23:12" / "Sep 30, 2026 at 23:12" (owner decision, 2026-10-01).
+History rows show the result seal, the activity and a compact date, and touching a row opens the detail. The rows show no further text. Superseded on 2026-10-01: each row also shows the short visible state label, see [clarity](clarity.md) decision 10. The compact date uses 24-hour time with a two-digit hour in both languages, for example "30 wrz 2026, 23:12" / "Sep 30, 2026 at 23:12" (owner decision, 2026-10-01).
 
 In the room layout the chronicle close-up is lowered like the seal wall, so the book fills a band under the tabs and no text crosses it (native check, 2026-09-29).
 
@@ -127,7 +127,7 @@ The top of History gets a short encouraging header: the chronicle icon with the 
 
 No per-state totals appear, because the API has none and counting loaded pages would mislead.
 
-The detail uses the same layout as the review screen: the state seal and label, the countdown for nonterminal Oaths, the rule cards and "Pełne zasady" folded below. Terminal Oaths show their result and terminal date instead of a countdown. In the room layout the detail lowers the seal wall like Today, so the emblem stands on the middle plinth and the title and tabs sit on the dark band. The Oath title and activity follow, then one centred status panel holds the state, the countdown, the review or closing time in the Oath's own zone and the reason. The promise, declaration and rule cards come after it (native check, 2026-09-29). A `proof_pending` detail adds the assessment note and the server receipt time in the Oath's zone to that panel. A proof copy still waiting on the device shows as an interrupted upload under the panel and on the Today row, with a resend (MVP-07-T10).
+The detail uses the same layout as the review screen: the state seal and label, the countdown for nonterminal Oaths, the rule cards and "Pełne zasady" folded below. Terminal Oaths show their result and terminal date instead of a countdown. In the room layout the detail lowers the seal wall like Today, so the emblem stands on the middle plinth and the title and tabs sit on the dark band. The Oath title and activity follow, then one centred status panel holds the state, the countdown, the review or closing time in the Oath's own zone and the reason. The promise, declaration and rule cards come after it (native check, 2026-09-29). Superseded on 2026-10-01: after acceptance the detail shows the step track, the "now and next" card and Żaromir's line, and the promise, rule cards and full rules open together from one "Zasady Przysięgi" link, see [clarity](clarity.md) decision 11. A `proof_pending` detail adds the assessment note and the server receipt time in the Oath's zone to that panel. A proof copy still waiting on the device shows as an interrupted upload under the panel and on the Today row, with a resend (MVP-07-T10).
 
 ## Countdown
 
