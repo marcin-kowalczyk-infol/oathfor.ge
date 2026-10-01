@@ -64,7 +64,7 @@ test('pause shows meaningful complete-set summaries and a changed revision requi
   expect(screen.getAllByText(/Running ·.*Europe\/Warsaw/)).toHaveLength(2);
   expect(screen.queryByText(id)).toBeNull(); expect(f.controller.pause).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('button', { name: 'Confirm pause' }));
-  expect(await screen.findByText('Your Oaths changed. Review this updated list before confirming pause.')).toBeOnTheScreen();
+  expect(await screen.findByText('Your Oaths changed. Review them again, pause does not extend deadlines.')).toBeOnTheScreen();
   expect(f.controller.pause).toHaveBeenCalledTimes(1); expect(f.onChanged).not.toHaveBeenCalled();
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
   expect(jest.mocked(f.controller.pause).mock.calls.map(call => call[0])).toEqual([{ paused: true, revision: 'a'.repeat(64) }, { paused: true, revision: 'b'.repeat(64) }]);
@@ -169,7 +169,8 @@ test('the loaded review shows the intro as a plain line, the In play mark and on
   const f = setup(); const response = deferred<Awaited<ReturnType<OathController['getPause']>>>();
   jest.mocked(f.controller.getPause).mockReturnValueOnce(response.promise);
   await show(f);
-  expect(screen.getByTestId('pause-mark')).toHaveProp('accessibilityLabel', 'Unknown');
+  // MVP-22-A4b: no mark while the review loads. "Unknown" is a state the player can act on, not a loading placeholder.
+  expect(screen.queryByTestId('pause-mark')).toBeNull();
   await act(async () => response.resolve({ kind: 'success', value: pauseSummary() }));
   await screen.findByRole('button', { name: 'Confirm pause' });
   plain(intro);
@@ -192,7 +193,7 @@ test('a changed Oath list replaces the intro instead of stacking under it', asyn
   await show(f);
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
   await screen.findByRole('button', { name: 'Confirm pause' });
-  plain('Your Oaths changed. Review this updated list before confirming pause.');
+  plain('Your Oaths changed. Review them again, pause does not extend deadlines.');
   expect(screen.queryByText(intro)).toBeNull();
 });
 
@@ -227,4 +228,21 @@ test.each([
   plain(line);
   expect(screen.getByText(mark)).toBeOnTheScreen();
   expect(filled()).toHaveLength(1);
+});
+
+test('the Polish changed list keeps the deadline fact in two sentences', async () => {
+  const f = setup();
+  jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
+  jest.mocked(f.controller.pause).mockResolvedValueOnce({ kind: 'oath_error', code: 'pause_preview_changed' });
+  await show(f, 'pl');
+  await fireEvent.press(await screen.findByRole('button', { name: 'Potwierdź pauzę' }));
+  await screen.findByRole('button', { name: 'Potwierdź pauzę' });
+  plain('Twoje Przysięgi się zmieniły. Sprawdź je ponownie, pauza nie przedłuża terminów.');
+});
+
+test('a failed load shows the Unknown mark', async () => {
+  const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'unavailable', retry: 'request' });
+  await show(f);
+  await screen.findByRole('button', { name: 'Reload pause review' });
+  expect(screen.getByTestId('pause-mark')).toHaveProp('accessibilityLabel', 'Unknown');
 });

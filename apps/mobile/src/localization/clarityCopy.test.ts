@@ -109,8 +109,13 @@ test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages',
   expect(sentences(english as string)).toBeLessThanOrEqual(2);
 });
 
-test('Polish player lines name the onboarding intention "cel", the accepted label itself stays', () => {
-  expect(catalogs.pl.filter(([, text]) => /intencj/i.test(text)).map(([key]) => key)).toEqual([]);
+// MVP-22-A4b: the owner-defined term wins (glossary.md "Onboarding intention", owner decision 2026-09-24).
+test('onboarding lines name the intention with the owner term, never "cel" or "goal"', () => {
+  for (const key of ['unconfirmed', 'intentionRequired', 'error_intention', 'reviewIntention']) {
+    expect(group(pl, 'onboarding')[key]).toMatch(/intencj/i);
+    expect(group(en, 'onboarding')[key]).toMatch(/intention/i);
+  }
+  expect(catalogs.pl.filter(([key, text]) => key.startsWith('onboarding.') && /\bcel(u|em)?\b/i.test(text)).map(([key]) => key)).toEqual([]);
   expect(group(pl, 'onboarding').intention).toBe('Chcę regularnie podejmować aktywność');
 });
 
@@ -120,4 +125,8 @@ test('the character rate limit keeps every Polish plural form with the name and 
   for (const catalog of [pl, en]) for (const [key, text] of Object.entries(group(catalog, 'character'))) {
     if (key.startsWith('rateLimited_')) expect(text).toEqual(expect.stringMatching(/\{\{name\}\}.*\{\{count\}\}/));
   }
+});
+
+test('the Polish permission line names notification permission', () => {
+  expect(group(group(pl, 'settings'), 'notifications').permission_unavailable).toMatch(/zgody na powiadomienia/);
 });

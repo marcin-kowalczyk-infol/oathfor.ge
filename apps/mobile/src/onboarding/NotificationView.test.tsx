@@ -73,9 +73,9 @@ test.each([
 });
 
 test.each([
-  ['pl', 'Nie udało się zapisać wyboru, więc nie pytaliśmy o zgodę. Spróbuj ponownie lub wybierz Nie teraz.'],
-  ['en', 'Could not save your choice, so no permission prompt opened. Try again or choose Not now.'],
-] as const)('%s failed save says no prompt opened in two sentences', async (locale, line) => {
+  ['pl', 'Nie udało się potwierdzić zapisu wyboru, więc nie pytaliśmy o zgodę. Spróbuj ponownie lub wybierz Nie teraz.'],
+  ['en', 'Could not confirm the choice was saved, so no permission prompt opened. Try again or choose Not now.'],
+] as const)('%s failed save is uncertain, says no prompt opened, in two sentences', async (locale, line) => {
   await render(fixture(locale, { kind: 'not_determined', canAskAgain: true }, null, 'save'));
   expect(screen.getByText(line)).toBeOnTheScreen();
 });

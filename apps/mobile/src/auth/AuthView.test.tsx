@@ -78,8 +78,8 @@ test('while Apple sign-in is unavailable the reason stays instead of an older er
 });
 
 test.each([
-  ['pl', 'Wylogowanie nie jest zakończone, zapis sesji na urządzeniu zawiódł. Spróbuj ponownie przed logowaniem.'],
-  ['en', 'Sign-out is not complete because the saved session on this device failed. Try again before signing in.'],
+  ['pl', 'Wylogowanie nie jest zakończone, bo nie udało się odczytać lub zaktualizować zapisanej sesji na tym urządzeniu. Spróbuj ponownie przed logowaniem.'],
+  ['en', 'Sign-out is not complete because reading or updating the saved session on this device failed. Try again before signing in.'],
 ] as const)('%s an unconfirmed cleanup says so in two sentences with one filled retry', async (locale, line) => {
   await show(locale, { kind: 'cleanup_required', serverRevoked: false });
   expect(screen.getByText(line)).toBeOnTheScreen();

@@ -23,8 +23,8 @@ const ready: Extract<OnboardingState, { kind: 'ready' }> = {
 };
 
 test.each([
-  ['en', 'Confirm choices', 'I want to be active regularly', 'Timezone', 'Confirm your goal to continue.'],
-  ['pl', 'Potwierdź wybory', 'Chcę regularnie podejmować aktywność', 'Strefa czasowa', 'Potwierdź swój cel, aby kontynuować.'],
+  ['en', 'Confirm choices', 'I want to be active regularly', 'Timezone', 'Confirm your intention to continue.'],
+  ['pl', 'Potwierdź wybory', 'Chcę regularnie podejmować aktywność', 'Strefa czasowa', 'Potwierdź swoją intencję, aby kontynuować.'],
 ] as const)('%s requires explicit valid choices and retains unsaved drafts on failure', async (locale, save, intention, timezone, reason) => {
   const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
   const fixture = (state: OnboardingViewProps['state']) => <LocalizationProvider initialLocale={locale}><OnboardingView state={state} {...callbacks} /></LocalizationProvider>;
@@ -57,8 +57,8 @@ test('waits for profile hydration and exposes only the server-confirmed destinat
 });
 
 test.each([
-  ['en', 'Continue', 'Try again', 'Language: English', 'Timezone: Europe/Warsaw', 'Goal: I want to be active regularly', 'You have met Zharomir.', 'Trial of the Spark'],
-  ['pl', 'Dalej', 'Spróbuj ponownie', 'Język: Polski', 'Strefa czasowa: Europe/Warsaw', 'Cel: Chcę regularnie podejmować aktywność', 'Żaromir już Ci się przedstawił.', 'Próba Iskry'],
+  ['en', 'Continue', 'Try again', 'Language: English', 'Timezone: Europe/Warsaw', 'Intention: I want to be active regularly', 'You have met Zharomir.', 'Trial of the Spark'],
+  ['pl', 'Dalej', 'Spróbuj ponownie', 'Język: Polski', 'Strefa czasowa: Europe/Warsaw', 'Intencja: Chcę regularnie podejmować aktywność', 'Żaromir już Ci się przedstawił.', 'Próba Iskry'],
 ] as const)('%s reviews saved choices and completes only by explicit action, with safe retries', async (locale, next, retry, language, timezone, intention, companion, trial) => {
   const callbacks = { onComplete: jest.fn(), onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
   const notifications = {
@@ -136,13 +136,18 @@ test.each((['pl', 'en'] as const).flatMap(locale => states.map(([name, state, co
 });
 
 test.each([
-  ['pl', 'Wybierz język i strefę, potem potwierdź. Wcześniej nic nie zapiszemy.', 'Nie udało się potwierdzić zapisu, zmiany zostały na ekranie. Spróbuj ponownie.'],
-  ['en', 'Choose language and timezone, then confirm. Nothing is saved before that.', 'Could not confirm the save, your changes stay on screen. Try again.'],
-] as const)('%s basics say what to do in one short line and a failed save in one more', async (locale, line, error) => {
+  ['pl', 'Wybierz język i strefę, potem potwierdź intencję. Wcześniej nic nie zapiszemy.', 'Nie udało się potwierdzić zapisu, zmiany zostały na ekranie. Spróbuj ponownie.'],
+  ['en', 'Choose language and timezone, then confirm your intention. Nothing is saved before that.', 'Could not confirm the save, your changes stay on screen. Try again.'],
+] as const)('%s basics say what to do in one short line and a failed save replaces it', async (locale, line, error) => {
   const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
-  await render(<LocalizationProvider initialLocale={locale}><OnboardingView state={{ ...ready, draft: { ...ready.draft, intention: true }, error: 'save' }} {...callbacks} /></LocalizationProvider>);
+  const fixture = (state: OnboardingViewProps['state']) => <LocalizationProvider initialLocale={locale}><OnboardingView state={state} {...callbacks} /></LocalizationProvider>;
+  const view = await render(fixture({ ...ready, draft: { ...ready.draft, intention: true } }));
   expect(screen.getByText(line)).toBeOnTheScreen();
-  expect(screen.getByText(error)).toBeOnTheScreen();
+  // MVP-22-A4b: one plain line at a time. The error replaces the line as an alert (the pause review pattern).
+  await view.rerender(fixture({ ...ready, draft: { ...ready.draft, intention: true }, error: 'save' }));
+  expect(screen.queryByText(line)).toBeNull();
+  expect(screen.getAllByText(error)).toHaveLength(1);
+  expect(screen.getByText(error)).toHaveProp('accessibilityRole', 'alert');
 });
 
 test.each([
@@ -169,5 +174,32 @@ test.each([
   await view.rerender(fixture({ ...ready, value: { profile, onboardingStatus: 'pending' } }));
   expect(screen.getByText(review)).toBeOnTheScreen();
   await view.rerender(fixture({ ...ready, value: { profile, onboardingStatus: 'pending' }, error: 'complete' }));
-  expect(screen.getByText(error)).toBeOnTheScreen();
+  expect(screen.getAllByText(error)).toHaveLength(1);
+  expect(screen.getByText(error)).toHaveProp('accessibilityRole', 'alert');
+  expect(screen.queryByText(review)).toBeNull();
+});
+
+// MVP-22-A4b: errors replace the step's line instead of stacking under it.
+test.each([
+  ['pl', 'Jestem Żaromir, strażnik związany z Welesem. Pomogę Ci pamiętać zasady i kroki.', 'Nie udało się potwierdzić tego kroku. Spróbuj ponownie.'],
+  ['en', 'I am Zharomir, a guardian linked to Veles. I will help you remember the rules and steps.', 'We could not confirm this step. Please try again.'],
+] as const)('%s a failed introduction shows its error in place of the introduction', async (locale, introduction, error) => {
+  const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
+  const state: OnboardingViewProps['state'] = { ...ready, value: { profile: { ...profile, locale, companionIntroduced: false, notificationPreference: null }, onboardingStatus: 'pending' }, error: 'save' };
+  await render(<LocalizationProvider initialLocale={locale}><OnboardingView state={state} {...callbacks} /></LocalizationProvider>);
+  expect(screen.getAllByText(error)).toHaveLength(1);
+  expect(screen.getByText(error)).toHaveProp('accessibilityRole', 'alert');
+  expect(screen.queryByText(introduction)).toBeNull();
+});
+
+test.each([
+  ['pl', 'Powiadomienia są opcjonalne. Możesz przejść dalej bez nich.', 'Nie udało się potwierdzić zapisu wyboru, więc nie pytaliśmy o zgodę. Spróbuj ponownie lub wybierz Nie teraz.'],
+  ['en', 'Notifications are optional. You can continue without them.', 'Could not confirm the choice was saved, so no permission prompt opened. Try again or choose Not now.'],
+] as const)('%s a failed notification save replaces the notification step line', async (locale, pending, error) => {
+  const callbacks = { onComplete: jest.fn(), onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
+  const failing = { ...notificationProps, state: { permission: { kind: 'not_determined' as const, canAskAgain: true }, busy: false, error: 'save' as const } };
+  await render(<LocalizationProvider initialLocale={locale}><OnboardingView state={{ ...ready, value: { profile: { ...profile, notificationPreference: null }, onboardingStatus: 'pending' } }} {...callbacks} notifications={failing} /></LocalizationProvider>);
+  expect(screen.getAllByText(error)).toHaveLength(1);
+  expect(screen.getByText(error)).toHaveProp('accessibilityRole', 'alert');
+  expect(screen.queryByText(pending)).toBeNull();
 });

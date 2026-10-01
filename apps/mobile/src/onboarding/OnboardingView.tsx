@@ -38,12 +38,21 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
     else if (profile.notificationPreference === null) { heading = t('onboarding.notificationsTitle'); description = t('onboarding.notificationsPending'); }
     else { heading = t('onboarding.reviewTitle'); description = t('onboarding.reviewPending'); }
   }
+  // One plain line at a time (docs/product/clarity.md decision 14, the pause review pattern): an error after the player's own
+  // action replaces the step's line as an alert instead of stacking under it (MVP-22-A4b).
+  const notificationError = notifications?.state.error;
+  let error: string | undefined;
+  if (ready?.error && basics) error = t(`onboarding.error_${ready.error}`);
+  else if (ready?.error && introduction) error = t('onboarding.introductionError');
+  else if (ready?.error && review) error = t(ready.error === 'load' ? 'onboarding.completionLoadError' : 'onboarding.error_complete');
+  else if (ready && !complete && !basics && !introduction && notificationError) error = t(`notifications.error_${notificationError}`);
   const reason = ready && !isSupportedTimezone(ready.draft.timezone) ? t('onboarding.timezoneRequired')
     : ready && !ready.draft.intention ? t('onboarding.intentionRequired') : undefined;
   return <SafeAreaView style={styles.safeArea}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text accessibilityRole="header" style={styles.title}>{heading}</Text>
-      {description !== '' && <Text style={styles.body} accessibilityLiveRegion="polite">{description}</Text>}
+      {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.notice}>{error}</Text>
+        : description !== '' && <Text style={styles.body} accessibilityLiveRegion="polite">{description}</Text>}
       {basics && ready && <>
         <View style={styles.group}>
           <Text style={styles.label}>{t('onboarding.language')}</Text>
@@ -69,15 +78,13 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
           <Text style={styles.body}>{t('onboarding.intention')}</Text>
           <Text style={styles.body}>{t(ready.draft.intention ? 'onboarding.checked' : 'onboarding.unchecked')}</Text>
         </Pressable>
-        {ready.error && <Text accessibilityLiveRegion="polite" style={styles.body}>{t(`onboarding.error_${ready.error}`)}</Text>}
         {ready.error === 'load'
           ? <Action label={t('auth.retry')} onPress={onRetry} busy={ready.busy} />
           : <Action label={t('onboarding.confirm')} onPress={onSave} busy={ready.busy}
             {...(reason ? { disabled: true, unavailableReason: reason } : { disabled: false })} />}
       </>}
       {introduction && ready && <>
-        <View accessibilityLiveRegion="polite"><CompanionBubble message={t('onboarding.companionIntroduction')} /></View>
-        {ready.error && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('onboarding.introductionError')}</Text>}
+        {!ready.error && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('onboarding.companionIntroduction')} /></View>}
         <Action label={t(ready.error ? 'auth.retry' : 'onboarding.continue')}
           onPress={ready.error === 'load' ? onRetry : onIntroduce} busy={ready.busy} />
         <CompanionArt appearance="zharomir-wanderer-v01" decorative />
@@ -89,9 +96,8 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
         <Text style={styles.body}>{t('onboarding.reviewCompanion')}</Text>
       </View>}
       {ready && profile && !complete && !basics && !introduction && notifications && <NotificationView {...notifications}
-        state={{ ...notifications.state, busy: ready.busy || notifications.state.busy }} preference={profile.notificationPreference} />}
+        state={{ ...notifications.state, busy: ready.busy || notifications.state.busy, error: undefined }} preference={profile.notificationPreference} />}
       {review && ready && <>
-        {ready.error && <Text accessibilityLiveRegion="polite" style={styles.body}>{t(ready.error === 'load' ? 'onboarding.completionLoadError' : 'onboarding.error_complete')}</Text>}
         {onComplete && <Action label={t(ready.error ? 'auth.retry' : 'onboarding.continue')}
           onPress={ready.error === 'load' ? onRetry : onComplete} busy={ready.busy || notifications?.state.busy === true} />}
       </>}
@@ -108,6 +114,9 @@ const styles = StyleSheet.create({
   title: { color: tokens.color.text, fontSize: tokens.title, lineHeight: tokens.title * 1.2, fontWeight: '600' },
   label: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5, fontWeight: '600' },
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
+  // The error box of Settings and the pause review.
+  notice: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(217,163,144,0.5)',
+    backgroundColor: 'rgba(217,163,144,0.08)', padding: 12, overflow: 'hidden' },
   choice: { minHeight: tokens.controlHeight, padding: tokens.space.item, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius, gap: tokens.space.small },
   selected: { backgroundColor: tokens.color.surface, borderColor: tokens.color.primary },
   input: { minHeight: tokens.controlHeight, padding: tokens.space.item, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius, color: tokens.color.text, fontSize: tokens.body },

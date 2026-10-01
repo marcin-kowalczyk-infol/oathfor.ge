@@ -92,7 +92,8 @@ export function PauseReviewScreen({ controller, character, onBack, onChanged }: 
         <View style={styles.header}>
           <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oathHome.pauseTitle')}</Text>
           <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={styles.name}>{character.name}</Text>
-          <PauseMark state={pause ? (pause.summary.paused ? 'paused' : 'active') : 'unknown'} />
+          {/* No mark while the review loads. "Unknown" is shown only once loading failed (MVP-22-A4b). */}
+          {(pause || failed || pauseFailed) && <PauseMark state={pause ? (pause.summary.paused ? 'paused' : 'active') : 'unknown'} />}
         </View>
         {!available && <>
           <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>

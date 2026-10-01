@@ -99,7 +99,7 @@ test('a busy notification change says so in text', async () => {
 });
 
 test.each([
-  [{ kind: 'unavailable', canAskAgain: false }, 'Could not check iOS permission. Your choice is saved.'],
+  [{ kind: 'unavailable', canAskAgain: false }, 'Could not check notification permission. Your choice is saved.'],
   [{ kind: 'checking', canAskAgain: false }, 'Checking notification permission on this device…'],
 ] as const)('an enabled preference with %o permission gets a hint', async (permission, hint) => {
   await setup({ notificationState: { permission, busy: false } });
@@ -195,7 +195,7 @@ test.each([[false, 'In play'], [true, 'Paused'], [null, 'Unknown']] as const)('t
 
 test.each([
   ['pl', { paused: true, localeState: { saving: false, error: true }, notificationState: { permission: { kind: 'denied', canAskAgain: false }, busy: false, error: 'save' } }, 'W pauzie', 'Nie udało się zapisać języka, został poprzedni. Spróbuj ponownie.'],
-  ['en', { paused: false, notificationState: { permission: { kind: 'unavailable', canAskAgain: false }, busy: false } }, 'In play', 'Could not check iOS permission. Your choice is saved.'],
+  ['en', { paused: false, notificationState: { permission: { kind: 'unavailable', canAskAgain: false }, busy: false } }, 'In play', 'Could not check notification permission. Your choice is saved.'],
   ['pl', { paused: null, notificationState: { permission: { kind: 'granted', canAskAgain: true }, busy: true } }, 'Stan nieznany', 'Aktualizowanie powiadomień…'],
 ] as const)('%s at text scale 2 keeps every line, the mark and no filled button', async (ui, patch, mark, line) => {
   size(2);
