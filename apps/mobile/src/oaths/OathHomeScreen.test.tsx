@@ -841,7 +841,7 @@ test('a refusal for one Oath stays off another Oath row and detail', async () =>
 });
 
 // MVP-22-T09c native check on a 402 x 874 pt phone: the screen title, the tabs and the tall wall band pushed the card's action below the fold.
-test('the room detail drops the screen title and tabs, keeps the door back and stands on a shorter wall band', async () => {
+test('the room detail drops the screen title and tabs, its door returns to Today and it stands on a shorter wall band', async () => {
   Dimensions.set({ window: phone(1), screen: phone(1) });
   const f = setup(); const onReturn = jest.fn();
   const hidden = { includeHiddenElements: true };
@@ -849,7 +849,8 @@ test('the room detail drops the screen title and tabs, keeps the door back and s
   await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath: Running/ }))[0]);
   await screen.findByTestId('detail-status');
   expect(screen.queryByRole('header', { name: 'Oath details' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Today' })).toBeNull();
+  // No tabs: the only "Today" control is the door back, the History tab is gone.
+  expect(within(screen.getByRole('button', { name: 'Today' })).getByTestId('scene-door-picture', { includeHiddenElements: true })).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
   // The lowered seal wall is shorter than the list's 262 pt band, and the close-up rises with it so the emblem keeps its plinth.
   expect(StyleSheet.flatten(screen.getByTestId('detail-wall', hidden).props.style).height).toBeLessThan(262);
@@ -857,8 +858,12 @@ test('the room detail drops the screen title and tabs, keeps the door back and s
   expect(StyleSheet.flatten(screen.getByTestId('forge-closeup-image', hidden).props.style).top).toBeCloseTo(844 * DETAIL_DROP);
   // The door now stands where the artwork begins, so its band is solid.
   expect(StyleSheet.flatten(screen.getByTestId('screen-header').props.style)).toMatchObject({ backgroundColor: tokens.color.canvas });
-  await fireEvent.press(screen.getByRole('button', { name: 'Return to the Forge' }));
-  expect(onReturn).toHaveBeenCalledWith('seals');
+  // MVP-22-T09e: the door goes back to the list it came from, under that tab's name. Only the list's own door returns to the room.
+  expect(screen.queryByRole('button', { name: 'Return to the Forge' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Today' }));
+  expect(await screen.findByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
+  expect(onReturn).not.toHaveBeenCalled();
+  expect(screen.getByRole('button', { name: 'Return to the Forge' })).toBeOnTheScreen();
 });
 test('the room list keeps its title and tabs above the lowered artwork without a solid band', async () => {
   Dimensions.set({ window: phone(1), screen: phone(1) });
@@ -868,6 +873,64 @@ test('the room list keeps its title and tabs above the lowered artwork without a
   const header = screen.getByTestId('screen-header');
   expect(within(header).getByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
   expect(StyleSheet.flatten(header.props.style).backgroundColor).toBeUndefined();
+});
+// MVP-22-T09e: the detail returns to the list it was opened from, keeping that list's rows, under the tab's own name.
+test.each([
+  ['History', 'History', 'History'],
+  ['Today', 'Your Oaths', 'Today'],
+] as const)('a detail opened from %s goes back to it with its rows', async (tab, heading, back) => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const f = setup(); const onReturn = jest.fn();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn }} /></LocalizationProvider>);
+  await screen.findAllByRole('button', { name: /Open Oath: Running/ });
+  if (tab === 'History') { await fireEvent.press(screen.getByRole('button', { name: 'History' })); await screen.findByTestId('history-header'); }
+  const calls = jest.mocked(f.controller.list).mock.calls.length;
+  await fireEvent.press(screen.getAllByRole('button', { name: /Open Oath: Running/ })[0]);
+  await screen.findByTestId('detail-status');
+  expect(screen.queryByRole('button', { name: 'Back to menu' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: back }));
+  // The kept rows show at once. The list asks the server again only quietly.
+  expect(screen.getByRole('header', { name: heading })).toBeOnTheScreen();
+  expect(screen.getAllByRole('button', { name: /Open Oath: Running/ }).length).toBeGreaterThan(0);
+  expect(screen.queryByText('Loading Oaths…')).toBeNull();
+  if (tab === 'History') expect(screen.getByTestId('history-header')).toBeOnTheScreen();
+  await act(async () => {});
+  expect(jest.mocked(f.controller.list).mock.calls.slice(calls).map(call => call[0])).toEqual([{ view: tab === 'History' ? 'history' : 'today' }]);
+  expect(onReturn).not.toHaveBeenCalled();
+});
+test('a detail opened from the proof screen goes back to Today', async () => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const active = oath({ state: 'active', reason: null, review: null });
+  const f = setup([active]);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proofController().controller} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'History' }));
+  await screen.findByTestId('history-header');
+  await fireEvent.press(screen.getAllByRole('button', { name: /Open Oath: Running/ })[0]);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Submit proof' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Back to the Oath' }));
+  await screen.findByTestId('detail-status');
+  await fireEvent.press(screen.getByRole('button', { name: 'Today' }));
+  expect(await screen.findByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
+});
+test('going back from a detail restores the list scroll position', async () => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const f = setup();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await screen.findAllByRole('button', { name: /Open Oath: Running/ });
+  await fireEvent.scroll(screen.getByTestId('oath-list-scroll'), { nativeEvent: { contentOffset: { x: 0, y: 240 }, contentSize: { width: 390, height: 2000 }, layoutMeasurement: { width: 390, height: 700 } } });
+  await fireEvent.press(screen.getAllByRole('button', { name: /Open Oath: Running/ })[0]);
+  await screen.findByTestId('detail-status');
+  await fireEvent.press(screen.getByRole('button', { name: 'Today' }));
+  expect(screen.getByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
+  // The remounted list starts at the kept offset. Another list starts at the top.
+  expect(screen.getByTestId('oath-list-scroll').props.contentOffset).toEqual({ x: 0, y: 240 });
+  await fireEvent.press(screen.getByRole('button', { name: 'History' }));
+  await screen.findByTestId('history-header');
+  expect(screen.getByTestId('oath-list-scroll').props.contentOffset).toBeUndefined();
+  // A later visit through the tab is a fresh list, so it starts at the top too.
+  await fireEvent.press(screen.getByRole('button', { name: 'Today' }));
+  await screen.findByRole('header', { name: 'Your Oaths' });
+  expect(screen.getByTestId('oath-list-scroll').props.contentOffset).toBeUndefined();
 });
 // MVP-22-T09c native check at the largest standard text: the back link, the title and the tabs sat on the busy room image.
 test('in the simple layout the list and the detail headers stand on a solid band, never on the artwork', async () => {
@@ -883,8 +946,9 @@ test('in the simple layout the list and the detail headers stand on a solid band
   await screen.findByTestId('detail-status');
   header = screen.getByTestId('screen-header');
   expect(StyleSheet.flatten(header.props.style)).toMatchObject({ backgroundColor: tokens.color.canvas });
-  expect(within(header).getByRole('button', { name: 'Back to menu' })).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Today' })).toBeNull();
+  // The detail's back link names the list it returns to (MVP-22-T09e). No tabs.
+  expect(within(header).getByRole('button', { name: 'Today' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
 });
 // MVP-22-T09: the detail on the shared pieces (docs/product/clarity.md decisions 11 and 14).
 // A Thursday deadline outside the repeated autumn hour, so the line shows no offset.

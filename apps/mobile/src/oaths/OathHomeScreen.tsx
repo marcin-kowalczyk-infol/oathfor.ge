@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { bindShortWords } from '../localization/typography';
 import type { GuideStorage } from '../forge/guideStorage';
-import { Animated, AppState, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Animated, AppState, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
@@ -65,7 +65,20 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const [view, setView] = useState<ViewName>('today');
   const entrance = useSceneEntrance(`${route}-${view}`);
   const scroll = useRef(new Animated.Value(0)).current;
-  useEffect(() => { scroll.setValue(0); }, [route, view, scroll]);
+  // The list a detail was opened from, and where that list was scrolled. Back from the detail returns there (MVP-22-T09e).
+  // Opened from anywhere else (the proof screen, creation, a receipt) the detail goes back to Today.
+  const [detailFrom, setDetailFrom] = useState<ViewName>('today');
+  const offset = useRef(0);
+  const leftAt = useRef(0);
+  const scrollKey = `${route}-${view}`;
+  // One stable object per return, so later renders of the same list never scroll it again.
+  const [restore, setRestore] = useState<{ key: string; at: { x: number; y: number } } | null>(null);
+  const restoredAt = restore?.key === scrollKey ? restore.at : undefined;
+  useEffect(() => {
+    scroll.setValue(restoredAt?.y ?? 0); offset.current = restoredAt?.y ?? 0;
+    // Leaving the restored list ends its restore, so a later visit through a tab starts at the top.
+    if (restore && !restoredAt) setRestore(null);
+  }, [route, view, scroll]);
   const [list, setList] = useState<OathListEnvelope | null>(null);
   const [loading, setLoading] = useState(false);
   const loadingNow = useRef(false); loadingNow.current = loading;
@@ -145,8 +158,10 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     // A detail or an unfinished creation stays open. The list loads again when the player returns to it.
     if (available && route === 'list') void loadList(view);
   }, [reload]);
-  async function openDetail(id: string) {
+  /** from: the list the player opened it from. Without one the way back leads to Today. */
+  async function openDetail(id: string, from: ViewName = 'today') {
     const epoch = ++generation.current; detailId.current = id;
+    setDetailFrom(from); setRestore(null);
     setRoute('detail'); setDetail(null); setLoading(true); setFailed(false);
     const result = await controller.detail(id);
     if (!current(epoch)) return;
@@ -185,9 +200,19 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     const stop = controller.clock.subscribe(arm); arm();
     return () => { clearTimeout(timer); stop(); };
   }, [shownDetail, controller]);
+  function openFromList(id: string) {
+    leftAt.current = offset.current;
+    void openDetail(id, view);
+  }
+  /** Back from the detail: the list it came from with its rows and scroll kept, refreshed quietly. Another list loads afresh. */
+  function returnToList() {
+    const keep = route === 'detail' && view === detailFrom && list !== null;
+    void loadList(detailFrom, false, keep);
+    if (keep) setRestore({ key: `list-${detailFrom}`, at: { x: 0, y: leftAt.current } });
+  }
   // The server's receipt is the detail now, shown as pending assessment.
   function showReceipt(oath: Oath) {
-    generation.current++; detailId.current = oath.id;
+    generation.current++; detailId.current = oath.id; setDetailFrom('today'); setRestore(null);
     setDetail(oath); setLoading(false); setFailed(false); setRoute('detail');
   }
   // A resend answered with a receipt: the controller holds the server's Oath, so the detail and Today show it.
@@ -341,13 +366,16 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />
       : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />}</View>}
     <SlowNotice text={t('oathHome.loading')} />
-  </View></SafeAreaView> : <SafeAreaView style={styles.safeArea}><Animated.ScrollView testID="oath-list-scroll" style={entrance} key={`${route}-${view}`} contentContainerStyle={styles.content}
-    refreshControl={available && route === 'list' ? <RefreshControl refreshing={pulling} onRefresh={() => pull()} tintColor={tokens.color.primary} /> : undefined} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
+  </View></SafeAreaView> : <SafeAreaView style={styles.safeArea}><Animated.ScrollView testID="oath-list-scroll" style={entrance} key={scrollKey} contentOffset={restoredAt} contentContainerStyle={styles.content}
+    refreshControl={available && route === 'list' ? <RefreshControl refreshing={pulling} onRefresh={() => pull()} tintColor={tokens.color.primary} /> : undefined} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true, listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => { offset.current = event.nativeEvent.contentOffset.y; } })}>
     {/* The detail shows no screen title and no tabs, so its line and action stay above the fold (docs/product/clarity.md rule 1, MVP-22-T09c). */}
-    {(forgeNavigation || route !== 'detail') && <View testID="screen-header" style={[styles.header, solidHeader && styles.solidHeader]}>
-      {forgeNavigation && (interactiveForge
-        ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />
-        : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />)}
+    {/* Its back control returns to the list it came from under that tab's name (MVP-22-T09e). The list's own goes to the room or the menu. */}
+    <View testID="screen-header" style={[styles.header, solidHeader && styles.solidHeader]}>
+      {route === 'detail'
+        ? interactiveForge ? <SceneDoor label={t(`oathHome.${detailFrom}`)} onPress={returnToList} /> : <BackLink label={t(`oathHome.${detailFrom}`)} onPress={returnToList} />
+        : forgeNavigation && (interactiveForge
+          ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />
+          : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn(place)} />)}
       {route !== 'detail' && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t(view === 'today' ? 'forge.title' : 'oathHome.history')}</Text>}
       {available && route !== 'detail' && <View style={[styles.navigation, !interactiveForge && styles.stackedNavigation]}>{(['today', 'history'] as const).map(destination => <Pressable key={destination}
         accessibilityRole="button" accessibilityLabel={t(`oathHome.${destination}`)} accessibilityState={{ selected: route === 'list' && view === destination }}
@@ -355,7 +383,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         {/* Tabs are sans functional text, capped because the MVP-05 native check saw them break mid-word at the maximum size. */}
         <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.label}>{t(`oathHome.${destination}`)}</Text>
       </Pressable>)}</View>}
-    </View>}
+    </View>
     {!available && <>
       <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
       {account.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
@@ -366,7 +394,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       {/* The lowered chronicle close-up shows its book in this band, so no text crosses it. */}
       {route === 'list' && view === 'history' && interactiveForge && <View testID="chronicle-band" style={styles.chronicleBand} />}
       {route === 'list' && view === 'today' && <>
-        <ForgeHub items={list?.items ?? []} clock={controller.clock} onElapsed={elapsed} onOpen={id => { void openDetail(id); }} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy} />
+        <ForgeHub items={list?.items ?? []} clock={controller.clock} onElapsed={elapsed} onOpen={openFromList} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy} />
       </>}
       {route === 'list' && (account.pending ? <>
         <CompanionBubble message={t('oath.pending')} />
@@ -392,7 +420,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
           return <View key={item.id} testID={`oath-entry-${item.id}`} style={[styles.entry, index > 0 && { marginTop: spaced ? tokens.space.section : tokens.space.item }]}>
             {newCategory && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
             {newGroup && <Text accessibilityRole="header" style={styles.group}>{group(item)}</Text>}
-            <Pressable accessibilityRole="button" accessibilityLabel={summary(item)} accessibilityValue={{ text: t(`oath.states.${item.state}`) }} onPress={() => { void openDetail(item.id); }}
+            <Pressable accessibilityRole="button" accessibilityLabel={summary(item)} accessibilityValue={{ text: t(`oath.states.${item.state}`) }} onPress={() => openFromList(item.id)}
               style={({ pressed }) => [styles.journalEntry, !interactiveForge && styles.stackedEntry, pressed && styles.pressedEntry]}>
               <View style={styles.emblems}>
                 <ActivityEmblem activity={item.snapshot.activity} size={76} />
@@ -414,7 +442,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         {list?.nextCursor && !failed && <Action label={t('oathHome.more')} busy={loading} onPress={() => { void loadList(view, true); }} />}
       </>}
       {route === 'detail' && <>
-        {failed && <><CompanionBubble message={t('oathHome.detailError')} /><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current); }} /></>}
+        {failed && <><CompanionBubble message={t('oathHome.detailError')} /><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current, detailFrom); }} /></>}
         {detail && <>
           {/* In the room layout the emblem stands on the middle plinth of the seal wall, the text starts on the floor below it. */}
           <View testID={interactiveForge ? 'detail-wall' : undefined} style={[styles.detailHero, interactiveForge && styles.detailWall]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={detail.snapshot.activity} size={108} /></View>
