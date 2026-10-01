@@ -30,6 +30,7 @@ test('without a server clock the line depends on the Oath and situation only', (
 });
 
 test('every situation has a pool, review and the interrupted upload exactly one line', () => {
+  expect(ZAROMIR_POOLS).toEqual({ scheduled: 5, active: 5, activeSoon: 4, cutoff: 3, interrupted: 1, assessing: 5, review: 1, fulfilled: 5, missed: 3, unresolved: 2, withdrawn: 3, confirmed: 3, confirmedScheduled: 2, proofScreen: 3 });
   expect(ZAROMIR_POOLS.review).toBe(1);
   expect(ZAROMIR_POOLS.interrupted).toBe(1);
   expect(Object.values(ZAROMIR_POOLS).every(size => size >= 1)).toBe(true);

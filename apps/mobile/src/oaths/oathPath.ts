@@ -20,9 +20,9 @@ export type OathPath = {
 
 const HOUR = 3600000;
 const assessment: Partial<Record<OathState, [PathBadge, string, ZaromirSituation | null]>> = {
-  proof_pending: ['assessing', 'path.next.proofPending', 'assessing'],
-  needs_more_evidence: ['needsMore', 'path.next.needsMoreEvidence', null],
-  review_pending: ['review', 'path.next.reviewPending', 'review'],
+  proof_pending: ['assessing', 'path.next.assessing', 'assessing'],
+  needs_more_evidence: ['needsMore', 'path.next.needsMore', null],
+  review_pending: ['review', 'path.next.review', 'review'],
 };
 
 /**
@@ -46,9 +46,11 @@ export function oathPath(oath: Oath, device: DeviceProof, paused: boolean | null
     const steps: OathPath['steps'] = ['done', 'current', 'future', 'future'];
     // An interrupted upload is urged only before the cutoff. After it the server's next answer decides.
     if (device === 'waiting') return path(2, steps, 'interrupted', { key: 'path.next.interrupted' }, 'sendAgain', closed ? null : 'interrupted');
-    const late = now !== null && now > deadline;
-    const situation = closed ? null : late ? 'cutoff' : now !== null && deadline - now < HOUR ? 'activeSoon' : 'active';
-    return path(2, steps, null, { key: late ? 'path.next.cutoff' : 'path.next.active', time: own(oath.snapshot.deadline) }, 'submitProof', situation);
+    const late = now !== null && now > deadline, soon = !late && now !== null && deadline - now < HOUR;
+    const situation = closed ? null : late ? 'cutoff' : soon ? 'activeSoon' : 'active';
+    // Between D and S the line names S, the moment the window for proof closes. The chip already reads elapsed.
+    const next = late ? { key: 'path.next.cutoff', time: at(oath.snapshot.deadline.receiptCutoff) } : { key: soon ? 'path.next.activeSoon' : 'path.next.active', time: own(oath.snapshot.deadline) };
+    return path(2, steps, null, next, 'submitProof', situation);
   }
   const pending = assessment[oath.state];
   if (pending) {
@@ -60,4 +62,9 @@ export function oathPath(oath: Oath, device: DeviceProof, paused: boolean | null
   const reached: StepStatus = oath.proof === null || oath.activatedAt === null ? 'skipped' : 'done';
   const result = oath.state as 'fulfilled' | 'missed' | 'unresolved' | 'withdrawn';
   return path(4, ['done', reached, reached, 'current'], 'result', { key: `path.next.${result}`, ...(oath.terminalAt ? { time: at(oath.terminalAt) } : {}) }, null, result);
+}
+
+/** The proof screen's own lines urge nothing, so between D and S it keeps the conditional cutoff line. Silent wherever the path is. */
+export function proofScreenSituation(path: OathPath): ZaromirSituation | null {
+  return path.zaromir === null ? null : path.zaromir === 'cutoff' ? 'cutoff' : 'proofScreen';
 }

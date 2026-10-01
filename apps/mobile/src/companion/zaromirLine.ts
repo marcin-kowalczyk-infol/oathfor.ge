@@ -6,8 +6,8 @@ import type { ZaromirSituation } from '../oaths/oathPath';
  * review and the interrupted upload exactly one. The catalogs hold `zaromir.<situation>.<n>` for n below the size.
  */
 export const ZAROMIR_POOLS: Record<ZaromirSituation, number> = {
-  scheduled: 4, active: 5, activeSoon: 4, cutoff: 3, interrupted: 1, assessing: 4, review: 1,
-  fulfilled: 4, missed: 3, unresolved: 2, withdrawn: 2, confirmed: 3, confirmedScheduled: 2, proofScreen: 3,
+  scheduled: 5, active: 5, activeSoon: 4, cutoff: 3, interrupted: 1, assessing: 5, review: 1,
+  fulfilled: 5, missed: 3, unresolved: 2, withdrawn: 3, confirmed: 3, confirmedScheduled: 2, proofScreen: 3,
 };
 
 /** A stable index below `size` from the 32-bit FNV-1a hash of the seed. */

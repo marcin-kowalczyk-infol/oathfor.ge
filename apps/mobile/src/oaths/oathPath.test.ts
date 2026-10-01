@@ -1,6 +1,6 @@
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import type { Oath, OathState } from '../api/oathSchema';
-import { oathPath } from './oathPath';
+import { oathPath, proofScreenSituation } from './oathPath';
 
 const id = '20000000-0000-4000-8000-000000000001';
 const characterId = '30000000-0000-4000-8000-000000000001';
@@ -18,9 +18,9 @@ const warsaw = (local: string) => ({ local, timezone: 'Europe/Warsaw' });
 test.each([
   ['scheduled', oath({ state: 'scheduled', activatedAt: null }), 1, ['done', 'future', 'future', 'future'], 'waiting', 'path.next.scheduled', warsaw('2026-10-24T02:00:00'), null, 'scheduled'],
   ['active', oath(), 2, ['done', 'current', 'future', 'future'], null, 'path.next.active', warsaw('2026-10-25T02:30:00'), 'submitProof', 'active'],
-  ['proof_pending', oath({ state: 'proof_pending', proof: received }), 3, ['done', 'done', 'current', 'future'], 'assessing', 'path.next.proofPending', undefined, null, 'assessing'],
-  ['needs_more_evidence', oath({ state: 'needs_more_evidence', proof: received }), 3, ['done', 'done', 'current', 'future'], 'needsMore', 'path.next.needsMoreEvidence', undefined, null, null],
-  ['review_pending', oath({ state: 'review_pending', review: { enteredAt: '2026-10-25T00:45:01Z', closesAt: '2026-10-28T00:45:01Z' } }), 3, ['done', 'done', 'current', 'future'], 'review', 'path.next.reviewPending', warsaw('2026-10-28T01:45:01'), null, 'review'],
+  ['proof_pending', oath({ state: 'proof_pending', proof: received }), 3, ['done', 'done', 'current', 'future'], 'assessing', 'path.next.assessing', undefined, null, 'assessing'],
+  ['needs_more_evidence', oath({ state: 'needs_more_evidence', proof: received }), 3, ['done', 'done', 'current', 'future'], 'needsMore', 'path.next.needsMore', undefined, null, null],
+  ['review_pending', oath({ state: 'review_pending', review: { enteredAt: '2026-10-25T00:45:01Z', closesAt: '2026-10-28T00:45:01Z' } }), 3, ['done', 'done', 'current', 'future'], 'review', 'path.next.review', warsaw('2026-10-28T01:45:01'), null, 'review'],
   ['fulfilled', terminal('fulfilled'), 4, ['done', 'done', 'done', 'current'], 'result', 'path.next.fulfilled', warsaw('2026-10-25T02:00:00'), null, 'fulfilled'],
   ['missed', terminal('missed'), 4, ['done', 'done', 'done', 'current'], 'result', 'path.next.missed', warsaw('2026-10-25T02:00:00'), null, 'missed'],
   ['unresolved', terminal('unresolved'), 4, ['done', 'done', 'done', 'current'], 'result', 'path.next.unresolved', warsaw('2026-10-25T02:00:00'), null, 'unresolved'],
@@ -58,12 +58,18 @@ test('Żaromir is silent while paused, and while the pause is unknown except bef
 });
 
 test('Żaromir urges only in the last hour, between the deadline and the cutoff, and for an interrupted upload before the cutoff', () => {
-  expect(oathPath(oath(), 'none', false, D - 60 * MIN).zaromir).toBe('active');
-  expect(oathPath(oath(), 'none', false, D - 59 * MIN).zaromir).toBe('activeSoon');
+  expect(oathPath(oath(), 'none', false, D - 60 * MIN)).toMatchObject({ zaromir: 'active', next: { key: 'path.next.active' } });
+  expect(oathPath(oath(), 'none', false, D - 59 * MIN)).toMatchObject({ zaromir: 'activeSoon', next: { key: 'path.next.activeSoon', time: warsaw('2026-10-25T02:30:00') } });
   expect(oathPath(oath(), 'none', false, D).zaromir).toBe('activeSoon');
-  expect(oathPath(oath(), 'none', false, D + MIN)).toMatchObject({ zaromir: 'cutoff', next: { key: 'path.next.cutoff' } });
+  expect(oathPath(oath(), 'none', false, D + MIN)).toMatchObject({ zaromir: 'cutoff', next: { key: 'path.next.cutoff', time: warsaw('2026-10-25T02:45:00') } });
   expect(oathPath(oath(), 'none', false, S).zaromir).toBe('cutoff');
   expect(oathPath(oath(), 'none', false, S + MIN).zaromir).toBeNull();
   expect(oathPath(oath(), 'waiting', false, S).zaromir).toBe('interrupted');
   expect(oathPath(oath(), 'waiting', false, S + MIN)).toMatchObject({ badge: 'interrupted', action: 'sendAgain', zaromir: null });
+});
+
+test('the proof screen keeps the conditional cutoff line between the deadline and the cutoff', () => {
+  expect(proofScreenSituation(oathPath(oath(), 'none', false, D - 59 * MIN))).toBe('proofScreen');
+  expect(proofScreenSituation(oathPath(oath(), 'none', false, D + MIN))).toBe('cutoff');
+  expect(proofScreenSituation(oathPath(oath(), 'none', true, D + MIN))).toBeNull();
 });
