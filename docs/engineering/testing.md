@@ -433,7 +433,7 @@ Demo limit, not an app defect: the DUMMY server time is frozen at app launch (`i
 | Confirmation card | "Przysięga złożona", large chip "Do terminu 5 min", deadline line, state, "Zobacz Przysięgę", "Wróć do Kuźni", "Złóż kolejną Przysięgę" |
 | Detail | Header, seal backdrop, state medallion, countdown and nine cards |
 | Today chip reaching zero (PL) | Sampled every 10 to 15 s. Seal and row chips tick 5, 4, 3, 2, 1, "< 1 min", then "Czas minął". The state stays "Aktywna" |
-| Returning player Today | Three seals with stacked chips ("Przegląd do 2 d 22 h", "Start za 59 min", "Do terminu 3 h 59 min") and list rows with chips |
+| Returning player Today | Three seals with stacked chips ("Do końca 2 d 22 h", "Start za 59 min", "Do terminu 3 h 59 min") and list rows with chips |
 | History | Fresh player "0 wpisów w kronice" with "Kronika czeka na pierwszy wpis.". Returning player "22 wpisy w kronice" with Żaromir's line and short rows |
 | English | Room lines, creation form, both sheets, nine cards, guide steps 1 to 4, consent "By choosing “Commit to the Oath”, I accept the rules on the cards and the full rules.", seal, "Oath made" with "Until the deadline 18 h 46 min", Today chips, History "22 chronicle entries". Every English text fits |
 | Classic style (EN) | Room, Today cards and chips, detail cards and the large hourglass |
@@ -453,6 +453,8 @@ Defects found and fixed, each with a failing test first:
 | English guide step 3 said "a quarter hour after the deadline". | "15 minutes after the deadline". | aa4f553. Checked in the catalog only. |
 | Found by review, not natively: each sheet used the "now" of the last render, so an idle form opened on a past, disabled time. | Each sheet reads the server-corrected instant when it opens. | b7f5a6c. The reviewer's case (render 22:50, open 22:56) showed 22:51 disabled, then passed. Native: form idle from 23:42:41 to 23:45:15, the time sheet opened on 23:44 with "Ustaw godzinę" enabled. |
 
-Open (owner questions): the draft value lines of the proof, review, reward, consequence and pause cards, the DUMMY reward and consequence icons, English History rows in 12-hour time while the new cards use 24-hour time, the prefix in "Przegląd do 2 d 22 h" / "Review until 2 d 22 h", which expects a point in time, a busy `Action` that now looks muted like a disabled one, and the 640 ms hourglass loop, chosen so the sand visibly moves at 44 pt.
+Resolved by owner decision, 2026-10-01: English History rows use 24-hour time with a two-digit hour ("Sep 30, 2026 at 23:12"). The review countdown prefix is "Do końca" / "Ends in", so the chip reads "Do końca 2 d 22 h" / "Ends in 2 d 22 h". The Polish word "Przegląd" became "Rozpatrzenie" in the card title, the card line and the review closing time. The 2026-09-30 run showed the old wording. The new wording is covered by unit tests and not yet observed natively.
+
+Open (owner questions): the draft value lines of the proof, review, reward, consequence and pause cards, the DUMMY reward and consequence icons, a busy `Action` that now looks muted like a disabled one, and the 640 ms hourglass loop, chosen so the sand visibly moves at 44 pt.
 
 Not observed natively: iPhone SE 3 (pending, including the Polish weekday "niedz." at 375 pt), VoiceOver, Reduce Motion for the stepped hourglass, a Release build and physical devices. The Oath screen art awaits owner visual acceptance.

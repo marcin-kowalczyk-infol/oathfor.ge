@@ -120,3 +120,17 @@ test('large text stacks the label over the value so every chip keeps to its text
     expect(await direction(1.31, 'small')).toBe('column');
   } finally { Dimensions.set({ window: phone(1), screen: phone(1) }); }
 });
+
+// Owner decision, 2026-10-01: the review countdown names a duration, not a point in time.
+const review = (closesAt: string) => ({ state: 'review_pending', review: { enteredAt: '2026-09-25T12:00:00Z', closesAt }, snapshot: { activation: { mode: 'now', time: { utc: '2026-09-20T08:00:00Z' } }, deadline: { utc: '2026-09-25T12:00:00Z' } } }) as unknown as Oath;
+
+test.each([
+  ['en', 'Ends in', 'Ends in 2 days 22 hours'],
+  ['pl', 'Do końca', 'Do końca 2 dni 22 godziny'],
+] as const)('the %s review countdown reads as time left until it ends', async (locale, prefix, spoken) => {
+  const clock = clockAtDevice();
+  await render(<LocalizationProvider initialLocale={locale}><CountdownChip oath={review('2026-10-01T10:00:30Z')} clock={clock} /></LocalizationProvider>);
+  expect(screen.getByText(prefix)).toBeOnTheScreen();
+  expect(screen.getByText('2 d 22 h')).toBeOnTheScreen();
+  expect(chip()).toHaveProp('accessibilityLabel', spoken);
+});

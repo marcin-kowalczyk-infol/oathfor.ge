@@ -282,11 +282,11 @@
         "title": "Dowód"
       },
       "review": {
-        "title": "Przegląd",
-        "line_one": "Przegląd trwa do {{count}} dnia",
-        "line_few": "Przegląd trwa do {{count}} dni",
-        "line_many": "Przegląd trwa do {{count}} dni",
-        "line_other": "Przegląd trwa do {{count}} dnia"
+        "title": "Rozpatrzenie",
+        "line_one": "Rozpatrzenie trwa do {{count}} dnia",
+        "line_few": "Rozpatrzenie trwa do {{count}} dni",
+        "line_many": "Rozpatrzenie trwa do {{count}} dni",
+        "line_other": "Rozpatrzenie trwa do {{count}} dnia"
       },
       "reward": {
         "title": "Nagroda",
@@ -339,7 +339,7 @@
     "pauseChanged": "Twoje Przysięgi się zmieniły. Sprawdź zaktualizowaną listę przed potwierdzeniem pauzy.",
     "pauseError": "Nie udało się potwierdzić zmiany pauzy. Przed kolejną próbą wczytaj jej bieżący stan.",
     "reviewPause": "Wczytaj ponownie skutki pauzy",
-    "reviewDeadline": "Przegląd kończy się {{deadline}}",
+    "reviewDeadline": "Rozpatrzenie kończy się {{deadline}}",
     "unknownAvailability": "Dostępność usługi jest niepewna. Ta Przysięga jest rozpatrywana, a nie oznaczona jako niewykonana.",
     "withdrawn": "Wycofana po włączeniu pauzy. Wznowienie nie przywróci tej Przysięgi.",
     "detailError": "Nie udało się wczytać tej Przysięgi. Spróbuj ponownie.",
@@ -628,7 +628,7 @@
   "countdown": {
     "start": "Start za",
     "deadline": "Do terminu",
-    "review": "Przegląd do",
+    "review": "Do końca",
     "elapsed": "Czas minął",
     "less": "mniej niż minuta",
     "short": {

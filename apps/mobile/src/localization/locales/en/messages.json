@@ -614,7 +614,7 @@
   "countdown": {
     "start": "Starts in",
     "deadline": "Until the deadline",
-    "review": "Review until",
+    "review": "Ends in",
     "elapsed": "Time is up",
     "less": "less than a minute",
     "short": {

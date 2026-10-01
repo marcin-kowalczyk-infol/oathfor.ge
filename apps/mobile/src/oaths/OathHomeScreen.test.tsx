@@ -220,7 +220,7 @@ test('paused Forge makes the paused state visible without a creation affordance 
 test('room navigation opens history and keeps full stored time in accessibility', async () => {
   const f = setup();
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'history' }, onReturn: jest.fn() }} /></LocalizationProvider>);
-  expect(await screen.findByText('Oct 25, 2026 at 2:30am')).toBeOnTheScreen();
+  expect(await screen.findByText('Oct 25, 2026 at 02:30')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: /Open Oath:.*Europe\/Warsaw/ })).toBeOnTheScreen();
   expect(f.controller.list).toHaveBeenLastCalledWith({ view: 'history' });
 });
@@ -431,7 +431,7 @@ test('Today rows count down by state with a short deadline, the zone stays in th
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
   const rows = await screen.findAllByRole('button', { name: /Open Oath:/ });
   const chip = (row: number) => within(rows[row]).queryByTestId('countdown-chip')?.props.accessibilityLabel ?? null;
-  expect([chip(0), chip(1), chip(2), chip(3)]).toEqual(['Review until 2 days', 'Starts in 1 day', 'Until the deadline 3 days 1 hour', null]);
+  expect([chip(0), chip(1), chip(2), chip(3)]).toEqual(['Ends in 2 days', 'Starts in 1 day', 'Until the deadline 3 days 1 hour', null]);
   expect(within(rows[2]).getByText('Thu 02:30')).toBeOnTheScreen();
   expect(within(rows[2]).queryByText(/Europe\/Warsaw/)).toBeNull();
   expect(screen.getAllByRole('header', { name: /Europe\/Warsaw/ }).length).toBeGreaterThan(0);
@@ -469,7 +469,7 @@ test('the featured Forge seals carry the same countdown', async () => {
   const f = setup([oath()]); f.controller.clock.observe(serverTime);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
   const seals = await screen.findAllByTestId('forge-seal');
-  expect(within(seals[0]).getByTestId('countdown-chip')).toHaveProp('accessibilityLabel', 'Review until 2 days');
+  expect(within(seals[0]).getByTestId('countdown-chip')).toHaveProp('accessibilityLabel', 'Ends in 2 days');
 });
 
 test('History opens with the chronicle total from the server and short rows', async () => {
@@ -544,7 +544,7 @@ test('a review detail keeps its state, countdown, closing time in the Oath zone 
   const panel = await screen.findByTestId('detail-status');
   expect(within(panel).getByLabelText('Status: Under review')).toBeOnTheScreen();
   expect(within(panel).getByTestId('countdown-chip')).toBeOnTheScreen();
-  expect(within(panel).getByText('Review closes Oct 28, 2026 at 1:45am')).toBeOnTheScreen();
+  expect(within(panel).getByText('Review closes Oct 28, 2026 at 01:45')).toBeOnTheScreen();
   expect(within(panel).getByText(/Service availability is uncertain/)).toBeOnTheScreen();
   expect(screen.queryByText(/GMT/)).toBeNull();
   expect(screen.getAllByRole('header', { name: oath().snapshot.copy.en.title })).toHaveLength(1);
@@ -554,7 +554,7 @@ test('the Polish review closing time uses the same short date as a closed Oath',
   const f = setup(); f.controller.clock.observe(serverTime);
   await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
   await fireEvent.press((await screen.findAllByRole('button', { name: /Otwórz Przysięgę/ }))[0]);
-  expect(await screen.findByText('Przegląd kończy się 28 paź 2026, 1:45')).toBeOnTheScreen();
+  expect(await screen.findByText('Rozpatrzenie kończy się 28 paź 2026, 1:45')).toBeOnTheScreen();
 });
 
 test('the list refreshes quietly when the app returns to the foreground, a detail stays as it is', async () => {

@@ -55,7 +55,7 @@ Rule cards, each with an icon from `graphics/mvp-21/incoming/oath-rule-icons-v01
 | Deadline | Hourglass | D, local time with zone | Termin / Deadline |
 | Last moment for proof | Candle | S, local time, "15 minut po terminie" | Ostatni moment na dowód / Last moment for proof |
 | Proof | Framed runner | Both evidence alternatives by name | Dowód / Proof |
-| Review | Scales | Review window from the snapshot policy | Przegląd / Review |
+| Review | Scales | Review window from the snapshot policy | Rozpatrzenie / Review |
 | Fixed rules | Anvil with a lock | "Po złożeniu zasady się nie zmienią." / "Once made, the rules do not change." | Zasady są stałe / The rules are fixed |
 | Pause | Door with the moon | One line on pause and withdrawal | Pauza / Pause |
 | Reward | New icon | Reward policy from the snapshot | Nagroda / Reward |
@@ -117,7 +117,7 @@ Proof verdict updates (owner decision, 2026-09-29, not implemented, because the 
 
 ### 5. History and detail (item 6)
 
-History rows show the result seal, the activity and a compact date, and touching a row opens the detail. The rows show no further text.
+History rows show the result seal, the activity and a compact date, and touching a row opens the detail. The rows show no further text. The compact date uses 24-hour time in both languages, for example "30 wrz 2026, 23:12" / "Sep 30, 2026 at 23:12" (owner decision, 2026-10-01).
 
 In the room layout the chronicle close-up is lowered like the seal wall, so the book fills a band under the tabs and no text crosses it (native check, 2026-09-29).
 
@@ -138,7 +138,7 @@ The detail uses the same layout as the review screen: the state seal and label, 
   | --- | --- | --- |
   | `scheduled` | Activation | Start za / Starts in |
   | `active` | D | Do terminu / Until the deadline |
-  | `review_pending` | `review.closesAt` | Przegląd do / Review until |
+  | `review_pending` | `review.closesAt` | Do końca / Ends in |
   | Other states | No countdown | none |
 
 - **Format:** at least one day "2 d 5 h", under a day "5 h 12 min", under an hour "12 min", under a minute "< 1 min". VoiceOver reads full words ("2 dni 5 godzin" / "2 days 5 hours") and is not a live region.
