@@ -438,7 +438,7 @@
       "pl": "Polski",
       "en": "English",
       "saving": "Saving the language…",
-      "error": "The language was not saved. Your current language stays. Try again."
+      "error": "Could not save the language, the previous one stays. Try again."
     },
     "notifications": {
       "title": "Notifications",
@@ -452,7 +452,7 @@
       "error_save": "The notification choice was not saved. Try again.",
       "error_settings": "iOS Settings could not be opened. Try again.",
       "busy": "Updating notifications…",
-      "permission_unavailable": "We could not check notification permission on this device. Your choice is still saved.",
+      "permission_unavailable": "Could not check iOS permission. Your choice is saved.",
       "permission_checking": "Checking notification permission on this device…"
     },
     "artStyle": {
@@ -463,12 +463,9 @@
     },
     "pause": {
       "title": "Pause",
-      "row_active": "{{name}}: active",
+      "row_active": "{{name}}: in play",
       "row_paused": "{{name}}: paused",
       "row_unknown": "{{name}}: state unknown",
-      "state_active": "Active",
-      "state_paused": "Paused",
-      "state_unknown": "State unknown",
       "hint": "Opens the pause review for this character.",
       "back": "Back to Settings"
     },
@@ -476,6 +473,11 @@
       "title": "Account",
       "signOut": "Sign out"
     }
+  },
+  "pauseMark": {
+    "active": "In play",
+    "paused": "Paused",
+    "unknown": "Unknown"
   },
   "room": {
     "hearth": "Hearth",

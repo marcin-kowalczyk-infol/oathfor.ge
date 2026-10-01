@@ -66,8 +66,6 @@ const shared = [
   // Kept long, not debt: folded text stays unchanged (rule 2). The detail folds oathHome.uploadInterrupted behind "Pełny opis",
   // A2 folds notifications.future. No slice A task touches the proof errors.
   'notifications.future', 'oathHome.uploadInterrupted', 'proof.errors.unavailable', 'proof.errors.rateLimited', 'proof.errors.sendFailed',
-  // A1.
-  'settings.language.error',
   // A2.
   'notifications.error_save', 'onboarding.error_save', 'onboarding.notificationsPending', 'onboarding.reviewPending', 'onboarding.error_complete', 'onboarding.companionIntroduction',
   // A3.
@@ -89,4 +87,20 @@ const obligationExceptions = ['onboarding.companionIntroduction' /* A2 */, 'room
 test('Polish says "zobowiąz…" only under oath.sections', () => {
   const found = catalogs.pl.filter(([key, text]) => /zobowiąz/i.test(text) && !key.startsWith('oath.sections.')).map(([key]) => key);
   expect(found.sort()).toEqual([...obligationExceptions].sort());
+});
+
+// Slice A "what next" lines (clarity.md rule 1 and decision 3): at most 12 Polish words and two sentences. Required error
+// sentences are exempt from the word cap only, so they are not listed here (oathHome.pauseError).
+const at = (catalog: Group, key: string) => key.split('.').reduce<unknown>((node, part) => (node as Group)?.[part], catalog);
+const sliceA = [
+  // A1.
+  'oathHome.pauseIntro', 'oathHome.paused', 'oathHome.pauseChanged', 'oathHome.loadError', 'oath.error.character_changed',
+  'settings.language.error', 'settings.notifications.permission_unavailable',
+];
+test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages', key => {
+  const [line, english] = [at(pl, key), at(en, key)];
+  expect(typeof line).toBe('string'); expect(typeof english).toBe('string');
+  expect(words(line as string)).toBeLessThanOrEqual(12);
+  expect(sentences(line as string)).toBeLessThanOrEqual(2);
+  expect(sentences(english as string)).toBeLessThanOrEqual(2);
 });

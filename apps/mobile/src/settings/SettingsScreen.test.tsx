@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Dimensions } from 'react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Locale } from '../localization/locale';
 import { SettingsScreen, type SettingsScreenProps } from './SettingsScreen';
@@ -47,7 +48,7 @@ test('while the language saves both options are disabled', async () => {
 
 test('a failed language save shows the error line and keeps the current language selected', async () => {
   await setup({ localeState: { saving: false, error: true } });
-  expect(screen.getByText('The language was not saved. Your current language stays. Try again.')).toBeOnTheScreen();
+  expect(screen.getByText('Could not save the language, the previous one stays. Try again.')).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Polski' })).toBeSelected();
   expect(screen.getByRole('radio', { name: 'English' })).not.toBeSelected();
 });
@@ -98,7 +99,7 @@ test('a busy notification change says so in text', async () => {
 });
 
 test.each([
-  [{ kind: 'unavailable', canAskAgain: false }, 'We could not check notification permission on this device. Your choice is still saved.'],
+  [{ kind: 'unavailable', canAskAgain: false }, 'Could not check iOS permission. Your choice is saved.'],
   [{ kind: 'checking', canAskAgain: false }, 'Checking notification permission on this device…'],
 ] as const)('an enabled preference with %o permission gets a hint', async (permission, hint) => {
   await setup({ notificationState: { permission, busy: false } });
@@ -111,7 +112,7 @@ test('a failed notification save shows the error line', async () => {
 });
 
 test.each([
-  [false, 'Mira: active'],
+  [false, 'Mira: in play'],
   [true, 'Mira: paused'],
   [null, 'Mira: state unknown'],
 ] as const)('the pause row for paused=%s reads "%s" and opens the pause review', async (paused, label) => {
@@ -157,7 +158,7 @@ test('text inside the cards is capped so long Polish words never break mid-word 
   for (const text of [
     'Przypomnienia nie są jeszcze wysyłane. Zapamiętamy Twój wybór na później.',
     'iOS blokuje powiadomienia z Oathforge. Włącz je w ustawieniach iOS.',
-    'Nie udało się zapisać języka. Język pozostaje bez zmian. Spróbuj ponownie.',
+    'Nie udało się zapisać języka, został poprzedni. Spróbuj ponownie.',
     'W grze',
   ]) expect(screen.getByText(text).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
 });
@@ -178,4 +179,28 @@ test.each([['en', 'Face of the Forge', 'Classic', 'Cinematic'], ['pl', 'Oblicze 
   await fireEvent.press(screen.getByRole('radio', { name: cinematic }));
   expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange).toHaveBeenCalledWith('cinematic');
+});
+
+// MVP-22-A1: the pause row carries the shared PauseMark, Settings never shows a filled button, and both languages hold at 200% text.
+const size = (fontScale: number) => Dimensions.set({ window: { width: 402, height: 874, scale: 3, fontScale }, screen: { width: 402, height: 874, scale: 3, fontScale } });
+afterEach(() => size(1));
+const filled = () => screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0);
+
+test.each([[false, 'In play'], [true, 'Paused'], [null, 'Unknown']] as const)('the pause row for paused=%s shows the "%s" mark', async (paused, label) => {
+  await setup({ paused });
+  const row = screen.getByRole('button', { name: /^Mira: / });
+  expect(within(row).getByTestId('pause-mark')).toHaveProp('accessibilityLabel', label);
+  expect(within(row).getByText(label)).toBeOnTheScreen();
+});
+
+test.each([
+  ['pl', { paused: true, localeState: { saving: false, error: true }, notificationState: { permission: { kind: 'denied', canAskAgain: false }, busy: false, error: 'save' } }, 'W pauzie', 'Nie udało się zapisać języka, został poprzedni. Spróbuj ponownie.'],
+  ['en', { paused: false, notificationState: { permission: { kind: 'unavailable', canAskAgain: false }, busy: false } }, 'In play', 'Could not check iOS permission. Your choice is saved.'],
+  ['pl', { paused: null, notificationState: { permission: { kind: 'granted', canAskAgain: true }, busy: true } }, 'Stan nieznany', 'Aktualizowanie powiadomień…'],
+] as const)('%s at text scale 2 keeps every line, the mark and no filled button', async (ui, patch, mark, line) => {
+  size(2);
+  await setup(patch as Partial<Data>, ui);
+  expect(screen.getByText(mark)).toBeOnTheScreen();
+  expect(screen.getByText(line)).toBeOnTheScreen();
+  expect(filled()).toHaveLength(0);
 });

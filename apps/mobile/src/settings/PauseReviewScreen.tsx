@@ -10,8 +10,8 @@ import { loadPauseReview, type PauseReview } from '../oaths/pauseReview';
 import { storedTime } from '../oaths/SnapshotRules';
 import { Action } from '../ui/Action';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
-import { CompanionBubble } from '../ui/CompanionBubble';
 import { layoutMode } from '../ui/layoutMode';
+import { PauseMark } from '../ui/PauseMark';
 import { SceneSurface } from '../ui/SceneSurface';
 import { tokens } from '../ui/tokens';
 
@@ -73,6 +73,10 @@ export function PauseReviewScreen({ controller, character, onBack, onChanged }: 
     if (result.kind === 'oath_error' && result.code === 'character_changed') { setPause(null); setPauseChanged('character'); setPauseFailed(true); return; }
     setPause(null); setPauseFailed(true);
   }
+  // One plain line at a time (docs/product/clarity.md decision 14). An error replaces the intro, the most specific error wins.
+  const notice = pauseChanged === 'character' ? 'oath.error.character_changed' : pauseFailed ? 'oathHome.pauseError' : failed ? 'oathHome.loadError'
+    : pauseChanged === 'oaths' ? 'oathHome.pauseChanged' : null;
+  const line = notice ?? (pause ? (pause.summary.paused ? 'oathHome.paused' : 'oathHome.pauseIntro') : null);
   function summary(item: Oath) { return t('oathHome.summary', { activity: item.snapshot.copy[locale].activity, deadline: storedTime(item.snapshot.deadline, locale) }); }
 
   return <SceneSurface place="room">
@@ -88,6 +92,7 @@ export function PauseReviewScreen({ controller, character, onBack, onChanged }: 
         <View style={styles.header}>
           <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oathHome.pauseTitle')}</Text>
           <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={styles.name}>{character.name}</Text>
+          <PauseMark state={pause ? (pause.summary.paused ? 'paused' : 'active') : 'unknown'} />
         </View>
         {!available && <>
           <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
@@ -95,10 +100,10 @@ export function PauseReviewScreen({ controller, character, onBack, onChanged }: 
         </>}
         {available && <>
           {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
-          {pauseChanged && <View accessibilityLiveRegion="polite"><CompanionBubble message={t(pauseChanged === 'character' ? 'oath.error.character_changed' : 'oathHome.pauseChanged')} /></View>}
-          {(failed || pauseFailed) && <><View accessibilityLiveRegion="polite"><CompanionBubble message={t(pauseFailed ? 'oathHome.pauseError' : 'oathHome.loadError')} /></View><Action label={t('oathHome.reviewPause')} onPress={() => { void showPause(); }} /></>}
+          {line && <Text testID="pause-line" maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole={notice ? 'alert' : undefined} accessibilityLiveRegion="polite"
+            style={notice ? styles.notice : styles.body}>{t(line)}</Text>}
+          {(failed || pauseFailed) && <Action label={t('oathHome.reviewPause')} onPress={() => { void showPause(); }} />}
           {pause && <>
-            <CompanionBubble message={t(pause.summary.paused ? 'oathHome.paused' : 'oathHome.pauseIntro')} />
             {(['withdraw', 'preserve'] as const).map(key => <View key={key} style={styles.card}>
               <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.section, fontScale > 1.5 && styles.sectionLarge]}>{t(`oathHome.${key}`)}</Text>
               {pause[key].length === 0 && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('oathHome.none')}</Text>}
@@ -130,6 +135,8 @@ const styles = StyleSheet.create({
   stackedEntry: { flexDirection: 'column', alignItems: 'flex-start' },
   entryCopy: { flexShrink: 1 },
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
+  notice: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(217,163,144,0.5)',
+    backgroundColor: 'rgba(217,163,144,0.08)', padding: 12, overflow: 'hidden' },
   pressed: { opacity: 0.85 },
   waiting: { opacity: 0.6 },
 });

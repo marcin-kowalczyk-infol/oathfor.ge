@@ -31,7 +31,7 @@ Each rule names its source or is marked as a local decision. Research checked 20
 
 ## Shared pieces
 
-All three are built on existing components (`StateSeal`, `CompanionBubble`, `Action`, `CountdownChip`). The card `NextCard` replaced the unused `StatusCard` (MVP-22-T07). No API change.
+The track, the card and the line are built on existing components (`StateSeal`, `CompanionBubble`, `Action`, `CountdownChip`). The card `NextCard` replaced the unused `StatusCard` (MVP-22-T07). No API change.
 
 ### Step track
 
@@ -59,6 +59,10 @@ A `withdrawn` Oath stopped before step 2 shows steps 2 and 3 as skipped, not don
 
 The state seal and state name, one line of at most 12 words, the countdown chip when the state has one, at most one filled button and the "Pełny opis" / "Full description" link that opens the existing long text.
 
+### Pause mark
+
+The character's pause state as a shape with a visible label: a filled seal "W grze" / "In play", two bars "W pauzie" / "Paused", a hollow ring "Stan nieznany" / "Unknown". None is red (rule 5). Settings and the pause review show it (MVP-22-A1). The menu, the History list and the Forge room counters follow in their slice A tasks.
+
 ### Żaromir's line
 
 A small bust and a bubble with one line from a pool for the situation. No line while the character is paused. In review only one neutral sentence. The line never hides a required fact.
@@ -84,6 +88,7 @@ The owner delegated these choices on 2026-10-01 ("work without further approvals
 
 ## Later
 
-- Remaining screen groups against the rules above: main menu, Settings, character, onboarding, sign-in, Forge room dialogues. One task each.
+- Remaining screen groups against the rules above: main menu, character, onboarding, sign-in, Forge room dialogues. One task each.
+- Settings and the pause review follow the rules since MVP-22-A1. Every pause fact is a plain line, an error replaces the intro line and Żaromir does not speak there.
 - Reward clarity: show the reward from the snapshot before and after the result. Depends on MVP-09 for granted XP.
 - Push reminders and urging by Żaromir outside the app: MVP-06.

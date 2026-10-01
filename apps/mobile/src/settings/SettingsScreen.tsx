@@ -6,6 +6,7 @@ import { useTranslation } from '../localization/LocalizationProvider';
 import type { Locale } from '../localization/locale';
 import type { NotificationState } from '../onboarding/notifications';
 import { Action } from '../ui/Action';
+import { PauseMark } from '../ui/PauseMark';
 import { SceneSurface } from '../ui/SceneSurface';
 import { tokens } from '../ui/tokens';
 
@@ -132,10 +133,9 @@ export function SettingsScreen(props: SettingsScreenProps) {
           {section('settings.pause.title')}
           <Pressable accessibilityRole="button" accessibilityLabel={t(`settings.pause.row_${pauseState}`, { name: character.name })} accessibilityHint={t('settings.pause.hint')}
             onPress={props.onPause} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-            <View style={[styles.seal, styles[pauseState]]} />
             <View style={styles.identity}>
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={styles.name}>{character.name}</Text>
-              <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t(`settings.pause.state_${pauseState}`)}</Text>
+              <PauseMark state={pauseState} />
             </View>
             <Text allowFontScaling={false} style={styles.chevron}>›</Text>
           </Pressable>
@@ -178,10 +178,6 @@ const styles = StyleSheet.create({
   trackOn: { backgroundColor: '#775029', borderColor: gold.bright },
   knob: { width: 24, height: 24, borderRadius: 12, backgroundColor: tokens.color.secondary },
   knobOn: { alignSelf: 'flex-end', backgroundColor: gold.bright },
-  seal: { width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: gold.line },
-  active: { backgroundColor: tokens.color.positive },
-  paused: { backgroundColor: tokens.color.neutral },
-  unknown: { backgroundColor: 'transparent' },
   identity: { flex: 1, gap: 2 },
   name: { fontFamily: tokens.font.display, color: gold.name, fontSize: 22, lineHeight: 28 },
   chevron: { color: tokens.color.primary, fontSize: 26 },

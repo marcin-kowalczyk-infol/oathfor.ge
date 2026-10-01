@@ -450,7 +450,7 @@
       "pl": "Polski",
       "en": "English",
       "saving": "Zapisywanie języka…",
-      "error": "Nie udało się zapisać języka. Język pozostaje bez zmian. Spróbuj ponownie."
+      "error": "Nie udało się zapisać języka, został poprzedni. Spróbuj ponownie."
     },
     "notifications": {
       "title": "Powiadomienia",
@@ -464,7 +464,7 @@
       "error_save": "Nie udało się zapisać wyboru powiadomień. Spróbuj ponownie.",
       "error_settings": "Nie udało się otworzyć ustawień iOS. Spróbuj ponownie.",
       "busy": "Aktualizowanie powiadomień…",
-      "permission_unavailable": "Nie udało się sprawdzić zgody na powiadomienia na tym urządzeniu. Twój wybór pozostaje zapisany.",
+      "permission_unavailable": "Nie udało się sprawdzić zgody iOS. Twój wybór jest zapisany.",
       "permission_checking": "Sprawdzanie zgody na powiadomienia na tym urządzeniu…"
     },
     "artStyle": {
@@ -478,9 +478,6 @@
       "row_active": "Postać {{name}}: w grze",
       "row_paused": "Postać {{name}}: w pauzie",
       "row_unknown": "Postać {{name}}: stan nieznany",
-      "state_active": "W grze",
-      "state_paused": "W pauzie",
-      "state_unknown": "Stan nieznany",
       "hint": "Otwiera skutki pauzy tej postaci.",
       "back": "Wróć do ustawień"
     },
@@ -488,6 +485,11 @@
       "title": "Konto",
       "signOut": "Wyloguj się"
     }
+  },
+  "pauseMark": {
+    "active": "W grze",
+    "paused": "W pauzie",
+    "unknown": "Stan nieznany"
   },
   "room": {
     "hearth": "Palenisko",

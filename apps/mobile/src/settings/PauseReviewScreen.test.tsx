@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Dimensions } from 'react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Locale } from '../localization/locale';
@@ -150,4 +151,80 @@ test('text inside the review cards is capped so long Polish words never break mi
   await screen.findByRole('button', { name: 'Potwierdź pauzę' });
   expect(screen.getByText('Brak').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
   expect(screen.getByText(/^Bieganie · /).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
+});
+
+// MVP-22-A1 (clarity.md decision 14): facts are plain lines, one at a time, Żaromir never speaks here, at most one filled button.
+const size = (fontScale: number) => Dimensions.set({ window: { width: 402, height: 874, scale: 3, fontScale }, screen: { width: 402, height: 874, scale: 3, fontScale } });
+afterEach(() => size(1));
+const filled = () => screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0);
+const intro = 'Review every Oath below before confirming. Pause does not extend deadlines.';
+function plain(text: string) {
+  expect(screen.getByText(text)).toBeOnTheScreen();
+  expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
+  expect(screen.queryByTestId('zaromir-bust', { includeHiddenElements: true })).toBeNull();
+  expect(filled().length).toBeLessThanOrEqual(1);
+}
+
+test('the loaded review shows the intro as a plain line, the In play mark and one filled button', async () => {
+  const f = setup(); const response = deferred<Awaited<ReturnType<OathController['getPause']>>>();
+  jest.mocked(f.controller.getPause).mockReturnValueOnce(response.promise);
+  await show(f);
+  expect(screen.getByTestId('pause-mark')).toHaveProp('accessibilityLabel', 'Unknown');
+  await act(async () => response.resolve({ kind: 'success', value: pauseSummary() }));
+  await screen.findByRole('button', { name: 'Confirm pause' });
+  plain(intro);
+  expect(filled()).toHaveLength(1);
+  expect(screen.getByTestId('pause-mark')).toHaveProp('accessibilityLabel', 'In play');
+});
+
+test('a paused character shows the Paused mark and the pause fact as a plain line', async () => {
+  const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), true) });
+  await show(f);
+  await screen.findByRole('button', { name: 'Resume gameplay' });
+  plain('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.');
+  expect(screen.getByTestId('pause-mark')).toHaveProp('accessibilityLabel', 'Paused');
+});
+
+test('a changed Oath list replaces the intro instead of stacking under it', async () => {
+  const f = setup();
+  jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
+  jest.mocked(f.controller.pause).mockResolvedValueOnce({ kind: 'oath_error', code: 'pause_preview_changed' });
+  await show(f);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
+  await screen.findByRole('button', { name: 'Confirm pause' });
+  plain('Your Oaths changed. Review this updated list before confirming pause.');
+  expect(screen.queryByText(intro)).toBeNull();
+});
+
+test('a character switch shows only its own line, not the generic pause error too', async () => {
+  const f = setup();
+  jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
+  jest.mocked(f.controller.pause).mockResolvedValueOnce({ kind: 'oath_error', code: 'character_changed' });
+  await show(f);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
+  plain('Your active character changed. Review the current Oaths again.');
+  expect(screen.queryByText('We could not confirm the pause change. Reload its current status before trying again.')).toBeNull();
+  expect(screen.getByText('Your active character changed. Review the current Oaths again.')).toHaveProp('accessibilityRole', 'alert');
+});
+
+test('a failed load shows its error as a plain alert line with one filled reload', async () => {
+  const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'unavailable', retry: 'request' });
+  await show(f);
+  await screen.findByRole('button', { name: 'Reload pause review' });
+  plain('We could not load your Oaths. Try again.');
+  expect(filled()).toHaveLength(1);
+  expect(screen.getByText('We could not load your Oaths. Try again.')).toHaveProp('accessibilityLiveRegion', 'polite');
+});
+
+test.each([
+  ['pl', false, 'Potwierdź pauzę', 'Przed potwierdzeniem sprawdź każdą Przysięgę poniżej. Pauza nie przedłuża terminów.', 'W grze'],
+  ['en', true, 'Resume gameplay', 'Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.', 'Paused'],
+] as const)('%s at text scale 2 keeps the line, the mark and one filled button', async (locale, paused, button, line, mark) => {
+  size(2);
+  const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), paused) });
+  await show(f, locale);
+  await screen.findByRole('button', { name: button });
+  plain(line);
+  expect(screen.getByText(mark)).toBeOnTheScreen();
+  expect(filled()).toHaveLength(1);
 });

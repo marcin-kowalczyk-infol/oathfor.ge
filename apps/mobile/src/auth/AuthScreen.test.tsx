@@ -596,7 +596,7 @@ test('Settings opens the pause review, which returns to Settings', async () => {
   const runtime = setup(); pausable(runtime);
   await signIn(runtime);
   await fireEvent.press(await screen.findByRole('button', { name: 'Settings, Language, pause, account' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Mira: active' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Mira: in play' }));
   expect(await screen.findByRole('header', { name: 'Review pause' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Back to Settings' }));
   expect(await screen.findByRole('header', { name: 'Settings' })).toBeOnTheScreen();
@@ -608,7 +608,7 @@ test('a confirmed pause returns to Settings, refreshes the summary and reloads t
   const runtime = setup(); pausable(runtime);
   await signIn(runtime);
   await fireEvent.press(await screen.findByRole('button', { name: 'Settings, Language, pause, account' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Mira: active' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Mira: in play' }));
   const lists = oathLists(runtime).length;
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
   expect(await screen.findByRole('button', { name: 'Mira: paused' })).toBeOnTheScreen();
@@ -650,7 +650,7 @@ test('a language the server rejects keeps the current language and shows the err
   await signIn(runtime);
   await fireEvent.press(await screen.findByRole('button', { name: 'Settings, Language, pause, account' }));
   await fireEvent.press(await screen.findByRole('radio', { name: 'Polski' }));
-  expect(await screen.findByText('The language was not saved. Your current language stays. Try again.')).toBeOnTheScreen();
+  expect(await screen.findByText('Could not save the language, the previous one stays. Try again.')).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'English', selected: true })).toBeOnTheScreen();
 });
 
@@ -703,7 +703,7 @@ test('returning from the background validates the session again and keeps Settin
   await emit('background', 'active');
   expect(runtime.api.me).toHaveBeenCalledTimes(checks + 1);
   expect(await screen.findByRole('header', { name: 'Settings' })).toBeOnTheScreen();
-  expect(await screen.findByRole('button', { name: 'Mira: active' })).toBeOnTheScreen();
+  expect(await screen.findByRole('button', { name: 'Mira: in play' })).toBeOnTheScreen();
   expect(summaries(runtime)).toBeGreaterThan(loaded);
 });
 
@@ -745,7 +745,7 @@ test('a pause review never stays open for another character', async () => {
   const runtime = setup(); const switchToBor = switchable(runtime);
   await signIn(runtime);
   await fireEvent.press(await screen.findByRole('button', { name: 'Settings, Language, pause, account' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Mira: active' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Mira: in play' }));
   expect(await screen.findByRole('header', { name: 'Review pause' })).toBeOnTheScreen();
   await switchToBor();
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
