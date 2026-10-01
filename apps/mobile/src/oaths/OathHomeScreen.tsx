@@ -350,7 +350,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const place: ForgePlace = hearthRequest ? 'hearth' : route === 'detail' ? 'seals' : view === 'history' ? 'chronicle' : 'seals';
   // After the room's own flight the close-up is already in view, so the screen skips its zoom.
   const approach = arrival && !arrival.flown ? arrival : null;
-  if (available && route === 'proof' && detail && proof) return <ProofScreen key={detail.id} oath={detail} controller={proof} backLabel={t('proof.back')}
+  if (available && route === 'proof' && detail && proof) return <ProofScreen key={detail.id} oath={detail} controller={proof} clock={controller.clock} backLabel={t('proof.back')}
     onBack={() => { void openDetail(detail.id); }} onDone={showReceipt} />;
   if (available && route === 'create') return <OathScreen approach={approach?.place === 'hearth' ? approach.id : null} controller={controller} timezone={timezone} rulesGuideStorage={rulesGuideStorage} onViewOath={id => { void openDetail(id); }} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? returnLabel : undefined} backPlain={!!forgeNavigation && !interactiveForge} onBack={forgeNavigation ? () => forgeNavigation.onReturn('hearth') : () => { void loadList('today'); }} />;
   // In the room layout every list leaves a band under the tabs (Today's hub, the chronicle band). The close-up is lowered into it.

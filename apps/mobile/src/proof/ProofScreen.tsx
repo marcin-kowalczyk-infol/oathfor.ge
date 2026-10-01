@@ -9,8 +9,16 @@ import { bindShortWords } from '../localization/typography';
 import { ruleIcon } from '../oaths/oathArt';
 import { Action } from '../ui/Action';
 import { BackLink } from '../ui/BackLink';
-import { CompanionBubble } from '../ui/CompanionBubble';
 import { layoutMode } from '../ui/layoutMode';
+import { ActivityEmblem } from '../ui/ActivityEmblem';
+import { Disclosure } from '../ui/Disclosure';
+import { StepTrack } from '../ui/StepTrack';
+import { ZaromirLine } from '../ui/ZaromirLine';
+import { useMotionAllowed } from '../ui/useMotion';
+import { zaromirSeed } from '../companion/zaromirLine';
+import { deviceProof } from '../oaths/deviceProof';
+import { oathPath, proofScreenSituation } from '../oaths/oathPath';
+import type { ServerClock } from '../oaths/serverClock';
 import { SceneSurface } from '../ui/SceneSurface';
 import { Text } from '../ui/Text';
 import { tokens } from '../ui/tokens';
@@ -52,13 +60,20 @@ export function errorMessage(error: ProofControllerError, t: Translate): string 
  * The proof form of one active Oath (MVP-07-T09): the route with its committed rule, one image from the camera or Photos,
  * the declaration from the Oath's own rules and the send action. The shared controller copies the normalized image and sends it.
  * Only the server's receipt moves the player on, through onDone with the Oath it returned.
+ * MVP-22-T11 (docs/product/clarity.md decision 12): a compact step badge, Żaromir's line and three numbered steps. A finished step folds
+ * to a one-line summary with "Zmień", except in the simple layout and under Reduce Motion. Long texts sit behind links.
+ * clock: server time for Żaromir's window and day. Without it he speaks the plain proof screen line.
  */
-export function ProofScreen({ oath, controller, onDone, onBack, backLabel }: { oath: Oath; controller: ProofController; onDone(oath: Oath): void; onBack(): void; backLabel: string }) {
+export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock }: { oath: Oath; controller: ProofController; onDone(oath: Oath): void; onBack(): void; backLabel: string; clock?: ServerClock }) {
   const { t, i18n } = useTranslation();
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const ruleIcons = useArt().oaths.ruleIcons;
   const { width, fontScale } = useWindowDimensions();
   const simple = layoutMode(width, fontScale) === 'simple';
+  // Folding moves the content under the finger, so the simple layout and Reduce Motion keep every step open.
+  const folds = useMotionAllowed() && !simple;
+  // The finished step the player opened again with "Zmień". A new choice there folds it back.
+  const [reopened, setReopened] = useState<'type' | 'image' | null>(null);
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const copy = oath.snapshot.copy[locale];
   const text = (value: string) => bindShortWords(value, locale);
@@ -123,6 +138,7 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel }: { o
     if (result.kind === 'failed') { setImageFailed(true); return; }
     replaceImage({ uri: result.uri, width: result.width, height: result.height });
     setQuietError(ready?.error);
+    setReopened(current => current === 'image' ? null : current);
   }
   const busy = !!ready?.busy;
   const missing = !mode ? 'route' : !image ? 'image' : !declared ? 'declaration' : null;
@@ -145,70 +161,88 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel }: { o
   }
 
   const back = <BackLink label={backLabel} onPress={onBack} />;
+  // Where this Oath stands, from the server state and this device's own copy. The pause is unknown here, and an active Oath is never paused.
+  const now = clock?.now() ?? null;
+  const path = oathPath(oath, deviceProof(oath, state, null), null, now);
+  const zone = oath.snapshot.deadline.timezone;
+  const speaker = (situation: ReturnType<typeof proofScreenSituation>) => <ZaromirLine situation={situation} seed={situation ? zaromirSeed(oath.id, situation, now, zone) : ''} />;
   const head = <>
     <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('proof.submit')}</Text>
     <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.activity}>{copy.activity}</Text>
+    {/* A compact badge, not the full track (decision 12). */}
+    <StepTrack variant="compact" path={path} state={oath.state} />
   </>;
+  /** A fact is a card line, never a bubble (decision 14). At most one filled action follows it. */
+  const card = (testID: string | undefined, line: string, actions?: ReactNode) => <View testID={testID} style={styles.card}>
+    <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardLine}>{line}</Text>
+    {actions}
+  </View>;
   let body: ReactNode;
-  if (oath.state !== 'active') body = <View accessibilityLiveRegion="polite"><CompanionBubble message={t('proof.notActive')} /></View>;
-  else if (state.kind === 'storage_unavailable') body = <View accessibilityLiveRegion="polite"><CompanionBubble message={t('proof.storageUnavailable')} /></View>;
+  if (oath.state !== 'active') body = card(undefined, t('proof.notActive'));
+  else if (state.kind === 'storage_unavailable') body = card(undefined, t('proof.storageUnavailable'));
   else if (!ready) body = <Text accessibilityLiveRegion="polite" style={styles.body}>{t('proof.loading')}</Text>;
   else if (ready.pending && ready.pending.oathId !== oath.id) {
     // One unresolved proof per character blocks a new one. Its own Oath may no longer offer a proof screen, so sending it again
     // is offered here too. A replay is idempotent and its answers stay off this form. Only its own Oath offers delete.
-    body = <View testID="proof-other-pending" style={styles.section}>
-      <View accessibilityLiveRegion="polite"><CompanionBubble message={t('proof.otherPending')} /></View>
+    body = card('proof-other-pending', t('proof.otherPending'), <>
       {!busy && <Action label={t('proof.retry')} onPress={() => { void controller.recover(); }} />}
       <Action label={t('proof.back')} variant="secondary" direction="back" onPress={onBack} />
-    </View>;
+    </>);
   } else if (ready.pending) {
     // One unresolved proof per character blocks a new one. Its copy can be sent again or given up.
-    body = <View testID="proof-pending" style={styles.section}>
-      <View accessibilityLiveRegion="polite"><CompanionBubble message={busy ? t(ready.deleting ? 'proof.deleting' : 'proof.sending') : ready.error ? errorMessage(ready.error, t) : t('proof.pending')} /></View>
-      {/* While the upload runs, the bubble alone tells the player to wait. */}
-      {!busy && <>
+    // While the upload runs, the line alone tells the player to wait. Żaromir speaks only in the interrupted window before S.
+    body = <>
+      {card('proof-pending', busy ? t(ready.deleting ? 'proof.deleting' : 'proof.sending') : ready.error ? errorMessage(ready.error, t) : t('proof.pending'), !busy && <>
         <Action label={t('proof.retry')} onPress={() => { void controller.recover(); }} />
         <Action label={t('proof.discard')} variant="secondary" onPress={() => { void controller.discard(); }} />
-      </>}
-    </View>;
+      </>)}
+      {!busy && speaker(path.zaromir)}
+    </>;
   } else if (error?.kind === 'proof_refused' && closingCodes.has(error.code)) {
-    body = <View testID="proof-closed" style={styles.section}>
-      <View accessibilityLiveRegion="polite"><CompanionBubble message={errorMessage(error, t)} /></View>
-      <Action label={t('proof.back')} onPress={onBack} />
-    </View>;
+    body = card('proof-closed', errorMessage(error, t), <Action label={t('proof.back')} onPress={onBack} />);
   } else {
+    const typeFolded = folds && mode !== null && reopened !== 'type';
+    const imageFolded = folds && image !== null && reopened !== 'image';
     body = <>
-      <CompanionBubble message={t('proof.intro')} />
+      <Disclosure label={t('path.more')}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.introFull')}</Text></Disclosure>
+      {/* While sending Żaromir is silent (decision 5). Between D and S he keeps the conditional cutoff line. */}
+      {!busy && speaker(proofScreenSituation(path))}
       <View style={styles.section}>
-        <View style={styles.sectionHead}>
-          <SpriteFrame sheet={ruleIcons} index={ruleIcon.proof} width={36} />
-          <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t('proof.routeHeading')}</Text>
-        </View>
+        <StepHead number={1} title={t('proof.steps.type')} />
+        {typeFolded ? <Summary choice={t(`proof.routes.${mode}.title`)} change={t('proof.change')} step={t('proof.steps.type')} disabled={busy} onChange={() => setReopened('type')} /> : <>
         <View accessibilityRole="radiogroup" accessibilityLabel={t('proof.routeHeading')} style={styles.routes}>
           {routes.map(route => {
             const selected = mode === route.mode;
             return <Pressable key={route.mode} testID={`proof-route-${route.mode}`} accessibilityRole="radio" accessibilityState={{ checked: selected, disabled: busy }}
               accessibilityLabel={`${t(`proof.routes.${route.mode}.title`)}. ${t(`proof.routes.${route.mode}.hint`)}`} disabled={busy}
-              // The label hides the texts inside, so VoiceOver reads the committed rule as the hint.
+              // The label hides the texts inside, so VoiceOver reads the committed rule as the hint. Sighted players open it under the cards.
               accessibilityHint={copy.sections[route.rule]}
-              onPress={() => setMode(route.mode)} style={({ pressed }) => [styles.route, selected && styles.selected, pressed && styles.pressed]}>
+              onPress={() => { setMode(route.mode); setReopened(current => current === 'type' ? null : current); }} style={({ pressed }) => [styles.route, selected && styles.selected, pressed && styles.pressed]}>
               <View style={styles.routeHead}>
                 <View style={[styles.radio, selected && styles.radioOn]}>{selected && <View style={styles.radioDot} />}</View>
+                {route.mode === 'photo' ? <SpriteFrame sheet={ruleIcons} index={ruleIcon.proof} width={36} /> : <ActivityEmblem activity={oath.snapshot.activity} size={36} />}
                 <View style={styles.routeTitles}>
                   <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.routeTitle}>{text(t(`proof.routes.${route.mode}.title`))}</Text>
                   <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.hint}>{text(t(`proof.routes.${route.mode}.hint`))}</Text>
                 </View>
               </View>
-              <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.rule}>{copy.sections[route.rule]}</Text>
             </Pressable>;
           })}
         </View>
+        {/* The committed evidence rules of both routes, moved behind one link (rule 2). */}
+        <Disclosure label={t('proof.rulesLink')}><View style={styles.note}>
+          {routes.map(route => <View key={route.mode} style={styles.ruleGroup}>
+            <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noteHeading}>{t(`proof.routes.${route.mode}.title`)}</Text>
+            <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.rule}>{copy.sections[route.rule]}</Text>
+          </View>)}
+        </View></Disclosure>
+        </>}
       </View>
       <View style={styles.section}>
-        <View style={styles.sectionHead}>
-          <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t('proof.imageHeading')}</Text>
-        </View>
-        <View style={styles.note}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.crop')}</Text></View>
+        <StepHead number={2} title={t('proof.steps.image')} />
+        {imageFolded ? <Summary choice={t('proof.preview')} change={t('proof.change')} step={t('proof.steps.image')} disabled={busy} onChange={() => setReopened('image')} /> : <>
+        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.privacyLine')}</Text>
+        <Disclosure label={t('proof.cropMore')}><View style={styles.note}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.crop')}</Text></View></Disclosure>
         {/* Side by side, both buttons take the taller one's height. Notices name their source, so they go under the pair. */}
         <View testID="proof-sources" style={[styles.sources, simple ? styles.stacked : styles.paired]}>
           {(['camera', 'library'] as const).map(source => <View key={source} style={simple ? styles.full : styles.half}>
@@ -222,10 +256,13 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel }: { o
         {!simple && notice('camera')}
         {!simple && notice('library')}
         {capturing && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('proof.preparing')}</Text>}
-        {imageFailed && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('proof.imageFailed')} /></View>}
+        {imageFailed && card(undefined, t('proof.imageFailed'))}
+        </>}
         {image && <Image testID="proof-preview" accessibilityLabel={t('proof.preview')} accessibilityRole="image" accessible source={{ uri: image.uri }} resizeMode="contain"
           style={[styles.preview, { aspectRatio: image.width / image.height }]} />}
       </View>
+      <View style={styles.section}>
+      <StepHead number={3} title={t('proof.steps.confirm')} />
       <View style={styles.declaration}>
         <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.declarationHeading}>{t('oath.rules.declaration')}</Text>
         <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{copy.declaration}</Text>
@@ -235,19 +272,39 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel }: { o
           <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.checkLabel}>{t('proof.confirm')}</Text>
         </Pressable>
       </View>
-      <View style={styles.note}>
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.aiLine')}</Text>
+      <Disclosure label={t('proof.aiMore')}><View style={styles.note}>
         <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noteHeading}>{t('proof.caveatHeading')}</Text>
         <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.caveat')}</Text>
-      </View>
-      {(busy || error) && <View accessibilityLiveRegion="polite"><CompanionBubble message={busy ? t('proof.sending') : errorMessage(error!, t)} /></View>}
+      </View></Disclosure>
+      {(busy || error) && card(undefined, busy ? t('proof.sending') : errorMessage(error!, t))}
       {missing
         ? <Action label={t('proof.submit')} onPress={send} disabled unavailableReason={t(`proof.missing.${missing}`)} />
         : <Action label={t('proof.submit')} onPress={send} busy={busy} />}
+      </View>
     </>;
   }
   return <SceneSurface place="seals"><SafeAreaView style={styles.safeArea}>
     <ScrollView testID="proof-scroll" contentContainerStyle={styles.content}>{back}{head}{body}</ScrollView>
   </SafeAreaView></SceneSurface>;
+}
+/** A numbered step heading on a plaque, read as "1. Rodzaj dowodu". */
+function StepHead({ number, title }: { number: number; title: string }) {
+  return <View accessible accessibilityRole="header" accessibilityLabel={`${number}. ${title}`} style={styles.sectionHead}>
+    <View style={styles.stepNumber}><Text allowFontScaling={false} style={styles.stepNumberText}>{number}</Text></View>
+    <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{title}</Text>
+  </View>;
+}
+/** A finished step in one line, "✓ Zdjęcie kontekstu · Zmień". It wraps and is never cut with an ellipsis. */
+function Summary({ choice, change, step, disabled, onChange }: { choice: string; change: string; step: string; disabled: boolean; onChange(): void }) {
+  return <View style={styles.summary}>
+    <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.summaryText}>{`✓ ${choice}`}</Text>
+    <Text accessible={false} style={styles.summaryDot}>·</Text>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${change}: ${step}`} accessibilityState={{ disabled }} disabled={disabled} onPress={onChange}
+      hitSlop={8} style={({ pressed }) => [styles.change, pressed && styles.pressed]}>
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.changeText}>{change}</Text>
+    </Pressable>
+  </View>;
 }
 const panel = { borderRadius: 16, backgroundColor: 'rgba(28, 22, 16, 0.94)', borderWidth: 1, borderColor: '#5b4630' } as const;
 const styles = StyleSheet.create({
@@ -271,6 +328,16 @@ const styles = StyleSheet.create({
   routeTitle: { color: tokens.color.text, fontSize: tokens.body, lineHeight: 24, fontWeight: '700' },
   hint: { color: tokens.color.secondary, fontSize: 15, lineHeight: 21 },
   rule: { color: '#ded1bd', fontSize: 15, lineHeight: 22 },
+  ruleGroup: { gap: 4 },
+  card: { ...panel, gap: 12, padding: 16 },
+  cardLine: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
+  stepNumber: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: tokens.color.primary, alignItems: 'center', justifyContent: 'center' },
+  stepNumberText: { color: tokens.color.primary, fontSize: 15, fontWeight: '700' },
+  summary: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8 },
+  summaryText: { flexShrink: 1, color: tokens.color.text, fontSize: tokens.body, lineHeight: 24, fontWeight: '600' },
+  summaryDot: { color: tokens.color.secondary, fontSize: tokens.body },
+  change: { minHeight: 44, justifyContent: 'center' },
+  changeText: { color: tokens.color.primary, fontSize: tokens.body, lineHeight: 24, fontWeight: '600', textDecorationLine: 'underline' },
   note: { ...panel, gap: 6, padding: 14 },
   noteHeading: { color: tokens.color.primary, fontSize: 15, fontWeight: '700' },
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },

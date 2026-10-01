@@ -9,6 +9,8 @@ import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { ProofController, ProofControllerState } from './proofController';
 import { ProofScreen } from './ProofScreen';
 import { createProofController } from './proofController';
+import { AppState } from 'react-native';
+import { createServerClock } from '../oaths/serverClock';
 import type { SessionController } from '../auth/session';
 import type { ProofFiles } from './proofFiles';
 
@@ -59,9 +61,9 @@ beforeEach(() => {
 const size = (width: number, fontScale: number) => Dimensions.set({ window: { width, height: 874, scale: 3, fontScale }, screen: { width, height: 874, scale: 3, fontScale } });
 afterEach(() => size(402, 1));
 
-async function show(locale: 'pl' | 'en' = 'pl', value = oath(), f = fakeController()) {
+async function show(locale: 'pl' | 'en' = 'pl', value = oath(), f = fakeController(), clock?: ReturnType<typeof createServerClock>) {
   const onDone = jest.fn(); const onBack = jest.fn();
-  await render(<LocalizationProvider initialLocale={locale}><ProofScreen oath={value} controller={f.controller} onDone={onDone} onBack={onBack} backLabel={locale === 'pl' ? 'Wróć' : 'Back'} /></LocalizationProvider>);
+  await render(<LocalizationProvider initialLocale={locale}><ProofScreen oath={value} controller={f.controller} clock={clock} onDone={onDone} onBack={onBack} backLabel={locale === 'pl' ? 'Wróć' : 'Back'} /></LocalizationProvider>);
   return { ...f, onDone, onBack };
 }
 
@@ -181,12 +183,23 @@ test.each([['pl', 375, 1, 'row'], ['en', 402, 1, 'row'], ['pl', 340, 1, 'column'
   const pl = locale === 'pl';
   expect(screen.getByText(pl ? 'Zdjęcie kontekstu' : 'Context photo')).toBeOnTheScreen();
   expect(screen.getByText(pl ? 'Zapis aktywności' : 'Activity record')).toBeOnTheScreen();
+  // MVP-22-T11: the declaration, the privacy line and the AI line stay visible. The committed rules, the crop note and the caveat are moved behind links, never deleted.
+  expect(screen.getByText(value.snapshot.copy[locale].declaration)).toBeOnTheScreen();
+  expect(screen.getByText(pl ? 'Prywatne fragmenty zasłoń w Zdjęciach, zanim wybierzesz obraz.' : 'Cover anything private in Photos before you choose.')).toBeOnTheScreen();
+  expect(screen.getByText(pl ? 'AI ocenia tylko to, co widać na obrazie.' : 'AI assesses only what the image shows.')).toBeOnTheScreen();
+  const caveat = pl ? 'AI ocenia tylko to, co widać na obrazie. Obraz nie pokaże ukończenia, czasu trwania ani osoby na treningu, dlatego Kuźnia opiera się też na Twojej deklaracji.'
+    : 'AI assesses only what the image shows. An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.';
+  const crop = pl ? /Prywatne fragmenty przytnij lub zasłoń wcześniej w Zdjęciach/ : /Crop or cover anything private in Photos first/;
+  expect(screen.queryByText(value.snapshot.copy[locale].sections.photo)).toBeNull();
+  expect(screen.queryByText(caveat)).toBeNull();
+  expect(screen.queryByText(crop)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: pl ? 'Zasady dowodu' : 'Proof rules' }));
   expect(screen.getByText(value.snapshot.copy[locale].sections.photo)).toBeOnTheScreen();
   expect(screen.getByText(value.snapshot.copy[locale].sections.activityRecord)).toBeOnTheScreen();
-  expect(screen.getByText(value.snapshot.copy[locale].declaration)).toBeOnTheScreen();
-  expect(screen.getByText(pl ? 'AI ocenia tylko to, co widać na obrazie. Obraz nie pokaże ukończenia, czasu trwania ani osoby na treningu, dlatego Kuźnia opiera się też na Twojej deklaracji.'
-    : 'AI assesses only what the image shows. An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.')).toBeOnTheScreen();
-  expect(screen.getByText(pl ? /Prywatne fragmenty przytnij lub zasłoń wcześniej w Zdjęciach/ : /Crop or cover anything private in Photos first/)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: pl ? 'Jak ukryć szczegóły' : 'How to hide details' }));
+  expect(screen.getByText(crop)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: pl ? 'O ocenie dowodu' : 'About the assessment' }));
+  expect(screen.getByText(caveat)).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: pl ? 'Prześlij dowód' : 'Submit proof' })).toHaveProp('accessibilityHint', pl ? 'Wybierz rodzaj dowodu.' : 'Choose the type of evidence.');
   expect(screen.getByTestId('proof-sources')).toHaveStyle({ flexDirection: direction });
 });
@@ -364,4 +377,102 @@ test('leaving the screen while a send waits for its copy keeps the image until t
   // Once the send has settled, the screen's copy goes.
   await waitFor(() => expect(mockDeleted).toContain(normalized));
   controller.dispose();
+});
+
+// MVP-22-T11: the proof screen in three steps (docs/product/clarity.md decision 12).
+const filled = () => screen.queryAllByText('◆', { includeHiddenElements: true });
+const clockAt = (iso: string) => { const clock = createServerClock(); clock.observe(iso); return clock; };
+// Motion counts only in the foreground, and the jest AppState has no current state, so the fold tests bring the app forward.
+function foreground() { const previous = AppState.currentState; AppState.currentState = 'active'; return () => { AppState.currentState = previous; }; }
+
+test('the top shows the compact step badge, Żaromir and the full introduction behind one link', async () => {
+  await show('pl', oath(), fakeController(), clockAt('2026-10-24T12:00:00Z'));
+  expect(screen.getByLabelText('Etap 2 z 4, Trening, Aktywna')).toBeOnTheScreen();
+  expect(screen.queryAllByTestId(/^step-node-/, { includeHiddenElements: true })).toHaveLength(0);
+  expect(screen.getByLabelText(/^Żaromir: /)).toBeOnTheScreen();
+  for (const title of ['Rodzaj dowodu', 'Obraz', 'Potwierdzenie']) expect(screen.getAllByText(title).length).toBeGreaterThan(0);
+  const full = 'Wybierz rodzaj dowodu, dodaj jeden obraz i potwierdź ukończenie treningu. Przysięga zmieni stan dopiero, gdy serwer odbierze dowód.';
+  expect(screen.queryByText(full)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Pełny opis' }));
+  expect(screen.getByText(full)).toBeOnTheScreen();
+  expect(filled()).toHaveLength(1);
+});
+
+test('between the deadline and the cutoff Żaromir keeps the conditional cutoff line', async () => {
+  await show('pl', oath(), fakeController(), clockAt('2026-10-25T00:35:00Z'));
+  const line = screen.getByLabelText(/^Żaromir: /).props.accessibilityLabel.replace('Żaromir: ', '');
+  expect(['Okno na dowód trwa. Prześlij go, jeśli trening skończył się przed terminem.', 'Trening skończony w terminie? Okno na dowód jeszcze trwa.',
+    'Świeca jeszcze płonie. Jeśli trening zakończył się w terminie, prześlij dowód teraz.']).toContain(line);
+});
+
+test('a chosen type and a chosen image fold to one-line summaries that "Zmień" reopens', async () => {
+  const restore = foreground();
+  try {
+    await show('pl');
+    await act(async () => { await Promise.resolve(); });
+    await fireEvent.press(screen.getByRole('radio', { name: /Zdjęcie kontekstu/ }));
+    expect(screen.queryByRole('radio', { name: /Zapis aktywności/ })).toBeNull();
+    expect(screen.getByText('✓ Zdjęcie kontekstu')).toBeOnTheScreen();
+    expect(screen.getByText('✓ Zdjęcie kontekstu')).not.toHaveProp('numberOfLines');
+    await fireEvent.press(screen.getByRole('button', { name: 'Zmień: Rodzaj dowodu' }));
+    expect(screen.getByRole('radio', { name: /Zapis aktywności/ })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('radio', { name: /Zapis aktywności/ }));
+    expect(screen.getByText('✓ Zapis aktywności')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Wybierz ze Zdjęć' }));
+    expect(await screen.findByLabelText('Wybrany obraz')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Wybierz ze Zdjęć' })).toBeNull();
+    expect(screen.queryByText('Prywatne fragmenty zasłoń w Zdjęciach, zanim wybierzesz obraz.')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Zmień: Obraz' }));
+    expect(screen.getByRole('button', { name: 'Wybierz ze Zdjęć' })).toBeOnTheScreen();
+  } finally { restore(); }
+});
+
+test.each([['simple layout', 340], ['Reduce Motion', 402]] as const)('in the %s every step stays open after a choice', async (_, width) => {
+  size(width, 1);
+  const restore = width === 340 ? foreground() : () => {};
+  try {
+    await show('pl');
+    await act(async () => { await Promise.resolve(); });
+    await fireEvent.press(screen.getByRole('radio', { name: /Zdjęcie kontekstu/ }));
+    expect(screen.getByRole('radio', { name: /Zapis aktywności/ })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Wybierz ze Zdjęć' }));
+    await screen.findByLabelText('Wybrany obraz');
+    expect(screen.getByRole('button', { name: 'Wybierz ze Zdjęć' })).toBeOnTheScreen();
+  } finally { restore(); }
+});
+
+test('while the proof is sent the button is busy and Żaromir is absent', async () => {
+  const f = await show('pl', oath(), fakeController(), clockAt('2026-10-24T12:00:00Z'));
+  await readyToSend();
+  await act(async () => f.change({ kind: 'ready', busy: true, pending: null, oath: null }));
+  expect(screen.getByRole('button', { name: 'Prześlij dowód' })).toHaveProp('accessibilityState', expect.objectContaining({ busy: true }));
+  expect(screen.queryByLabelText(/^Żaromir: /)).toBeNull();
+  expect(screen.getByText('Dowód w drodze. Stan Przysięgi zmieni się dopiero, gdy serwer odpowie.')).toBeOnTheScreen();
+  expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
+});
+
+test.each([
+  ['own', pendingFor(oathId), 'proof-pending', 'Dowód zapisany na tym urządzeniu czeka na wysłanie. Serwer go jeszcze nie odebrał.', 'Etap 2 z 4, Trening, Nie dotarł'],
+  ['other', pendingFor(otherOathId), 'proof-other-pending', 'Na tym urządzeniu czeka dowód innej Przysięgi. Wyślij go teraz, aby móc przesłać dowód tutaj.', 'Etap 2 z 4, Trening, Aktywna'],
+] as const)('a waiting %s copy shows one card line, one filled resend and an outline secondary', async (_, pending, testID, line, badge) => {
+  await show('pl', oath(), fakeController({ kind: 'ready', busy: false, pending, oath: null }));
+  const card = screen.getByTestId(testID);
+  expect(within(card).getByText(line)).toBeOnTheScreen();
+  expect(screen.getByLabelText(badge)).toBeOnTheScreen();
+  expect(filled()).toHaveLength(1);
+  expect(within(screen.getByRole('button', { name: 'Wyślij ponownie' })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
+  expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
+});
+
+test('a closed window shows one card line and one filled way back', async () => {
+  const f = await show('en');
+  await fireEvent.press(screen.getByRole('radio', { name: /Context photo/ }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Choose from Photos' }));
+  await screen.findByLabelText('Chosen image');
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'I confirm I completed this Oath’s workout' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Submit proof' }));
+  await act(async () => f.change({ kind: 'ready', busy: false, pending: null, oath: null, error: { kind: 'proof_refused', code: 'receipt_cutoff_passed' } }));
+  expect(within(screen.getByTestId('proof-closed')).getByText('The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.')).toBeOnTheScreen();
+  expect(filled()).toHaveLength(1);
+  expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
 });
