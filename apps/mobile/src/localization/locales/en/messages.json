@@ -308,7 +308,8 @@
     },
     "made": "Oath made",
     "madeDeadline": "Deadline: {{time}}",
-    "viewOath": "View the Oath"
+    "viewOath": "View the Oath",
+    "proofPending": "Evidence received. Assessment is in progress. Assessment delays do not change the receipt time."
   },
   "oathHome": {
     "today": "Today",
@@ -341,7 +342,9 @@
     "summary": "{{activity}} · {{deadline}}",
     "historyLine": "Every entry is part of your story in the Forge.",
     "historyEmpty": "The chronicle is waiting for its first entry.",
-    "closedAt": "Closed {{time}}"
+    "closedAt": "Closed {{time}}",
+    "receivedAt": "Receipt time: {{time}}",
+    "uploadInterrupted": "The proof upload was interrupted. A copy is waiting on this device. The server has not confirmed receipt yet."
   },
   "forge": {
     "busy": "The Forge is still finishing your last step. Return to the hearth in a moment.",
@@ -679,7 +682,9 @@
     "pending": "A proof saved on this device is waiting to be sent. The server has not received it yet.",
     "otherPending": "A proof for another Oath is waiting on this device. Send it now so you can submit proof here.",
     "retry": "Send again",
-    "discard": "Delete this proof",
+    "discard": "Delete the copy on this device",
+    "deleting": "Deleting the proof copy…",
+    "dismiss": "Got it",
     "storageUnavailable": "We could not safely read the saved proof. Restart the app and try again.",
     "errors": {
       "receiptCutoffPassed": "The evidence deadline has passed. The server did not accept this proof.",
@@ -688,7 +693,7 @@
       "tooLarge": "This image is too large to send. Choose another one.",
       "unreadable": "The server could not read this image. Choose another one.",
       "refused": "The server did not accept this proof. Choose an image and try again.",
-      "uploadRejected": "The server did not receive the image. Send it again, or delete this proof and choose a new image.",
+      "uploadRejected": "The server did not receive the image. Send it again, or delete the copy on this device and choose a new image.",
       "unavailable": "Could not reach the server. The proof has not been received yet. A copy is waiting on this device.",
       "rateLimited": "Too many attempts. Wait a moment and try again. A copy is waiting on this device.",
       "fileMissing": "The saved copy of the image is no longer on this device. Choose the image again.",

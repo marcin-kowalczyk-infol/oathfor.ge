@@ -127,7 +127,7 @@ The top of History gets a short encouraging header: the chronicle icon with the 
 
 No per-state totals appear, because the API has none and counting loaded pages would mislead.
 
-The detail uses the same layout as the review screen: the state seal and label, the countdown for nonterminal Oaths, the rule cards and "Pełne zasady" folded below. Terminal Oaths show their result and terminal date instead of a countdown. In the room layout the detail lowers the seal wall like Today, so the emblem stands on the middle plinth and the title and tabs sit on the dark band. The Oath title and activity follow, then one centred status panel holds the state, the countdown, the review or closing time in the Oath's own zone and the reason. The promise, declaration and rule cards come after it (native check, 2026-09-29).
+The detail uses the same layout as the review screen: the state seal and label, the countdown for nonterminal Oaths, the rule cards and "Pełne zasady" folded below. Terminal Oaths show their result and terminal date instead of a countdown. In the room layout the detail lowers the seal wall like Today, so the emblem stands on the middle plinth and the title and tabs sit on the dark band. The Oath title and activity follow, then one centred status panel holds the state, the countdown, the review or closing time in the Oath's own zone and the reason. The promise, declaration and rule cards come after it (native check, 2026-09-29). A `proof_pending` detail adds the assessment note and the server receipt time in the Oath's zone to that panel. A proof copy still waiting on the device shows as an interrupted upload under the panel and on the Today row, with a resend (MVP-07-T10).
 
 ## Countdown
 

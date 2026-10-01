@@ -140,7 +140,10 @@ test.each([
   f.api.submit.mockResolvedValueOnce(refusal as ProofResult);
   await c.submit({ oathId, mode: 'photo', source });
   expect(f.saved.get(key())).toBeNull(); expect(f.documents.size).toBe(0);
-  expect(c.getState()).toEqual({ kind: 'ready', busy: false, pending: null, oath: null, error: refusal });
+  // A refusal of the player's own send stays with the Oath only when it closes the Oath to proof. The proof screen showed the rest.
+  const { code, state } = refusal as { code: string; state?: string };
+  const closing = ['receipt_cutoff_passed', 'oath_not_active', 'proof_already_submitted'].includes(code);
+  expect(c.getState()).toEqual({ kind: 'ready', busy: false, pending: null, oath: null, error: refusal, ...(closing ? { lastRefusal: { oathId, submissionId, code, ...(state ? { state } : {}) } } : {}) });
   await c.recover(); expect(f.api.submit).toHaveBeenCalledTimes(1);
 });
 
@@ -346,4 +349,46 @@ test('discard keeps both when the record cannot be cleared and does nothing whil
   await c.discard();
   expect(f.saved.get(key())).toEqual(record()); expect(f.documents.get(`${submissionId}.jpg`)).toBe('JPEG-BYTES-1');
   expect(c.getState()).toMatchObject({ kind: 'ready', pending: record(), error: { kind: 'storage' } });
+});
+
+test('a recovered record refused for good keeps its Oath and reason for this binding until dismissed or the next send', async () => {
+  const f = setup(); const c = f.create(); c.start(); await flush();
+  await c.submit({ oathId, mode: 'photo', source });
+  expect(c.getState()).toMatchObject({ kind: 'ready', pending: record() });
+  f.api.submit.mockResolvedValueOnce({ kind: 'proof_refused', code: 'receipt_cutoff_passed' } as ProofResult);
+  await c.recover();
+  expect(f.saved.get(key())).toBeNull();
+  expect(c.getState()).toMatchObject({ kind: 'ready', pending: null, lastRefusal: { oathId, submissionId, code: 'receipt_cutoff_passed' } });
+  c.dismissRefusal();
+  expect(c.getState()).not.toHaveProperty('lastRefusal');
+  f.api.submit.mockResolvedValueOnce({ kind: 'proof_refused', code: 'oath_not_active', state: 'review_pending' } as ProofResult);
+  await c.submit({ oathId, mode: 'photo', source });
+  expect(c.getState()).toMatchObject({ lastRefusal: { oathId, submissionId: secondId, code: 'oath_not_active', state: 'review_pending' } });
+  // A new send starts without it, and another character never sees it.
+  const network = deferred<ProofResult>(); f.api.submit.mockReturnValueOnce(network.promise);
+  f.disk.set(source, 'JPEG-BYTES-2'); f.createId.mockReturnValueOnce('4a0b0c0d-0000-4000-8000-0000000000a1');
+  const sending = c.submit({ oathId, mode: 'photo', source }); await flush();
+  expect(c.getState()).not.toHaveProperty('lastRefusal');
+  network.resolve({ kind: 'proof_refused', code: 'receipt_cutoff_passed' } as ProofResult); await sending;
+  expect(c.getState()).toHaveProperty('lastRefusal');
+  c.setCharacter({ accountId, characterId: otherCharacter }); await flush();
+  expect(c.getState()).not.toHaveProperty('lastRefusal');
+});
+
+test('discard reports deleting while it clears, never a send', async () => {
+  const f = setup(); const c = f.create(); c.start(); await flush();
+  await c.submit({ oathId, mode: 'photo', source });
+  const write = deferred<{ kind: 'success' }>(); jest.mocked(f.storage.write).mockReturnValueOnce(write.promise);
+  const discarding = c.discard(); await flush();
+  expect(c.getState()).toMatchObject({ kind: 'ready', busy: true, deleting: true });
+  write.resolve({ kind: 'success' }); await discarding;
+  expect(c.getState()).toEqual({ kind: 'ready', busy: false, pending: null, oath: null });
+});
+
+test('an image refusal of a resend is kept with its Oath, because the player may not have seen it', async () => {
+  const f = setup(); const c = f.create(); c.start(); await flush();
+  await c.submit({ oathId, mode: 'photo', source });
+  f.api.submit.mockResolvedValueOnce({ kind: 'proof_refused', code: 'unreadable_image', field: 'image' } as ProofResult);
+  await c.recover();
+  expect(c.getState()).toMatchObject({ pending: null, lastRefusal: { oathId, submissionId, code: 'unreadable_image' } });
 });

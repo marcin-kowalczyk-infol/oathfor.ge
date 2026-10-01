@@ -316,7 +316,8 @@
     },
     "made": "Przysięga złożona",
     "madeDeadline": "Termin: {{time}}",
-    "viewOath": "Zobacz Przysięgę"
+    "viewOath": "Zobacz Przysięgę",
+    "proofPending": "Dowód odebrany. Ocena trwa. Opóźnienie oceny nie zmienia zarejestrowanego czasu odebrania dowodu."
   },
   "oathHome": {
     "today": "Dzisiaj",
@@ -349,7 +350,9 @@
     "summary": "{{activity}} · {{deadline}}",
     "historyLine": "Każdy wpis to Twoja historia w Kuźni.",
     "historyEmpty": "Kronika czeka na pierwszy wpis.",
-    "closedAt": "Zamknięta {{time}}"
+    "closedAt": "Zamknięta {{time}}",
+    "receivedAt": "Czas odebrania: {{time}}",
+    "uploadInterrupted": "Wysyłanie dowodu zostało przerwane. Kopia czeka na tym urządzeniu. Serwer jeszcze nie potwierdził odbioru."
   },
   "forge": {
     "busy": "Kuźnia kończy jeszcze Twój poprzedni krok. Wróć do paleniska za chwilę.",
@@ -705,7 +708,9 @@
     "pending": "Dowód zapisany na tym urządzeniu czeka na wysłanie. Serwer go jeszcze nie odebrał.",
     "otherPending": "Na tym urządzeniu czeka dowód innej Przysięgi. Wyślij go teraz, aby móc przesłać dowód tutaj.",
     "retry": "Wyślij ponownie",
-    "discard": "Usuń ten dowód",
+    "discard": "Usuń kopię z tego urządzenia",
+    "deleting": "Usuwanie kopii dowodu…",
+    "dismiss": "Rozumiem",
     "storageUnavailable": "Nie udało się bezpiecznie odczytać zapisanego dowodu. Uruchom aplikację ponownie i spróbuj jeszcze raz.",
     "errors": {
       "receiptCutoffPassed": "Termin przyjęcia dowodu minął. Serwer nie przyjął tego dowodu.",
@@ -714,7 +719,7 @@
       "tooLarge": "Ten obraz jest za duży, by go wysłać. Wybierz inny.",
       "unreadable": "Serwer nie mógł odczytać tego obrazu. Wybierz inny.",
       "refused": "Serwer nie przyjął tego dowodu. Wybierz obraz i spróbuj ponownie.",
-      "uploadRejected": "Serwer nie otrzymał obrazu. Wyślij go ponownie albo usuń ten dowód i wybierz obraz od nowa.",
+      "uploadRejected": "Serwer nie otrzymał obrazu. Wyślij go ponownie albo usuń kopię z tego urządzenia i wybierz obraz od nowa.",
       "unavailable": "Nie udało się połączyć z serwerem. Dowód nie został jeszcze odebrany. Kopia czeka na tym urządzeniu.",
       "rateLimited": "Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie. Kopia czeka na tym urządzeniu.",
       "fileMissing": "Zapisanej kopii obrazu nie ma już na tym urządzeniu. Wybierz obraz ponownie.",

@@ -2,7 +2,7 @@ import type { SessionController } from '../auth/session';
 import type { Oath } from '../api/oathSchema';
 import { isUuid } from '../api/oathSchema';
 import { createRequestId } from '../characters/requestId';
-import type { ProofClient, ProofMode, ProofResult } from './proofClient';
+import type { ProofClient, ProofMode, ProofRefusal, ProofResult } from './proofClient';
 import type { ProofFiles } from './proofFiles';
 import { isPendingProof, proofFileName, type PendingProof, type ProofPendingStorage } from './proofPendingStorage';
 
@@ -12,8 +12,14 @@ type Failure = Exclude<ProofResult, { kind: 'success' }>;
  * so a new picture is needed. `too_large`: the image is above the API limit and nothing was copied or sent.
  */
 export type ProofControllerError = Failure | { kind: 'storage' } | { kind: 'file_missing' } | { kind: 'too_large' };
+/**
+ * The final refusal of a recorded proof, kept with its Oath after the record is cleared, so the reason can still be shown,
+ * also after an automatic resend on load. It belongs to this binding and goes with the next send or `dismissRefusal()`.
+ */
+export type ProofLastRefusal = { oathId: string; submissionId: string; code: ProofRefusal['code']; state?: ProofRefusal['state'] };
+/** `deleting`: the busy step is a discard, not a send. */
 export type ProofControllerState = { kind: 'idle' | 'loading' | 'storage_unavailable' }
-  | { kind: 'ready'; busy: boolean; pending: PendingProof | null; oath: Oath | null; error?: ProofControllerError };
+  | { kind: 'ready'; busy: boolean; pending: PendingProof | null; oath: Oath | null; error?: ProofControllerError; lastRefusal?: ProofLastRefusal; deleting?: true };
 export type ProofCharacter = { accountId: string; characterId: string };
 /** `source` is the normalized JPEG without EXIF that the capture step produced. */
 export type ProofInput = { oathId: string; mode: ProofMode; source: string };
@@ -21,6 +27,8 @@ export type ProofInput = { oathId: string; mode: ProofMode; source: string };
 // Server answers that the same request can never change. Everything else keeps both for a retry,
 // including a local `invalid_request`, which never reached the server and must not destroy the only copy.
 const isFinal = (result: Failure) => result.kind === 'proof_refused';
+// Refusals that close the Oath to proof. Other refusals of the player's own send were shown on the proof screen already.
+const closingCodes = new Set(['receipt_cutoff_passed', 'oath_not_active', 'proof_already_submitted']);
 
 export function createProofController(options: { session: SessionController; api: ProofClient; storage: ProofPendingStorage; files: ProofFiles;
   createId?: () => string | undefined; onCharacterRequired?: () => void; onCharacterChanged?: () => void }) {
@@ -34,11 +42,15 @@ export function createProofController(options: { session: SessionController; api
   let storageQueue: Promise<unknown> = Promise.resolve();
   let pending: PendingProof | null = null;
   let oath: Oath | null = null;
+  let refusal: ProofLastRefusal | null = null;
+  let deleting = false;
   const listeners = new Set<() => void>();
   const requests = new Set<AbortController>();
   const current = (epoch: number) => !disposed && epoch === generation && binding !== undefined && options.session.getToken() === binding.token;
   function publish(next: ProofControllerState) { if (!disposed) { state = next; listeners.forEach(fn => fn()); } }
-  function ready(busy = false, error?: ProofControllerError) { publish({ kind: 'ready', busy, pending, oath, ...(error ? { error } : {}) }); }
+  function ready(busy = false, error?: ProofControllerError) {
+    publish({ kind: 'ready', busy, pending, oath, ...(error ? { error } : {}), ...(refusal ? { lastRefusal: refusal } : {}), ...(busy && deleting ? { deleting: true as const } : {}) });
+  }
   function invalidate() { generation++; requests.forEach(request => request.abort()); requests.clear(); }
   // Record and file changes for one controller run in order, so a clear never overtakes the write it follows.
   function storageCall<T>(action: () => Promise<T>): Promise<T> {
@@ -84,7 +96,7 @@ export function createProofController(options: { session: SessionController; api
     const auth = options.session.getState(); const token = options.session.getToken();
     binding = undefined;
     // Hide the previous owner's proof while auth is unknown. The durable record survives for that owner.
-    pending = null; oath = null;
+    pending = null; oath = null; refusal = null; deleting = false;
     if (auth.kind === 'authenticated' && token && character?.accountId === auth.account.id) {
       binding = { accountId: auth.account.id, characterId: character.characterId, token };
       publish({ kind: 'loading' }); void hydrate(generation);
@@ -98,7 +110,8 @@ export function createProofController(options: { session: SessionController; api
     await removeFile(record);
     return current(epoch);
   }
-  async function send(epoch: number): Promise<void> {
+  /** `resend`: a recovery of a recorded proof, whose answer the player may not see where it was sent. */
+  async function send(epoch: number, resend: boolean): Promise<void> {
     if (!pending || !current(epoch)) return;
     const record = pending;
     let opened: Awaited<ReturnType<ProofFiles['open']>>;
@@ -131,7 +144,10 @@ export function createProofController(options: { session: SessionController; api
     if (result.kind === 'proof_error' && result.code === 'character_required') options.onCharacterRequired?.();
     // The server looks the Oath up through its active character. Nothing was committed, so the copy waits for that character.
     if (result.kind === 'proof_error' && result.code === 'not_found') options.onCharacterChanged?.();
-    if (isFinal(result) && !await settle(epoch, record)) { if (current(epoch)) ready(false, { kind: 'storage' }); return; }
+    if (isFinal(result)) {
+      if (!await settle(epoch, record)) { if (current(epoch)) ready(false, { kind: 'storage' }); return; }
+      if (resend || closingCodes.has(result.code)) refusal = { oathId: record.oathId, submissionId: record.submissionId, code: result.code, ...(result.state ? { state: result.state } : {}) };
+    }
     ready(false, result);
   }
   async function submit(input: ProofInput) {
@@ -141,7 +157,7 @@ export function createProofController(options: { session: SessionController; api
     const submissionId = createId();
     if (submissionId === undefined || !isUuid(submissionId)) { ready(false, { kind: 'storage' }); return; }
     const record: PendingProof = { version: 1, accountId: binding!.accountId, characterId: binding!.characterId, oathId: input.oathId, submissionId, mode: input.mode, fileName: proofFileName(submissionId) };
-    oath = null; ready(true);
+    oath = null; refusal = null; ready(true);
     // The copy and its record exist before the first byte is sent. Without both, nothing is sent.
     let copied: Awaited<ReturnType<ProofFiles['copy']>>;
     try { copied = await storageCall(() => options.files.copy({ accountId: record.accountId, characterId: record.characterId }, input.source, record.fileName)); } catch { copied = { kind: 'unavailable' }; }
@@ -158,19 +174,21 @@ export function createProofController(options: { session: SessionController; api
       return;
     }
     if (!current(epoch)) return;
-    pending = record; ready(true); await send(epoch);
+    pending = record; ready(true); await send(epoch, false);
   }
   async function recover() {
     if (state.kind !== 'ready' || state.busy || !pending) return;
-    ready(true); await send(generation);
+    refusal = null; ready(true); await send(generation, true);
   }
   /** The player gives up an unresolved proof of the current binding: its record and copy are cleared. */
   async function discard() {
     if (state.kind !== 'ready' || state.busy || !pending) return;
     const epoch = generation; const record = pending;
-    ready(true);
-    if (!await settle(epoch, record)) { if (current(epoch)) ready(false, { kind: 'storage' }); return; }
-    ready();
+    deleting = true; ready(true);
+    const cleared = await settle(epoch, record);
+    if (!current(epoch)) return;
+    deleting = false;
+    ready(false, cleared ? undefined : { kind: 'storage' });
   }
   return {
     getState: () => state,
@@ -183,7 +201,9 @@ export function createProofController(options: { session: SessionController; api
       character = next ? { ...next } : null;
       if (unsubscribe && !disposed) onSession();
     },
-    stop() { invalidate(); unsubscribe?.(); unsubscribe = undefined; binding = undefined; pending = null; oath = null; publish({ kind: 'idle' }); },
+    stop() { invalidate(); unsubscribe?.(); unsubscribe = undefined; binding = undefined; pending = null; oath = null; refusal = null; deleting = false; publish({ kind: 'idle' }); },
+    /** The player has read the reason of the last final refusal. */
+    dismissRefusal() { if (refusal && state.kind === 'ready') { refusal = null; ready(state.busy, state.error); } },
     dispose() { invalidate(); unsubscribe?.(); unsubscribe = undefined; disposed = true; listeners.clear(); },
     submit, recover, discard,
   };

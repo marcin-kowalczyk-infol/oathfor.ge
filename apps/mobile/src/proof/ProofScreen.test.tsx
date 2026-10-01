@@ -188,7 +188,7 @@ test('sending shows no success until the server answers, then hands back the ret
   await act(async () => f.change({ kind: 'ready', busy: true, pending, oath: null }));
   expect(screen.getByText('Wysyłanie dowodu. Przysięga zmieni stan dopiero po odpowiedzi serwera.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Wyślij ponownie' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Usuń ten dowód' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Usuń kopię z tego urządzenia' })).toBeNull();
   expect(f.onDone).not.toHaveBeenCalled();
   const received = oath({ state: 'proof_pending', proof: { submissionId: pending.submissionId, mode: 'photo', revision: 1, receivedAt: '2026-10-24T18:14:00Z', assessment: 'queued' } });
   await act(async () => f.change({ kind: 'ready', busy: false, pending: null, oath: received }));
@@ -204,10 +204,14 @@ test('an unreachable server keeps the copy with send-again and discard, and clai
   await fireEvent.press(screen.getByRole('button', { name: 'Send again' }));
   expect(f.controller.recover).toHaveBeenCalledTimes(1);
   await act(async () => f.change({ kind: 'ready', busy: false, pending, oath: null, error: { kind: 'upload_rejected', code: 'image_required' } }));
-  expect(screen.getByText('The server did not receive the image. Send it again, or delete this proof and choose a new image.')).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Delete this proof' }));
+  expect(screen.getByText('The server did not receive the image. Send it again, or delete the copy on this device and choose a new image.')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Delete the copy on this device' }));
   expect(f.controller.discard).toHaveBeenCalledTimes(1);
   expect(f.onDone).not.toHaveBeenCalled();
+  // Deleting is local. It never reads as a send.
+  await act(async () => f.change({ kind: 'ready', busy: true, pending, oath: null, deleting: true }));
+  expect(screen.getByText('Deleting the proof copy…')).toBeOnTheScreen();
+  expect(screen.queryByText(/^Sending your proof/)).toBeNull();
 });
 
 test.each([
@@ -245,7 +249,7 @@ const otherOathId = '20000000-0000-4000-8000-000000000002';
 test('a proof waiting for another Oath can be sent again from here, but only its own Oath offers delete', async () => {
   const f = await show('en', oath(), fakeController({ kind: 'ready', busy: false, pending: pendingFor(otherOathId), oath: null, error: { kind: 'unavailable', retry: 'request' } }));
   expect(screen.getByText('A proof for another Oath is waiting on this device. Send it now so you can submit proof here.')).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Delete this proof' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Delete the copy on this device' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Send again' }));
   expect(f.controller.recover).toHaveBeenCalledTimes(1);
   expect(f.controller.discard).not.toHaveBeenCalled();

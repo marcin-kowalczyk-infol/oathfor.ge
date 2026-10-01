@@ -603,7 +603,7 @@ test('the list refreshes quietly when the network comes back, a detail stays as 
 function proofController() {
   let state: ProofControllerState = { kind: 'ready', busy: false, pending: null, oath: null };
   const listeners = new Set<() => void>();
-  const controller = { getState: () => state, subscribe: (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; }, submit: jest.fn(), recover: jest.fn(), discard: jest.fn() } as unknown as ProofController;
+  const controller = { getState: () => state, subscribe: (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; }, submit: jest.fn(), recover: jest.fn(), discard: jest.fn(), dismissRefusal: jest.fn() } as unknown as ProofController;
   return { controller, change(next: ProofControllerState) { state = next; listeners.forEach(fn => fn()); } };
 }
 test('an active detail opens the proof screen, and the server receipt returns to the detail in assessment', async () => {
@@ -641,4 +641,149 @@ test.each([
   await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
   await screen.findByLabelText(/^Status: /);
   expect(screen.queryByRole('button', { name: 'Submit proof' })).toBeNull();
+});
+
+const receipt = { submissionId: '40000000-0000-4000-8000-000000000001', mode: 'photo' as const, revision: 1, receivedAt: '2026-09-24T18:14:00Z', assessment: 'queued' as const };
+test.each([
+  ['en', 'Evidence received. Assessment is in progress. Assessment delays do not change the receipt time.', 'Receipt time: Sep 24, 2026 at 20:14 · Warsaw'],
+  ['pl', 'Dowód odebrany. Ocena trwa. Opóźnienie oceny nie zmienia zarejestrowanego czasu odebrania dowodu.', 'Czas odebrania: 24 wrz 2026, 20:14 · Warszawa'],
+] as const)('a %s proof_pending detail shows the assessment copy and the server receipt time in the Oath zone', async (locale, pending, line) => {
+  const f = setup([oath({ state: 'proof_pending', reason: null, review: null, proof: receipt })]);
+  await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /^(Open Oath|Otwórz Przysięgę): / }));
+  expect(await screen.findByText(pending)).toBeOnTheScreen();
+  expect(screen.getByText(line)).toBeOnTheScreen();
+});
+
+const interrupted = 'The proof upload was interrupted. A copy is waiting on this device. The server has not confirmed receipt yet.';
+const record = (oathId = id) => ({ version: 1 as const, accountId: '10000000-0000-4000-8000-000000000001', characterId, oathId, submissionId: receipt.submissionId, mode: 'photo' as const, fileName: `${receipt.submissionId}.jpg` });
+test('a pending local record shows the interrupted upload on its Today row, and a resend receipt updates the row', async () => {
+  const active = oath({ state: 'active', reason: null, review: null });
+  const f = setup([active]); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  expect(await screen.findByText(interrupted)).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Delete the copy on this device' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Send again' }));
+  expect(proof.controller.recover).toHaveBeenCalledTimes(1);
+  await act(async () => proof.change({ kind: 'ready', busy: true, pending: record(), oath: null }));
+  expect(screen.getByText('Sending your proof. The Oath changes only when the server answers.')).toBeOnTheScreen();
+  const row = () => screen.getByRole('button', { name: /Open Oath: Running/ });
+  expect(row().props.accessibilityValue).toEqual({ text: 'Active' });
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: oath({ state: 'proof_pending', reason: null, review: null, proof: receipt }) }));
+  await waitFor(() => expect(row().props.accessibilityValue).toEqual({ text: 'Assessment pending' }));
+  expect(screen.queryByText(interrupted)).toBeNull();
+});
+test('a pending local record shows the interrupted upload on its detail, and only the server receipt shows assessment', async () => {
+  const f = setup([oath({ state: 'active', reason: null, review: null })]); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  expect(await screen.findByText(interrupted)).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Submit proof' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Delete the copy on this device' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Send again' }));
+  expect(proof.controller.recover).toHaveBeenCalledTimes(1);
+  // While the upload runs nothing claims a receipt.
+  await act(async () => proof.change({ kind: 'ready', busy: true, pending: record(), oath: null }));
+  expect(screen.getByText('Sending your proof. The Oath changes only when the server answers.')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Send again' })).toBeNull();
+  expect(screen.getByLabelText('Status: Active')).toBeOnTheScreen();
+  expect(screen.queryByText(/^Evidence received/)).toBeNull();
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: oath({ state: 'proof_pending', reason: null, review: null, proof: receipt }) }));
+  expect(await screen.findByLabelText('Status: Assessment pending')).toBeOnTheScreen();
+  expect(screen.getByText('Evidence received. Assessment is in progress. Assessment delays do not change the receipt time.')).toBeOnTheScreen();
+  expect(screen.getByText('Receipt time: Sep 24, 2026 at 20:14 · Warsaw')).toBeOnTheScreen();
+  expect(screen.queryByText(interrupted)).toBeNull();
+});
+test('a lost reply leaves a received Oath with its record, which is replayed once quietly and never shown as interrupted', async () => {
+  const f = setup([oath({ state: 'proof_pending', reason: null, review: null, proof: receipt })]); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  const interruptedPl = 'Wysyłanie dowodu zostało przerwane. Kopia czeka na tym urządzeniu. Serwer jeszcze nie potwierdził odbioru.';
+  await screen.findByRole('button', { name: /Otwórz Przysięgę/ });
+  // The server already holds this submissionId, so a replay only returns the original receipt and clears the record.
+  await waitFor(() => expect(proof.controller.recover).toHaveBeenCalledTimes(1));
+  expect(screen.queryByText(interruptedPl)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: /Otwórz Przysięgę/ }));
+  expect(await screen.findByText('Dowód odebrany. Ocena trwa. Opóźnienie oceny nie zmienia zarejestrowanego czasu odebrania dowodu.')).toBeOnTheScreen();
+  expect(screen.queryByText(interruptedPl)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Usuń kopię z tego urządzenia' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Wyślij ponownie' })).toBeNull();
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: record(), oath: null, error: { kind: 'unavailable', retry: 'request' } }));
+  expect(proof.controller.recover).toHaveBeenCalledTimes(1);
+});
+test('a record for another Oath shows nothing on this detail and keeps its send action', async () => {
+  const f = setup([oath({ state: 'active', reason: null, review: null })]); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record('20000000-0000-4000-8000-000000000009'), oath: null });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  expect(await screen.findByRole('button', { name: 'Submit proof' })).toBeOnTheScreen();
+  expect(screen.queryByText(interrupted)).toBeNull();
+});
+test.each([
+  ['oath_not_active', { kind: 'proof_refused', code: 'oath_not_active', state: 'review_pending' }, 'This Oath is no longer waiting for proof. Check its current status.'],
+  ['receipt_cutoff_passed', { kind: 'proof_refused', code: 'receipt_cutoff_passed' }, 'The evidence deadline has passed. The server did not accept this proof.'],
+] as const)('resuming a stale record refused with %s shows the server reason once the record is cleared', async (_, error, reason) => {
+  const f = setup([oath()]); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Send again' }));
+  const { code, state } = error as { code: 'oath_not_active' | 'receipt_cutoff_passed'; state?: 'review_pending' };
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: null, error, lastRefusal: { oathId: id, submissionId: receipt.submissionId, code, ...(state ? { state } : {}) } }));
+  expect(await screen.findByText(reason)).toBeOnTheScreen();
+  expect(screen.queryByText(interrupted)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Send again' })).toBeNull();
+  // The detail asks the server again, so the shown state is its own.
+  await waitFor(() => expect(f.controller.detail).toHaveBeenCalledTimes(2));
+});
+
+test('an automatic resend refused for good shows its reason on the Today row and the detail until the player dismisses it', async () => {
+  const f = setup([oath()]); const proof = proofController();
+  const cutoff = 'The evidence deadline has passed. The server did not accept this proof.';
+  // resumeOnLoad sent the record before this screen existed. Only the controller's lastRefusal remembers the Oath.
+  proof.change({ kind: 'ready', busy: false, pending: null, oath: null, error: { kind: 'proof_refused', code: 'receipt_cutoff_passed' }, lastRefusal: { oathId: id, submissionId: receipt.submissionId, code: 'receipt_cutoff_passed' } });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  expect(await screen.findByText(cutoff)).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Got it' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: /Open Oath: Running/ }));
+  expect(await screen.findByText(cutoff)).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Send again' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Got it' }));
+  expect(proof.controller.dismissRefusal).toHaveBeenCalledTimes(1);
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: null, error: { kind: 'proof_refused', code: 'receipt_cutoff_passed' } }));
+  expect(screen.queryByText(cutoff)).toBeNull();
+});
+test('deleting the waiting copy from the detail reads as deleting, never as sending', async () => {
+  const f = setup([oath({ state: 'active', reason: null, review: null })]); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Otwórz Przysięgę/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Usuń kopię z tego urządzenia' }));
+  await act(async () => proof.change({ kind: 'ready', busy: true, pending: record(), oath: null, deleting: true }));
+  expect(screen.getAllByText('Usuwanie kopii dowodu…').length).toBeGreaterThan(0);
+  expect(screen.queryByText(/^Wysyłanie dowodu\./)).toBeNull();
+});
+test('a refusal already known when Today opens does not hold the list in loading', async () => {
+  const f = setup([oath()]); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: null, oath: null, lastRefusal: { oathId: id, submissionId: receipt.submissionId, code: 'receipt_cutoff_passed' } });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  expect(await screen.findByText('The evidence deadline has passed. The server did not accept this proof.')).toBeOnTheScreen();
+  expect(screen.queryByText('Loading Oaths…')).toBeNull();
+  expect(f.controller.list).toHaveBeenCalledTimes(1);
+});
+test('a refusal for one Oath stays off another Oath row and detail', async () => {
+  const other = oath({ state: 'active', reason: null, review: null, id: '20000000-0000-4000-8000-000000000002' });
+  other.snapshot = { ...other.snapshot, activity: 'mobility', copy: { ...other.snapshot.copy, en: { ...other.snapshot.copy.en, activity: 'Mobility' }, pl: { ...other.snapshot.copy.pl, activity: 'Mobilność' } } };
+  const f = setup([other]);
+  const proof = proofController(); const cutoff = 'The evidence deadline has passed. The server did not accept this proof.';
+  proof.change({ kind: 'ready', busy: false, pending: null, oath: null, lastRefusal: { oathId: id, submissionId: receipt.submissionId, code: 'receipt_cutoff_passed' } });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  const otherRow = await screen.findByRole('button', { name: /Open Oath: Mobility/ });
+  expect(screen.queryByText(cutoff)).toBeNull();
+  await fireEvent.press(otherRow);
+  await screen.findByLabelText('Status: Active');
+  expect(screen.queryByText(cutoff)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Got it' })).toBeNull();
 });

@@ -27,7 +27,7 @@ const imageCodes = new Set(['too_large', 'request_too_large', 'too_many_pixels']
 const unreadableCodes = new Set(['unsupported_type', 'unsupported_media_type', 'unreadable_image']);
 
 /** Every failure reads as a plain sentence. None of them claims the server received anything. */
-function errorMessage(error: ProofControllerError, t: Translate): string {
+export function errorMessage(error: ProofControllerError, t: Translate): string {
   switch (error.kind) {
     case 'proof_refused':
       if (error.code === 'receipt_cutoff_passed') return t('proof.errors.receiptCutoffPassed');
@@ -154,7 +154,7 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel }: { o
   } else if (ready.pending) {
     // One unresolved proof per character blocks a new one. Its copy can be sent again or given up.
     body = <View testID="proof-pending" style={styles.section}>
-      <View accessibilityLiveRegion="polite"><CompanionBubble message={busy ? t('proof.sending') : ready.error ? errorMessage(ready.error, t) : t('proof.pending')} /></View>
+      <View accessibilityLiveRegion="polite"><CompanionBubble message={busy ? t(ready.deleting ? 'proof.deleting' : 'proof.sending') : ready.error ? errorMessage(ready.error, t) : t('proof.pending')} /></View>
       {/* While the upload runs, the bubble alone tells the player to wait. */}
       {!busy && <>
         <Action label={t('proof.retry')} onPress={() => { void controller.recover(); }} />
