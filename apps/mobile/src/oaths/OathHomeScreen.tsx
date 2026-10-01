@@ -81,6 +81,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     if (restore && !restoredAt) setRestore(null);
   }, [route, view, scroll]);
   const [list, setList] = useState<OathListEnvelope | null>(null);
+  // How many rows the first page of the shown list held, so a merge on return knows which kept rows were page 1.
+  const firstPage = useRef(0);
   const [loading, setLoading] = useState(false);
   const loadingNow = useRef(false); loadingNow.current = loading;
   const [failed, setFailed] = useState(false);
@@ -124,13 +126,16 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     if (!current(epoch)) return;
     if (!quiet) setLoading(false);
     if (result.kind !== 'success') { setFailed(true); return; }
-    // The fresh first page replaces its own rows. Rows of later pages that it does not hold stay, with the cursor past them.
-    // When the fresh page says nothing follows, it is the whole list, so it replaces everything.
+    // The fresh first page replaces the old first page, so a row it no longer holds is gone. Rows of later pages stay, without
+    // any the fresh page now holds, with the cursor past them. When the fresh page says nothing follows, it is the whole list.
     if (kept && result.value.nextCursor !== null && kept.items.length > result.value.items.length) {
       const fresh = new Set(result.value.items.map(item => item.id));
-      setList({ ...result.value, nextCursor: kept.nextCursor, items: [...result.value.items, ...kept.items.filter(item => !fresh.has(item.id))] });
+      const later = kept.items.slice(firstPage.current).filter(item => !fresh.has(item.id));
+      firstPage.current = result.value.items.length;
+      setList({ ...result.value, nextCursor: kept.nextCursor, items: [...result.value.items, ...later] });
       return result.value;
     }
+    if (!append) firstPage.current = result.value.items.length;
     // Live pagination can repeat rows after server changes; keep the returned order of new rows.
     const existing = new Set(previous?.items.map(item => item.id));
     setList({ ...result.value, items: previous ? [...previous.items, ...result.value.items.filter(item => !existing.has(item.id))] : result.value.items });

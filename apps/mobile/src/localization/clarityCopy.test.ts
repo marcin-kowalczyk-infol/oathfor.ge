@@ -49,8 +49,8 @@ test('Polish names review only with the set phrase "pod rozwagą"', () => {
 });
 
 test('the pending proof lines keep that nothing changes before the server answers', () => {
-  expect(group(pl, 'proof').intro).toMatch(/dopiero/);
+  expect(group(pl, 'proof').introFull).toMatch(/dopiero/);
   expect(group(pl, 'proof').sending).toMatch(/dopiero/);
-  expect(group(en, 'proof').intro).toMatch(/only/);
+  expect(group(en, 'proof').introFull).toMatch(/only/);
   expect(group(en, 'proof').sending).toMatch(/only/);
 });

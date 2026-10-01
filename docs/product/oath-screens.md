@@ -90,7 +90,7 @@ The animation starts only after the server confirms acceptance, never on the tap
    - One line with D in its local time and zone, and the state label from the server.
    - Actions: "Zobacz Przysięgę" / "View the Oath" (detail with the full rules) and "Wróć do Kuźni" / "Back to the Forge". "Nowa Przysięga" stays available.
 
-The full rules no longer repeat on this card. They stay one touch away in the detail. Reduce Motion shows the sealed frame and a still hourglass. The app learns the motion preference shortly after the screen opens, so the unsealed scroll shows for up to 400 ms first (native check, 2026-09-30). VoiceOver announces "Przysięga złożona" and the countdown once.
+MVP-22-T12 adds the step track under the title, merges the deadline, zone and state into one line and adds Żaromir's line above the actions ([clarity](clarity.md) decision 13). The full rules no longer repeat on this card. They stay one touch away in the detail. Reduce Motion shows the sealed frame and a still hourglass. The app learns the motion preference shortly after the screen opens, so the unsealed scroll shows for up to 400 ms first (native check, 2026-09-30). VoiceOver announces "Przysięga złożona" and the countdown once.
 
 ### 4. Your Oaths (item 4)
 

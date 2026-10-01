@@ -1285,3 +1285,21 @@ test.each([['en', 'Today', 'Goes back to the list'], ['pl', 'Dzisiaj', 'Wraca do
   await screen.findByTestId('detail-status');
   expect(screen.getByRole('button', { name: label })).toHaveProp('accessibilityHint', hint);
 });
+test('going back after the server closed a first-page row drops that row and keeps the second page', async () => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const first = oath(), second = oath({ id: '20000000-0000-4000-8000-000000000002' }), third = oath({ id: '20000000-0000-4000-8000-000000000003' });
+  second.snapshot = { ...second.snapshot, copy: { ...second.snapshot.copy, en: { ...second.snapshot.copy.en, activity: 'Mobility' } } };
+  third.snapshot = { ...third.snapshot, copy: { ...third.snapshot.copy, en: { ...third.snapshot.copy.en, activity: 'Strength training' } } };
+  const f = setup([first]);
+  // Page 1 held Running and Strength training. Strength training closed meanwhile, so the fresh page 1 holds Running only.
+  jest.mocked(f.controller.list).mockResolvedValueOnce(page([first, third], 'cursor1')).mockResolvedValueOnce(page([second])).mockResolvedValueOnce(page([first], 'cursor1'));
+  jest.mocked(f.controller.detail).mockResolvedValue({ kind: 'success', value: { oath: second, serverTime } });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Load more' }));
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Mobility/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Today' }));
+  await waitFor(() => expect(f.controller.list).toHaveBeenCalledTimes(3));
+  await waitFor(() => expect(screen.queryByRole('button', { name: /Open Oath: Strength training/ })).toBeNull());
+  expect(screen.getByRole('button', { name: /Open Oath: Running/ })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: /Open Oath: Mobility/ })).toBeOnTheScreen();
+});

@@ -611,7 +611,6 @@
   "proof": {
     "submit": "Submit proof",
     "back": "Back to the Oath",
-    "intro": "Three steps, one image. The Oath changes only when the server receives the proof.",
     "routeHeading": "Type of evidence",
     "routes": {
       "photo": {
@@ -623,7 +622,6 @@
         "hint": "A screenshot of the workout summary from your app or watch"
       }
     },
-    "imageHeading": "Image",
     "crop": "This app cannot crop the image. Crop or cover anything private in Photos first, keeping what the rules require.",
     "camera": "Take a photo",
     "library": "Choose from Photos",

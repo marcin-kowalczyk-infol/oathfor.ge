@@ -637,7 +637,6 @@
   "proof": {
     "submit": "Prześlij dowód",
     "back": "Wróć do Przysięgi",
-    "intro": "Trzy kroki, jeden obraz. Przysięga zmieni stan dopiero, gdy serwer odbierze dowód.",
     "routeHeading": "Rodzaj dowodu",
     "routes": {
       "photo": {
@@ -649,7 +648,6 @@
         "hint": "Zrzut ekranu podsumowania treningu z aplikacji lub zegarka"
       }
     },
-    "imageHeading": "Obraz",
     "crop": "W tej aplikacji nie da się przyciąć obrazu. Prywatne fragmenty przytnij lub zasłoń wcześniej w Zdjęciach, zostawiając to, czego wymagają zasady.",
     "camera": "Zrób zdjęcie",
     "library": "Wybierz ze Zdjęć",
