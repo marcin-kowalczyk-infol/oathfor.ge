@@ -31,4 +31,12 @@ interface ProofStorage
      * @return list<string>
      */
     public function listStagedBefore(int $instant): array;
+
+    /**
+     * Removes at most $limit leftover partial writes last modified strictly before $instant (Unix seconds).
+     * They never carry a key, so no row can reference them. Staged and promoted objects are never touched.
+     *
+     * @return array{removed: int, failed: int}
+     */
+    public function purgeTemporaryBefore(int $instant, int $limit): array;
 }

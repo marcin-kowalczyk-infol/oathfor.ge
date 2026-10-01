@@ -15,6 +15,7 @@ final class FilesystemProofStorage implements ProofStorage
 {
     private const string STAGED = 'staged';
     private const string OBJECTS = 'objects';
+    private const string TEMPORARY_PREFIX = '.tmp-';
     private const string KEY_PATTERN = '/^[0-9a-f]{32}$/D';
 
     private ?string $root = null;
@@ -27,7 +28,7 @@ final class FilesystemProofStorage implements ProofStorage
     {
         $staged = $this->prepare(self::STAGED);
         $key = bin2hex(random_bytes(16));
-        $temporary = @tempnam($staged, '.tmp-');
+        $temporary = @tempnam($staged, self::TEMPORARY_PREFIX);
         if (false === $temporary || dirname($temporary) !== $staged) {
             if (false !== $temporary) {
                 @unlink($temporary);
@@ -122,6 +123,37 @@ final class FilesystemProofStorage implements ProofStorage
         }
         sort($keys);
         return $keys;
+    }
+
+    public function purgeTemporaryBefore(int $instant, int $limit): array
+    {
+        $staged = $this->root().'/'.self::STAGED;
+        $names = is_dir($staged) ? @scandir($staged) : [];
+        if (false === $names) {
+            throw new \RuntimeException('Proof storage unavailable');
+        }
+        clearstatcache();
+        $removed = $failed = 0;
+        foreach ($names as $name) {
+            if ($removed + $failed >= $limit) {
+                break;
+            }
+            // Only stage() creates this prefix. A crashed process leaves the file, every PHP-level failure removes it.
+            if (!str_starts_with($name, self::TEMPORARY_PREFIX)) {
+                continue;
+            }
+            $path = $staged.'/'.$name;
+            $modified = @filemtime($path);
+            if (false === $modified || $modified >= $instant) {
+                continue;
+            }
+            if (@unlink($path) || !file_exists($path)) {
+                ++$removed;
+            } else {
+                ++$failed;
+            }
+        }
+        return ['removed' => $removed, 'failed' => $failed];
     }
 
     private function unlink(string $state, string $key): void
