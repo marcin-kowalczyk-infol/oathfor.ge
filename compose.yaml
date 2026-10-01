@@ -6,6 +6,8 @@ x-php: &php
     - ./apps/api:/app
     - api_vendor:/app/vendor
     - api_var:/app/var
+    # Private proof objects outside /app/public, never served directly (ADR 0008).
+    - proof_storage:/var/lib/oathforge/proofs
   environment:
     APP_ENV: dev
     APP_SECRET: DUMMY-compose-local-only
@@ -14,6 +16,7 @@ x-php: &php
     MESSENGER_TRANSPORT_DSN: redis://redis:6379/messages
     MESSENGER_FAILURE_DSN: redis://redis:6379/failed
     MESSENGER_CONSUMER_NAME: local-worker
+    PROOF_STORAGE_DIR: /var/lib/oathforge/proofs
 
 x-ready: &ready
   init:
@@ -75,5 +78,6 @@ services:
 volumes:
   api_vendor:
   api_var:
+  proof_storage:
   postgres_data:
   redis_data:
