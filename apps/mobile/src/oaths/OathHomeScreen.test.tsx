@@ -9,7 +9,7 @@ import { tokens } from '../ui/tokens';
 import { DETAIL_DROP, LIST_DROP } from '../ui/SceneSurface';
 import type { OathController, OathControllerState } from './controller';
 import type { Oath } from '../api/oathSchema';
-import type { ProofController, ProofControllerState } from '../proof/proofController';
+import type { ProofController, ProofControllerError, ProofControllerState } from '../proof/proofController';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 jest.mock('expo-image-picker', () => ({ requestCameraPermissionsAsync: jest.fn(), launchCameraAsync: jest.fn(), launchImageLibraryAsync: jest.fn() }));
@@ -754,6 +754,9 @@ test('a lost reply leaves a received Oath with its record, which is replayed onc
   expect(screen.queryByText(interruptedPl)).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: /Otwórz Przysięgę/ }));
   expect(await screen.findByText('Dowód odebrany. Wynik pojawi się tutaj.')).toBeOnTheScreen();
+  // The interrupted explanation would sit behind "Pełny opis", so the check opens it first.
+  await fireEvent.press(screen.getByRole('button', { name: 'Pełny opis' }));
+  expect(screen.getByText(/20:14/)).toBeOnTheScreen();
   expect(screen.queryByText(interruptedPl)).toBeNull();
   expect(screen.queryByRole('button', { name: 'Usuń kopię z tego urządzenia' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Wyślij ponownie' })).toBeNull();
@@ -797,6 +800,8 @@ test('an automatic resend refused for good shows its reason on the Today row and
   await fireEvent.press(screen.getByRole('button', { name: /Open Oath: Running/ }));
   expect(await screen.findByText(cutoff)).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Send again' })).toBeNull();
+  expect(within(screen.getByRole('button', { name: 'Got it' })).queryByText('◆')).toBeNull();
+  expect(filled().length).toBeLessThanOrEqual(1);
   await fireEvent.press(screen.getByRole('button', { name: 'Got it' }));
   expect(proof.controller.dismissRefusal).toHaveBeenCalledTimes(1);
   await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: null, error: { kind: 'proof_refused', code: 'receipt_cutoff_passed' } }));
@@ -924,18 +929,40 @@ test('an interrupted upload shows its badge words, one filled "Send again" and t
   await fireEvent.press(screen.getByRole('button', { name: 'Usuń kopię z tego urządzenia' }));
   expect(proof.controller.discard).toHaveBeenCalledTimes(1);
 });
-test('a required refusal replaces the line, a passing network error stays behind the full description', async () => {
+// Review of T09 and T09b: a press must have visible feedback, so an error that follows it replaces the line (clarity.md decision 3).
+test.each([
+  [{ kind: 'unavailable', retry: 'request' }, 'Could not reach the server. The proof has not been received yet. A copy is waiting on this device.'],
+  [{ kind: 'rate_limited', retry: 'request' }, 'Too many attempts. Wait a moment and try again. A copy is waiting on this device.'],
+  [{ kind: 'storage' }, 'We could not safely save the proof copy on this device. Try again.'],
+] as const)('an error after the player sends again (%o) replaces the card line', async (error, message) => {
   const f = setup([activeThursday()]); f.controller.clock.observe(serverTime); const proof = proofController();
   proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="UTC" /></LocalizationProvider>);
   await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Send again' }));
-  await act(async () => proof.change({ kind: 'ready', busy: false, pending: record(), oath: null, error: { kind: 'unavailable', retry: 'request' } }));
-  expect(screen.getByText('Proof not received. The copy is here, ready to send again.')).toBeOnTheScreen();
-  expect(screen.queryByText(/Could not reach the server/)).toBeNull();
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: record(), oath: null, error: error as ProofControllerError }));
+  expect(within(screen.getByTestId('detail-status')).getByText(message)).toBeOnTheScreen();
+  expect(screen.queryByText('Proof not received. The copy is here, ready to send again.')).toBeNull();
+  // The explanation of the waiting copy stays behind the full description.
   await fireEvent.press(screen.getByRole('button', { name: 'Full description' }));
-  expect(screen.getByText(/Could not reach the server/)).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Send again' }));
+  expect(screen.getByText(interrupted)).toBeOnTheScreen();
+  expect(filled()).toHaveLength(1);
+});
+test('an error after the player deletes the copy replaces the card line too', async () => {
+  const f = setup([activeThursday()]); f.controller.clock.observe(serverTime); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Delete the copy on this device' }));
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: record(), oath: null, error: { kind: 'storage' } }));
+  expect(within(screen.getByTestId('detail-status')).getByText('We could not safely save the proof copy on this device. Try again.')).toBeOnTheScreen();
+});
+test('a required refusal replaces the line', async () => {
+  const f = setup([activeThursday()]); f.controller.clock.observe(serverTime); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Send again' }));
   await act(async () => proof.change({ kind: 'ready', busy: false, pending: record(), oath: null, error: { kind: 'reauthenticate' } }));
   expect(screen.getByText('Sign in again. The proof copy is waiting on this device.')).toBeOnTheScreen();
   expect(screen.queryByText('Proof not received. The copy is here, ready to send again.')).toBeNull();
@@ -962,7 +989,10 @@ test('an active detail asks the server again when the window for proof closes, a
     await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath:/ }))[0]);
     expect(await screen.findByText('Workout finished by the deadline? Submit proof by Thu, Oct 29, 02:45.')).toBeOnTheScreen();
     expect(f.controller.detail).toHaveBeenCalledTimes(1);
-    await act(async () => { jest.advanceTimersByTime(11000); });
+    // At S the window is still open. One millisecond later it is closed.
+    await act(async () => { jest.advanceTimersByTime(10000); });
+    expect(f.controller.detail).toHaveBeenCalledTimes(1);
+    await act(async () => { jest.advanceTimersByTime(1); });
     expect(f.controller.detail).toHaveBeenCalledTimes(2);
     expect(await screen.findByText('The proof window has closed. The Forge is settling the state.')).toBeOnTheScreen();
     expect(filled()).toHaveLength(0);
@@ -978,10 +1008,57 @@ test('an active detail moves to the last-hour line an hour before the deadline w
     await act(async () => { await Promise.resolve(); });
     await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath:/ }))[0]);
     expect(await screen.findByText('Workout and proof by Thu, Oct 29, 02:30.')).toBeOnTheScreen();
-    await act(async () => { jest.advanceTimersByTime(61000); });
+    // Exactly an hour before D is not yet "under an hour". One millisecond later it is.
+    await act(async () => { jest.advanceTimersByTime(60000); });
+    expect(screen.getByText('Workout and proof by Thu, Oct 29, 02:30.')).toBeOnTheScreen();
+    await act(async () => { jest.advanceTimersByTime(1); });
     expect(screen.getByText('Under an hour left. Workout and proof by Thu, Oct 29, 02:30.')).toBeOnTheScreen();
     expect(f.controller.detail).toHaveBeenCalledTimes(1);
   } finally { jest.useRealTimers(); }
+});
+test('an active detail moves to the cutoff line just after the deadline, also when the server cannot answer', async () => {
+  jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-10-29T01:29:50Z'));
+  try {
+    const f = setup([activeThursday()]); f.controller.clock.observe('2026-10-29T01:29:50Z');
+    // The chip reaching D asks the server. Offline that answer never comes, and the line still changes.
+    jest.mocked(f.controller.detail).mockResolvedValueOnce({ kind: 'success', value: { oath: activeThursday(), serverTime } }).mockResolvedValue({ kind: 'unavailable', retry: 'request' });
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+    await act(async () => { await Promise.resolve(); });
+    await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath:/ }))[0]);
+    expect(await screen.findByText('Under an hour left. Workout and proof by Thu, Oct 29, 02:30.')).toBeOnTheScreen();
+    await act(async () => { jest.advanceTimersByTime(10000); });
+    expect(screen.getByText('Under an hour left. Workout and proof by Thu, Oct 29, 02:30.')).toBeOnTheScreen();
+    await act(async () => { jest.advanceTimersByTime(1); });
+    expect(screen.getByText('Workout finished by the deadline? Submit proof by Thu, Oct 29, 02:45.')).toBeOnTheScreen();
+  } finally { jest.useRealTimers(); }
+});
+test.each(['the proof screen', 'unmount'] as const)('the detail timer stops after leaving for %s', async (leave) => {
+  jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-10-29T01:44:50Z'));
+  try {
+    const f = setup([activeThursday()]); f.controller.clock.observe('2026-10-29T01:44:50Z');
+    const view = await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proofController().controller} timezone="UTC" /></LocalizationProvider>);
+    await act(async () => { await Promise.resolve(); });
+    await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath:/ }))[0]);
+    await screen.findByTestId('detail-status');
+    expect(f.controller.detail).toHaveBeenCalledTimes(1);
+    if (leave === 'unmount') await view.unmount();
+    else await fireEvent.press(screen.getByRole('button', { name: 'Submit proof' }));
+    await act(async () => { jest.advanceTimersByTime(20000); });
+    expect(f.controller.detail).toHaveBeenCalledTimes(1);
+  } finally { jest.useRealTimers(); }
+});
+test('past S a waiting copy shows the interrupted badge, one filled "Wyślij ponownie", an outline delete and no Żaromir', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const f = setup([activeThursday()]); f.controller.clock.observe('2026-10-29T01:46:00Z'); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} proof={proof.controller} timezone="UTC" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Otwórz Przysięgę/ }));
+  expect(await screen.findByTestId('step-words')).toHaveTextContent('Nie dotarł');
+  expect(within(screen.getByTestId('detail-status')).getByText('Dowód nie dotarł. Kopia czeka tu na ponowne wysłanie.')).toBeOnTheScreen();
+  expect(filled()).toHaveLength(1);
+  expect(within(screen.getByRole('button', { name: 'Wyślij ponownie' })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
+  expect(within(screen.getByRole('button', { name: 'Usuń kopię z tego urządzenia' })).queryByText('◆', { includeHiddenElements: true })).toBeNull();
+  expect(screen.queryAllByTestId('zaromir-bust', { includeHiddenElements: true })).toHaveLength(0);
 });
 test('a deadline beyond the longest timeout waits in steps instead of firing at once', async () => {
   jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-09-01T00:00:00Z'));

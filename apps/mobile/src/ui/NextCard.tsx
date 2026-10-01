@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { AccessibilityInfo, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
 import type { Oath } from '../api/oathSchema';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { countdownTarget } from '../oaths/countdown';
@@ -14,25 +14,28 @@ import { tokens } from './tokens';
 /**
  * The "now and next" card (docs/product/clarity.md "Shared pieces"): seal and state, one line, the countdown when the state has one,
  * at most one action, an optional secondary node and the long facts behind "Pełny opis". A changed state is announced once.
+ * announceLine: the player just pressed an action here, so a new line in the same state is their feedback and is read out on iOS.
+ * Android hears it through the line's live region.
  */
-export function NextCard({ oath, clock, line, onElapsed, action, secondary, details }: {
+export function NextCard({ oath, clock, line, onElapsed, action, secondary, details, announceLine = false }: {
   oath: Pick<Oath, 'state' | 'snapshot' | 'review'>; clock: ServerClock; line: string; onElapsed?: () => void;
-  action?: ActionProps; secondary?: ReactNode; details?: ReactNode;
+  action?: ActionProps; secondary?: ReactNode; details?: ReactNode; announceLine?: boolean;
 }) {
   const { t } = useTranslation();
   const state = t(`oath.states.${oath.state}`);
-  const previous = useRef(oath.state);
+  const previous = useRef({ state: oath.state, line });
   useEffect(() => {
-    if (previous.current === oath.state) return;
-    previous.current = oath.state;
-    AccessibilityInfo.announceForAccessibilityWithOptions(t('common.statusAnnouncement', { heading: state, description: line }), { queue: true });
-  }, [oath.state, state, line, t]);
+    const before = previous.current;
+    previous.current = { state: oath.state, line };
+    if (before.state !== oath.state) AccessibilityInfo.announceForAccessibilityWithOptions(t('common.statusAnnouncement', { heading: state, description: line }), { queue: true });
+    else if (before.line !== line && announceLine && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibilityWithOptions(line, { queue: true });
+  }, [oath.state, state, line, t, announceLine]);
   return <View testID="detail-status" style={styles.panel}>
     <View accessible accessibilityLabel={t('oath.state', { state })} accessibilityLiveRegion="polite" style={styles.state}>
       <StateSeal state={oath.state} size={56} />
       <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.stateLabel}>{state}</Text>
     </View>
-    <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.line}>{line}</Text>
+    <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.line}>{line}</Text>
     {countdownTarget(oath) !== null && <CountdownChip oath={oath} clock={clock} size="large" onElapsed={onElapsed} />}
     {action && <Action {...action} />}
     {secondary}

@@ -22,9 +22,8 @@ test('an active Oath shows four labelled steps in a row, read as one sentence', 
   expect(StyleSheet.flatten(track.props.style)).toMatchObject({ flexDirection: 'row' });
   for (const label of ['Przysięga', 'Trening', 'Ocena', 'Wynik']) expect(screen.getByText(label)).toBeOnTheScreen();
   for (const id of ['step-node-1-done', 'step-node-2-current', 'step-node-3-future', 'step-node-4-future']) expect(screen.getByTestId(id, hidden)).toBeTruthy();
-  // A short label shrinks a little, then takes a second line, never an ellipsis.
-  expect(screen.getByText('Przysięga').props).toMatchObject({ numberOfLines: 2, adjustsFontSizeToFit: true });
-  expect(screen.getByText('Przysięga').props.minimumFontScale).toBeGreaterThanOrEqual(0.85);
+  // A single word never breaks inside itself: one line that shrinks to 70 %. Larger text uses the vertical list.
+  expect(screen.getByText('Przysięga').props).toMatchObject({ numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.7 });
 });
 
 test('an interrupted upload puts the badge on the workout step and names it', async () => {

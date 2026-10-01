@@ -54,3 +54,21 @@ test('announces a changed state once with its line, never on mount or an unchang
     expect(announce).toHaveBeenCalledTimes(1);
   } finally { announce.mockRestore(); }
 });
+
+// Review of T09 and T09b: the line is a polite live region, and on iOS a line changed after the player's press is read out.
+test('a line changed after a press is announced once, an unchanged line or a line without a press is not', async () => {
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibilityWithOptions').mockImplementation(() => {});
+  announce.mockClear();
+  try {
+    const error = 'Nie udało się połączyć z serwerem. Dowód nie został jeszcze odebrany. Kopia czeka na tym urządzeniu.';
+    const view = await render(card('active', { announceLine: true }));
+    expect(screen.getByText('Trening i dowód do pon 28 wrz, 20:00.').props.accessibilityLiveRegion).toBe('polite');
+    await view.rerender(card('active', { announceLine: true }));
+    expect(announce).not.toHaveBeenCalled();
+    await view.rerender(card('active', { announceLine: true, line: error }));
+    expect(announce).toHaveBeenCalledWith(error, { queue: true });
+    await view.rerender(card('active', { announceLine: true, line: error }));
+    await view.rerender(card('active', { line: 'Niecała godzina. Trening i dowód do pon 28 wrz, 20:00.' }));
+    expect(announce).toHaveBeenCalledTimes(1);
+  } finally { announce.mockRestore(); }
+});

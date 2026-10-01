@@ -78,8 +78,8 @@ export function StepTrack({ path, state, variant = 'full', activityEmblem }: { p
     <View style={styles.rowLine} />
     {path.steps.map((status, index) => <View key={index} style={styles.column}>
       {node(status, index)}
-      {/* One word per step. It shrinks to 0.85, then takes a second line, never an ellipsis. */}
-      <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85} style={[styles.label, styles.centred, labelStyles[status]]}>{stepLabel(index)}</Text>
+      {/* One word per step on one line. It shrinks to 0.7 and never breaks inside the word. Larger text uses the vertical list. */}
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[styles.label, styles.centred, labelStyles[status]]}>{stepLabel(index)}</Text>
       {index === current && badgeWords && <Text testID="step-words" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.small, styles.centred]}>{badgeWords}</Text>}
     </View>)}
   </View>;

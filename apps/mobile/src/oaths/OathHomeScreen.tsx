@@ -25,7 +25,7 @@ import { OathScreen, type OathCreationDraft } from './OathScreen';
 import type { OathController } from './controller';
 import { layoutMode } from '../ui/layoutMode';
 import { useArt } from '../art/ArtProvider';
-import type { ProofController, ProofControllerError, ProofControllerState } from '../proof/proofController';
+import type { ProofController, ProofControllerState } from '../proof/proofController';
 import { deviceProof, deviceProofError, heldByServer, type ProofSubject } from './deviceProof';
 import { errorMessage, ProofScreen } from '../proof/ProofScreen';
 import { zoneLabel } from './zoneLabel';
@@ -44,8 +44,6 @@ const noProofStore = { subscribe: () => () => {}, getState: () => noProof };
 const HOUR = 3600000;
 // A longer timeout overflows and fires at once, so far moments are reached in steps.
 const LONGEST_TIMER = 2 ** 31 - 1;
-/** Errors the player must act on before anything else. They replace the detail's line (docs/product/clarity.md decision 3). */
-const required = (error: ProofControllerError) => ['proof_refused', 'reauthenticate', 'file_missing', 'upload_rejected', 'proof_error'].includes(error.kind);
 /** flown: the room already flew into the place, so its screen opens without a second zoom. */
 /** onReturn names the place on screen, so the room flies back out of it. */
 export type ForgeNavigation = { request: { id: number; target: 'create' | ViewName; flown?: boolean } | null; onReturn(place: 'hearth' | 'seals' | 'chronicle'): void };
@@ -163,19 +161,21 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     if (!current(epoch) || detailId.current !== id) return;
     if (result.kind === 'success' && result.value.oath.id === id) setDetail(result.value.oath);
   }
-  // The detail's line moves at two moments the chip does not mark: an hour before D, and at S, when the window for proof closes.
-  // At S the detail asks the server again, quietly. Until it answers the line already says the window closed.
+  // The detail's line moves at three moments the chip does not mark: under an hour before D, just after D and just after S.
+  // oathPath compares strictly, so each moment is its boundary plus 1 ms. Just after D the line changes on the device, also offline.
+  // Just after S the detail asks the server again, quietly. Until it answers the line already says the window closed.
   const [, rerender] = useReducer((value: number) => value + 1, 0);
   const shownDetail = route === 'detail' ? detail : null;
   useEffect(() => {
     if (!shownDetail || shownDetail.state !== 'active') return;
-    const oathId = shownDetail.id, cutoff = Date.parse(shownDetail.snapshot.deadline.receiptCutoff), soon = Date.parse(shownDetail.snapshot.deadline.utc) - HOUR;
+    const oathId = shownDetail.id, cutoff = Date.parse(shownDetail.snapshot.deadline.receiptCutoff), deadline = Date.parse(shownDetail.snapshot.deadline.utc);
+    const moments = [deadline - HOUR + 1, deadline + 1, cutoff + 1];
     let timer: ReturnType<typeof setTimeout> | undefined;
     function arm() {
       clearTimeout(timer); timer = undefined;
       const now = controller.clock.now();
-      if (now === null || now > cutoff) return;
-      const at = now < soon ? soon : cutoff + 1;
+      const at = now === null ? undefined : moments.find(moment => moment > now);
+      if (now === null || at === undefined) return;
       timer = setTimeout(() => {
         rerender();
         const later = controller.clock.now();
@@ -243,8 +243,9 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     // Without a list the pause is unknown, and the path keeps Żaromir silent where a pause could apply.
     const path = oathPath(oath, status, list ? list.paused : null, now);
     const time = path.next.time ? pathTimeText(path.next.time, locale) : undefined;
+    // A refusal, or any error that followed the player's own resend or delete, replaces the line, so every press has visible feedback (clarity.md decision 3).
     const line = status === 'sending' || status === 'deleting' ? t(status === 'deleting' ? 'proof.deleting' : 'proof.sending')
-      : error && required(error) ? errorMessage(error, t) : t(path.next.key, { time, date: time });
+      : error ? errorMessage(error, t) : t(path.next.key, { time, date: time });
     const stored = (instant: string) => compactStoredTime(wallTimeIn(instant, zone), locale);
     // Only the server's receipt shows this. The receipt time is the server's, in the Oath's own zone.
     const received = oath.state === 'proof_pending' ? oath.proof : null;
@@ -254,8 +255,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     if (oath.terminalAt) facts.push({ text: t('oathHome.closedAt', { time: stored(oath.terminalAt) }), time: true });
     if (oath.reason === 'service_availability_unknown') facts.push({ text: t('oathHome.unknownAvailability') });
     if (oath.reason === 'character_paused') facts.push({ text: t('oathHome.withdrawn') });
-    // The interrupted copy's explanation, or the passing error of its last resend.
-    const device = status === 'waiting' || status === 'failed' ? error && !required(error) ? errorMessage(error, t) : status === 'waiting' ? t('oathHome.uploadInterrupted') : null : null;
+    // The interrupted copy's explanation. An error after a press is the line itself.
+    const device = status === 'waiting' ? t('oathHome.uploadInterrupted') : null;
     const details = facts.length || device ? <View style={styles.facts}>
       {facts.map(fact => <Text key={fact.text} style={fact.time ? styles.statusTime : styles.statusReason}>{fact.text}</Text>)}
       {device && <Text testID="upload-interrupted" style={styles.statusReason}>{device}</Text>}
@@ -267,7 +268,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       : proof && status === 'refused' ? <Action label={t('proof.dismiss')} variant="secondary" onPress={() => proof.dismissRefusal()} /> : undefined;
     return <>
       <StepTrack path={path} state={oath.state} activityEmblem={oath.snapshot.activity} />
-      <NextCard oath={oath} clock={controller.clock} line={line} onElapsed={() => { void refreshDetail(oath.id); }} action={action} secondary={secondary} details={details} />
+      <NextCard oath={oath} clock={controller.clock} line={line} announceLine={subject?.oathId === oath.id} onElapsed={() => { void refreshDetail(oath.id); }} action={action} secondary={secondary} details={details} />
       <ZaromirLine situation={path.zaromir} seed={path.zaromir ? zaromirSeed(oath.id, path.zaromir, now, zone) : ''} />
       <Disclosure label={t('path.rules')} icon={<SpriteFrame sheet={art.oaths.ruleIcons} index={ruleIcon.fullRules} width={36} />}>
         <OathRuleCards snapshot={oath.snapshot} head="promise" fold={false} />
