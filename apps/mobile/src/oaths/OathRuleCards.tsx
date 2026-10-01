@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Text } from '../ui/Text';
 import type { Snapshot } from '../api/oathSchema';
 import { SpriteFrame } from '../forge/Sprite';
@@ -7,6 +6,7 @@ import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
 import { bindShortWords } from '../localization/typography';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
+import { Disclosure } from '../ui/Disclosure';
 import { layoutMode } from '../ui/layoutMode';
 import { tokens } from '../ui/tokens';
 import { useArt } from '../art/ArtProvider';
@@ -28,7 +28,6 @@ export function OathRuleCards({ snapshot, highlight = null, head = 'full', onCar
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
   const columns = layoutMode(width, fontScale) === 'room' ? 2 : 1;
-  const [open, setOpen] = useState(false);
   const copy = snapshot.copy[locale];
   const text = (value: string) => bindShortWords(value, locale);
   return <View style={styles.rules}>
@@ -59,13 +58,9 @@ export function OathRuleCards({ snapshot, highlight = null, head = 'full', onCar
         </View>
       </View>)}
     </View>
-    <Pressable accessibilityRole="button" accessibilityLabel={t('oath.fullRules')} accessibilityState={{ expanded: open }} onPress={() => setOpen(value => !value)}
-      style={({ pressed }) => [styles.fold, pressed && styles.pressed]}>
-      <SpriteFrame sheet={oathArt.ruleIcons} index={ruleIcon.fullRules} width={36} />
-      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.foldText}>{t('oath.fullRules')}</Text>
-      <Text style={styles.foldMark}>{open ? '▴' : '▾'}</Text>
-    </Pressable>
-    {open && <SnapshotRules snapshot={snapshot} />}
+    <Disclosure label={t('oath.fullRules')} icon={<SpriteFrame sheet={oathArt.ruleIcons} index={ruleIcon.fullRules} width={36} />}>
+      <SnapshotRules snapshot={snapshot} />
+    </Disclosure>
   </View>;
 }
 const styles = StyleSheet.create({
@@ -89,8 +84,4 @@ const styles = StyleSheet.create({
   cardTitle: { color: tokens.color.text, fontSize: 15, fontWeight: '700' },
   cardLine: { color: tokens.color.secondary, fontSize: 14, lineHeight: 20 },
   cardTime: { color: tokens.color.primary, fontSize: 22, lineHeight: 28, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  fold: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14, borderRadius: 16, backgroundColor: 'rgba(28, 22, 16, 0.94)' },
-  foldText: { flex: 1, color: tokens.color.text, fontSize: tokens.body, fontWeight: '600' },
-  foldMark: { color: tokens.color.primary, fontSize: 18 },
-  pressed: { opacity: 0.75 },
 });
