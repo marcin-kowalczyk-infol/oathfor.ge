@@ -273,7 +273,7 @@
       "replay": "Zharomir explains the rules"
     },
     "made": "Oath made",
-    "madeDeadline": "Deadline: {{time}}",
+    "madeLine": "{{state}} · deadline {{time}} · {{zone}}",
     "viewOath": "View the Oath",
     "proofPending": "Proof received, assessment in progress. The receipt time stays recorded even if the assessment takes longer."
   },

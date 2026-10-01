@@ -15,7 +15,11 @@ import { ActivityOffering } from './ActivityOffering';
 import { SealStamp } from './SealStamp';
 import { CountdownChip } from './CountdownChip';
 import { countdownTarget, formatCountdown } from './countdown';
-import { shortStoredTime } from './compactStoredTime';
+import { pathTimeText } from './compactStoredTime';
+import { oathPath } from './oathPath';
+import { StepTrack } from '../ui/StepTrack';
+import { ZaromirLine } from '../ui/ZaromirLine';
+import { zaromirSeed } from '../companion/zaromirLine';
 import { zoneLabel } from './zoneLabel';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { resolveLocale } from '../localization/locale';
@@ -164,18 +168,25 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         <Action label={t('oath.recover')} busy={busy} onPress={() => { void controller.recover(); }} />
       </>}
       {detail && <>
+        {/* After the stamp (clarity.md decision 13): emblem, header, the track with the Oath step done, the large countdown,
+            one merged line with state, deadline and zone, Żaromir's line, then one filled action. The pause is unknown here,
+            and a just made Oath is scheduled or active, so he may speak. */}
         <View style={styles.confirmed}>
           <SealStamp width={scrollWidth} sealed={stamped.has(oath.id)} onDone={() => { stamped.add(oath.id); setSealed(oath.id); announceMade(oath); }} />
           {stamped.has(oath.id) && <>
           <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ActivityEmblem activity={oath.snapshot.activity} size={56} /></View>
           <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.made')}</Text>
+          <View style={styles.track}><StepTrack path={oathPath(oath, 'none', null, controller.clock.now())} state={oath.state} activityEmblem={oath.snapshot.activity} /></View>
           <CountdownChip oath={oath} clock={controller.clock} size="large" />
-          <Text style={styles.body}>{t('oath.madeDeadline', { time: `${shortStoredTime(oath.snapshot.deadline.local, locale, true)} · ${zoneLabel(oath.snapshot.deadline.timezone, t)}` })}</Text>
-          <Text style={styles.body}>{t('oath.state', { state: t(`oath.states.${oath.state}`) })}</Text>
+          <Text style={[styles.body, styles.centred]}>{t('oath.madeLine', { state: t(`oath.states.${oath.state}`), time: pathTimeText(oath.snapshot.deadline, locale), zone: zoneLabel(oath.snapshot.deadline.timezone, t) })}</Text>
           </>}
         </View>
+        {stamped.has(oath.id) && (() => {
+          const situation = oath.state === 'scheduled' ? 'confirmedScheduled' : 'confirmed';
+          return <ZaromirLine situation={situation} seed={zaromirSeed(oath.id, situation, controller.clock.now(), oath.snapshot.deadline.timezone)} />;
+        })()}
         {stamped.has(oath.id) && onViewOath && <Action label={t('oath.viewOath')} onPress={() => onViewOath(oath.id)} />}
-        {stamped.has(oath.id) && onBack && <Action label={backLabel ?? t('oathHome.today')} variant="secondary" onPress={onBack} />}
+        {stamped.has(oath.id) && onBack && <Action label={backLabel ?? t('oathHome.today')} variant="secondary" direction="back" onPress={onBack} />}
         {stamped.has(oath.id) && !pending && <Action label={t('oath.newOath')} variant="secondary" onPress={() => { if (controller.resetCreation()) { const next = emptyDraft(timezone); setDraft(next); onDraftChange?.(null); setMode('form'); setSubmitted(false); } }} />}
       </>}
       {review && <>
@@ -231,6 +242,7 @@ const styles = StyleSheet.create({
   workbench: { gap: 14 }, offerings: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'stretch' },
   timeWorkbench: { padding: 18, gap: 18, backgroundColor: 'rgba(28, 24, 20, 0.92)', borderRadius: 24 }, wideBench: { paddingHorizontal: 10 },
   confirmed: { gap: 14, alignItems: 'center', paddingVertical: 24 },
+  track: { alignSelf: 'stretch' }, centred: { textAlign: 'center' },
   consent: { padding: 20, borderLeftWidth: 3, borderLeftColor: tokens.color.primary, backgroundColor: 'rgba(32, 25, 19, 0.94)', borderRadius: 12 },
   group: { gap: tokens.space.item },
   title: { color: tokens.color.text, fontFamily: tokens.font.display, fontSize: tokens.title, lineHeight: tokens.title * 1.3, fontWeight: '400' },

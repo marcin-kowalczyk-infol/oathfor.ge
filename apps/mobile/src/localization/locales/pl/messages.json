@@ -281,7 +281,7 @@
       "replay": "Żaromir objaśnia zasady"
     },
     "made": "Przysięga złożona",
-    "madeDeadline": "Termin: {{time}}",
+    "madeLine": "{{state}} · termin {{time}} · {{zone}}",
     "viewOath": "Zobacz Przysięgę",
     "proofPending": "Dowód odebrany, ocena trwa. Czas odebrania zostaje zapisany, nawet gdy ocena się przeciąga."
   },

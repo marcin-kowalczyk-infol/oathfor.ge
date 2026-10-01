@@ -128,7 +128,7 @@ test('ambiguous confirmation exposes only same-identity retry and renders author
   const snapshot = { ...f.envelope.preview.snapshot, activation: { mode: 'now', time: { local: '2026-10-24T02:00:00', timezone: 'Europe/Warsaw', offset: '+02:00', explicitOffset: false, utc: '2026-10-24T00:00:00Z' } } };
   jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'success', value: { oath: { id, characterId, snapshot, state: 'active', createdAt: '2026-10-24T00:00:00Z', activatedAt: '2026-10-24T00:00:00Z', terminalAt: null, reason: null, review: null, proof: null }, serverTime: '2026-10-24T00:00:00Z' } });
   await fireEvent.press(screen.getByRole('button', { name: 'Check confirmation' }));
-  expect(await screen.findByText('Status: Active')).toBeOnTheScreen();
+  expect(await screen.findByText(/^Active · deadline /)).toBeOnTheScreen();
   expect(jest.mocked(f.api.confirm).mock.calls[1][1]).toEqual(jest.mocked(f.api.confirm).mock.calls[0][1]);
   expect(screen.queryByRole('button', { name: 'Submit evidence' })).toBeNull();
 });
@@ -201,7 +201,7 @@ test('confirmed creation clears the parent draft and explicit new Oath starts em
   await fillDeadline();
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
-  expect(await screen.findByText('Status: Active')).toBeOnTheScreen();
+  expect(await screen.findByText(/^Active · deadline /)).toBeOnTheScreen();
   expect(onDraftChange).toHaveBeenLastCalledWith(null);
   await fireEvent.press(screen.getByRole('button', { name: 'Create another Oath' }));
   expect(screen.getByText('Choose a date')).toBeOnTheScreen();
@@ -357,13 +357,12 @@ describe('the review at the largest text size', () => {
     expect(await screen.findByText(/potwierdzeniem\./)).toHaveProp('maxFontSizeMultiplier', 2);
     expect(screen.getByText('Ponownie wybierz i sprawdź terminy przed złożeniem Przysięgi.')).not.toHaveProp('maxFontSizeMultiplier');
   });
-  test('the made deadline and state lines fit and stay uncapped', async () => {
+  test('the merged state and deadline line stays uncapped', async () => {
     Dimensions.set({ window: phone(375), screen: phone(375) });
     const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed('20000000-0000-4000-8000-0000000000c1', f.envelope.preview.snapshot));
     await openReview(f, rulesGuide(true));
     await fireEvent.press(screen.getByRole('button', { name: 'Złóż Przysięgę' }));
-    expect(await screen.findByText(/^Termin: /)).not.toHaveProp('maxFontSizeMultiplier');
-    expect(screen.getByText(/^Status: /)).not.toHaveProp('maxFontSizeMultiplier');
+    expect(await screen.findByText(/^Aktywna · termin /)).not.toHaveProp('maxFontSizeMultiplier');
   });
   test('in the bench the repeated-hour question keeps whole words and the occurrence choices stay uncapped', async () => {
     Dimensions.set({ window: phone(375), screen: phone(375) });
@@ -392,7 +391,7 @@ test('the seal is stamped only after the server confirms, once, also after a los
   expect(screen.queryByTestId('seal-stamp', { includeHiddenElements: true })).toBeNull();
   await act(async () => { answer(confirmed(oathId, f.envelope.preview.snapshot)); });
   expect(await screen.findByTestId('seal-sealed', { includeHiddenElements: true })).toBeOnTheScreen();
-  expect(screen.getByText('Status: Active')).toBeOnTheScreen();
+  expect(screen.getByText(/^Active · deadline /)).toBeOnTheScreen();
   expect(new Set(jest.mocked(SealStamp).mock.calls.map(call => call[0].width)).size).toBe(1);
   expect(screen.queryByTestId('seal-stamp', { includeHiddenElements: true })).toBeNull();
 });
@@ -435,7 +434,7 @@ test('a remount showing the same confirmed Oath does not stamp again', async () 
   await view.unmount();
   jest.mocked(SealStamp).mockClear();
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  expect(await screen.findByText('Status: Active')).toBeOnTheScreen();
+  expect(await screen.findByText(/^Active · deadline /)).toBeOnTheScreen();
   expect(screen.getByTestId('seal-sealed', { includeHiddenElements: true })).toBeOnTheScreen();
   // The scroll is drawn sealed from its first render, it never presses again.
   expect(jest.mocked(SealStamp).mock.calls.every(call => call[0].sealed)).toBe(true);
@@ -461,8 +460,16 @@ test('after the seal a short card shows the countdown, the deadline and the next
   await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
   expect(await screen.findByRole('header', { name: 'Oath made' })).toBeOnTheScreen();
   expect(screen.getByTestId('countdown-chip')).toHaveProp('accessibilityLabel', 'Until the deadline 1 day');
-  expect(screen.getByText('Deadline: Sun, Oct 25, 02:30 · Warsaw')).toBeOnTheScreen();
-  expect(screen.getByText('Status: Active')).toBeOnTheScreen();
+  // MVP-22-T12 (clarity.md decision 13): the track with the Oath step done, one merged line, Żaromir and one filled action.
+  expect(screen.getByText('Active · deadline Sun, Oct 25, 02:30 (UTC+02:00) · Warsaw')).toBeOnTheScreen();
+  expect(screen.queryByText(/^Status: /)).toBeNull();
+  expect(screen.getByLabelText(/^Step 2 of 4, Workout/)).toBeOnTheScreen();
+  expect(screen.getByTestId('step-node-1-done', { includeHiddenElements: true })).toBeTruthy();
+  const zaromir = screen.getByLabelText(/^Zharomir: /).props.accessibilityLabel.replace('Zharomir: ', '');
+  expect(['The Oath is made and already under way. Think about when and where you will train.', 'Your word is forged. Now the workout, at your own pace, then the proof.',
+    'The seal is set. Pick a time and place that fit your day.']).toContain(zaromir);
+  expect(screen.queryAllByText('◆', { includeHiddenElements: true })).toHaveLength(1);
+  expect(within(screen.getByRole('button', { name: 'View the Oath' })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
   expect(screen.queryByText(f.envelope.preview.snapshot.copy.en.sections.appeal)).toBeNull();
   expect(announce).toHaveBeenCalledTimes(1);
   expect(announce).toHaveBeenCalledWith('Oath made. Until the deadline 1 day');
@@ -485,6 +492,10 @@ test('Polish card and a scheduled Oath counting down to its start', async () => 
   expect(await screen.findByRole('header', { name: 'Przysięga złożona' })).toBeOnTheScreen();
   expect(screen.getByTestId('countdown-chip')).toHaveProp('accessibilityLabel', 'Start za 20 godzin');
   expect(screen.getByRole('button', { name: 'Zobacz Przysięgę' })).toBeOnTheScreen();
+  expect(screen.getByLabelText('Etap 1 z 4, Przysięga, Czeka na start')).toBeOnTheScreen();
+  expect(screen.getByText(/^Zaplanowana · termin /)).toBeOnTheScreen();
+  const zaromir = screen.getByLabelText(/^Żaromir: /).props.accessibilityLabel.replace('Żaromir: ', '');
+  expect(['Przysięga złożona, start już ustalony. Do tego czasu możesz spokojnie się przygotować.', 'Słowo wykute, czeka na swój start. Dobrze wiedzieć, gdzie wtedy zrobisz trening.']).toContain(zaromir);
 });
 
 // Native check, 2026-09-30, iPhone 18 Pro at the largest accessibility size in Polish: beside the picture and the marker
