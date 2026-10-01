@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Oathforge uses the camera only when you take a photo as proof for an Oath.",
+    "NSPhotoLibraryUsageDescription": "Oathforge opens your photos only when you choose an image as proof for an Oath."
+  }
+}

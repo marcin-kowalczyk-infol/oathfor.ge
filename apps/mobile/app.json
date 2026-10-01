@@ -22,6 +22,14 @@
       ],
       "expo-apple-authentication",
       [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Oathforge uses the camera only when you take a photo as proof for an Oath.",
+          "photosPermission": "Oathforge opens your photos only when you choose an image as proof for an Oath.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-notifications",
         {
           "enableBackgroundRemoteNotifications": false
@@ -45,6 +53,10 @@
     ],
     "ios": {
       "usesAppleSignIn": true
+    },
+    "locales": {
+      "pl": "./src/localization/native/pl.json",
+      "en": "./src/localization/native/en.json"
     }
   }
 }

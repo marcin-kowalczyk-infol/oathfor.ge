@@ -288,7 +288,7 @@ Promotion from staging to permanent storage is the last step before commit, so a
 
 ### Mobile upload and recovery
 
-Status: transport, storage and controller implemented in MVP-07-T08, 2026-10-01, with jest tests. No screen uses them yet (T09, T10). Local engineering decision, 2026-10-01.
+Status: transport, storage and controller implemented in MVP-07-T08, 2026-10-01, with jest tests. Since MVP-07-T09 the proof screen uses them through one controller per signed-in shell. Pending and interrupted states in detail and Today follow in T10. Native confirmation is pending (T11). Local engineering decision, 2026-10-01.
 
 - Before the first send the app checks that the normalized image is at most 10 MiB, the API limit. A larger image gets the local error `too_large` and nothing is copied or sent. The app then copies the image to `Paths.cache/proofs/<accountId>/<characterId>/<submissionId>.jpg` with `expo-file-system` and writes a SecureStore record per account and character, `{version:1, accountId, characterId, oathId, submissionId, mode, fileName}`. If the copy or the record fails, nothing is sent. `submissionId` comes from `expo-crypto`, and `fileName` must equal `<submissionId>.jpg`.
 - The copy lives in the cache directory, because the [retention schedule](../product/first-loop.md#retention-schedule) forbids raw-proof backups. The document directory is part of iCloud, Finder and Android Auto Backup, and `expo-file-system` 57 cannot exclude a file from backup. The OS may purge the cache under storage pressure. A purged copy then follows the missing-file path below. This is acceptable, because a proof only matters until the receipt cutoff.
@@ -301,6 +301,7 @@ Status: transport, storage and controller implemented in MVP-07-T08, 2026-10-01,
 - Network errors, timeouts, 5xx, 429, 401, 409 `character_required` and a local refusal before sending keep both for a retry. A 401 hands the session to reauthentication, as Oath acceptance does.
 - A late answer after the account, the character or the session changed is ignored. A record written or cleared while the binding changed still counts: a saved record keeps its file, and a cleared record removes its file.
 - One record per account and character allows one unresolved proof per character at a time.
+- When the controller finishes loading a record for its binding, the shell sends it again (`src/proof/resumeOnLoad.ts`). Each `submissionId` is resumed this way at most once per app process, so reloads after a character refresh cannot loop. Later retries are the player's choice. Local decision, MVP-07-T09.
 
 ### Proof read
 

@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Oathforge używa aparatu tylko wtedy, gdy robisz zdjęcie jako dowód Przysięgi.",
+    "NSPhotoLibraryUsageDescription": "Oathforge otwiera Twoje zdjęcia tylko wtedy, gdy wybierasz obraz jako dowód Przysięgi."
+  }
+}

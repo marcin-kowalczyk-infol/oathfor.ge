@@ -1,4 +1,5 @@
 import { createDummy } from './runtime';
+import { cacheProofFiles } from '../src/proof/proofFiles';
 const token = 'A'.repeat(43);
 async function character(dummy: ReturnType<typeof createDummy>) {
   if (dummy.state.activeCharacterId) return;
@@ -123,4 +124,56 @@ test('the DUMMY art style starts cinematic, survives an interface restart and a 
   // An interface restart builds a new runtime over the same DUMMY state.
   expect(dummy.runtime().artStyle.read()).toBe('current');
   expect(createDummy('pl', true).runtime().artStyle.read()).toBe('cinematic');
+});
+
+const proofFile = (submissionId: string) => ({ uri: `file:///cache/proofs/${submissionId}.jpg` }) as never;
+test('DUMMY proof: a receipt turns the active Oath proof_pending, a replay returns the same receipt and a lost reply still commits', async () => {
+  const dummy = createDummy('en', true);
+  const api = dummy.runtime().proofApi;
+  const active = dummy.state.oaths.find(oath => oath.state === 'active')!;
+  const first = '40000000-0000-4000-8000-000000000001';
+  dummy.state.offline = true;
+  expect(await api.submit(token, active.id, { submissionId: first, mode: 'photo', file: proofFile(first) })).toEqual({ kind: 'unavailable', retry: 'request' });
+  expect(active.state).toBe('active');
+  dummy.state.offline = false;
+  dummy.state.loseNextProof = true;
+  expect(await api.submit(token, active.id, { submissionId: first, mode: 'photo', file: proofFile(first) })).toEqual({ kind: 'unavailable', retry: 'request' });
+  expect(dummy.state.loseNextProof).toBe(false);
+  expect(active).toMatchObject({ state: 'proof_pending', proof: { submissionId: first, mode: 'photo', revision: 1, assessment: 'queued' } });
+  const receivedAt = active.proof!.receivedAt;
+  dummy.state.now += 60000;
+  const replay = await api.submit(token, active.id, { submissionId: first, mode: 'photo', file: proofFile(first) });
+  expect(replay).toMatchObject({ kind: 'success', value: { created: false, proof: { submissionId: first, receivedAt }, oath: { id: active.id, state: 'proof_pending' } } });
+  const other = '40000000-0000-4000-8000-000000000002';
+  expect(await api.submit(token, active.id, { submissionId: other, mode: 'activity_record', file: proofFile(other) })).toEqual({ kind: 'proof_refused', code: 'proof_already_submitted' });
+  // The Oath screens see the receipt, and a pause keeps the pending case.
+  expect(await dummy.runtime().oathApi.detail(token, active.id)).toMatchObject({ kind: 'success', value: { oath: { state: 'proof_pending', proof: { submissionId: first } } } });
+});
+
+test('DUMMY proof: after the cutoff the receipt is refused, a scheduled Oath is not active and a stranger Oath is not found', async () => {
+  const dummy = createDummy('en', true);
+  const api = dummy.runtime().proofApi;
+  const id = '40000000-0000-4000-8000-000000000003';
+  const scheduled = dummy.state.oaths.find(oath => oath.state === 'scheduled')!;
+  expect(await api.submit(token, scheduled.id, { submissionId: id, mode: 'photo', file: proofFile(id) })).toEqual({ kind: 'proof_refused', code: 'oath_not_active', state: 'scheduled' });
+  expect(await api.submit(token, '20000000-0000-4000-8000-0000000009ff', { submissionId: id, mode: 'photo', file: proofFile(id) })).toEqual({ kind: 'proof_error', code: 'not_found' });
+  const active = dummy.state.oaths.find(oath => oath.state === 'active')!;
+  dummy.state.now = Date.parse(active.snapshot.deadline.receiptCutoff) + 1000;
+  expect(await api.submit(token, active.id, { submissionId: id, mode: 'photo', file: proofFile(id) })).toEqual({ kind: 'proof_refused', code: 'receipt_cutoff_passed' });
+  dummy.state.expired = true;
+  expect(await api.submit(token, active.id, { submissionId: id, mode: 'photo', file: proofFile(id) })).toEqual({ kind: 'reauthenticate' });
+});
+
+test('DUMMY proof record survives an interface restart, uses the real file copy and a new scenario starts empty', async () => {
+  const dummy = createDummy('en', true);
+  const account = '10000000-0000-4000-8000-000000000001';
+  const character = dummy.state.activeCharacterId!;
+  const submissionId = '40000000-0000-4000-8000-000000000004';
+  const record = { version: 1 as const, accountId: account, characterId: character, oathId: dummy.state.oaths[1].id, submissionId, mode: 'photo' as const, fileName: `${submissionId}.jpg` };
+  const runtime = dummy.runtime();
+  expect(runtime.proofFiles).toBe(cacheProofFiles);
+  expect(await runtime.proofStorage.write(account, character, record)).toEqual({ kind: 'success' });
+  expect(await dummy.runtime().proofStorage.read(account, character)).toEqual({ kind: 'success', value: record });
+  expect(await runtime.proofStorage.write(account, character, { ...record, characterId: '30000000-0000-4000-8000-000000000002' })).toEqual({ kind: 'unavailable' });
+  expect(await createDummy('en', true).runtime().proofStorage.read(account, character)).toEqual({ kind: 'success', value: null });
 });

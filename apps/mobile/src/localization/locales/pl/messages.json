@@ -664,5 +664,65 @@
       "minutes_other": "{{count}} minuty",
       "less": "mniej niż minutę"
     }
+  },
+  "proof": {
+    "submit": "Prześlij dowód",
+    "back": "Wróć do Przysięgi",
+    "intro": "Wybierz rodzaj dowodu, dodaj jeden obraz i potwierdź ukończenie treningu. Przysięga zmieni stan dopiero, gdy serwer odbierze dowód.",
+    "routeHeading": "Rodzaj dowodu",
+    "routes": {
+      "photo": {
+        "title": "Zdjęcie kontekstu",
+        "hint": "Miejsce lub sprzęt Twojego treningu"
+      },
+      "activity_record": {
+        "title": "Zapis aktywności",
+        "hint": "Zrzut ekranu podsumowania treningu z aplikacji lub zegarka"
+      }
+    },
+    "imageHeading": "Obraz",
+    "crop": "W aplikacji nie przytniesz obrazu. Jeśli widać na nim coś prywatnego, najpierw przytnij obraz albo zasłoń ten fragment w aplikacji Zdjęcia. Zachowaj elementy wymagane przez zasady.",
+    "camera": "Zrób zdjęcie",
+    "library": "Wybierz ze Zdjęć",
+    "preview": "Wybrany obraz",
+    "preparing": "Przygotowywanie obrazu…",
+    "cameraDenied": "Aplikacja nie ma dostępu do aparatu. Możesz go włączyć w Ustawieniach albo wybrać obraz ze Zdjęć.",
+    "cameraUnavailable": "Nie udało się otworzyć aparatu. Wybierz obraz ze Zdjęć albo spróbuj ponownie.",
+    "libraryUnavailable": "Nie udało się otworzyć Zdjęć. Zrób zdjęcie aparatem albo spróbuj ponownie.",
+    "imageFailed": "Nie udało się przygotować obrazu. Wybierz go ponownie.",
+    "openSettings": "Otwórz Ustawienia",
+    "confirm": "Potwierdzam deklarację ukończenia",
+    "caveatHeading": "Ocena dowodu",
+    "caveat": "AI ocenia widoczne elementy dowodu. Sam obraz nie potwierdza ukończenia treningu, jego czasu trwania ani tego, kto go wykonał.",
+    "missing": {
+      "route": "Wybierz rodzaj dowodu.",
+      "image": "Dodaj obraz.",
+      "declaration": "Potwierdź deklarację ukończenia."
+    },
+    "sending": "Wysyłanie dowodu. Przysięga zmieni stan dopiero po odpowiedzi serwera.",
+    "loading": "Przygotowuję wysyłanie…",
+    "notActive": "Ta Przysięga nie przyjmuje teraz dowodu.",
+    "pending": "Dowód zapisany na tym urządzeniu czeka na wysłanie. Serwer go jeszcze nie odebrał.",
+    "otherPending": "Na tym urządzeniu czeka dowód innej Przysięgi. Wyślij go teraz, aby móc przesłać dowód tutaj.",
+    "retry": "Wyślij ponownie",
+    "discard": "Usuń ten dowód",
+    "storageUnavailable": "Nie udało się bezpiecznie odczytać zapisanego dowodu. Uruchom aplikację ponownie i spróbuj jeszcze raz.",
+    "errors": {
+      "receiptCutoffPassed": "Termin przyjęcia dowodu minął. Serwer nie przyjął tego dowodu.",
+      "oathNotActive": "Ta Przysięga nie czeka już na dowód. Sprawdź jej aktualny stan.",
+      "alreadySubmitted": "Dowód dla tej Przysięgi został już odebrany.",
+      "tooLarge": "Ten obraz jest za duży, by go wysłać. Wybierz inny.",
+      "unreadable": "Serwer nie mógł odczytać tego obrazu. Wybierz inny.",
+      "refused": "Serwer nie przyjął tego dowodu. Wybierz obraz i spróbuj ponownie.",
+      "uploadRejected": "Serwer nie otrzymał obrazu. Wyślij go ponownie albo usuń ten dowód i wybierz obraz od nowa.",
+      "unavailable": "Nie udało się połączyć z serwerem. Dowód nie został jeszcze odebrany. Kopia czeka na tym urządzeniu.",
+      "rateLimited": "Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie. Kopia czeka na tym urządzeniu.",
+      "fileMissing": "Zapisanej kopii obrazu nie ma już na tym urządzeniu. Wybierz obraz ponownie.",
+      "storage": "Nie udało się bezpiecznie zapisać kopii dowodu na tym urządzeniu. Spróbuj ponownie.",
+      "reauthenticate": "Zaloguj się ponownie. Kopia dowodu czeka na tym urządzeniu.",
+      "characterRequired": "Wybierz postać, aby kontynuować. Kopia dowodu czeka na tym urządzeniu.",
+      "character": "Ta Przysięga należy do postaci, która nie jest teraz aktywna. Kopia dowodu czeka na tym urządzeniu.",
+      "sendFailed": "Nie udało się wysłać dowodu. Kopia czeka na tym urządzeniu. Spróbuj ponownie."
+    }
   }
 }

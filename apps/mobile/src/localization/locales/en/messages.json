@@ -638,5 +638,65 @@
       "minutes_other": "{{count}} minutes",
       "less": "less than a minute"
     }
+  },
+  "proof": {
+    "submit": "Submit proof",
+    "back": "Back to the Oath",
+    "intro": "Choose the type of evidence, add one image and confirm that you completed the workout. The Oath changes only when the server receives the proof.",
+    "routeHeading": "Type of evidence",
+    "routes": {
+      "photo": {
+        "title": "Context photo",
+        "hint": "The setting or equipment of your workout"
+      },
+      "activity_record": {
+        "title": "Activity record",
+        "hint": "A screenshot of the workout summary from your app or watch"
+      }
+    },
+    "imageHeading": "Image",
+    "crop": "You cannot crop the image in the app. If it shows something private, crop the image or cover that part in the Photos app first. Keep the details the rules require.",
+    "camera": "Take a photo",
+    "library": "Choose from Photos",
+    "preview": "Chosen image",
+    "preparing": "Preparing the image…",
+    "cameraDenied": "The app cannot use the camera. You can allow it in Settings or choose an image from Photos.",
+    "cameraUnavailable": "The camera could not open. Choose an image from Photos or try again.",
+    "libraryUnavailable": "Photos could not open. Take a photo with the camera or try again.",
+    "imageFailed": "The image could not be prepared. Choose it again.",
+    "openSettings": "Open Settings",
+    "confirm": "I confirm the completion declaration",
+    "caveatHeading": "Evidence assessment",
+    "caveat": "AI assesses visible evidence. The image alone does not verify workout completion, duration or who performed it.",
+    "missing": {
+      "route": "Choose the type of evidence.",
+      "image": "Add an image.",
+      "declaration": "Confirm the completion declaration."
+    },
+    "sending": "Sending your proof. The Oath changes only when the server answers.",
+    "loading": "Getting ready to send…",
+    "notActive": "This Oath is not accepting proof now.",
+    "pending": "A proof saved on this device is waiting to be sent. The server has not received it yet.",
+    "otherPending": "A proof for another Oath is waiting on this device. Send it now so you can submit proof here.",
+    "retry": "Send again",
+    "discard": "Delete this proof",
+    "storageUnavailable": "We could not safely read the saved proof. Restart the app and try again.",
+    "errors": {
+      "receiptCutoffPassed": "The evidence deadline has passed. The server did not accept this proof.",
+      "oathNotActive": "This Oath is no longer waiting for proof. Check its current status.",
+      "alreadySubmitted": "Proof for this Oath has already been received.",
+      "tooLarge": "This image is too large to send. Choose another one.",
+      "unreadable": "The server could not read this image. Choose another one.",
+      "refused": "The server did not accept this proof. Choose an image and try again.",
+      "uploadRejected": "The server did not receive the image. Send it again, or delete this proof and choose a new image.",
+      "unavailable": "Could not reach the server. The proof has not been received yet. A copy is waiting on this device.",
+      "rateLimited": "Too many attempts. Wait a moment and try again. A copy is waiting on this device.",
+      "fileMissing": "The saved copy of the image is no longer on this device. Choose the image again.",
+      "storage": "We could not safely save the proof copy on this device. Try again.",
+      "reauthenticate": "Sign in again. The proof copy is waiting on this device.",
+      "characterRequired": "Choose a character to continue. The proof copy is waiting on this device.",
+      "character": "This Oath belongs to a character that is not active now. The proof copy is waiting on this device.",
+      "sendFailed": "The proof could not be sent. A copy is waiting on this device. Try again."
+    }
   }
 }

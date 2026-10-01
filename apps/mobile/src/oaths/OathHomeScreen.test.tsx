@@ -7,8 +7,11 @@ import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { OathHomeScreen } from './OathHomeScreen';
 import type { OathController, OathControllerState } from './controller';
 import type { Oath } from '../api/oathSchema';
+import type { ProofController, ProofControllerState } from '../proof/proofController';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
+jest.mock('expo-image-picker', () => ({ requestCameraPermissionsAsync: jest.fn(), launchCameraAsync: jest.fn(), launchImageLibraryAsync: jest.fn() }));
+jest.mock('expo-image-manipulator', () => ({ ImageManipulator: { manipulate: jest.fn() }, SaveFormat: { JPEG: 'jpeg' } }));
 const id = '20000000-0000-4000-8000-000000000001';
 const serverTime = '2026-10-26T00:00:00Z';
 const characterId = '30000000-0000-4000-8000-000000000001';
@@ -595,4 +598,47 @@ test('the list refreshes quietly when the network comes back, a detail stays as 
   expect(f.controller.list).toHaveBeenCalledTimes(2);
   await view.unmount();
   expect(stop).toHaveBeenCalledTimes(1);
+});
+
+function proofController() {
+  let state: ProofControllerState = { kind: 'ready', busy: false, pending: null, oath: null };
+  const listeners = new Set<() => void>();
+  const controller = { getState: () => state, subscribe: (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; }, submit: jest.fn(), recover: jest.fn(), discard: jest.fn() } as unknown as ProofController;
+  return { controller, change(next: ProofControllerState) { state = next; listeners.forEach(fn => fn()); } };
+}
+test('an active detail opens the proof screen, and the server receipt returns to the detail in assessment', async () => {
+  const active = oath({ state: 'active', reason: null, review: null });
+  const f = setup([active]); const proof = proofController();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Submit proof' }));
+  expect(await screen.findByRole('radio', { name: /Context photo/ })).toBeOnTheScreen();
+  expect(screen.getByText(active.snapshot.copy.en.declaration)).toBeOnTheScreen();
+  const received = oath({ state: 'proof_pending', reason: null, review: null, proof: { submissionId: '40000000-0000-4000-8000-000000000001', mode: 'photo', revision: 1, receivedAt: '2026-10-24T18:14:00Z', assessment: 'queued' } });
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: received }));
+  expect(await screen.findByLabelText('Status: Assessment pending')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Submit proof' })).toBeNull();
+});
+test('back from the proof screen reloads the same detail', async () => {
+  const active = oath({ state: 'active', reason: null, review: null });
+  const f = setup([active]); const proof = proofController();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Submit proof' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Back to the Oath' }));
+  expect(await screen.findByLabelText('Status: Active')).toBeOnTheScreen();
+  expect(f.controller.detail).toHaveBeenCalledTimes(2);
+});
+test.each([
+  ['scheduled', { state: 'scheduled', activatedAt: null, reason: null, review: null }],
+  ['proof_pending', { state: 'proof_pending', reason: null, review: null, proof: { submissionId: '40000000-0000-4000-8000-000000000001', mode: 'photo', revision: 1, receivedAt: '2026-10-24T18:14:00Z', assessment: 'queued' } }],
+  ['review_pending', {}],
+  ['fulfilled', { state: 'fulfilled', reason: null, review: null, terminalAt: serverTime }],
+  ['withdrawn', { state: 'withdrawn', reason: 'character_paused', review: null, terminalAt: serverTime }],
+] as const)('a %s detail offers no send action', async (_, patch) => {
+  const f = setup([oath(patch as Partial<Oath>)]); const proof = proofController();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await screen.findByLabelText(/^Status: /);
+  expect(screen.queryByRole('button', { name: 'Submit proof' })).toBeNull();
 });

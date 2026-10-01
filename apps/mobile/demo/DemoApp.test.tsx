@@ -37,3 +37,11 @@ test('the language control relabels the controls and restarts the app with that 
   expect(await screen.findByText('Profile locale: en')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: en.badge })).toBeOnTheScreen();
 });
+
+test('a control arms one lost proof reply for checking an interrupted upload', async () => {
+  await render(<DemoApp />);
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  expect(screen.queryByText(pl.proofArmed)).toBeNull();
+  await fireEvent.press(screen.getByText(pl.loseProof));
+  expect(screen.getByText(pl.proofArmed)).toBeOnTheScreen();
+});

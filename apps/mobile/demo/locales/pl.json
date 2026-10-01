@@ -12,6 +12,8 @@
   "offline": "Przejdź offline",
   "lose": "Zgub odpowiedź na przyjęcie",
   "armed": "Następna odpowiedź na przyjęcie zostanie zgubiona",
+  "loseProof": "Zgub odpowiedź na dowód",
+  "proofArmed": "Następna odpowiedź na dowód zostanie zgubiona. Serwer demonstracyjny zapisze dowód, a ponowne wysłanie zwróci to samo potwierdzenie.",
   "add": "Dodaj demonstracyjną Przysięgę",
   "resetHint": "Scenariusze usuwają wszystkie dane demonstracyjne."
 }

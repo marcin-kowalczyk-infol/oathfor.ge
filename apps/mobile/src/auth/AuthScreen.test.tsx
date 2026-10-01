@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AppState, Dimensions, type AppStateStatus } from 'react-native';
 import * as Apple from 'expo-apple-authentication';
 import { AuthScreen, type AppleAvailability } from './AuthScreen';
@@ -10,6 +10,7 @@ import type { SessionStorage } from './sessionStorage';
 import type { OathClient } from '../api/oaths';
 import type { Character, CharacterClient, CharacterList } from '../api/characters';
 import type { ArtStyle, ArtStyleStorage } from '../art/registry';
+import type { ProofClient } from '../proof/proofClient';
 
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: mockDeviceLanguage }], getCalendars: () => [{ timeZone: 'Europe/Warsaw' }] }));
 jest.mock('../onboarding/notificationPermissions', () => ({ nativeNotificationPermissions: { read: jest.fn().mockResolvedValue({ kind: 'unavailable', canAskAgain: false }), request: jest.fn(), openSettings: jest.fn() } }));
@@ -51,7 +52,10 @@ function setup() {
   const creationStorage = { read: jest.fn().mockResolvedValue({ kind: 'success', value: null }), write: jest.fn().mockResolvedValue({ kind: 'success' }) };
   const seen = new Set<string>();
   const guideStorage = { read: jest.fn(async (owner: string) => seen.has(owner)), markSeen: jest.fn(async (owner: string) => { seen.add(owner); }) };
-  return { api, profileApi, oathApi, acceptanceStorage, characterApi: characterApi as typeof characterApi & CharacterClient, creationStorage, guideStorage, storage, controller, apple, remove, revoke: () => revoke(), authenticate: createAppleAuthentication(api) };
+  const proofApi = { submit: jest.fn().mockResolvedValue({ kind: 'unavailable', retry: 'request' }) } as unknown as ProofClient & { submit: jest.Mock };
+  const proofStorage = { read: jest.fn().mockResolvedValue({ kind: 'success', value: null }), write: jest.fn().mockResolvedValue({ kind: 'success' }) };
+  const proofFiles = { copy: jest.fn().mockResolvedValue({ kind: 'unavailable' }), open: jest.fn().mockResolvedValue({ kind: 'missing' }), remove: jest.fn().mockResolvedValue({ kind: 'success' }), sweep: jest.fn().mockResolvedValue({ kind: 'success' }) };
+  return { api, profileApi, oathApi, acceptanceStorage, characterApi: characterApi as typeof characterApi & CharacterClient, creationStorage, guideStorage, proofApi, proofStorage, proofFiles, storage, controller, apple, remove, revoke: () => revoke(), authenticate: createAppleAuthentication(api) };
 }
 afterEach(() => { controllers.splice(0).forEach(controller => controller.dispose()); jest.restoreAllMocks(); });
 
@@ -445,6 +449,22 @@ async function signIn(runtime: ReturnType<typeof setup> & { artStyle?: ArtStyleS
   await render(<LocalizationProvider initialLocale={locale}><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
 }
+
+test('one proof controller follows the active character and sends a stored proof again once it loads', async () => {
+  const runtime = setup();
+  const submissionId = '40000000-0000-4000-8000-000000000001';
+  const record = { version: 1, accountId: account.id, characterId: mira.id, oathId: '20000000-0000-4000-8000-000000000001', submissionId, mode: 'photo', fileName: `${submissionId}.jpg` };
+  runtime.proofStorage.read.mockImplementation(async (owner: string, character: string) => ({ kind: 'success', value: owner === account.id && character === mira.id ? record : null }));
+  const file = { uri: `file:///cache/proofs/${account.id}/${mira.id}/${submissionId}.jpg` };
+  runtime.proofFiles.open.mockResolvedValue({ kind: 'success', file });
+  await signIn(runtime);
+  expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
+  await waitFor(() => expect(runtime.proofApi.submit).toHaveBeenCalledTimes(1));
+  expect(runtime.proofApi.submit).toHaveBeenCalledWith(session.token, record.oathId, { submissionId, mode: 'photo', file }, expect.anything());
+  expect(runtime.proofStorage.read).toHaveBeenCalledWith(account.id, mira.id);
+  // An unreachable server keeps the record. Nothing is cleared and nothing is sent again by itself.
+  expect(runtime.proofStorage.write).not.toHaveBeenCalled();
+});
 
 test('lands on the menu after a character exists', async () => {
   const runtime = setup();

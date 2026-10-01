@@ -11,6 +11,11 @@ import { createCharacterController } from '../characters/controller';
 import { CharacterCreationScreen, emptyCreationDraft, type CharacterCreationDraft } from '../characters/CharacterCreationScreen';
 import { CharacterStatusView } from '../characters/CharacterStatusView';
 import { createOathController } from '../oaths/controller';
+import type { ProofClient } from '../proof/proofClient';
+import { createProofController } from '../proof/proofController';
+import type { ProofFiles } from '../proof/proofFiles';
+import type { ProofPendingStorage } from '../proof/proofPendingStorage';
+import { resumeOnLoad } from '../proof/resumeOnLoad';
 import type { GuideStorage } from '../forge/guideStorage';
 import { HomeRoutes } from '../home/HomeRoutes';
 import type { HomeState } from '../home/homeRoute';
@@ -39,7 +44,9 @@ const nativeApple: AppleAvailability = {
   },
 };
 
-type AuthScreenProps = { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; oathApi: OathClient; acceptanceStorage: PendingStorage; characterApi: CharacterClient; creationStorage: CreationStorage; guideStorage: GuideStorage; rulesGuideStorage?: GuideStorage; apple?: AppleAvailability; permissions?: NotificationPermissions; network?: NetworkEvents };
+type AuthScreenProps = { controller: SessionController; authenticate: Authentication; profileApi: ProfileClient; oathApi: OathClient; acceptanceStorage: PendingStorage; characterApi: CharacterClient; creationStorage: CreationStorage; guideStorage: GuideStorage; rulesGuideStorage?: GuideStorage; apple?: AppleAvailability; permissions?: NotificationPermissions; network?: NetworkEvents;
+  /** Proof upload: the client, the record of an unresolved proof and its image copy (MVP-07-T08). */
+  proofApi: ProofClient; proofStorage: ProofPendingStorage; proofFiles: ProofFiles };
 
 /**
  * artStyle: the demo's DUMMY style choice, read once on mount and written on each change. Without it every screen draws
@@ -52,7 +59,7 @@ export function AuthScreen({ artStyle, ...props }: AuthScreenProps & { artStyle?
 }
 
 // The app owns this controller for its lifetime; account subtrees must not replace it.
-function AuthRoutes({ controller, authenticate, profileApi, oathApi, acceptanceStorage, characterApi, creationStorage, guideStorage, rulesGuideStorage, apple = nativeApple, permissions = nativeNotificationPermissions, network = nativeNetworkEvents, artStyle }: AuthScreenProps & { artStyle?: { value: ArtStyle; onChange(style: ArtStyle): void } }) {
+function AuthRoutes({ controller, authenticate, profileApi, oathApi, acceptanceStorage, characterApi, creationStorage, guideStorage, rulesGuideStorage, proofApi, proofStorage, proofFiles, apple = nativeApple, permissions = nativeNotificationPermissions, network = nativeNetworkEvents, artStyle }: AuthScreenProps & { artStyle?: { value: ArtStyle; onChange(style: ArtStyle): void } }) {
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const { i18n } = useTranslation();
   const languageOwner = useRef(i18n);
@@ -76,11 +83,22 @@ function AuthRoutes({ controller, authenticate, profileApi, oathApi, acceptanceS
   const profileComplete = state.kind === 'authenticated' && profile.kind === 'ready' && profile.value.onboardingStatus === 'complete';
   useEffect(() => { if (profileComplete) characters.start(); return () => characters.stop(); }, [characters, profileComplete]);
   useEffect(() => { if (profileComplete) oaths.start(); return () => oaths.stop(); }, [oaths, profileComplete]);
+  // Exactly one proof controller per signed-in shell (T08 handoff). Screens use this instance and never create their own.
+  const proofs = useMemo(() => createProofController({ session: controller, api: proofApi, storage: proofStorage, files: proofFiles, onCharacterRequired: () => { void characters.refresh(); }, onCharacterChanged: () => { void characters.refresh(); } }), [controller, proofApi, proofStorage, proofFiles, characters]);
+  // A proof left by a restart or an earlier session is sent again as soon as its record loads.
+  useEffect(() => {
+    if (!profileComplete) return () => proofs.stop();
+    const stopResume = resumeOnLoad(proofs);
+    proofs.start();
+    return () => { stopResume(); proofs.stop(); };
+  }, [proofs, profileComplete]);
   const accountId = state.kind === 'authenticated' ? state.account.id : null;
   const activeCharacterId = characterState.kind === 'ready' ? characterState.activeCharacterId : null;
   // The Oath controller follows the active character. A change aborts its requests and loads that character's content.
   // A layout effect rebinds before child effects can send anything, and the Oath screens wait for the rebind below.
   useLayoutEffect(() => { oaths.setCharacter(accountId && activeCharacterId ? { accountId, characterId: activeCharacterId } : null); }, [oaths, accountId, activeCharacterId]);
+  // The proof record belongs to one account and character too, so the proof controller follows the same binding.
+  useLayoutEffect(() => { proofs.setCharacter(accountId && activeCharacterId ? { accountId, characterId: activeCharacterId } : null); }, [proofs, accountId, activeCharacterId]);
   useSyncExternalStore(oaths.subscribe, oaths.getState);
   const bound = oaths.boundCharacter();
   const oathsBound = bound !== null && bound.accountId === accountId && bound.characterId === activeCharacterId;
@@ -148,7 +166,7 @@ function AuthRoutes({ controller, authenticate, profileApi, oathApi, acceptanceS
     if (!oathsBound) return <><StatusBar style="light" /><CharacterStatusView state={{ kind: 'loading' }} onRetry={() => { void characters.refresh(); }} onLogout={() => { void controller.logout(); }} /></>;
     // Routes belong to this account and character. A switch or a created character resets them to the menu.
     return <><StatusBar style="light" />
-      <HomeRoutes key={state.account.id} accountId={state.account.id} character={active} characterState={characterState} characters={characters} oaths={oaths}
+      <HomeRoutes key={state.account.id} accountId={state.account.id} character={active} characterState={characterState} characters={characters} oaths={oaths} proof={proofs}
         profile={profile.value.profile} timezone={profile.value.profile.timezone!} guideStorage={guideStorage} rulesGuideStorage={rulesGuideStorage} network={network} artStyle={artStyle}
         home={home} onHome={setHome} language={languageState} onLocale={saveLocale}
         onSettingsOpened={() => setLanguage(current => current.saving ? current : { ...current, error: false })}

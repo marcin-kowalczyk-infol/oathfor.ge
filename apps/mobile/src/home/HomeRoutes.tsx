@@ -13,6 +13,7 @@ import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale, type Locale } from '../localization/locale';
 import type { NotificationState } from '../onboarding/notifications';
 import type { OathController } from '../oaths/controller';
+import type { ProofController } from '../proof/proofController';
 import { OathHomeScreen } from '../oaths/OathHomeScreen';
 import { PauseReviewScreen } from '../settings/PauseReviewScreen';
 import { SettingsScreen } from '../settings/SettingsScreen';
@@ -32,6 +33,8 @@ export type HomeRoutesProps = {
   characters: Pick<CharacterController, 'switch' | 'clearError'>;
   /** Bound to this account and character before the routes mount. */
   oaths: OathController;
+  /** The shell's one proof controller, following the same account and character. */
+  proof?: ProofController;
   profile: Profile;
   timezone: string;
   guideStorage: GuideStorage;
@@ -167,7 +170,7 @@ export function HomeRoutes(props: HomeRoutesProps) {
     {front && <View style={styles.fill}>{front}</View>}
     <View style={hidden ? styles.hidden : styles.fill} accessibilityElementsHidden={hidden} importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}>
       <MotionSuspended suspended={hidden}>
-        <OathHomeScreen key={`${accountId}.${character.id}`} controller={oaths} timezone={props.timezone} rulesGuideStorage={props.rulesGuideStorage} network={props.network} reload={oathReload}
+        <OathHomeScreen key={`${accountId}.${character.id}`} controller={oaths} proof={props.proof} timezone={props.timezone} rulesGuideStorage={props.rulesGuideStorage} network={props.network} reload={oathReload}
           forgeNavigation={{ request: route.kind === 'oaths' ? route.request : null, onReturn: place => dispatch({ type: 'back', layout, from: place }) }} />
       </MotionSuspended>
     </View>

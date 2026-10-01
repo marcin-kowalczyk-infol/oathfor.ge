@@ -9,6 +9,9 @@ import type { Activity, Oath, Preview, ResolvedTime, Snapshot, LocalTimeInput } 
 import type { PendingAcceptance } from '../src/oaths/pendingStorage';
 import type { Locale } from '../src/localization/locale';
 import type { ArtStyle } from '../src/art/registry';
+import type { ProofClient } from '../src/proof/proofClient';
+import { cacheProofFiles } from '../src/proof/proofFiles';
+import type { PendingProof } from '../src/proof/proofPendingStorage';
 
 import CATALOG from '../../api/resources/oath/workout_oath_v1.json';
 const accountId = '10000000-0000-4000-8000-000000000001';
@@ -60,6 +63,8 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
   const initialNow = Math.floor(Date.now() / 1000) * 1000;
   const state = {
     now: initialNow, expired: false, offline: false, loseNext: false, revision: 1, counter: 1,
+    // A lost proof reply: the DUMMY server records the receipt but the answer never arrives, so the next send replays it.
+    loseNextProof: false,
     profile: { profile: { locale, timezone: 'Europe/Warsaw', intention: completed ? 'regular_activity' : null, companionIntroduced: completed, notificationPreference: completed ? 'disabled' : null }, onboardingStatus: completed ? 'complete' : 'pending' } as ProfileEnvelope,
     session: { version: 1, kind: 'active', session: { token, expiresAt: iso(initialNow + 86400000) } } as SessionEnvelope,
     // A returning player has two DUMMY characters to switch between, Radomir active. An empty or new account starts with creation.
@@ -71,7 +76,7 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     // The demo's art style, like guideSeen: an interface restart keeps it, a new scenario starts cinematic (owner decision 2026-09-30).
     artStyle: 'cinematic' as ArtStyle,
     creations: new Map<string, string>(), creation: null as PendingCreation | null, paused: new Set<string>(), previewOwners: new Map<string, string>(),
-    pending: new Map<string, PendingAcceptance | null>(), previews: new Map<string, Preview>(), accepted: new Map<string, string>(), requests: new Map<string, string>(), oaths: [] as Oath[],
+    pending: new Map<string, PendingAcceptance | null>(), proofRecords: new Map<string, PendingProof | null>(), previews: new Map<string, Preview>(), accepted: new Map<string, string>(), requests: new Map<string, string>(), oaths: [] as Oath[],
   };
   const id = () => `20000000-0000-4000-8000-${String(state.counter++).padStart(12, '0')}`;
   const guard = (bearer: string) => state.offline ? unavailable() : state.expired || bearer !== token ? { kind: 'reauthenticate' as const } : null;
@@ -160,6 +165,27 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
       return success(pauseSummary());
     },
   };
+  // DUMMY proof receipt. It mirrors the API order: replay by submissionId, cutoff, then state. No image is read or kept.
+  const proofApi: ProofClient = {
+    async submit(bearer, oathId, submission) {
+      const denied = guard(bearer); if (denied) return denied;
+      if (!active()) return { kind: 'proof_error', code: 'character_required' };
+      const oath = state.oaths.find(item => item.id === oathId && own(item));
+      if (!oath) return { kind: 'proof_error', code: 'not_found' };
+      const receipt = (created: boolean) => ({ kind: 'success' as const, value: { created, proof: clone(oath.proof!), oath: clone(oath), serverTime: iso(state.now) } });
+      reconcile();
+      if (oath.proof?.submissionId === submission.submissionId) return oath.proof.mode === submission.mode ? receipt(false) : { kind: 'proof_refused', code: 'idempotency_conflict' };
+      if (!oath.proof && Date.parse(oath.snapshot.deadline.receiptCutoff) < state.now) return { kind: 'proof_refused', code: 'receipt_cutoff_passed' };
+      // Corrections arrive in a later slice, so a received proof closes the Oath to new ones.
+      if (oath.state === 'proof_pending') return { kind: 'proof_refused', code: 'proof_already_submitted' };
+      if (oath.state !== 'active') return { kind: 'proof_refused', code: 'oath_not_active', state: oath.state };
+      oath.state = 'proof_pending';
+      oath.proof = { submissionId: submission.submissionId, mode: submission.mode, revision: 1, receivedAt: iso(state.now), assessment: 'queued' };
+      state.revision++;
+      if (state.loseNextProof) { state.loseNextProof = false; return unavailable(); }
+      return receipt(true);
+    },
+  };
   const profileApi: ProfileClient = {
     async get(bearer) { return guard(bearer) ?? success(clone(state.profile)); },
     async patch(bearer, patch) { const denied = guard(bearer); if (denied) return denied; Object.assign(state.profile.profile, patch); return success(clone(state.profile)); },
@@ -201,7 +227,10 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
       storage: { async read() { return success(clone(state.session)); }, async write(value) { state.session = clone(value); return { kind: 'success' }; } },
     });
     const authenticate: Authentication = async () => { state.expired = false; return success({ account: account(), session: { token, expiresAt: iso(state.now + 86400000) } }); };
-    return { controller, authenticate, profileApi, oathApi, characterApi,
+    return { controller, authenticate, profileApi, oathApi, characterApi, proofApi,
+      // The record is DUMMY memory like the acceptance record. The picker, the manipulator and the cache copy are real.
+      proofStorage: { async read(owner: string, character: string) { return success(clone(state.proofRecords.get(`${owner}.${character}`) ?? null)); }, async write(owner: string, character: string, value: PendingProof | null) { if (value && (value.accountId !== owner || value.characterId !== character)) return { kind: 'unavailable' as const }; state.proofRecords.set(`${owner}.${character}`, clone(value)); return { kind: 'success' as const }; } },
+      proofFiles: cacheProofFiles,
       acceptanceStorage: { async read(owner: string, character: string) { return success(clone(state.pending.get(`${owner}.${character}`) ?? null)); }, async write(owner: string, character: string, value: PendingAcceptance | null) { if (value && (value.accountId !== owner || value.characterId !== character)) return { kind: 'unavailable' as const }; state.pending.set(`${owner}.${character}`, clone(value)); return { kind: 'success' as const }; } },
       creationStorage: { async read(owner: string) { return success(state.creation?.accountId === owner ? clone(state.creation) : null); }, async write(owner: string, value: PendingCreation | null) { if (value && value.accountId !== owner) return { kind: 'unavailable' as const }; state.creation = clone(value); return { kind: 'success' as const }; } },
       guideStorage: { async read(owner: string) { return state.guideSeen.has(owner); }, async markSeen(owner: string) { state.guideSeen.add(owner); } },

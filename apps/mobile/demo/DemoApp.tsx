@@ -38,6 +38,7 @@ export default function DemoApp() {
     [copy.expire, () => { dummy.state.expired = true; restart(); setControls(false); }],
     [dummy.state.offline ? copy.online : copy.offline, () => { dummy.setOffline(!dummy.state.offline); repaint(value => value + 1); }],
     [copy.lose, () => { dummy.state.loseNext = true; repaint(value => value + 1); }],
+    [copy.loseProof, () => { dummy.state.loseNextProof = true; repaint(value => value + 1); }],
     [copy.add, () => { dummy.add(); repaint(value => value + 1); setControls(false); }],
   ];
   return <View style={styles.root}>
@@ -51,6 +52,7 @@ export default function DemoApp() {
         <Text style={styles.text}>{copy.resetHint}</Text>
         {buttons.map(([label, action]) => <Pressable key={label} accessibilityRole="button" style={styles.button} onPress={action}><Text style={styles.text}>{label}</Text></Pressable>)}
         {dummy.state.loseNext && <Text accessibilityRole="alert" style={styles.text}>{copy.armed}</Text>}
+        {dummy.state.loseNextProof && <Text accessibilityRole="alert" style={styles.text}>{copy.proofArmed}</Text>}
         <Pressable accessibilityRole="button" style={styles.button} onPress={() => setControls(false)}><Text style={styles.text}>{copy.close}</Text></Pressable>
       </ScrollView></SafeAreaView>
     </Modal>

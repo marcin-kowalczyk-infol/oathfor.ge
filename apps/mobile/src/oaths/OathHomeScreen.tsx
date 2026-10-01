@@ -25,13 +25,16 @@ import { OathScreen, type OathCreationDraft } from './OathScreen';
 import type { OathController } from './controller';
 import { layoutMode } from '../ui/layoutMode';
 import { useArt } from '../art/ArtProvider';
+import type { ProofController } from '../proof/proofController';
+import { ProofScreen } from '../proof/ProofScreen';
 type ViewName = 'today' | 'history';
 /** flown: the room already flew into the place, so its screen opens without a second zoom. */
 /** onReturn names the place on screen, so the room flies back out of it. */
 export type ForgeNavigation = { request: { id: number; target: 'create' | ViewName; flown?: boolean } | null; onReturn(place: 'hearth' | 'seals' | 'chronicle'): void };
 /** reload: a new value reloads the visible list, for example after a pause change made in Settings. */
 /** network: a reconnect reloads the visible list, like a return to the foreground. */
-export function OathHomeScreen({ controller, timezone, forgeNavigation, reload = 0, rulesGuideStorage, network }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; reload?: number; rulesGuideStorage?: GuideStorage; network?: NetworkEvents }) {
+/** proof: the shell's one proof controller. An active detail offers "Submit proof" only when it is given. */
+export function OathHomeScreen({ controller, timezone, forgeNavigation, reload = 0, rulesGuideStorage, network, proof }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; reload?: number; rulesGuideStorage?: GuideStorage; network?: NetworkEvents; proof?: ProofController }) {
   const chronicleIcon = useArt().talk.chronicle;
   const { t, i18n } = useTranslation(); const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
@@ -40,7 +43,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const returnLabel = t(interactiveForge ? 'forge.returnRoom' : 'forge.returnMenu');
   const account = useSyncExternalStore(controller.subscribe, controller.getState);
   const available = account.kind === 'ready';
-  const [route, setRoute] = useState<'list' | 'detail' | 'create'>('list');
+  const [route, setRoute] = useState<'list' | 'detail' | 'create' | 'proof'>('list');
   const [creationDraft, setCreationDraft] = useState<OathCreationDraft | null>(null);
   useEffect(() => { setCreationDraft(null); }, [controller]);
   const [view, setView] = useState<ViewName>('today');
@@ -133,6 +136,11 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     if (!current(epoch) || detailId.current !== id) return;
     if (result.kind === 'success' && result.value.oath.id === id) setDetail(result.value.oath);
   }
+  // The server's receipt is the detail now. T10 renders its pending assessment.
+  function showReceipt(oath: Oath) {
+    generation.current++; detailId.current = oath.id;
+    setDetail(oath); setLoading(false); setFailed(false); setRoute('detail');
+  }
   function create(recover = false) {
     if (!recover && !controller.resetCreation()) return false;
     generation.current++; setRoute('create'); return true;
@@ -174,6 +182,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const place: ForgePlace = hearthRequest ? 'hearth' : route === 'detail' ? 'seals' : view === 'history' ? 'chronicle' : 'seals';
   // After the room's own flight the close-up is already in view, so the screen skips its zoom.
   const approach = arrival && !arrival.flown ? arrival : null;
+  if (available && route === 'proof' && detail && proof) return <ProofScreen key={detail.id} oath={detail} controller={proof} backLabel={t('proof.back')}
+    onBack={() => { void openDetail(detail.id); }} onDone={showReceipt} />;
   if (available && route === 'create') return <OathScreen approach={approach?.place === 'hearth' ? approach.id : null} controller={controller} timezone={timezone} rulesGuideStorage={rulesGuideStorage} onViewOath={id => { void openDetail(id); }} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? returnLabel : undefined} backPlain={!!forgeNavigation && !interactiveForge} onBack={forgeNavigation ? () => forgeNavigation.onReturn('hearth') : () => { void loadList('today'); }} />;
   // In the room layout every list and detail leaves a band under the tabs (Today's hub, the chronicle band, the detail emblem). The close-up is lowered into it.
   // While a hearth request waits for Today, only the hearth shows at the creation screen's framing. Creation or the list with its notice follows.
@@ -266,6 +276,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
             {detail.reason === 'service_availability_unknown' && <Text style={styles.statusReason}>{t('oathHome.unknownAvailability')}</Text>}
             {detail.reason === 'character_paused' && <Text style={styles.statusReason}>{t('oathHome.withdrawn')}</Text>}
           </View>
+          {proof && detail.state === 'active' && <Action label={t('proof.submit')} onPress={() => setRoute('proof')} />}
           <OathRuleCards snapshot={detail.snapshot} head="promise" />
         </>}
       </>}
