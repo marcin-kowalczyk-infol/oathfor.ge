@@ -106,3 +106,11 @@ test.each([1, 2, 3])('at seal count %i every column keeps the three-seal width a
     expect(screen.getAllByTestId('countdown-chip')).toHaveLength(count);
   } finally { jest.useRealTimers(); }
 });
+
+test('a seal with an interrupted upload shows the amber badge and names it in its label', async () => {
+  await render(<LocalizationProvider initialLocale="en"><ForgeHub items={[sealOath('active'), { ...sealOath('active'), id: 'other' } as Oath]} interrupted={new Set(['oath-active'])} onOpen={jest.fn()} /></LocalizationProvider>);
+  const seals = screen.getAllByTestId('forge-seal');
+  expect(seals[0].props.accessibilityLabel).toContain('Not received');
+  expect(screen.getAllByTestId('seal-badge-interrupted', { includeHiddenElements: true })).toHaveLength(1);
+  expect(screen.getByText('Not received')).toHaveProp('numberOfLines', 1);
+});

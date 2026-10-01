@@ -1,4 +1,4 @@
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { Activity, OathState } from '../api/oathSchema';
 import { useArt } from '../art/ArtProvider';
 import { SpriteFrame } from '../forge/Sprite';
@@ -16,6 +16,14 @@ const STEPS = ['oath', 'workout', 'assessment', 'result'] as const;
 const BADGE_CELL: Partial<Record<NonNullable<PathBadge>, number>> = { interrupted: 0, needsMore: 1, review: 2, waiting: 3, assessing: 3 };
 const NODE = 32, ICON = 24, BADGE = 20, PIP = 8, LIST_GAP = 12;
 const HIGHLIGHT = '#e0a84f', BRONZE = '#8c602e', RING = '#5b4630', GROUND = '#1c1610';
+
+/** One badge of the step badge sheet, for corners outside the track such as a Today row or a seal (MVP-22-T10). Decorative, the label beside it speaks. */
+export function StepBadge({ badge, size, testID, style }: { badge: NonNullable<PathBadge>; size: number; testID?: string; style?: StyleProp<ViewStyle> }) {
+  const sheet = useArt().oaths.stepBadges;
+  const cell = BADGE_CELL[badge];
+  if (cell === undefined) return null;
+  return <SpriteFrame testID={testID} sheet={sheet} index={cell} width={size} style={style} />;
+}
 
 /**
  * Where the Oath stands on its four steps (docs/product/clarity.md "Step track"). The track is one accessible sentence.
@@ -36,8 +44,8 @@ export function StepTrack({ path, state, variant = 'full', activityEmblem }: { p
   const label = skipped.length ? `${sentence}. ${t('path.skippedSteps', { steps: skipped.join(', ') })}` : sentence;
 
   if (variant === 'compact') {
-    // The row speaks the label it shows.
-    const shown = badgeWords ?? t(`forge.sealState.${state}`);
+    // The row speaks the label it shows: the seal wall's short state, or "Nie dotarł" beside the amber corner badge.
+    const shown = path.badge === 'interrupted' ? t('path.badge.interrupted') : t(`forge.sealState.${state}`);
     const spoken = t('path.trackBadge', { step: path.step, label: stepLabel(current), badge: shown });
     return <View testID="step-track" accessible accessibilityLabel={skipped.length ? `${spoken}. ${t('path.skippedSteps', { steps: skipped.join(', ') })}` : spoken} style={styles.compact}>
       <View style={styles.pips}>

@@ -32,7 +32,7 @@ import { zoneLabel } from './zoneLabel';
 import { oathPath } from './oathPath';
 import { ruleIcon } from './oathArt';
 import { SpriteFrame } from '../forge/Sprite';
-import { StepTrack } from '../ui/StepTrack';
+import { StepBadge, StepTrack } from '../ui/StepTrack';
 import { NextCard } from '../ui/NextCard';
 import { ZaromirLine } from '../ui/ZaromirLine';
 import { Disclosure } from '../ui/Disclosure';
@@ -241,15 +241,16 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     setSubject({ oathId, before: proofReady?.error }); void proof.discard();
   }
   /**
-   * The interrupted upload of one Today row: the row offers the resend. Nothing here claims a receipt.
+   * The interrupted upload of one Today row: one line and the resend under the row (docs/product/clarity.md decision 9). Nothing here claims a receipt.
    * A final refusal stays on the row and the detail until the player dismisses it in the detail or sends again.
+   * The long explanation of a waiting copy sits behind the detail's "Pełny opis".
    */
   function upload(oath: Oath) {
     const oathId = oath.id;
     const status = deviceProof(oath, proofState, subject);
     if (status === 'none') return null;
     const error = deviceProofError(oath, proofState, subject);
-    const message = status === 'sending' || status === 'deleting' ? t(status === 'deleting' ? 'proof.deleting' : 'proof.sending') : error ? errorMessage(error, t) : t('oathHome.uploadInterrupted');
+    const message = status === 'sending' || status === 'deleting' ? t(status === 'deleting' ? 'proof.deleting' : 'proof.sending') : error ? errorMessage(error, t) : t('path.next.interrupted');
     return <View testID="upload-interrupted" style={styles.upload}>
       <View accessibilityLiveRegion="polite"><Text style={styles.uploadText}>{message}</Text></View>
       {status === 'waiting' && <Action label={t('proof.retry')} onPress={() => resume(oathId)} />}
@@ -359,6 +360,12 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const waiting = available && hearthRequest;
   // Today shows each Oath's interrupted upload under its card. Worked out once, so the next card knows whether a line sits above it.
   const uploads = route === 'list' && view === 'today' ? (list?.items ?? []).map(item => upload(item)) : [];
+  // Each Today row's place on the four steps, for its pips, its short label and the amber corner badge.
+  const rowPaths = new Map(route === 'list' && view === 'today' && list ? list.items.map(item => [item.id, oathPath(item, deviceProof(item, proofState, subject), list.paused, controller.clock.now())] as const) : []);
+  const interruptedIds = new Set([...rowPaths].flatMap(([oathId, path]) => path.badge === 'interrupted' ? [oathId] : []));
+  // A row offering "Wyślij ponownie" holds the screen's only filled button, so the list's own actions step back to outline (clarity.md rule 3).
+  const resendShown = !!proof && route === 'list' && view === 'today' && !!list?.items.some(item => deviceProof(item, proofState, subject) === 'waiting');
+  const listAction = resendShown ? 'secondary' : 'primary';
   // Without the lowered close-up behind it, or wherever the artwork starts under it, the header stands on a solid band so its text never sits on the art.
   const solidHeader = !interactiveForge || route === 'detail';
   return <SceneSurface place={place} drop={interactiveForge && !waiting ? route === 'detail' ? DETAIL_DROP : LIST_DROP : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}>{waiting ? <SafeAreaView testID="hearth-waiting" style={styles.safeArea}><View style={styles.content}>
@@ -371,6 +378,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     {/* The detail shows no screen title and no tabs, so its line and action stay above the fold (docs/product/clarity.md rule 1, MVP-22-T09c). */}
     {/* Its back control returns to the list it came from under that tab's name (MVP-22-T09e). The list's own goes to the room or the menu. */}
     <View testID="screen-header" style={[styles.header, solidHeader && styles.solidHeader]}>
+      {/* The band ends in a short fade, so the artwork under it never starts on a hard edge (native check, MVP-22-T09e). */}
+      {solidHeader && <View testID="header-fade" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.headerFade} />}
       {route === 'detail'
         ? interactiveForge ? <SceneDoor label={t(`oathHome.${detailFrom}`)} onPress={returnToList} /> : <BackLink label={t(`oathHome.${detailFrom}`)} onPress={returnToList} />
         : forgeNavigation && (interactiveForge
@@ -389,17 +398,18 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       {account.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
     </>}
     {available && <>
-      {route === 'list' && list?.paused && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.paused')} /></View>}
+      {/* A fact, so a plain card line. Żaromir stays silent while paused (clarity.md decisions 5 and 14). */}
+      {route === 'list' && list?.paused && <View testID="pause-note" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{t('oathHome.paused')}</Text></View>}
       {route === 'list' && busyNotice && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('forge.busy')} /></View>}
       {/* The lowered chronicle close-up shows its book in this band, so no text crosses it. */}
       {route === 'list' && view === 'history' && interactiveForge && <View testID="chronicle-band" style={styles.chronicleBand} />}
       {route === 'list' && view === 'today' && <>
-        <ForgeHub items={list?.items ?? []} clock={controller.clock} onElapsed={elapsed} onOpen={openFromList} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy} />
+        <ForgeHub items={list?.items ?? []} clock={controller.clock} onElapsed={elapsed} onOpen={openFromList} interrupted={interruptedIds} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy} />
       </>}
       {route === 'list' && (account.pending ? <>
         <CompanionBubble message={t('oath.pending')} />
-        <Action label={t('oath.recover')} busy={account.busy} onPress={() => create(true)} />
-      </> : !list?.paused && (view !== 'today' || !interactiveForge) && <Action label={t('oathHome.create')} busy={account.busy} onPress={() => create()} />)}
+        <Action label={t('oath.recover')} variant={listAction} busy={account.busy} onPress={() => create(true)} />
+      </> : !list?.paused && (view !== 'today' || !interactiveForge) && <Action label={t('oathHome.create')} variant={listAction} busy={account.busy} onPress={() => create()} />)}
       {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
       {route === 'list' && view === 'history' && list && <View testID="history-header" style={styles.historyHeader}>
         <View accessible accessibilityLabel={`${list.total} ${t('room.talk.chronicle', { count: list.total })}`} style={styles.historyCount}>
@@ -425,21 +435,24 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
               <View style={styles.emblems}>
                 <ActivityEmblem activity={item.snapshot.activity} size={76} />
                 <View style={styles.stateBadge}><StateSeal state={item.state} size={36} /></View>
+                {interruptedIds.has(item.id) && <StepBadge badge="interrupted" size={32} testID="row-badge-interrupted" style={styles.interruptedBadge} />}
               </View>
               <View style={styles.entryCopy}>
                 <Text style={styles.activity}>{item.snapshot.copy[locale].activity}</Text>
-                {view === 'today' && <Text style={styles.state}>{t(`oath.states.${item.state}`)}</Text>}
-                {/* History rows show the result seal, the activity and when it closed, in the Oath's own zone. */}
-                <Text style={styles.deadline}>{view === 'history' ? compactStoredTime(item.terminalAt ? wallTimeIn(item.terminalAt, item.snapshot.deadline.timezone) : item.snapshot.deadline.local, locale) : shortStoredTime(item.snapshot.deadline.local, locale, false)}</Text>
+                {/* Today rows: four pips with the short state label, no full track (clarity.md decision 9). */}
+                {view === 'today' && rowPaths.has(item.id) && <StepTrack variant="compact" path={rowPaths.get(item.id)!} state={item.state} />}
+                {/* History rows show the result seal, the short visible state and when it closed, in the Oath's own zone (decision 10). */}
+                <Text style={styles.deadline}>{view === 'history' ? `${t(`forge.sealState.${item.state}`)} · ${compactStoredTime(item.terminalAt ? wallTimeIn(item.terminalAt, item.snapshot.deadline.timezone) : item.snapshot.deadline.local, locale)}` : shortStoredTime(item.snapshot.deadline.local, locale, false)}</Text>
                 {view === 'today' && <CountdownChip oath={item} clock={controller.clock} onElapsed={elapsed} />}
               </View>
             </Pressable>
             {uploads[index]}
           </View>;
         })}</View>}
-        {!loading && !failed && list?.items.length === 0 && view === 'today' && <CompanionBubble message={t('oathHome.emptyToday')} />}
+        {/* Żaromir does not suggest a workout while paused (clarity.md rule 8). The pause note above says what holds. */}
+        {!loading && !failed && list?.items.length === 0 && view === 'today' && !list.paused && <CompanionBubble message={t('oathHome.emptyToday')} />}
         {failed && <><View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.loadError')} /></View><Action label={t('oath.retry')} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
-        {list?.nextCursor && !failed && <Action label={t('oathHome.more')} busy={loading} onPress={() => { void loadList(view, true); }} />}
+        {list?.nextCursor && !failed && <Action label={t('oathHome.more')} variant={listAction} busy={loading} onPress={() => { void loadList(view, true); }} />}
       </>}
       {route === 'detail' && <>
         {failed && <><CompanionBubble message={t('oathHome.detailError')} /><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current, detailFrom); }} /></>}
@@ -483,7 +496,6 @@ const styles = StyleSheet.create({
   pressedEntry: { backgroundColor: '#493721', borderTopColor: '#f0bd76', transform: [{ scale: 0.98 }] },
   entryCopy: { flexShrink: 1, gap: 6 },
   activity: { color: '#f4deb7', fontSize: 21, lineHeight: 29, fontWeight: '600' },
-  state: { color: '#edba78', fontSize: 15, lineHeight: 22 },
   deadline: { color: '#ded1bd', fontSize: 14, lineHeight: 22 },
   detailHero: { alignItems: 'center', paddingTop: 4 },
   // With DETAIL_DROP the emblem's foot lands on the middle plinth 252 pt below the surface top: 24 + 64 door + 8 + 24 gap + 132.
@@ -499,6 +511,12 @@ const styles = StyleSheet.create({
   uploadText: { color: tokens.color.text, fontSize: 15, lineHeight: 22 },
   emblems: { width: 84, height: 84 },
   stateBadge: { position: 'absolute', right: -6, bottom: -6 },
+  // The amber badge of an interrupted upload takes the opposite corner from the state seal.
+  interruptedBadge: { position: 'absolute', left: -6, top: -6 },
+  note: { padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#5b4630', backgroundColor: 'rgba(28, 22, 16, 0.94)' },
+  noteText: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
+  // About 24 pt from the band's own colour to clear, hanging under it.
+  headerFade: { position: 'absolute', left: 0, right: 0, top: '100%', height: 24, experimental_backgroundImage: `linear-gradient(180deg, ${tokens.color.canvas} 0%, rgba(20, 23, 25, 0) 100%)` },
   parchment: { backgroundColor: 'rgba(27, 24, 20, 0.95)', padding: 18, borderTopWidth: 2, borderTopColor: '#9d7b4d', borderBottomWidth: 2, borderBottomColor: '#5d452c', borderRadius: 5 },
   navigation: { flexDirection: 'row', gap: 24, backgroundColor: 'rgba(17, 19, 21, 0.5)', borderRadius: 8 }, stackedNavigation: { flexDirection: 'column', gap: 8 }, stackedTab: { flex: 0, alignItems: 'flex-start' },
   tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#5d4e39' },

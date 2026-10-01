@@ -228,7 +228,7 @@ test('paused Forge makes the paused state visible without a creation affordance 
 test('room navigation opens history and keeps full stored time in accessibility', async () => {
   const f = setup();
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'history' }, onReturn: jest.fn() }} /></LocalizationProvider>);
-  expect(await screen.findByText('Oct 25, 2026 at 02:30')).toBeOnTheScreen();
+  expect(await screen.findByText('Under review · Oct 25, 2026 at 02:30')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: /Open Oath:.*Europe\/Warsaw/ })).toBeOnTheScreen();
   expect(f.controller.list).toHaveBeenLastCalledWith({ view: 'history' });
 });
@@ -492,8 +492,8 @@ test('History opens with the chronicle total from the server and short rows', as
   expect(within(header).getByText('Każdy wpis to Twoja historia w Kuźni.')).toBeOnTheScreen();
   const row = screen.getByRole('button', { name: /Otwórz Przysięgę/ });
   expect(within(row).getByTestId('state-seal-fulfilled', { includeHiddenElements: true })).toBeTruthy();
-  expect(within(row).getByText('25 paź 2026, 22:30')).toBeOnTheScreen();
-  expect(within(row).queryByText('Spełniona')).toBeNull();
+  // The short state label stands before the date (clarity.md decision 10).
+  expect(within(row).getByText('Spełniona · 25 paź 2026, 22:30')).toBeOnTheScreen();
   expect(row.props.accessibilityValue).toEqual({ text: 'Spełniona' });
 });
 
@@ -676,6 +676,8 @@ test.each([
 });
 
 const interrupted = 'The proof upload was interrupted. A copy is waiting on this device. The server has not confirmed receipt yet.';
+// A Today row says it in one line. The long explanation sits behind the detail's full description (MVP-22-T10).
+const rowLine = 'Proof not received. The copy is here, ready to send again.';
 const record = (oathId = id) => ({ version: 1 as const, accountId: '10000000-0000-4000-8000-000000000001', characterId, oathId, submissionId: receipt.submissionId, mode: 'photo' as const, fileName: `${receipt.submissionId}.jpg` });
 test('Today keeps cards of one heading close, and spaces a new heading or a card under an upload line', async () => {
   const pending = (n: number) => oath({ id: `20000000-0000-4000-8000-00000000001${n}`, state: 'proof_pending', reason: null, review: null, proof: { ...receipt, submissionId: `40000000-0000-4000-8000-00000000001${n}` } });
@@ -684,7 +686,7 @@ test('Today keeps cards of one heading close, and spaces a new heading or a card
   const f = setup(items); const proof = proofController();
   proof.change({ kind: 'ready', busy: false, pending: record(items[2].id), oath: null });
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  await screen.findByText(interrupted);
+  await screen.findByText(rowLine);
   const entry = (item: Oath) => screen.getByTestId(`oath-entry-${item.id}`);
   // Only the Oath with a waiting copy carries an upload line. The other rows render none.
   expect(screen.getAllByTestId('upload-interrupted')).toHaveLength(1);
@@ -707,7 +709,7 @@ test('a pending local record shows the interrupted upload on its Today row, and 
   const f = setup([active]); const proof = proofController();
   proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  expect(await screen.findByText(interrupted)).toBeOnTheScreen();
+  expect(await screen.findByText(rowLine)).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Delete the copy on this device' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Send again' }));
   expect(proof.controller.recover).toHaveBeenCalledTimes(1);
@@ -717,7 +719,7 @@ test('a pending local record shows the interrupted upload on its Today row, and 
   expect(row().props.accessibilityValue).toEqual({ text: 'Active' });
   await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: oath({ state: 'proof_pending', reason: null, review: null, proof: receipt }) }));
   await waitFor(() => expect(row().props.accessibilityValue).toEqual({ text: 'Assessment pending' }));
-  expect(screen.queryByText(interrupted)).toBeNull();
+  expect(screen.queryByText(rowLine)).toBeNull();
 });
 test('a pending local record shows the interrupted upload on its detail, and only the server receipt shows assessment', async () => {
   const f = setup([oath({ state: 'active', reason: null, review: null })]); const proof = proofController();
@@ -1139,4 +1141,81 @@ test('a deadline beyond the longest timeout waits in steps instead of firing at 
     expect(f.controller.detail).toHaveBeenCalledTimes(1);
     timeouts.mockRestore();
   } finally { jest.useRealTimers(); }
+});
+// MVP-22-T10: Today, History and ForgeHub rows (docs/product/clarity.md decisions 9, 10 and 14).
+test('a Today row shows four pips with the short state label, the short deadline and the chip', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const scheduled = oath({ state: 'scheduled', activatedAt: null, reason: null, review: null, id: '20000000-0000-4000-8000-000000000002' });
+  const f = setup([activeThursday(), scheduled]); f.controller.clock.observe(serverTime);
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  const rows = await screen.findAllByRole('button', { name: /Otwórz Przysięgę/ });
+  expect(within(rows[0]).getByLabelText('Etap 2 z 4, Trening, Aktywna')).toBeOnTheScreen();
+  expect(within(rows[0]).getAllByTestId(/^step-pip-/, { includeHiddenElements: true })).toHaveLength(4);
+  expect(within(rows[0]).getByText('czw 02:30')).toBeOnTheScreen();
+  expect(within(rows[0]).getByTestId('countdown-chip')).toBeOnTheScreen();
+  // The row names the state the seal wall uses, also before the start.
+  expect(within(rows[1]).getByLabelText('Etap 1 z 4, Przysięga, Zaplanowana')).toBeOnTheScreen();
+  expect(within(rows[1]).queryByText('Czeka na start')).toBeNull();
+});
+test('an interrupted Today row carries the amber badge, one line and the only filled "Wyślij ponownie"', async () => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const other = activeThursday({ id: '20000000-0000-4000-8000-000000000002' });
+  const f = setup([activeThursday(), other]); f.controller.clock.observe(serverTime); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} proof={proof.controller} timezone="UTC" /></LocalizationProvider>);
+  const rows = await screen.findAllByRole('button', { name: /Otwórz Przysięgę/ });
+  expect(within(rows[0]).getByLabelText('Etap 2 z 4, Trening, Nie dotarł')).toBeOnTheScreen();
+  expect(within(rows[0]).getByTestId('row-badge-interrupted', { includeHiddenElements: true })).toBeTruthy();
+  expect(within(rows[1]).queryByTestId('row-badge-interrupted', { includeHiddenElements: true })).toBeNull();
+  const line = within(screen.getByTestId(`oath-entry-${id}`)).getByTestId('upload-interrupted');
+  expect(within(line).getByText('Dowód nie dotarł. Kopia czeka tu na ponowne wysłanie.')).toBeOnTheScreen();
+  expect(screen.getAllByRole('button', { name: 'Wyślij ponownie' })).toHaveLength(1);
+  // The simple layout's creation steps back to an outline, so the resend is the only filled button.
+  expect(screen.getByRole('button', { name: 'Złóż Przysięgę' })).toBeOnTheScreen();
+  expect(filled()).toHaveLength(1);
+  expect(within(screen.getByRole('button', { name: 'Wyślij ponownie' })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
+});
+test('without an interrupted row the simple layout keeps its filled creation action', async () => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  const f = setup([activeThursday()]);
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} proof={proofController().controller} timezone="UTC" /></LocalizationProvider>);
+  await screen.findAllByRole('button', { name: /Otwórz Przysięgę/ });
+  expect(within(screen.getByRole('button', { name: 'Złóż Przysięgę' })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
+});
+test('a History row names its state before the compact date', async () => {
+  const fulfilled = oath({ state: 'fulfilled', reason: null, review: null, terminalAt: '2026-10-25T21:30:00Z' });
+  const f = setup([]); jest.mocked(f.controller.list).mockResolvedValueOnce(page([])).mockResolvedValueOnce(page([fulfilled]));
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Historia' }));
+  const row = await screen.findByRole('button', { name: /Otwórz Przysięgę/ });
+  expect(within(row).getByText('Spełniona · 25 paź 2026, 22:30')).toBeOnTheScreen();
+});
+test('the pause note is a plain card line without Żaromir', async () => {
+  const f = setup([]); jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  const note = await screen.findByText('Pauza jest włączona. Przysięgi czekające na wynik trwają dalej, wycofane nie wrócą.');
+  expect(screen.getByTestId('pause-note')).toContainElement(note);
+  expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
+});
+test('the seal wall marks an interrupted upload on its seal with a label and no pips', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const f = setup([activeThursday()]); f.controller.clock.observe(serverTime); const proof = proofController();
+  proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+  await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} proof={proof.controller} timezone="UTC" /></LocalizationProvider>);
+  const seal = (await screen.findAllByTestId('forge-seal'))[0];
+  expect(within(seal).getByTestId('seal-badge-interrupted', { includeHiddenElements: true })).toBeTruthy();
+  expect(within(seal).getByText('Nie dotarł')).toBeOnTheScreen();
+  expect(seal.props.accessibilityLabel).toContain('Nie dotarł');
+  expect(within(seal).queryAllByTestId(/^step-pip-/, { includeHiddenElements: true })).toHaveLength(0);
+});
+test('the solid header fades into the artwork instead of ending on a hard edge', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const f = setup([activeThursday()]);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  expect(screen.queryByTestId('header-fade', { includeHiddenElements: true })).toBeNull();
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await screen.findByTestId('detail-status');
+  const fade = within(screen.getByTestId('screen-header')).getByTestId('header-fade', { includeHiddenElements: true });
+  expect(StyleSheet.flatten(fade.props.style)).toMatchObject({ position: 'absolute', top: '100%', height: 24, experimental_backgroundImage: expect.stringContaining(tokens.color.canvas) });
+  expect(fade.props.pointerEvents).toBe('none');
 });

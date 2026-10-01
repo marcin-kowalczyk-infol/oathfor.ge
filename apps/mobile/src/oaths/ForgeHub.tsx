@@ -12,10 +12,11 @@ import { StateSeal } from '../ui/StateSeal';
 import { useMotionAllowed } from '../ui/useMotion';
 import { storedTime } from './SnapshotRules';
 import { useArt } from '../art/ArtProvider';
+import { StepBadge } from '../ui/StepTrack';
 
 const embers = [{ x: -35, y: 5, size: 3 }, { x: 17, y: 22, size: 4 }, { x: -8, y: 40, size: 2 }, { x: 36, y: 57, size: 3 }];
 
-function Seal({ item, onOpen, motion, clock, onElapsed }: { item: Oath; onOpen(id: string): void; motion: boolean; clock?: ServerClock; onElapsed?(): void }) {
+function Seal({ item, onOpen, motion, clock, onElapsed, interrupted }: { item: Oath; onOpen(id: string): void; motion: boolean; clock?: ServerClock; onElapsed?(): void; interrupted: boolean }) {
   const { t, i18n } = useTranslation();
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const scale = useRef(new Animated.Value(1)).current;
@@ -29,17 +30,20 @@ function Seal({ item, onOpen, motion, clock, onElapsed }: { item: Oath; onOpen(i
   };
   const copy = item.snapshot.copy[locale];
   const deadline = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC' }).format(new Date(`${item.snapshot.deadline.local}Z`));
+  // An upload that did not arrive gets the amber corner badge and its label instead of the state (docs/product/clarity.md rule 4).
+  const notReceived = t('path.badge.interrupted');
   return <View testID="forge-seal-column" style={styles.branch}>
-    <Pressable testID="forge-seal" accessibilityRole="button" accessibilityLabel={t('forge.seal', { activity: copy.activity, state: t(`oath.states.${item.state}`), deadline: storedTime(item.snapshot.deadline, locale) })}
+    <Pressable testID="forge-seal" accessibilityRole="button" accessibilityLabel={t('forge.seal', { activity: copy.activity, state: interrupted ? `${t(`oath.states.${item.state}`)}, ${notReceived}` : t(`oath.states.${item.state}`), deadline: storedTime(item.snapshot.deadline, locale) })}
       onPress={() => onOpen(item.id)} onPressIn={() => press(true)} onPressOut={() => press(false)} style={styles.sealTarget}>
       {({ pressed }) => <>
         <Animated.View style={{ transform: [{ scale }], opacity: pressed ? 0.8 : 1 }} accessible={false}>
           <ActivityEmblem activity={item.snapshot.activity} size={82} />
           <View style={styles.stateBadge}><StateSeal state={item.state} size={34} /></View>
+          {interrupted && <StepBadge badge="interrupted" size={30} testID="seal-badge-interrupted" style={styles.interruptedBadge} />}
         </Animated.View>
         <Text style={[styles.name, pressed && styles.highlight]}>{copy.activity}</Text>
         {/* One short line keeps the three dates and chips level. The button still speaks the full state. */}
-        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.state}>{t(`forge.sealState.${item.state}`)}</Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.state}>{interrupted ? notReceived : t(`forge.sealState.${item.state}`)}</Text>
         <Text style={styles.deadline}>{deadline}</Text>
         {clock && <View style={styles.chip}><CountdownChip oath={item} clock={clock} stacked onElapsed={onElapsed} /></View>}
       </>}
@@ -48,10 +52,12 @@ function Seal({ item, onOpen, motion, clock, onElapsed }: { item: Oath; onOpen(i
 }
 
 /** Atmosphere never observes deadlines, changes Oath state or awards progression. */
-export function ForgeHub({ items, onOpen, onCreate, createDisabled = false, clock, onElapsed }: {
+export function ForgeHub({ items, onOpen, onCreate, createDisabled = false, clock, onElapsed, interrupted }: {
   items: Oath[]; onOpen(id: string): void; onCreate?: () => void; createDisabled?: boolean;
   /** Server time for the countdown chips. A chip reaching zero asks the owner for a fresh list, it never changes state. */
   clock?: ServerClock; onElapsed?(): void;
+  /** Oaths whose proof copy waits on this device after an interrupted upload. */
+  interrupted?: ReadonlySet<string>;
 }) {
   const { haze } = useArt();
   const { t } = useTranslation();
@@ -97,7 +103,7 @@ export function ForgeHub({ items, onOpen, onCreate, createDisabled = false, cloc
     </Pressable> : art}
     {items.length > 0 && <>
       <Text accessibilityRole="header" style={styles.caption}>{t('forge.seals')}</Text>
-      <View testID="forge-seals" style={styles.seals}>{items.slice(0, 3).map(item => <Seal key={item.id} item={item} onOpen={onOpen} motion={motion} clock={clock} onElapsed={onElapsed} />)}</View>
+      <View testID="forge-seals" style={styles.seals}>{items.slice(0, 3).map(item => <Seal key={item.id} item={item} onOpen={onOpen} motion={motion} clock={clock} onElapsed={onElapsed} interrupted={!!interrupted?.has(item.id)} />)}</View>
     </>}
   </View>;
 }
@@ -115,6 +121,8 @@ const styles = StyleSheet.create({
   sealTarget: { flexGrow: 1, alignSelf: 'stretch', alignItems: 'center', gap: 5, paddingBottom: 8 },
   highlight: { color: '#ffe1aa' },
   stateBadge: { position: 'absolute', right: -8, bottom: -6 },
+  // The opposite corner from the state seal, so both stay readable.
+  interruptedBadge: { position: 'absolute', left: -8, top: -6 },
   name: { color: tokens.color.text, fontSize: 14, lineHeight: 19, fontWeight: '600', textAlign: 'center', marginTop: 3 },
   state: { color: tokens.color.secondary, fontSize: 12, lineHeight: 17, textAlign: 'center' },
   deadline: { color: '#bfa987', fontSize: 12, lineHeight: 17, textAlign: 'center' },
