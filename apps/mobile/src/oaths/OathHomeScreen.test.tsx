@@ -919,3 +919,32 @@ test('an active detail asks the server again when the window for proof closes, a
     expect(f.controller.detail).toHaveBeenCalledTimes(2);
   } finally { jest.useRealTimers(); }
 });
+test('an active detail moves to the last-hour line an hour before the deadline without asking the server', async () => {
+  jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-10-29T00:29:00Z'));
+  try {
+    const f = setup([activeThursday()]); f.controller.clock.observe('2026-10-29T00:29:00Z');
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+    await act(async () => { await Promise.resolve(); });
+    await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath:/ }))[0]);
+    expect(await screen.findByText('Workout and proof by Thu, Oct 29, 02:30.')).toBeOnTheScreen();
+    await act(async () => { jest.advanceTimersByTime(61000); });
+    expect(screen.getByText('Under an hour left. Workout and proof by Thu, Oct 29, 02:30.')).toBeOnTheScreen();
+    expect(f.controller.detail).toHaveBeenCalledTimes(1);
+  } finally { jest.useRealTimers(); }
+});
+test('a deadline beyond the longest timeout waits in steps instead of firing at once', async () => {
+  jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-09-01T00:00:00Z'));
+  try {
+    const f = setup([activeThursday()]); f.controller.clock.observe('2026-09-01T00:00:00Z');
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+    await act(async () => { await Promise.resolve(); });
+    await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath:/ }))[0]);
+    const timeouts = jest.spyOn(globalThis, 'setTimeout');
+    await screen.findByText('Workout and proof by Thu, Oct 29, 02:30.');
+    // A longer native timeout overflows and fires at once, so the detail never asks for more than 2^31 − 1 ms.
+    await act(async () => { jest.advanceTimersByTime(60000); });
+    expect(Math.max(...timeouts.mock.calls.map(call => call[1] ?? 0))).toBeLessThanOrEqual(2 ** 31 - 1);
+    expect(f.controller.detail).toHaveBeenCalledTimes(1);
+    timeouts.mockRestore();
+  } finally { jest.useRealTimers(); }
+});
