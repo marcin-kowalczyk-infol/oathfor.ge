@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Modal, ScrollView, View, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Text } from '../src/ui/Text';
 import { AuthScreen } from '../src/auth/AuthScreen';
 import { LocalizationProvider } from '../src/localization/LocalizationProvider';
@@ -51,7 +51,8 @@ export default function DemoApp() {
   ];
   // The bar keeps the top inset. The product gets its own provider, which on a device starts under the bar,
   // so the product screens get no second top inset. A Modal needs its own provider too.
-  return <SafeAreaProvider><View style={styles.root}>
+  // Initial metrics let the first frame render before the native insets arrive.
+  return <SafeAreaProvider initialMetrics={initialWindowMetrics}><View style={styles.root}>
     <SafeAreaView testID="demo-badge-bar" edges={['top', 'left', 'right']}><Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={styles.badge}><Text key={fontScale} maxFontSizeMultiplier={1.4} style={styles.badgeText}>{copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable></SafeAreaView>
     <SafeAreaProvider style={styles.product}><Run key={mount} dummy={dummy} locale={locale} /></SafeAreaProvider>
     <Modal visible={controls} animationType="none" onRequestClose={() => setControls(false)}>
