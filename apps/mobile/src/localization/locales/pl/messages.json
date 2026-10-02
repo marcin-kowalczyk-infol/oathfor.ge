@@ -165,6 +165,7 @@
     "reviewIntro": "Przeczytaj zasady i złóż Przysięgę.",
     "consent": "Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady.",
     "pending": "Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.",
+    "pendingConfirmed": "Przysięga już złożona. Sprawdź potwierdzenie, by dokończyć zapis na urządzeniu.",
     "recover": "Sprawdź potwierdzenie",
     "storageError": "Nie udało się bezpiecznie zapisać lub odczytać potwierdzenia. Spróbuj ponownie przed kontynuowaniem.",
     "reviewAgain": "Ponownie wybierz i sprawdź terminy przed złożeniem Przysięgi.",

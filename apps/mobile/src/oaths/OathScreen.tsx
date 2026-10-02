@@ -173,26 +173,33 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
     else if (error.kind === 'time_error' || error.kind === 'oath_error') errorText = t(`oath.error.${error.code}`, { defaultValue: t('oath.error.generic') });
     else errorText = t(error.kind === 'invalid_request' ? 'oath.error.invalid_request' : 'oath.error.generic');
   }
+  // MVP-22-G32: beside a confirmed detail the band names the made Oath in one line instead of the pending and storage lines.
+  // After the player's own check an error replaces that line (clarity.md decision 3). While the check runs no line shows,
+  // as the error line already does. Only a press on the detail counts, so the press that brought the detail keeps the line.
+  const confirmedPending = !!detail && !!pending;
+  const [checked, setChecked] = useState(false);
+  if (checked && !confirmedPending) setChecked(false);
+  const bandError = confirmedPending && !checked ? undefined : errorText;
   return <SceneSurface place="hearth" approach={approach} scroll={scroll}><SafeAreaView style={styles.safeArea}>
     <Animated.ScrollView testID="oath-scroll" ref={scrollView as never} style={entrance} key={scene} contentContainerStyle={[styles.content, guideInset !== null && { paddingBottom: guideInset }]} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
       {/* MVP-22-B2 (G16): the hearth close-up starts at the top, so the way back, the title, the line and the workout label
           stand on a solid band that fades into the art, as on the detail. Cards and offerings carry their own fills below it. */}
-      {(onBack || titled || intro || (ready && errorText) || ready?.needsReview || pending) && <View testID="screen-header" style={styles.band}>
+      {(onBack || titled || intro || (ready && bandError) || ready?.needsReview || pending) && <View testID="screen-header" style={styles.band}>
         <FadeStrips testID="header-fade" stripTestID="header-fade-strip" style={styles.bandFade} />
         {onBack && (backPlain ? <BackLink label={backLabel ?? t('oathHome.today')} onPress={onBack} /> : <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />)}
         {titled && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
         {/* MVP-22-A6: one plain "what next" line. D and S stay on their cards and in Żaromir's guide (clarity.md rules 1 and 14). */}
         {intro && <Text testID="oath-line" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(t(intro))}</Text>}
         {/* MVP-22-B2c: the error and review-again lines stand above the workout header, so the header stays with its offerings. */}
-        {ready && errorText && <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(errorText)}</Text>}
+        {ready && bandError && <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(bandError)}</Text>}
         {ready?.needsReview && <Text style={styles.body}>{prose(t('oath.reviewAgain'))}</Text>}
         {/* MVP-22-G27: the pending line and its action stand on the band after the error line, never on the hearth fire. */}
         {pending && <>
-          <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(t('oath.pending'))}</Text>
+          {!(confirmedPending && checked) && <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(t(confirmedPending ? 'oath.pendingConfirmed' : 'oath.pending'))}</Text>}
           {/* MVP-22 G30: the server confirmed the Oath but clearing the device record failed, so the detail and this band show together.
               The detail's action stays the one filled action (clarity.md rule 3). The check steps to outline and stays, because the
-              storage line asks to try again and the record still blocks a new Oath. It replays the same identity, so it is harmless. */}
-          <Action label={t('oath.recover')} busy={busy} variant={detail ? 'secondary' : 'primary'} onPress={() => { void controller.recover(); }} />
+              line asks for it and the record still blocks a new Oath. It replays the same identity, so it is harmless. */}
+          <Action label={t('oath.recover')} busy={busy} variant={detail ? 'secondary' : 'primary'} onPress={() => { if (confirmedPending) setChecked(true); void controller.recover(); }} />
         </>}
         {forming && <Text accessibilityRole="header" style={styles.label}>{t('oath.activity')}</Text>}
       </View>}

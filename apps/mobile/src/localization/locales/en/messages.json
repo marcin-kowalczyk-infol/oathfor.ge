@@ -161,6 +161,7 @@
     "reviewIntro": "Read the rules, then make the Oath.",
     "consent": "By choosing “Commit to the Oath”, I accept the rules on the cards and the full rules.",
     "pending": "Your confirmation may already have arrived. Check the same Oath before starting another.",
+    "pendingConfirmed": "Your Oath is already made. Check confirmation to finish saving on this device.",
     "recover": "Check confirmation",
     "storageError": "We could not securely save or read your confirmation. Try again before continuing.",
     "reviewAgain": "Choose and review the times again before committing.",
