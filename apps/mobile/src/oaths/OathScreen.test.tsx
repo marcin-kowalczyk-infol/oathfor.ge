@@ -81,10 +81,10 @@ describe('the review as pictograms', () => {
   }
   const drawn = (testID: string) => within(screen.getByTestId(testID)).getAllByText(/./, { includeHiddenElements: true }).map(node => node.props.children).join(' | ');
   const words = {
-    en: { deadline: 'Deadline | 02:30 | Sun, Oct 25', cutoff: 'Last chance | +15 min', fixed: 'Rules fixed', reward: 'Reward | 40–50 XP', consequence: 'If missed | XP kept',
+    en: { deadline: 'Deadline | 02:30 | Sun, Oct 25', cutoff: 'Last chance | +15 min', fixed: 'Rules fixed | no changes', reward: 'Reward | 40–50 XP', consequence: 'If missed | XP kept',
       spoken: { deadline: 'Deadline, 02:30, Sun, Oct 25, Warsaw', cutoff: 'Last chance, 02:45, 15 minutes after the deadline', fixed: 'Rules fixed. Once made, the rules do not change.',
         reward: 'Reward. 40 XP for a photo, 50 XP for an activity record', consequence: 'If missed. You keep the XP you earned. You can take a Recovery Quest for 15 XP.' } },
-    pl: { deadline: 'Termin | 02:30 | niedz 25 paź', cutoff: 'Ostatni moment | +15 min', fixed: 'Zasady stałe', reward: 'Nagroda | 40–50 XP', consequence: 'Jeśli nie zdążysz | XP zostaje',
+    pl: { deadline: 'Termin | 02:30 | niedz 25 paź', cutoff: 'Ostatni moment | +15 min', fixed: 'Zasady stałe | bez zmian', reward: 'Nagroda | 40–50 XP', consequence: 'Jeśli nie zdążysz | XP zostaje',
       spoken: { deadline: 'Termin, 02:30, niedz 25 paź, Warszawa', cutoff: 'Ostatni moment, 02:45, 15 minut po terminie', fixed: 'Zasady stałe. Po złożeniu zasady się nie zmienią.',
         reward: 'Nagroda. 40 XP za zdjęcie, 50 XP za zapis aktywności', consequence: 'Jeśli nie zdążysz. Nie tracisz zdobytego XP. Możesz podjąć Zadanie Powrotu za 15 XP.' } },
   };
@@ -426,19 +426,48 @@ test('a flag still being read shows nothing', async () => {
   expect(screen.queryByRole('button', { name: 'Ask Zharomir' })).toBeNull();
 });
 
-// MVP-22-B2 (G21): the open guide covered the bottom cards ("M… z podjąć"). While it is open the review gains a bottom inset
-// as tall as the panel with its rising bust, so every card can scroll above it.
-test.each([[180], [300]])('while the guide is open the review scrolls %i points of panel clear of the cards', async height => {
+// MVP-22-B2 (G21): the open guide covered the bottom cards ("M… z podjąć"). Native check, 2026-10-02 (MVP-22-E3r): Żaromir's
+// bust, which rises above the panel, still covered the hold hint and the "Pełne zasady" row. While the guide is open the scroll
+// view ends at the bust top, so neither the panel nor the bust ever stands over the review, and every card still scrolls clear.
+test.each([[180], [300]])('while the guide is open the review ends %i points of panel and the bust above the bottom', async height => {
   await openReview(setup(), rulesGuide(false));
   const panel = await screen.findByTestId('dialogue-panel');
-  const inset = () => (StyleSheet.flatten(screen.getByTestId('oath-scroll').props.contentContainerStyle) as ViewStyle).paddingBottom as number;
+  const flat = (key: 'style' | 'contentContainerStyle') => (StyleSheet.flatten(screen.getByTestId('oath-scroll').props[key]) ?? {}) as ViewStyle;
   const closed = 36;
   await fireEvent(panel, 'layout', { nativeEvent: { layout: { x: 12, y: 500, width: 378, height } } });
   // The panel stands 24 pt above the bottom and Żaromir's bust rises 48 pt above its frame.
-  expect(inset()).toBe(height + 24 + 48);
+  expect(flat('style').marginBottom).toBe(height + 24 + 48);
+  expect(flat('contentContainerStyle').paddingBottom).toBe(closed);
   expect(screen.queryByTestId('guide-spacer')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Pomiń wprowadzenie' }));
-  expect(inset()).toBe(closed);
+  expect(flat('style').marginBottom).toBeUndefined();
+  expect(flat('contentContainerStyle').paddingBottom).toBe(closed);
+});
+// Native check, 2026-10-02: the hold seal with its declaration and hint crossed the bottom edge while Żaromir named a card.
+// The page moves down by the overshoot, but never so far that the named card's top leaves the screen.
+describe('while the guide names a card the hold seal is not cut by the bottom edge', () => {
+  const layout = (testId: string, y: number, height = 300) => fireEvent(screen.getByTestId(testId), 'layout', { nativeEvent: { layout: { x: 0, y, width: 370, height } } });
+  async function guided(viewport: number, hold: { y: number; height: number }) {
+    const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo');
+    let show!: (seen: boolean) => void;
+    await openReview(setup(), rulesGuide(new Promise<boolean>(resolve => { show = resolve; })));
+    await layout('oath-rules-block', 100); await layout('review-pictograms', 50); await layout('pictogram-deadline', 0);
+    await layout('oath-hold-block', hold.y, hold.height);
+    await act(async () => { show(false); });
+    await screen.findByTestId('dialogue-panel');
+    await layout('oath-scroll', 0, viewport);
+    return (scrollTo.mock.calls.at(-1)?.[0] as { y: number } | undefined)?.y;
+  }
+  // The card top is 150, so the plain step stops at 138. The seal block spans 400 to 645 on the page, 262 to 507 on screen.
+  test('a seal block crossing the edge moves above it', async () => {
+    expect(await guided(500, { y: 400, height: 245 })).toBe(138 + 7);
+  });
+  test('the move stops with the named card at the top', async () => {
+    expect(await guided(480, { y: 400, height: 245 })).toBe(150);
+  });
+  test('a seal block wholly below the edge leaves the step where it was', async () => {
+    expect(await guided(250, { y: 400, height: 245 })).toBe(138);
+  });
 });
 
 // Native check, 2026-09-30, iPhone 18 Pro at the largest accessibility size in Polish: the 280 pt panel cut the fourth line of

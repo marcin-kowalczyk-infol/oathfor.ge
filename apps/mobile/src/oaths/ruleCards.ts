@@ -50,8 +50,11 @@ export const REVIEW_GROUPS = {
   folded: ['start', 'proof', 'review', 'pause'],
 } as const satisfies Record<'large' | 'small' | 'folded', readonly RuleCardId[]>;
 export type PictogramId = typeof REVIEW_GROUPS.large[number] | typeof REVIEW_GROUPS.small[number];
-/** label: one to three words beside the pictogram (clarity rule 4). values: short drawn snapshot values. spoken: the card's full facts. */
-export type Pictogram = { id: PictogramId; icon: RuleIconId; label: string; values: string[]; spoken: string };
+/**
+ * label: one to three words beside the pictogram (clarity rule 4). values: short drawn snapshot values. spoken: the card's full facts.
+ * labelValues: the values are words, not snapshot figures, so each counts as a pictogram label of at most three words.
+ */
+export type Pictogram = { id: PictogramId; icon: RuleIconId; label: string; values: string[]; spoken: string; labelValues?: true };
 
 /** The review pictograms. Drawn values are short, the spoken label keeps every fact of the card it replaces. */
 export function reviewPictograms(snapshot: Snapshot, t: Translate, locale: Locale): { large: Pictogram[]; small: Pictogram[] } {
@@ -64,7 +67,8 @@ export function reviewPictograms(snapshot: Snapshot, t: Translate, locale: Local
     large: [
       item('deadline', [deadline.time!, deadline.lines[0]], [label('deadline'), deadline.time, ...deadline.lines].join(', ')),
       item('cutoff', [t('oath.pictograms.cutoffValue', { count: snapshot.review.receiptGraceSeconds / 60 })], [label('cutoff'), cutoff.time, ...cutoff.lines].join(', ')),
-      item('fixed', [], `${label('fixed')}. ${lines('fixed')}`),
+      // Native check, 2026-10-02 (MVP-22-E3r): without a value line the card stood half empty beside 18:00 and +15 min.
+      { ...item('fixed', [t('oath.pictograms.fixedValue')], `${label('fixed')}. ${lines('fixed')}`), labelValues: true },
     ],
     small: [
       item('reward', [t('oath.pictograms.rewardValue', { photo: snapshot.rewards.photoTotal, record: snapshot.rewards.recordTotal })], `${label('reward')}. ${lines('reward')}`),

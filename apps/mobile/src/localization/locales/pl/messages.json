@@ -303,6 +303,7 @@
       "cutoff": "Ostatni moment",
       "cutoffValue": "+{{count}} min",
       "fixed": "Zasady stałe",
+      "fixedValue": "bez zmian",
       "reward": "Nagroda",
       "rewardValue": "{{photo}}–{{record}} XP",
       "consequence": "Jeśli nie zdążysz",

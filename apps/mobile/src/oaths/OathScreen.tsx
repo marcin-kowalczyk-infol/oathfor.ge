@@ -127,16 +127,24 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const guideCard = guideShown ? GUIDE_CARDS[guideLine!] : null;
   // The last step closes the guide, so it offers a finishing word instead of "Next" (native check, 2026-09-30).
   const guideStep = t(guideLine === LAST_GUIDE_LINE ? 'room.tutorial.finish' : 'room.tutorial.next');
-  const guideTop = guideShown ? Math.max(0, guideTops.block + guideTops.grid + (guideCard ? guideTops.cards[guideCard] ?? 0 : 0) - GUIDE_MARGIN) : null;
-  useEffect(() => { if (guideTop !== null) scrollView.current?.scrollTo({ y: guideTop, animated: motion }); }, [guideTop, guideLine, motion]);
+  // Native check, 2026-10-02 (MVP-22-E3r): the hold seal block crossed the bottom edge under Żaromir's bust. A block that
+  // crosses the edge moves the page down by its overshoot, at most until the named card's top meets the screen top.
+  const [viewport, setViewport] = useState(0);
+  const [hold, setHold] = useState<{ y: number; height: number } | null>(null);
+  const cardTop = guideTops.block + guideTops.grid + (guideCard ? guideTops.cards[guideCard] ?? 0 : 0);
+  const stepTop = Math.max(0, cardTop - GUIDE_MARGIN);
+  const holdOvershoot = hold && viewport > 0 && hold.y - stepTop < viewport ? hold.y + hold.height - stepTop - viewport : 0;
+  const guideTop = guideShown ? Math.min(stepTop + Math.max(0, holdOvershoot), Math.max(stepTop, cardTop)) : null;
   // Native check, 2026-09-30: at the largest text size the 280 pt panel cut the fourth line of the first Polish guide line.
   // The line is capped at 2x, 46 pt a line, and the longest Polish and English lines wrap to four lines at 375 and 402 pt.
   // The frame and the step row take 114 pt, so 344 pt holds five lines and leaves the upper half of the screen for the card.
   const guideFrame = { left: 12, width: Math.min(window.width - 24, 560), bottom: 24, maxHeight: largeText ? Math.min(344, window.height * 0.5) : Math.min(280, window.height * 0.45) };
-  // MVP-22-B2 (G21): while the guide is open the content ends with an inset as tall as the panel, its bottom gap and the rising bust,
-  // so every card and the consent can scroll above it. Until the panel is measured its height limit stands in.
+  // MVP-22-B2 (G21), MVP-22-E3r: while the guide is open the scroll view ends above the panel, its bottom gap and the rising bust,
+  // so neither covers the review and every card and the consent can scroll clear. Until the panel is measured its height limit stands in.
   const [panelHeight, setPanelHeight] = useState<number | null>(null);
   const guideInset = guideShown ? (panelHeight ?? guideFrame.maxHeight) + guideFrame.bottom + PANEL_RISE : null;
+  // The shorter scroll view lets the page move further, so the step scrolls again once the panel and the view are measured.
+  useEffect(() => { if (guideTop !== null) scrollView.current?.scrollTo({ y: guideTop, animated: motion }); }, [guideTop, guideLine, motion, guideInset, viewport]);
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   // Drawn prose keeps Polish single-letter words with the next word and never ends a line on a separator (MVP-22-G24b).
   // Spoken labels, hints and button titles keep the plain form.
@@ -202,7 +210,8 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   if (checked && !confirmedPending) setChecked(false);
   const bandError = confirmedPending && !checked ? undefined : errorText;
   return <SceneSurface place="hearth" approach={approach} scroll={scroll}><SafeAreaView style={styles.safeArea}>
-    <Animated.ScrollView testID="oath-scroll" ref={scrollView as never} style={entrance} key={scene} contentContainerStyle={[styles.content, guideInset !== null && { paddingBottom: guideInset }]} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
+    <Animated.ScrollView testID="oath-scroll" ref={scrollView as never} style={[entrance, guideInset !== null && { marginBottom: guideInset }]} key={scene} contentContainerStyle={styles.content}
+      onLayout={event => setViewport(event.nativeEvent.layout.height)} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
       {/* MVP-22-B2 (G16): the hearth close-up starts at the top, so the way back, the title, the line and the workout label
           stand on a solid band that fades into the art, as on the detail. Cards and offerings carry their own fills below it. */}
       {(onBack || titled || (ready && bandError) || ready?.needsReview || pending) && <View testID="screen-header" style={styles.band}>
@@ -260,8 +269,10 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         </View>
         {/* MVP-22-E3.2 (D-E1, D-E5): the hold seal is the one filled control. Its label is the stored declaration, its drawn hint
             is the consent. A full hold calls the idempotent confirm, and the stamping still waits for the server. */}
-        {!pending && <HoldSeal declaration={ready.preview!.snapshot.copy[locale].declaration} busy={busy} hint={t('oath.consent')} tapHint={t('oath.consentTap')}
-          onSeal={() => { void controller.confirm(); }} />}
+        {!pending && <View testID="oath-hold-block" onLayout={event => { const { y, height } = event.nativeEvent.layout; setHold(last => last?.y === y && last.height === height ? last : { y, height }); }}>
+          <HoldSeal declaration={ready.preview!.snapshot.copy[locale].declaration} busy={busy} hint={t('oath.consent')} tapHint={t('oath.consentTap')}
+            onSeal={() => { void controller.confirm(); }} />
+        </View>}
         <ReviewFold snapshot={ready.preview!.snapshot} />
         {!pending && <Pressable accessibilityRole="button" accessibilityLabel={t('oath.edit')} accessibilityState={{ disabled: busy }} disabled={busy}
           onPress={() => { setMode('form'); setSubmitted(false); }} style={({ pressed }) => [styles.textAction, pressed && styles.pressed]}>

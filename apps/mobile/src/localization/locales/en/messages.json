@@ -295,6 +295,7 @@
       "cutoff": "Last chance",
       "cutoffValue": "+{{count}} min",
       "fixed": "Rules fixed",
+      "fixedValue": "no changes",
       "reward": "Reward",
       "rewardValue": "{{photo}}–{{record}} XP",
       "consequence": "If missed",

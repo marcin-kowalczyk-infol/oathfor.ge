@@ -63,7 +63,7 @@ function PictogramView({ item, size, room, highlighted = false, gesture = false,
       : <SpriteFrame testID={`pictogram-art-${item.id}`} sheet={art.ruleIcons} index={ruleIcon[item.icon]} width={size} />}
     <View style={[styles.words, stacked && styles.centred]}>
       <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, stacked && styles.centredText]}>{bindShortWords(item.label, i18n.language)}</Text>
-      {item.values.map((value, index) => <Text key={value} maxFontSizeMultiplier={tokens.maxScale.inset}
+      {item.values.map((value, index) => <Text key={value} budget={item.labelValues && 'icon'} maxFontSizeMultiplier={tokens.maxScale.inset}
         style={[index === 0 ? styles.value : styles.detail, !large && styles.smallValue, stacked && styles.centredText]}>{value}</Text>)}
     </View>
   </View>;

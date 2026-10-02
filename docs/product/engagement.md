@@ -218,7 +218,7 @@ From the top:
 2. **Three large pictograms**, about 96 pt, each with a one-to-three word label and one value:
    - Hourglass, "Termin" / "Deadline", the hour of D with the short day.
    - Candle, "Ostatni moment" / "Last chance", "+15 min".
-   - Anvil with a lock, "Zasady stałe" / "Rules fixed", no value.
+   - Anvil with a lock, "Zasady stałe" / "Rules fixed", the value "bez zmian" / "no changes". The value is words, so it counts as a pictogram label (native check and owner instruction, 2026-10-02, MVP-22-E3r). It replaced "no value", which left the card half empty.
 3. **Two small pictograms (D-E6)**, about 48 pt, "Nagroda" / "Reward" and "Jeśli nie zdążysz" / "If you miss it", each with one short snapshot value. This keeps owner decision Q2: reward and consequence are seen without opening the full rules.
 4. **The hold-to-seal control (D-E1).** A wax seal under the player's hand. Its label is the stored declaration, fully drawn. A short hint that names the action, "Przytrzymaj, by złożyć Przysięgę" / "Hold to commit to the Oath" (proposal wording under Q5, clarity rules 4 and 10).
 5. One consent line, reworded because the button "Złóż Przysięgę" no longer exists, for example PL "Przytrzymując pieczęć, akceptuję zasady z kart i pełne zasady." EN "By holding the seal, I accept the rules shown here and the full rules." Final wording is a copy task under Q5.
@@ -234,7 +234,7 @@ From the top:
 - **VoiceOver and Switch Control.** The control is always an accessible button with the standard `activate` action. Its label is the declaration followed by "Złóż Przysięgę" / "Commit to the Oath". React Native engages `activate` on the VoiceOver double tap. Source: [React Native accessibility](https://reactnative.dev/docs/accessibility) (opened for this spec). Switch Control's select is expected to send the same activation, which the native check confirms. When `AccessibilityInfo.isScreenReaderEnabled()` reports a screen reader, the drawn hint reads "Stuknij dwukrotnie, by złożyć Przysięgę" / "Double-tap to commit to the Oath".
 - **Reduce Motion.** The ring does not animate. After 1.0 s of holding the seal shows its full state in one change, and the release accepts.
 
-**Żaromir on the first review.** His four bubbles become one bark per pictogram, at most 8 words, while that pictogram plays its gesture: the sand runs, the candle flickers, the lock clicks. The dialogue panel and the "seen" flag stay as accepted in decision Q4. Reduce Motion highlights the pictogram without motion.
+**Żaromir on the first review.** His four bubbles become one bark per pictogram, at most 8 words, while that pictogram plays its gesture: the sand runs, the candle flickers, the lock clicks. The dialogue panel and the "seen" flag stay as accepted in decision Q4. Reduce Motion highlights the pictogram without motion. While the panel is open the review ends above the panel and the rising bust, so neither covers a card, the seal or its hint. A seal block that crosses that edge moves the page down, but never past the named card (native check, 2026-10-02, MVP-22-E3r).
 
 ### What it replaces
 
