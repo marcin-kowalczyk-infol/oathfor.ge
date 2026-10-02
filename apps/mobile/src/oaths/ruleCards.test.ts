@@ -36,7 +36,7 @@ test('Polish cards carry the snapshot values in order', () => {
 
 test('English cards and a scheduled start in its own zone', () => {
   const cards = build(snapshot(value => { value.activation = { mode: 'scheduled', time: { local: '2026-10-01T07:30:00', timezone: 'Europe/London', offset: '+01:00', explicitOffset: false, utc: '2026-10-01T06:30:00Z' } }; }), 'en');
-  expect(cards.map(card => card.title)).toEqual(['Start', 'Deadline', 'Last moment for proof', 'Proof', 'Review', 'Reward', 'If you miss it', 'The rules are fixed', 'Pause']);
+  expect(cards.map(card => card.title)).toEqual(['Start', 'Deadline', 'Last chance for proof', 'Proof', 'Review', 'Reward', 'If you miss it', 'The rules are fixed', 'Pause']);
   expect(time(cards, 'start')).toBe('07:30');
   expect(line(cards, 'start')).toBe('Thu, Oct 1 London');
   expect(time(cards, 'deadline')).toBe('18:00');

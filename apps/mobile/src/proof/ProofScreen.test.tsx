@@ -191,7 +191,7 @@ test.each([['pl', 375, 1, 'row'], ['en', 402, 1, 'row'], ['pl', 340, 1, 'column'
   expect(screen.getByText(pl ? 'Prywatne fragmenty zasłoń w Zdjęciach, zanim wybierzesz obraz.' : 'Cover anything private in Photos before you choose an image.')).toBeOnTheScreen();
   expect(screen.getByText(pl ? 'AI ocenia tylko to, co widać na obrazie.' : 'AI assesses only what the image shows.')).toBeOnTheScreen();
   const caveat = pl ? 'Obraz nie pokaże ukończenia, czasu trwania ani osoby na treningu, dlatego Kuźnia opiera się też na Twojej deklaracji.'
-    : 'An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.';
+    : 'An image cannot show that you finished, how long you trained or who trained, so the Forge also relies on your declaration.';
   const crop = pl ? /Prywatne fragmenty przytnij lub zasłoń wcześniej w Zdjęciach/ : /Crop or cover anything private in Photos first/;
   expect(screen.queryByText(value.snapshot.copy[locale].sections.photo)).toBeNull();
   expect(screen.queryByText(caveat)).toBeNull();
@@ -226,7 +226,7 @@ test('sending shows no success until the server answers, then hands back the ret
 test('an unreachable server keeps the copy with send-again and discard, and claims no receipt', async () => {
   const pending = { version: 1 as const, accountId: '10000000-0000-4000-8000-000000000001', characterId, oathId, submissionId: '40000000-0000-4000-8000-000000000001', mode: 'photo' as const, fileName: '40000000-0000-4000-8000-000000000001.jpg' };
   const f = await show('en', oath(), fakeController({ kind: 'ready', busy: false, pending, oath: null, error: { kind: 'unavailable', retry: 'request' } }));
-  expect(screen.getByText('Could not reach the server. The proof has not been received yet. A copy is waiting on this device.')).toBeOnTheScreen();
+  expect(screen.getByText('We could not reach the server. The proof has not been received yet. A copy is waiting on this device.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Submit proof' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Send again' }));
   expect(f.controller.recover).toHaveBeenCalledTimes(1);
@@ -242,7 +242,7 @@ test('an unreachable server keeps the copy with send-again and discard, and clai
 });
 
 test.each([
-  [{ kind: 'proof_refused', code: 'receipt_cutoff_passed' }, 'The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.', true],
+  [{ kind: 'proof_refused', code: 'receipt_cutoff_passed' }, 'The proof window has closed, so the server did not accept this proof. Go back to the Oath to see its state.', true],
   [{ kind: 'proof_refused', code: 'oath_not_active', state: 'review_pending' }, 'This Oath is no longer waiting for proof. Check its current status.', true],
   [{ kind: 'too_large' }, 'This image is too large to send. Choose another one.', false],
   [{ kind: 'file_missing' }, 'The saved copy of the image is no longer on this device. Choose the image again.', false],
@@ -275,7 +275,7 @@ const otherOathId = '20000000-0000-4000-8000-000000000002';
 
 test('a proof waiting for another Oath can be sent again from here, but only its own Oath offers delete', async () => {
   const f = await show('en', oath(), fakeController({ kind: 'ready', busy: false, pending: pendingFor(otherOathId), oath: null, error: { kind: 'unavailable', retry: 'request' } }));
-  expect(screen.getByText('A proof for another Oath is waiting on this device. Send it now so you can submit proof here.')).toBeOnTheScreen();
+  expect(screen.getByText('Proof for another Oath is waiting on this device. Send it first so you can submit proof here.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Delete the copy on this device' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Send again' }));
   expect(f.controller.recover).toHaveBeenCalledTimes(1);
@@ -294,7 +294,7 @@ test("another Oath's receipt or refusal does not close this form, clear its imag
   // A proof for another Oath, resumed in the background, resolves while this form is open.
   await act(async () => f.change({ kind: 'ready', busy: true, pending: pendingFor(otherOathId), oath: null }));
   await act(async () => f.change({ kind: 'ready', busy: false, pending: null, oath: null, error: { kind: 'proof_refused', code: 'receipt_cutoff_passed' } }));
-  expect(screen.queryByText('The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.')).toBeNull();
+  expect(screen.queryByText('The proof window has closed, so the server did not accept this proof. Go back to the Oath to see its state.')).toBeNull();
   expect(screen.getByRole('button', { name: 'Submit proof' })).toBeOnTheScreen();
   await act(async () => f.change({ kind: 'ready', busy: false, pending: null, oath: null, error: { kind: 'proof_refused', code: 'unreadable_image', field: 'image' } }));
   expect(screen.getByLabelText('Chosen image')).toBeOnTheScreen();
@@ -529,7 +529,7 @@ test('a closed window shows one card line and one filled way back', async () => 
   await fireEvent.press(screen.getByRole('checkbox', { name: /Yes, I confirm/ }));
   await fireEvent.press(screen.getByRole('button', { name: 'Submit proof' }));
   await act(async () => f.change({ kind: 'ready', busy: false, pending: null, oath: null, error: { kind: 'proof_refused', code: 'receipt_cutoff_passed' } }));
-  expect(within(screen.getByTestId('proof-closed')).getByText('The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.')).toBeOnTheScreen();
+  expect(within(screen.getByTestId('proof-closed')).getByText('The proof window has closed, so the server did not accept this proof. Go back to the Oath to see its state.')).toBeOnTheScreen();
   expect(filled()).toHaveLength(1);
   expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
 });
@@ -644,6 +644,6 @@ describe('drawn prose binding', () => {
     await show('en');
     expect(screen.getByText('I confirm that I completed the workout named in this Oath. The proof I submit is from that workout.', raw)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'About the assessment' }));
-    expect(screen.getByText('An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.', raw)).toBeOnTheScreen();
+    expect(screen.getByText('An image cannot show that you finished, how long you trained or who trained, so the Forge also relies on your declaration.', raw)).toBeOnTheScreen();
   });
 });

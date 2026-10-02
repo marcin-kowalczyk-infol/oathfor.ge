@@ -120,7 +120,7 @@ test('the simple layout shows the Tutorial tile as a full-width row above Settin
   const f = await setup();
   expect(screen.getByTestId('menu-tile-pair')).toHaveStyle({ flexDirection: 'column' });
   for (const id of ['menu-tutorial', 'menu-settings']) expect(screen.getByTestId(id)).toHaveStyle({ flex: 0 });
-  await fireEvent.press(screen.getByRole('button', { name: 'Tutorial, Zharomir explains the rules' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Tutorial, Learn the rules from Zharomir' }));
   expect(f.onTutorial).toHaveBeenCalledTimes(1);
 });
 
@@ -146,7 +146,7 @@ test('large text stacks the card', async () => {
 test('each tile and the pill call their handler once', async () => {
   const f = await setup();
   await fireEvent.press(screen.getByRole('button', { name: 'Enter the Forge, Hearth, seals and chronicle' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Tutorial, Zharomir explains the rules' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Tutorial, Learn the rules from Zharomir' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Settings, Language, pause, account' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Change character' }));
   for (const handler of [f.onForge, f.onTutorial, f.onSettings, f.onChangeCharacter]) expect(handler).toHaveBeenCalledTimes(1);

@@ -100,7 +100,7 @@ test('after the choice the honesty line opens behind the link too, before it the
 
 test.each([
   ['pl', 'Nie udało się potwierdzić zapisu wyboru, więc nie pytaliśmy o zgodę. Spróbuj ponownie lub wybierz Nie teraz.'],
-  ['en', 'Could not confirm the choice was saved, so no permission prompt opened. Try again or choose Not now.'],
+  ['en', 'We could not confirm your choice was saved, so we did not ask for permission. Try again or choose Not now.'],
 ] as const)('%s failed save is uncertain, says no prompt opened, in two sentences', async (locale, line) => {
   await render(fixture(locale, { kind: 'not_determined', canAskAgain: true }, null, 'save'));
   expect(screen.getByText(line)).toBeOnTheScreen();

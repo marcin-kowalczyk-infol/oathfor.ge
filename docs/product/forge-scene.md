@@ -34,7 +34,7 @@ Simple layout at large text keeps its current screens without the room or charac
 - Touching a place walks the player to the player spot of that place. Walk direction, eight-frame cycle, distance-based time and depth size follow the rules already used for Żaromir.
 - On arrival the player plays the pose facing the place: stirring the fire, raising a light to the seals, reading at the lectern, looking out of the door. The place responds at the same moment.
 - The panel then shows the player's line, Żaromir's line and the place action.
-- The door is a visit like the other places (owner decision D1, 2026-09-28). The player looks out, the panel shows the player's line and Żaromir's line "Drzwi prowadzą do menu. Kuźnia poczeka na Twój powrót." / "The door leads to the menu. The Forge will wait for your return.", and the action "Wyjdź z Kuźni" / "Leave the Forge" pulls the camera back and opens the menu. The door's touch area is named "Drzwi" / "Door". In the tutorial the door is a chapter, as today.
+- The door is a visit like the other places (owner decision D1, 2026-09-28). The player looks out, the panel shows the player's line and Żaromir's line "Drzwi prowadzą do menu. Kuźnia poczeka na Twój powrót." / "The door leads to the menu. The Forge will be here when you return.", and the action "Wyjdź z Kuźni" / "Leave the Forge" pulls the camera back and opens the menu. The door's touch area is named "Drzwi" / "Door". In the tutorial the door is a chapter, as today.
 - A walk that would cross the seal pedestals turns at a waypoint beside their right end (local decision, native check 2026-09-28).
 - Reduce Motion places both characters at once in the first frame of their pose.
 
@@ -46,7 +46,7 @@ Until the player art is delivered the player is the static menu figure of the ch
 
 - Guided mode: in the tutorial he starts walking together with the player, to his spot beside the chosen place. In the first-visit guide only he walks, to his spot beside each step's place, and the player stays at the start (owner decision D3, 2026-09-28). On arrival he turns to the player and talks with the existing gestures. The tutorial chapter text stays as accepted.
 - Normal mode: he stands aside and breathes. He does not follow the player.
-- One touch on him in normal mode turns him to the player and opens the panel with his hint and two counters, with no player line before it (owner decisions D4 to D6, 2026-09-28). His touch target has a VoiceOver label, "Żaromir, your progress" / "Żaromir, twoje postępy".
+- One touch on him in normal mode turns him to the player and opens the panel with his hint and two counters, with no player line before it (owner decisions D4 to D6, 2026-09-28). His touch target has a VoiceOver label, "Żaromir, your progress" / "Żaromir, Twoje postępy".
 
 ## Dialogue panel
 
@@ -83,10 +83,10 @@ One touch on Żaromir in normal mode shows one hint line and two counters in the
 
 | Condition, first match | Polish | English |
 | --- | --- | --- |
-| Character paused | Twoja pauza trwa, a powrót czeka w Ustawieniach. | Your pause is on, and Settings will bring you back. |
+| Character paused | Twoja pauza trwa, a powrót czeka w Ustawieniach. | Your pause is on. You can resume in Settings. |
 | No current Oaths | Ogień czeka na Twoją pierwszą Przysięgę. | The fire is waiting for your first Oath. |
 | Current Oaths | Twoje Przysięgi czekają przy pieczęciach. | Your Oaths are waiting at the seals. |
-| Counts unavailable | Nie widzę teraz kroniki, zajrzyj za chwilę. | I cannot read the chronicle now, come back in a moment. |
+| Counts unavailable | Nie widzę teraz kroniki, zajrzyj za chwilę. | I cannot read the chronicle right now. Check back in a moment. |
 
 The counters are a wax seal icon with the number of current Oaths and a chronicle icon with the number of chronicle entries, each with its plural label ("bieżące Przysięgi", "wpisów w kronice", "current Oaths", "chronicle entries", owner decision D2). The character's name, form and build are not repeated in the panel, the menu card shows them. A counter whose number is unknown shows "–". When the Today count is unavailable the chronicle counter keeps a known count (local decision, MVP-20-T09). Counts come from the Oath list `total` of the `today` and `history` views, the same source as the menu. XP and level do not appear until MVP-09 grants them. Superseded on 2026-10-02: a paused character also shows the pause mark "W pauzie" / "Paused" under the counters, so the pause is not only in the hint. See [clarity](clarity.md).
 
@@ -111,7 +111,7 @@ Lines with a gendered form:
 
 | Key | Masculine | Feminine | Neutral | English |
 | --- | --- | --- | --- | --- |
-| `tutorial.chronicle` | Czy tu zostanie wszystko, co zrobiłem? | Czy tu zostanie wszystko, co zrobiłam? | Czy tu zostanie wszystko, co uda mi się zrobić? | Will everything I did stay here? |
+| `tutorial.chronicle` | Czy tu zostanie wszystko, co zrobiłem? | Czy tu zostanie wszystko, co zrobiłam? | Czy tu zostanie wszystko, co uda mi się zrobić? | Will everything I’ve done stay here? |
 | `tutorial.door` | A jeśli będę musiał przerwać? | A jeśli będę musiała przerwać? | A jeśli przyjdzie mi przerwać? | And if I have to stop? |
 
 ## Art needed

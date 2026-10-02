@@ -108,13 +108,13 @@ test('Today, History and detail render no pause control and no sign-out, which l
   await screen.findByLabelText('Status: Under review'); absent();
   expect(f.controller.getPause).not.toHaveBeenCalled();
 });
-test('a character pause withdrawal explains that resuming does not restore it', async () => {
+test('a character pause withdrawal explains that resuming does not bring it back', async () => {
   const withdrawn = oath({ state: 'withdrawn', reason: 'character_paused', terminalAt: serverTime, review: null });
   const f = setup([withdrawn]);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Full description' }));
-  expect(await screen.findByText('Withdrawn when the pause began, and resuming does not restore it. After resuming you can make a new Oath.')).toBeOnTheScreen();
+  expect(await screen.findByText('Withdrawn when the pause began. Resuming does not bring it back, but you can then make a new Oath.')).toBeOnTheScreen();
 });
 test('unresolved acceptance remains reachable from Today and cannot be reset into a new creation', async () => {
   const f = setup([]); f.change({ kind: 'ready', busy: false, pending: { version: 2, accountId: id, characterId, previewId: id, requestId: id }, preview: null, oath: null, needsReview: false });
@@ -230,7 +230,7 @@ test('paused Forge makes the paused state visible without a creation affordance 
   const f = setup([]);
   jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.')).toBeOnTheScreen();
+  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Create an Oath' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Pause and resume' })).toBeNull();
 });
@@ -313,7 +313,7 @@ test('hearth navigation on a paused account shows the pause notice instead of ne
   const f = setup([]); jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
   jest.mocked(f.controller.resetCreation).mockReturnValue(true);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
-  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.')).toBeOnTheScreen();
+  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.')).toBeOnTheScreen();
   expect(f.controller.resetCreation).not.toHaveBeenCalled();
   expect(screen.queryByLabelText('Completion date')).toBeNull();
 });
@@ -591,10 +591,10 @@ test('a review detail keeps its state, countdown, closing time in the Oath zone 
   expect(within(panel).getByLabelText('Status: Under review')).toBeOnTheScreen();
   expect(within(panel).getByTestId('countdown-chip')).toBeOnTheScreen();
   expect(within(panel).getByText('This is not a miss. Under review until Wed, Oct 28, 01:45.')).toBeOnTheScreen();
-  expect(within(panel).queryByText(/The service may have been unavailable then/)).toBeNull();
+  expect(within(panel).queryByText(/The service may have been down at the time/)).toBeNull();
   await fireEvent.press(within(panel).getByRole('button', { name: 'Full description' }));
   expect(within(panel).getByText('Review closes Oct 28, 2026 at 01:45')).toBeOnTheScreen();
-  expect(within(panel).getByText(/The service may have been unavailable then/)).toBeOnTheScreen();
+  expect(within(panel).getByText(/The service may have been down at the time/)).toBeOnTheScreen();
   expect(screen.queryByText(/GMT/)).toBeNull();
   expect(screen.getAllByRole('header', { name: oath().snapshot.copy.en.title })).toHaveLength(1);
 });
@@ -713,7 +713,7 @@ test.each([
 
 const receipt = { submissionId: '40000000-0000-4000-8000-000000000001', mode: 'photo' as const, revision: 1, receivedAt: '2026-09-24T18:14:00Z', assessment: 'queued' as const };
 test.each([
-  ['en', 'Proof received. The result will appear here.', 'Full description', 'Proof received, assessment in progress. The receipt time stays recorded even if the assessment takes longer.', 'Receipt time: Sep 24, 2026 at 20:14 · Warsaw'],
+  ['en', 'Proof received. The result will appear here.', 'Full description', 'Proof received and being assessed. The time it arrived stays on record, however long the assessment takes.', 'Received Sep 24, 2026 at 20:14 · Warsaw'],
   ['pl', 'Dowód odebrany. Wynik pojawi się tutaj.', 'Pełny opis', 'Dowód odebrany, ocena trwa. Czas odebrania zostaje zapisany, nawet gdy ocena się przeciąga.', 'Czas odebrania: 24 wrz 2026, 20:14 · Warszawa'],
 ] as const)('a %s proof_pending detail keeps the receipt explanation and time in the Oath zone behind the full description', async (locale, next, more, pending, line) => {
   const f = setup([oath({ state: 'proof_pending', reason: null, review: null, proof: receipt })]);
@@ -831,7 +831,7 @@ test('a record for another Oath shows nothing on this detail and keeps its send 
 });
 test.each([
   ['oath_not_active', { kind: 'proof_refused', code: 'oath_not_active', state: 'review_pending' }, 'This Oath is no longer waiting for proof. Check its current status.'],
-  ['receipt_cutoff_passed', { kind: 'proof_refused', code: 'receipt_cutoff_passed' }, 'The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.'],
+  ['receipt_cutoff_passed', { kind: 'proof_refused', code: 'receipt_cutoff_passed' }, 'The proof window has closed, so the server did not accept this proof. Go back to the Oath to see its state.'],
 ] as const)('resuming a stale record refused with %s shows the server reason once the record is cleared', async (_, error, reason) => {
   const f = setup([activeThursday()]); const proof = proofController();
   proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
@@ -849,7 +849,7 @@ test.each([
 
 test('an automatic resend refused for good shows its reason on the Today row and the detail until the player dismisses it', async () => {
   const f = setup([oath()]); const proof = proofController();
-  const cutoff = 'The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.';
+  const cutoff = 'The proof window has closed, so the server did not accept this proof. Go back to the Oath to see its state.';
   // resumeOnLoad sent the record before this screen existed. Only the controller's lastRefusal remembers the Oath.
   proof.change({ kind: 'ready', busy: false, pending: null, oath: null, error: { kind: 'proof_refused', code: 'receipt_cutoff_passed' }, lastRefusal: { oathId: id, submissionId: receipt.submissionId, code: 'receipt_cutoff_passed' } });
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
@@ -879,7 +879,7 @@ test('a refusal already known when Today opens does not hold the list in loading
   const f = setup([oath()]); const proof = proofController();
   proof.change({ kind: 'ready', busy: false, pending: null, oath: null, lastRefusal: { oathId: id, submissionId: receipt.submissionId, code: 'receipt_cutoff_passed' } });
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  expect(await screen.findByText('The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.')).toBeOnTheScreen();
+  expect(await screen.findByText('The proof window has closed, so the server did not accept this proof. Go back to the Oath to see its state.')).toBeOnTheScreen();
   expect(screen.queryByText('Loading Oaths…')).toBeNull();
   expect(f.controller.list).toHaveBeenCalledTimes(1);
 });
@@ -887,7 +887,7 @@ test('a refusal for one Oath stays off another Oath row and detail', async () =>
   const other = oath({ state: 'active', reason: null, review: null, id: '20000000-0000-4000-8000-000000000002' });
   other.snapshot = { ...other.snapshot, activity: 'mobility', copy: { ...other.snapshot.copy, en: { ...other.snapshot.copy.en, activity: 'Mobility' }, pl: { ...other.snapshot.copy.pl, activity: 'Mobilność' } } };
   const f = setup([other]);
-  const proof = proofController(); const cutoff = 'The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.';
+  const proof = proofController(); const cutoff = 'The proof window has closed, so the server did not accept this proof. Go back to the Oath to see its state.';
   proof.change({ kind: 'ready', busy: false, pending: null, oath: null, lastRefusal: { oathId: id, submissionId: receipt.submissionId, code: 'receipt_cutoff_passed' } });
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
   const otherRow = await screen.findByRole('button', { name: /Open Oath: Mobility/ });
@@ -1056,7 +1056,7 @@ test('an interrupted upload shows its badge words, one filled "Send again" and t
 });
 // Review of T09 and T09b: a press must have visible feedback, so an error that follows it replaces the line (clarity.md decision 3).
 test.each([
-  [{ kind: 'unavailable', retry: 'request' }, 'Could not reach the server. The proof has not been received yet. A copy is waiting on this device.'],
+  [{ kind: 'unavailable', retry: 'request' }, 'We could not reach the server. The proof has not been received yet. A copy is waiting on this device.'],
   [{ kind: 'rate_limited', retry: 'request' }, 'Too many attempts. Wait a moment and try again. A copy is waiting on this device.'],
   [{ kind: 'storage' }, 'We could not safely save the proof copy on this device. Try again.'],
 ] as const)('an error after the player sends again (%o) replaces the card line', async (error, message) => {
@@ -1119,7 +1119,7 @@ test('an active detail asks the server again when the window for proof closes, a
     expect(f.controller.detail).toHaveBeenCalledTimes(1);
     await act(async () => { jest.advanceTimersByTime(1); });
     expect(f.controller.detail).toHaveBeenCalledTimes(2);
-    expect(await screen.findByText('The proof window has closed. The Forge is settling the state.')).toBeOnTheScreen();
+    expect(await screen.findByText('The proof window has closed. The Forge is deciding its state.')).toBeOnTheScreen();
     expect(filled()).toHaveLength(0);
     await act(async () => { jest.advanceTimersByTime(600000); });
     expect(f.controller.detail).toHaveBeenCalledTimes(2);
@@ -1343,7 +1343,7 @@ test('a changed line is read out after the player sends again, but not a later c
   await act(async () => proof.change({ kind: 'ready', busy: true, pending: record(), oath: null }));
   await act(async () => proof.change({ kind: 'ready', busy: false, pending: record(), oath: null, error: { kind: 'unavailable', retry: 'request' } }));
   const spoken = (text: string) => announce.mock.calls.filter(call => call[0].includes(text)).length;
-  expect(spoken('Could not reach the server')).toBe(1);
+  expect(spoken('We could not reach the server')).toBe(1);
   await act(async () => proof.change({ kind: 'ready', busy: false, pending: record(), oath: null, error: { kind: 'rate_limited', retry: 'request' } as ProofControllerError }));
   expect(screen.getByText('Too many attempts. Wait a moment and try again. A copy is waiting on this device.')).toBeOnTheScreen();
   expect(spoken('Too many attempts')).toBe(0);
@@ -1433,7 +1433,7 @@ describe('list lines', () => {
     await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
     const note = await screen.findByTestId('pause-note');
     expect(within(note).getByTestId('pause-mark')).toHaveProp('accessibilityLabel', locale === 'pl' ? 'W pauzie' : 'Paused');
-    expect(within(note).getByText(locale === 'pl' ? 'Pauza jest włączona. Przysięgi czekające na wynik trwają dalej, wycofane nie wrócą.' : 'Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.')).toBeOnTheScreen();
+    expect(within(note).getByText(locale === 'pl' ? 'Pauza jest włączona. Przysięgi czekające na wynik trwają dalej, wycofane nie wrócą.' : 'Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: locale === 'pl' ? 'Wczytaj więcej' : 'Load more' })).toBeOnTheScreen();
     expect(filled()).toHaveLength(0);
     expect(avatar()).toBeNull();
@@ -1452,7 +1452,7 @@ describe('list lines', () => {
     Dimensions.set({ window: phone(2), screen: phone(2) });
     const f = setup([]); f.change({ kind: 'ready', busy: false, pending: { version: 2, accountId: id, characterId, previewId: id, requestId: id }, preview: null, oath: null, needsReview: false });
     await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-    expect(await screen.findByTestId('pending-line')).toHaveTextContent(locale === 'pl' ? 'Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.' : 'Your confirmation may already have arrived. Check the same Oath before starting another.');
+    expect(await screen.findByTestId('pending-line')).toHaveTextContent(locale === 'pl' ? 'Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.' : 'Your confirmation may already have arrived. Check this Oath before you start another.');
     // MVP-22-A8c: the empty-Today line waits until the acceptance is checked, so no bubble is left.
     expect(screen.queryByText(locale === 'pl' ? 'Brak bieżących Przysiąg. Wybierz trening, gdy zechcesz zacząć.' : 'No current Oaths. Choose a workout when you are ready.')).toBeNull();
     expect(avatar()).toBeNull();
@@ -1681,6 +1681,6 @@ describe('drawn prose binding', () => {
   test('English keeps single-letter words unbound in the pause note', async () => {
     const f = setup([]); jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
     await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
-    expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.', raw)).toBeOnTheScreen();
+    expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.', raw)).toBeOnTheScreen();
   });
 });

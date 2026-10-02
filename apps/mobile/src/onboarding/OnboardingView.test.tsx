@@ -143,7 +143,7 @@ test.each((['pl', 'en'] as const).flatMap(locale => states.map(([name, state, co
 
 test.each([
   ['pl', 'Wybierz język i strefę, potem potwierdź intencję. Wcześniej nic nie zapiszemy.', 'Nie udało się potwierdzić zapisu, zmiany zostały na ekranie. Spróbuj ponownie.'],
-  ['en', 'Choose language and timezone, then confirm your intention. Nothing is saved before that.', 'Could not confirm the save, but your changes stay on screen. Try again.'],
+  ['en', 'Choose your language and timezone, then confirm your intention. Nothing is saved before that.', 'We could not confirm the save, but your changes are still on screen. Try again.'],
 ] as const)('%s basics say what to do in one short line and a failed save replaces it', async (locale, line, error) => {
   const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
   const fixture = (state: OnboardingViewProps['state']) => <LocalizationProvider initialLocale={locale}><OnboardingView state={state} {...callbacks} /></LocalizationProvider>;
@@ -172,7 +172,7 @@ test.each([
 
 test.each([
   ['pl', 'Powiadomienia są opcjonalne. Możesz przejść dalej bez nich.', 'Przejście dalej nie tworzy jeszcze Przysięgi.', 'Nie udało się potwierdzić zakończenia przygotowań, ale zapisane wybory zostają. Spróbuj ponownie.'],
-  ['en', 'Notifications are optional. You can continue without them.', 'Continuing does not create an Oath yet.', 'Could not confirm that setup finished, but your saved choices stay. Try again.'],
+  ['en', 'Notifications are optional. You can continue without them.', 'Continuing does not create an Oath yet.', 'We could not confirm that setup finished, but your saved choices are kept. Try again.'],
 ] as const)('%s notification and review steps use the short lines', async (locale, pending, review, error) => {
   const callbacks = { onComplete: jest.fn(), onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
   const fixture = (state: OnboardingViewProps['state']) => <LocalizationProvider initialLocale={locale}><OnboardingView state={state} {...callbacks} notifications={notificationProps} /></LocalizationProvider>;
@@ -201,7 +201,7 @@ test.each([
 
 test.each([
   ['pl', 'Powiadomienia są opcjonalne. Możesz przejść dalej bez nich.', 'Nie udało się potwierdzić zapisu wyboru, więc nie pytaliśmy o zgodę. Spróbuj ponownie lub wybierz Nie teraz.'],
-  ['en', 'Notifications are optional. You can continue without them.', 'Could not confirm the choice was saved, so no permission prompt opened. Try again or choose Not now.'],
+  ['en', 'Notifications are optional. You can continue without them.', 'We could not confirm your choice was saved, so we did not ask for permission. Try again or choose Not now.'],
 ] as const)('%s a failed notification save replaces the notification step line', async (locale, pending, error) => {
   const callbacks = { onComplete: jest.fn(), onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
   const failing = { ...notificationProps, state: { permission: { kind: 'not_determined' as const, canAskAgain: true }, busy: false, error: 'save' as const } };

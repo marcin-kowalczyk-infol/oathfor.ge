@@ -43,7 +43,7 @@ The date sheet of `WallTimePicker` gets three changes. "Today" means the current
 
 The server keeps rejecting past times (`activation_elapsed`, `deadline_not_after_activation`). The client check is a convenience, not the rule.
 
-Superseded on 2026-10-02: the note "Czas wybierasz z dokładnością do minuty (sekundy: 00)." / "Times are selected to the minute (seconds: 00)." shows only in the time sheet's footer, not under the fields. The form opens with one plain line, PL "Wybierz trening i termin ukończenia." EN "Choose a workout and its deadline.", instead of Żaromir's bubble. See [clarity](clarity.md).
+Superseded on 2026-10-02: the note "Czas wybierasz z dokładnością do minuty (sekundy: 00)." / "Times are set to the minute, with seconds at 00." shows only in the time sheet's footer, not under the fields. The form opens with one plain line, PL "Wybierz trening i termin ukończenia." EN "Choose a workout and its deadline.", instead of Żaromir's bubble. See [clarity](clarity.md).
 
 ### 2. Rules before the Oath (item 2)
 
@@ -55,7 +55,7 @@ Rule cards, each with an icon from `graphics/mvp-21/incoming/oath-rule-icons-v01
 | --- | --- | --- | --- |
 | Start | Sunrise over the forge | Activation: now, or the local time with zone | Start / Start |
 | Deadline | Hourglass | D, local time with zone | Termin / Deadline |
-| Last moment for proof | Candle | S, local time, "15 minut po terminie" | Ostatni moment na dowód / Last moment for proof |
+| Last chance for proof | Candle | S, local time, "15 minut po terminie" | Ostatni moment na dowód / Last chance for proof |
 | Proof | Framed runner | Both evidence alternatives by name | Dowód / Proof |
 | Review | Scales | Review window from the snapshot policy | Rozpatrzenie / Review |
 | Fixed rules | Anvil with a lock | "Po złożeniu zasady się nie zmienią." / "Once made, the rules do not change." | Zasady są stałe / The rules are fixed |
@@ -73,10 +73,12 @@ The reward and consequence cards let the player see both without opening the ful
 
 | Line | Polish | English |
 | --- | --- | --- |
-| 1 | Zanim złożysz Przysięgę, poznaj jej zasady. Każda karta to jedna z nich. | Before you make the Oath, meet its rules. Each card is one of them. |
+| 1 | Zanim złożysz Przysięgę, poznaj jej zasady. Każda karta to jedna z nich. | Before you make the Oath, get to know its rules. Each card shows one. |
 | 2 | Klepsydra to termin. Do niego wykonujesz zadanie. | The hourglass is the deadline. Finish the task by then. |
-| 3 | Świeca to ostatni moment na dowód, kwadrans po terminie. | The candle is the last moment for proof, 15 minutes after the deadline. |
-| 4 | Kowadło z kłódką mówi, że po złożeniu nic tu się nie zmieni. | The anvil with the lock says nothing here changes once you make it. |
+| 3 | Świeca to ostatni moment na dowód, kwadrans po terminie. | The candle is your last chance for proof, 15 minutes after the deadline. |
+| 4 | Kowadło z kłódką mówi, że po złożeniu nic tu się nie zmieni. | The anvil with the lock means none of this changes once the Oath is made. |
+
+Superseded on 2026-10-02 (MVP-22-C1, native English pass): the English lines 1, 3 and 4 and the English card title "Last chance for proof" were rewritten, because "meet its rules", "last moment for proof" and "says nothing here changes" read as translated. The Polish lines are unchanged. These replace accepted Q5 wording and await owner confirmation.
 
 The last line offers "Zakończ" / "Finish" instead of "Dalej" / "Next", because it closes the explanation. The × skips the explanation. A small Żaromir button on the screen replays it. The "seen" flag is stored like the first-visit guide flag, in device storage per account (decision Q4). Simple layout and Reduce Motion show the lines without typing, in a static panel.
 

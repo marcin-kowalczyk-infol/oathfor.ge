@@ -36,7 +36,7 @@ test('shows a new-character slot below the limit', async () => {
 test('three characters leave no new-character slot', async () => {
   await setup(ready({ characters: [mira, bor, wit] }));
   expect(screen.queryByRole('button', { name: 'New character' })).toBeNull();
-  expect(screen.getByText('All three places are taken.')).toBeOnTheScreen();
+  expect(screen.getByText('All three character slots are taken.')).toBeOnTheScreen();
 });
 
 test('choosing another character switches once and choosing the active one only returns', async () => {

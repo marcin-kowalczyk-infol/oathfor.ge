@@ -51,7 +51,7 @@ test('Polish rules bind single-letter words at render without changing the store
 test('English rules keep ordinary spaces around single-letter words', async () => {
   const raw = { normalizer: (text: string) => text };
   await render(<LocalizationProvider initialLocale="en"><SnapshotRules snapshot={snapshot()} /></LocalizationProvider>);
-  expect(screen.getByText('Now, at server confirmation', raw)).toBeOnTheScreen();
+  expect(screen.getByText('Now, when the server confirms', raw)).toBeOnTheScreen();
   expect(screen.getByText(/^I will complete my workout: Running, by October 25, 2026 at 02:30 ·\u00a0UTC\+2\. I will confirm completion and submit a photo/, raw)).toBeOnTheScreen();
 });
 

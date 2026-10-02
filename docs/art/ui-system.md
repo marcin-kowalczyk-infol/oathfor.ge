@@ -79,7 +79,7 @@ Local descriptive copy for the selected [cumulative appearances](companion-asset
 | Ember Sash | Żaromir z nową wstęgą w kolorze żaru. | Zharomir wearing a new ember-colored sash. |
 | Guardian’s Token | Żaromir ze wstęgą i nowym znakiem strażnika. | Zharomir wearing the sash and a new guardian’s token. |
 | Oath Fittings | Żaromir ze wstęgą, znakiem i nowymi okuciami przedramion. | Zharomir with the sash, token and new forearm fittings. |
-| Spark Mantle | Żaromir zachowuje wstęgę, znak i okucia; nosi nowy, warstwowy płaszcz. | Zharomir retains the sash, token and fittings and wears a new layered mantle. |
+| Spark Mantle | Żaromir zachowuje wstęgę, znak i okucia. Nosi nowy, warstwowy płaszcz. | Zharomir keeps the sash, token and fittings and wears a new layered mantle. |
 
 Use “Obecny wygląd” / “Current appearance” and “Jeszcze nieodblokowane” / “Locked” as text labels. At level 5 use the manifest's “Początkowa ścieżka ukończona” / “Initial track complete”; XP may still accumulate. A progress indicator has a localized text equivalent and accessible value based on authoritative state. Source: [initial level policy](../product/first-loop.md#initial-levels-and-unlock-ownership).
 

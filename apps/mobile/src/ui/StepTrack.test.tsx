@@ -36,7 +36,7 @@ test('an interrupted upload puts the badge on the workout step and names it', as
 
 test('a scheduled Oath has the oath step done with the waiting badge on it', async () => {
   await show(path({ step: 1, steps: ['done', 'future', 'future', 'future'], badge: 'waiting' }), 'scheduled', { locale: 'en' });
-  expect(screen.getByTestId('step-track')).toHaveProp('accessibilityLabel', 'Step 1 of 4, Oath, Awaiting start');
+  expect(screen.getByTestId('step-track')).toHaveProp('accessibilityLabel', 'Step 1 of 4, Oath, Waiting to start');
   expect(screen.getByTestId('step-node-1-done', hidden)).toContainElement(screen.getByTestId('step-badge-waiting', hidden));
 });
 

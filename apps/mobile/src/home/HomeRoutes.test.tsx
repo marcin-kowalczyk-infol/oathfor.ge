@@ -83,7 +83,7 @@ const readyOaths = () => ({
   boundCharacter: () => ({ accountId, characterId: mira.id }),
 }) as unknown as OathController;
 const unseenGuide = () => ({ read: jest.fn().mockResolvedValue(false), markSeen: jest.fn().mockResolvedValue(undefined) });
-const tutorialTile = { name: 'Tutorial, Zharomir explains the rules' };
+const tutorialTile = { name: 'Tutorial, Learn the rules from Zharomir' };
 const forgeTile = { name: 'Enter the Forge, Hearth, seals and chronicle' };
 
 test('the Tutorial tile opens the room tutorial instead of the first-visit guide and counts the guide as seen', async () => {

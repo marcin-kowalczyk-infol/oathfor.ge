@@ -412,7 +412,7 @@ test('the menu card opens character change, and a switch or a new character land
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
   expect(screen.getByText('Wit')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Change character' }));
-  expect(await screen.findByText('All three places are taken.')).toBeOnTheScreen();
+  expect(await screen.findByText('All three character slots are taken.')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Back to menu' }));
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
 });
@@ -531,7 +531,7 @@ test('the first room entry shows the guide and stores the flag, the next entry d
   await enterRoom();
   expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
   await leaveRoom();
-  await fireEvent.press(await screen.findByRole('button', { name: 'Tutorial, Zharomir explains the rules' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Tutorial, Learn the rules from Zharomir' }));
   expect(await screen.findByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
   expect(runtime.guideStorage.read).toHaveBeenCalledTimes(1);
@@ -559,7 +559,7 @@ test('in simple layout the Tutorial tile opens the rules screen, the Forge opens
   Dimensions.set({ window: phone(2), screen: phone(2) });
   const runtime = setup();
   await signIn(runtime);
-  await fireEvent.press(await screen.findByRole('button', { name: 'Tutorial, Zharomir explains the rules' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Tutorial, Learn the rules from Zharomir' }));
   expect(await screen.findByRole('header', { name: 'Forge rules' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Back to menu' }));
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
@@ -617,7 +617,7 @@ test('a confirmed pause returns to Settings, refreshes the summary and reloads t
   expect(await screen.findByText('Paused')).toBeOnTheScreen();
   await enterRoom();
   await useStation('Seals', 'View current Oaths');
-  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.')).toBeOnTheScreen();
+  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.')).toBeOnTheScreen();
 });
 
 test('sign-out in Settings returns to the sign-in screen', async () => {

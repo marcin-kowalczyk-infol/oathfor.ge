@@ -17,7 +17,7 @@ const lines = {
   'tutorial.seals': ['Co znaczą te znaki?', 'What do these marks mean?'],
 } as const;
 const gendered = {
-  'tutorial.chronicle': [['Czy tu zostanie wszystko, co zrobiłem?', 'Czy tu zostanie wszystko, co zrobiłam?', 'Czy tu zostanie wszystko, co uda mi się zrobić?'], 'Will everything I did stay here?'],
+  'tutorial.chronicle': [['Czy tu zostanie wszystko, co zrobiłem?', 'Czy tu zostanie wszystko, co zrobiłam?', 'Czy tu zostanie wszystko, co uda mi się zrobić?'], 'Will everything I’ve done stay here?'],
   'tutorial.door': [['A jeśli będę musiał przerwać?', 'A jeśli będę musiała przerwać?', 'A jeśli przyjdzie mi przerwać?'], 'And if I have to stop?'],
 } as const;
 
@@ -41,14 +41,14 @@ test('the player has no talk line any more', () => {
 test('the hint lines match the specification', () => {
   // Owner decision D4 (2026-09-28): one short sentence each, the counts sit in the counters.
   expect(pl.t('room.talk.hint.paused')).toBe('Twoja pauza trwa, a powrót czeka w Ustawieniach.');
-  expect(en.t('room.talk.hint.paused')).toBe('Your pause is on, and Settings will bring you back.');
+  expect(en.t('room.talk.hint.paused')).toBe('Your pause is on. You can resume in Settings.');
   expect(pl.t('room.talk.hint.none')).toBe('Ogień czeka na Twoją pierwszą Przysięgę.');
   expect(en.t('room.talk.hint.none')).toBe('The fire is waiting for your first Oath.');
   expect(pl.t('room.talk.hint.current')).toBe('Twoje Przysięgi czekają przy pieczęciach.');
   expect(en.t('room.talk.hint.current')).toBe('Your Oaths are waiting at the seals.');
   expect(pl.t('room.talk.hint.unavailable')).toBe('Nie widzę teraz kroniki, zajrzyj za chwilę.');
-  expect(en.t('room.talk.hint.unavailable')).toBe('I cannot read the chronicle now, come back in a moment.');
-  expect(pl.t('room.talk.label')).toBe('Żaromir, twoje postępy');
+  expect(en.t('room.talk.hint.unavailable')).toBe('I cannot read the chronicle right now. Check back in a moment.');
+  expect(pl.t('room.talk.label')).toBe('Żaromir, Twoje postępy');
   expect(en.t('room.talk.label')).toBe('Zharomir, your progress');
 });
 

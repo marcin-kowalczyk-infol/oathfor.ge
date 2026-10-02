@@ -46,7 +46,7 @@ test('recovery explains unavailable Apple sign-in, pending revocation and confir
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
   expect(callbacks.onRetry).toHaveBeenCalledTimes(1);
   await view.rerender(fixture({ kind: 'revocation_pending' }));
-  expect(screen.getByText('Sign-out is not yet confirmed by the server. Reconnect and try again to finish.')).toBeOnTheScreen();
+  expect(screen.getByText('The server has not confirmed sign-out yet. Reconnect and try again to finish.')).toBeOnTheScreen();
   expect(screen.getAllByRole('button')).toHaveLength(1);
   await view.rerender(fixture({ kind: 'cleanup_required', serverRevoked: true }));
   expect(screen.getByText('The server has confirmed sign-out, but this device still needs to finish clearing the saved session. Try again.')).toBeOnTheScreen();
@@ -92,7 +92,7 @@ test('while Apple sign-in is unavailable the reason stays instead of an older er
 
 test.each([
   ['pl', 'Wylogowanie nie jest zakończone, bo nie udało się odczytać lub zaktualizować zapisanej sesji na tym urządzeniu. Spróbuj ponownie przed logowaniem.'],
-  ['en', 'Sign-out is not complete because reading or updating the saved session on this device failed. Try again before signing in.'],
+  ['en', 'Sign-out is not complete because this device could not read or update the saved session. Try again before signing in.'],
 ] as const)('%s an unconfirmed cleanup says so in two sentences with one filled retry', async (locale, line) => {
   await show(locale, { kind: 'cleanup_required', serverRevoked: false });
   expect(screen.getByText(line)).toBeOnTheScreen();

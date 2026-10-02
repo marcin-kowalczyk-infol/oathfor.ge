@@ -66,7 +66,7 @@ test('pause shows meaningful complete-set summaries and a changed revision requi
   expect(screen.queryByText(/Europe\/Warsaw/)).toBeNull();
   expect(screen.queryByText(id)).toBeNull(); expect(f.controller.pause).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('button', { name: 'Confirm pause' }));
-  expect(await screen.findByText('Your Oaths changed, and pause does not extend deadlines. Review them again.')).toBeOnTheScreen();
+  expect(await screen.findByText('Your Oaths have changed. Review them again, since pause does not extend deadlines.')).toBeOnTheScreen();
   expect(f.controller.pause).toHaveBeenCalledTimes(1); expect(f.onChanged).not.toHaveBeenCalled();
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
   expect(jest.mocked(f.controller.pause).mock.calls.map(call => call[0])).toEqual([{ paused: true, revision: 'a'.repeat(64) }, { paused: true, revision: 'b'.repeat(64) }]);
@@ -92,14 +92,14 @@ test('resume only sends the flag, and a failed change requires current-state rel
   const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), true) });
   jest.mocked(f.controller.pause).mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' }).mockResolvedValueOnce({ kind: 'success', value: pauseSummary() });
   await show(f);
-  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.')).toBeOnTheScreen();
-  await fireEvent.press(await screen.findByRole('button', { name: 'Resume gameplay' }));
+  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.')).toBeOnTheScreen();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Resume play' }));
   expect(jest.mocked(f.controller.pause).mock.calls[0][0]).toEqual({ paused: false });
-  expect(screen.queryByRole('button', { name: 'Resume gameplay' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Resume play' })).toBeNull();
   expect(screen.getByText('We could not confirm the pause change. Reload its current status before trying again.')).toBeOnTheScreen();
   expect(f.onChanged).not.toHaveBeenCalled();
   await fireEvent.press(await screen.findByRole('button', { name: 'Reload pause review' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Resume gameplay' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Resume play' }));
   expect(f.onChanged).toHaveBeenCalledTimes(1);
 });
 test('a failed review load offers a reload', async () => {
@@ -115,13 +115,13 @@ test('controller revalidation clears old pause busy state without an old respons
   const old = deferred<Awaited<ReturnType<OathController['pause']>>>(); const newer = deferred<Awaited<ReturnType<OathController['pause']>>>();
   jest.mocked(f.controller.pause).mockReturnValueOnce(old.promise).mockReturnValueOnce(newer.promise);
   await show(f);
-  await fireEvent.press(await screen.findByRole('button', { name: 'Resume gameplay' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Resume play' }));
   expect(screen.getByRole('button', { name: 'Back to Settings', disabled: true })).toBeOnTheScreen();
   await act(async () => f.change({ kind: 'loading' }));
   await act(async () => f.change(f.ready));
   expect(await screen.findByRole('button', { name: 'Back to Settings', disabled: false })).toBeOnTheScreen();
   expect(f.controller.getPause).toHaveBeenCalledTimes(2);
-  await fireEvent.press(await screen.findByRole('button', { name: 'Resume gameplay' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Resume play' }));
   await act(async () => old.resolve({ kind: 'success', value: pauseSummary() }));
   expect(f.onChanged).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Back to Settings', disabled: true })).toBeOnTheScreen();
@@ -183,8 +183,8 @@ test('the loaded review shows the intro as a plain line, the In play mark and on
 test('a paused character shows the Paused mark and the pause fact as a plain line', async () => {
   const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), true) });
   await show(f);
-  await screen.findByRole('button', { name: 'Resume gameplay' });
-  plain('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.');
+  await screen.findByRole('button', { name: 'Resume play' });
+  plain('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.');
   expect(screen.getByTestId('pause-mark')).toHaveProp('accessibilityLabel', 'Paused');
 });
 
@@ -195,7 +195,7 @@ test('a changed Oath list replaces the intro instead of stacking under it', asyn
   await show(f);
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
   await screen.findByRole('button', { name: 'Confirm pause' });
-  plain('Your Oaths changed, and pause does not extend deadlines. Review them again.');
+  plain('Your Oaths have changed. Review them again, since pause does not extend deadlines.');
   expect(screen.queryByText(intro)).toBeNull();
 });
 
@@ -221,7 +221,7 @@ test('a failed load shows its error as a plain alert line with one filled reload
 
 test.each([
   ['pl', false, 'Potwierdź pauzę', 'Przed potwierdzeniem sprawdź każdą Przysięgę poniżej. Pauza nie przedłuża terminów.', 'W grze'],
-  ['en', true, 'Resume gameplay', 'Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.', 'Paused'],
+  ['en', true, 'Resume play', 'Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.', 'Paused'],
 ] as const)('%s at text scale 2 keeps the line, the mark and one filled button', async (locale, paused, button, line, mark) => {
   size(2);
   const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), paused) });

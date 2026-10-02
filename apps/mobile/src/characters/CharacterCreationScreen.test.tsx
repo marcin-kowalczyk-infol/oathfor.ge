@@ -48,7 +48,7 @@ test('shows a specific live message for each name problem and clears it for a va
   const messages = {
     A: 'Use at least 2 letters.',
     ['a'.repeat(21)]: 'Use at most 20 characters.',
-    R2D2: 'Use letters only. A space, hyphen or apostrophe may sit between them.',
+    R2D2: 'Use letters only. A space, hyphen or apostrophe can go between them.',
     'Anna--Maria': 'Put a single space, hyphen or apostrophe only between two letters.',
   };
   for (const [value, message] of Object.entries(messages)) {
@@ -143,7 +143,7 @@ test('a stored creation prefills its values and retries it instead of creating a
 
 test.each([
   [{ kind: 'character_error', code: 'invalid_character_name' }, 'The Forge did not accept this name. Choose another one.'],
-  [{ kind: 'character_error', code: 'character_limit_reached' }, 'This account already has three characters, the most it can hold.'],
+  [{ kind: 'character_error', code: 'character_limit_reached' }, 'This account already has three characters, which is the limit.'],
   [{ kind: 'character_error', code: 'onboarding_incomplete' }, 'Finish setting up your account before creating a character.'],
   [{ kind: 'character_error', code: 'idempotency_conflict' }, 'We could not create this character. Check your choices and try again.'],
   [{ kind: 'unavailable', retry: 'request' }, 'The Forge cannot be reached right now. Check your connection and try again.'],
@@ -162,7 +162,7 @@ test('a rejected look offers to reload the looks and the full roster blocks crea
   await fireEvent.changeText(nameField(), 'Mira');
   await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }));
   expect(create()).toBeDisabled();
-  expect(screen.getByText('This account already has three characters, the most it can hold.')).toBeOnTheScreen();
+  expect(screen.getByText('This account already has three characters, which is the limit.')).toBeOnTheScreen();
 });
 
 test('loading, unavailable and storage states never show a form, and offer reload where useful', async () => {
@@ -205,9 +205,9 @@ test('a stored creation copies its choices into the draft so a later rejection k
 
 test('the name field announces the current name problem as its hint', async () => {
   await setup(); await act(async () => {});
-  expect(nameField().props.accessibilityHint).toBe('2 to 20 letters. A space, hyphen or apostrophe may sit between them.');
+  expect(nameField().props.accessibilityHint).toBe('2 to 20 letters. A space, hyphen or apostrophe can go between them.');
   await fireEvent.changeText(nameField(), 'R2D2');
-  expect(nameField().props.accessibilityHint).toBe('Use letters only. A space, hyphen or apostrophe may sit between them.');
+  expect(nameField().props.accessibilityHint).toBe('Use letters only. A space, hyphen or apostrophe can go between them.');
 });
 
 test('a pending creation keeps the pending message for non-storage errors', async () => {

@@ -8,13 +8,13 @@
     "preference_disabled": "Saved preference: notifications disabled.",
     "future": "This choice applies to future notifications. No reminders are scheduled yet. Permission on one device does not change your account preference.",
     "permission_checking": "Checking this device’s notification permission…",
-    "permission_not_determined": "This device has not recorded a notification permission choice yet.",
+    "permission_not_determined": "Notification permission has not been set on this device yet.",
     "permission_granted": "This device allows notifications. Delivery also depends on your device settings.",
     "permission_denied": "This device does not allow notifications. You can continue without changing this.",
     "permission_provisional": "This device allows quiet notifications. Alerts and sounds are not guaranteed.",
     "permission_ephemeral": "This device allows notifications temporarily. This permission may expire.",
     "permission_unavailable": "We could not check notification permission on this device. After saving your choice, you can continue without it.",
-    "error_save": "Could not confirm the choice was saved, so no permission prompt opened. Try again or choose Not now.",
+    "error_save": "We could not confirm your choice was saved, so we did not ask for permission. Try again or choose Not now.",
     "error_settings": "Settings could not be opened. You can try again or continue.",
     "enable": "Enable notifications",
     "skip": "Not now",
@@ -25,7 +25,7 @@
     "title": "Your first steps",
     "loading": "Loading your confirmed choices…",
     "loadError": "We could not load your confirmed choices. Check your connection and try again, or sign out.",
-    "unconfirmed": "Choose language and timezone, then confirm your intention. Nothing is saved before that.",
+    "unconfirmed": "Choose your language and timezone, then confirm your intention. Nothing is saved before that.",
     "language": "Language",
     "language_pl": "Polski",
     "language_en": "English",
@@ -37,11 +37,11 @@
     "timezoneRequired": "Enter a supported timezone, for example Europe/Warsaw, to continue.",
     "intentionRequired": "Confirm your intention to continue.",
     "confirm": "Confirm choices",
-    "error_save": "Could not confirm the save, but your changes stay on screen. Try again.",
+    "error_save": "We could not confirm the save, but your changes are still on screen. Try again.",
     "error_timezone": "This timezone was not accepted. Check it and confirm again.",
     "error_intention": "Your intention was not accepted. Check your choice and confirm again.",
     "error_locale": "This language was not accepted. Choose Polish or English and confirm again.",
-    "error_load": "We could not check whether your choices were saved. Try again to check before confirming another change.",
+    "error_load": "We could not check whether your choices were saved. Try again before you confirm another change.",
     "companionTitle": "Meet Zharomir",
     "notificationsTitle": "Notifications",
     "notificationsPending": "Notifications are optional. You can continue without them.",
@@ -51,7 +51,7 @@
     "reviewTimezone": "Timezone",
     "reviewIntention": "Intention",
     "reviewNotifications": "Notifications",
-    "error_complete": "Could not confirm that setup finished, but your saved choices stay. Try again.",
+    "error_complete": "We could not confirm that setup finished, but your saved choices are kept. Try again.",
     "completionLoadError": "We could not check whether your setup is complete. Try again to check your saved progress.",
     "trialTitle": "Trial of the Spark",
     "trialPending": "Creating your first Oath is not available yet. No Oath has started.",
@@ -75,10 +75,10 @@
     "configuration": "Sign-in is not ready right now. Please try again later.",
     "loginUnavailable": "We could not finish signing you in. Check your connection and start a new sign-in attempt.",
     "signOutPendingTitle": "Finishing sign-out",
-    "signOutPending": "Sign-out is not yet confirmed by the server. Reconnect and try again to finish.",
+    "signOutPending": "The server has not confirmed sign-out yet. Reconnect and try again to finish.",
     "cleanupTitle": "One more step on this device",
     "cleanupConfirmed": "The server has confirmed sign-out, but this device still needs to finish clearing the saved session. Try again.",
-    "cleanupUnconfirmed": "Sign-out is not complete because reading or updating the saved session on this device failed. Try again before signing in.",
+    "cleanupUnconfirmed": "Sign-out is not complete because this device could not read or update the saved session. Try again before signing in.",
     "onboardingTitle": "Your journey begins",
     "onboardingPending": "Your first steps are coming soon.",
     "oathTitle": "Your first Oath",
@@ -123,7 +123,7 @@
     },
     "sparkMantle": {
       "name": "Spark Mantle",
-      "description": "Zharomir retains the sash, token and fittings and wears a new layered mantle."
+      "description": "Zharomir keeps the sash, token and fittings and wears a new layered mantle."
     },
     "current": "Current appearance",
     "locked": "Locked",
@@ -160,7 +160,7 @@
     "formRequiredScheduled": "Choose a workout, start and deadline to see the rules.",
     "reviewIntro": "Read the rules, then make the Oath.",
     "consent": "By choosing “Commit to the Oath”, I accept the rules on the cards and the full rules.",
-    "pending": "Your confirmation may already have arrived. Check the same Oath before starting another.",
+    "pending": "Your confirmation may already have arrived. Check this Oath before you start another.",
     "pendingConfirmed": "Your Oath is already made. Check confirmation to finish saving on this device.",
     "recover": "Check confirmation",
     "storageError": "We could not securely save or read your confirmation. Try again before continuing.",
@@ -175,9 +175,9 @@
       "invalid_request": "Check the dates, times and timezones, then try again.",
       "invalid_activity": "Choose one of the available workouts.",
       "activation_elapsed": "The selected start time has passed. Choose a new start and review the rules again.",
-      "deadline_not_after_activation": "Completion must be later than the start. Choose the times again.",
-      "preview_superseded": "The rules have changed before confirmation. Review a new preview before accepting.",
-      "character_paused": "This character is paused. Resume gameplay before creating a new Oath.",
+      "deadline_not_after_activation": "The deadline must be after the start. Choose the times again.",
+      "preview_superseded": "The rules changed before you confirmed. Review the new preview before accepting.",
+      "character_paused": "This character is paused. Resume play before creating a new Oath.",
       "character_required": "Create a character before creating an Oath.",
       "character_changed": "Your active character changed. Review the current Oaths again.",
       "onboarding_incomplete": "Complete your account setup before creating an Oath.",
@@ -186,10 +186,10 @@
       "invalid_local_time": "Enter a valid date and time using the examples.",
       "invalid_timezone": "Check the timezone name.",
       "invalid_offset": "Choose an available time occurrence.",
-      "nonexistent_local_time": "This local time does not exist because the clocks change. Choose another time.",
+      "nonexistent_local_time": "This time is skipped when the clocks change. Choose another time.",
       "ambiguous_local_time": "Choose which occurrence of this repeated time you mean.",
       "offset_mismatch": "The selected occurrence does not match this time. Choose the time again.",
-      "unsupported_time_offset": "This historical time offset is unsupported. Choose another time."
+      "unsupported_time_offset": "We do not support this historical time offset. Choose another time."
     },
     "states": {
       "scheduled": "Scheduled",
@@ -208,11 +208,11 @@
       "deadline": "Complete by (D)",
       "cutoff": "Proof must arrive by (S)",
       "declaration": "Required completion declaration",
-      "now": "Now, at server confirmation"
+      "now": "Now, when the server confirms"
     },
     "sections": {
       "activation": "Activation and commitment",
-      "timing": "Completion and receipt",
+      "timing": "Completion and proof receipt",
       "evidence": "Proof choices",
       "photo": "Context photo",
       "activityRecord": "Activity record",
@@ -238,7 +238,7 @@
         "title": "Deadline"
       },
       "cutoff": {
-        "title": "Last moment for proof",
+        "title": "Last chance for proof",
         "after_one": "{{count}} minute after the deadline",
         "after_other": "{{count}} minutes after the deadline"
       },
@@ -270,16 +270,16 @@
     },
     "fullRules": "Full rules",
     "guide": {
-      "1": "Before you make the Oath, meet its rules. Each card is one of them.",
+      "1": "Before you make the Oath, get to know its rules. Each card shows one.",
       "2": "The hourglass is the deadline. Finish the task by then.",
-      "3": "The candle is the last moment for proof, 15 minutes after the deadline.",
-      "4": "The anvil with the lock says nothing here changes once you make it.",
-      "replay": "Zharomir explains the rules"
+      "3": "The candle is your last chance for proof, 15 minutes after the deadline.",
+      "4": "The anvil with the lock means none of this changes once the Oath is made.",
+      "replay": "Hear Zharomir explain the rules"
     },
     "made": "Oath made",
     "madeLine": "{{state}} · deadline {{time}} · {{zone}}",
     "viewOath": "View the Oath",
-    "proofPending": "Proof received, assessment in progress. The receipt time stays recorded even if the assessment takes longer."
+    "proofPending": "Proof received and being assessed. The time it arrived stays on record, however long the assessment takes."
   },
   "oathHome": {
     "today": "Today",
@@ -291,20 +291,20 @@
     "more": "Load more",
     "open": "Open Oath: {{activity}}, {{deadline}}",
     "group": "{{date}} · {{timezone}}",
-    "paused": "Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.",
+    "paused": "Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.",
     "pauseTitle": "Review pause",
     "pauseIntro": "Review every Oath below before confirming. Pause does not extend deadlines.",
     "withdraw": "Will be withdrawn",
     "preserve": "Will continue",
     "none": "None",
     "confirmPause": "Confirm pause",
-    "resume": "Resume gameplay",
-    "pauseChanged": "Your Oaths changed, and pause does not extend deadlines. Review them again.",
+    "resume": "Resume play",
+    "pauseChanged": "Your Oaths have changed. Review them again, since pause does not extend deadlines.",
     "pauseError": "We could not confirm the pause change. Reload its current status before trying again.",
     "reviewPause": "Reload pause review",
     "reviewDeadline": "Review closes {{deadline}}",
-    "unknownAvailability": "The service may have been unavailable then. So this Oath is under review, not marked missed.",
-    "withdrawn": "Withdrawn when the pause began, and resuming does not restore it. After resuming you can make a new Oath.",
+    "unknownAvailability": "The service may have been down at the time, so this Oath is under review, not missed.",
+    "withdrawn": "Withdrawn when the pause began. Resuming does not bring it back, but you can then make a new Oath.",
     "detailError": "We could not load this Oath. Try again.",
     "future": "Scheduled",
     "current": "Active",
@@ -313,7 +313,7 @@
     "historyLine": "Every entry is part of your story in the Forge.",
     "historyEmpty": "The chronicle is waiting for its first entry.",
     "closedAt": "Closed {{time}}",
-    "receivedAt": "Receipt time: {{time}}",
+    "receivedAt": "Received {{time}}",
     "backHint": "Goes back to the list",
     "uploadInterrupted": "The proof upload was interrupted. A copy is waiting on this device. The server has not confirmed receipt yet."
   },
@@ -359,11 +359,11 @@
       "heavyLabel": "Stout build"
     },
     "name": "Name",
-    "nameHint": "2 to 20 letters. A space, hyphen or apostrophe may sit between them.",
+    "nameHint": "2 to 20 letters. A space, hyphen or apostrophe can go between them.",
     "nameError": {
       "too_short": "Use at least 2 letters.",
       "too_long": "Use at most 20 characters.",
-      "invalid_character": "Use letters only. A space, hyphen or apostrophe may sit between them.",
+      "invalid_character": "Use letters only. A space, hyphen or apostrophe can go between them.",
       "separator": "Put a single space, hyphen or apostrophe only between two letters."
     },
     "titles": "Title",
@@ -392,7 +392,7 @@
     "error": {
       "invalid_character_name": "The Forge did not accept this name. Choose another one.",
       "invalid_preset": "That look is no longer available. Reload the looks and choose again.",
-      "character_limit_reached": "This account already has three characters, the most it can hold.",
+      "character_limit_reached": "This account already has three characters, which is the limit.",
       "onboarding_incomplete": "Finish setting up your account before creating a character.",
       "generic": "We could not create this character. Check your choices and try again.",
       "unavailable": "The Forge cannot be reached right now. Check your connection and try again.",
@@ -408,7 +408,7 @@
       "cardActive": "{{name}}, {{title}}, active character",
       "new": "New character",
       "newDetail": "Forge another character.",
-      "full": "All three places are taken.",
+      "full": "All three character slots are taken.",
       "switching": "Changing character…",
       "error": {
         "not_found": "This character is no longer available. Choose another one.",
@@ -429,7 +429,7 @@
     "forgeDetail": "Hearth, seals and chronicle",
     "forgePending": "An Oath awaits confirmation",
     "tutorial": "Tutorial",
-    "tutorialDetail": "Zharomir explains the rules",
+    "tutorialDetail": "Learn the rules from Zharomir",
     "settings": "Settings",
     "settingsDetail": "Language, pause, account"
   },
@@ -491,7 +491,7 @@
       "hearth": "New Oaths take shape here.",
       "seals": "Your current Oaths wait here.",
       "chronicle": "Your journey leaves its mark here.",
-      "door": "The door leads to the menu. The Forge will wait for your return."
+      "door": "The door leads to the menu. The Forge will be here when you return."
     },
     "exit": "Leave the Forge",
     "dismiss": "Close the conversation",
@@ -499,8 +499,8 @@
     "guide": {
       "hearth": "I’m Zharomir. Touch the hearth, where Oaths take shape.",
       "seals": "These glowing seals are your current Oaths.",
-      "chronicle": "The chronicle holds the traces of your journey. Touch the book.",
-      "door": "The moonlit door leads to the menu. I explain the Forge rules in the Tutorial.",
+      "chronicle": "The chronicle records your journey. Touch the book.",
+      "door": "The moonlit door leads to the menu. Find me in the Tutorial to learn the Forge rules.",
       "next": "Next place",
       "done": "Start exploring",
       "skip": "Skip introduction"
@@ -513,7 +513,7 @@
     "tutorial": {
       "intro": "I will tell you how the Forge works. Touch the place you want to hear about.",
       "again": "Touch another place or close our talk.",
-      "end": "That is everything the Forge follows today. The Tutorial waits in the menu whenever you want to return.",
+      "end": "Those are all the rules the Forge follows today. The Tutorial stays in the menu whenever you want to come back.",
       "next": "Next",
       "another": "Another place",
       "finish": "Finish",
@@ -529,9 +529,9 @@
       },
       "hearth": {
         "1": "At the hearth you choose a workout: running, strength training or mobility.",
-        "2": "You set the start, now or at a chosen time, and a later completion deadline.",
-        "3": "Before you make the Oath, you see all its rules. Only your explicit acceptance creates it.",
-        "4": "Once made, its rules never change, not even by the Forge. A different promise is a new Oath."
+        "2": "You set a start, now or at a time you choose, and a later deadline to finish by.",
+        "3": "Before you make the Oath, you see all its rules. It is made only when you explicitly accept them.",
+        "4": "Once it is made, no one can change its rules, not even the Forge. A different promise means a new Oath."
       },
       "seals": {
         "1": "The seals are your current Oaths: scheduled, active and those awaiting a result.",
@@ -539,11 +539,11 @@
         "3": "The Forge decides the state, not your phone’s clock. After the last deadline the Oath is under review, not missed."
       },
       "chronicle": {
-        "1": "The chronicle keeps finished Oaths together with their outcome.",
-        "2": "Nobody rewrites the chronicle. Each Oath keeps the rules accepted when it was made."
+        "1": "The chronicle keeps your finished Oaths and their results.",
+        "2": "Nobody rewrites the chronicle. Each Oath keeps the rules you accepted when you made it."
       },
       "door": {
-        "1": "The door leads to the menu. There you can switch character or create a new one, up to three.",
+        "1": "The door leads to the menu. There you can switch characters or create a new one, up to three.",
         "2": "Each character has its own Oaths, chronicle and pause.",
         "3": "When you turn it on in Settings, pause withdraws this character’s scheduled and active Oaths. Those awaiting a result continue.",
         "4": "While paused you cannot make a new Oath. Resuming lifts the pause but does not restore withdrawn Oaths."
@@ -559,9 +559,9 @@
         "hearth": "Show me how it begins.",
         "seals": "What do these marks mean?",
         "chronicle": {
-          "masculine": "Will everything I did stay here?",
-          "feminine": "Will everything I did stay here?",
-          "neutral": "Will everything I did stay here?"
+          "masculine": "Will everything I’ve done stay here?",
+          "feminine": "Will everything I’ve done stay here?",
+          "neutral": "Will everything I’ve done stay here?"
         },
         "door": {
           "masculine": "And if I have to stop?",
@@ -573,10 +573,10 @@
     "talk": {
       "label": "Zharomir, your progress",
       "hint": {
-        "paused": "Your pause is on, and Settings will bring you back.",
+        "paused": "Your pause is on. You can resume in Settings.",
         "none": "The fire is waiting for your first Oath.",
         "current": "Your Oaths are waiting at the seals.",
-        "unavailable": "I cannot read the chronicle now, come back in a moment."
+        "unavailable": "I cannot read the chronicle right now. Check back in a moment."
       },
       "chronicle_one": "chronicle entry",
       "chronicle_other": "chronicle entries",
@@ -621,7 +621,7 @@
     "routes": {
       "photo": {
         "title": "Context photo",
-        "hint": "The setting or equipment of your workout"
+        "hint": "Where you trained, or the equipment you used"
       },
       "activity_record": {
         "title": "Activity record",
@@ -633,14 +633,14 @@
     "library": "Choose from Photos",
     "preview": "Chosen image",
     "preparing": "Preparing the image…",
-    "cameraDenied": "The app cannot use the camera. You can allow it in Settings or choose an image from Photos.",
+    "cameraDenied": "Oathforge does not have camera access. You can allow it in Settings or choose an image from Photos.",
     "cameraUnavailable": "The camera could not open. Choose an image from Photos or try again.",
     "libraryUnavailable": "Photos could not open. Take a photo with the camera or try again.",
     "imageFailed": "The image could not be prepared. Choose it again.",
     "openSettings": "Open Settings",
     "confirm": "Yes, I confirm",
     "caveatHeading": "Proof assessment",
-    "caveat": "An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.",
+    "caveat": "An image cannot show that you finished, how long you trained or who trained, so the Forge also relies on your declaration.",
     "missing": {
       "route": "Choose the proof type.",
       "image": "Add an image.",
@@ -649,22 +649,22 @@
     "sending": "Proof on its way. The Oath changes only when the server answers.",
     "loading": "Getting ready to send…",
     "notActive": "This Oath is not accepting proof now.",
-    "pending": "A proof saved on this device is waiting to be sent. The server has not received it yet.",
-    "otherPending": "A proof for another Oath is waiting on this device. Send it now so you can submit proof here.",
+    "pending": "Proof saved on this device is waiting to be sent. The server has not received it yet.",
+    "otherPending": "Proof for another Oath is waiting on this device. Send it first so you can submit proof here.",
     "retry": "Send again",
     "discard": "Delete the copy on this device",
     "deleting": "Deleting the proof copy…",
     "dismiss": "Got it",
     "storageUnavailable": "We could not safely read the saved proof. Restart the app and try again.",
     "errors": {
-      "receiptCutoffPassed": "The time for proof has passed and the server did not accept it. Go back to the Oath to see its state.",
+      "receiptCutoffPassed": "The proof window has closed, so the server did not accept this proof. Go back to the Oath to see its state.",
       "oathNotActive": "This Oath is no longer waiting for proof. Check its current status.",
       "alreadySubmitted": "Proof for this Oath has already been received.",
       "tooLarge": "This image is too large to send. Choose another one.",
       "unreadable": "The server could not read this image. Choose another one.",
       "refused": "The server did not accept this proof. Choose the image again, or go back to the Oath and check its state.",
       "uploadRejected": "The server did not receive the image. Send it again, or delete the copy on this device and choose a new image.",
-      "unavailable": "Could not reach the server. The proof has not been received yet. A copy is waiting on this device.",
+      "unavailable": "We could not reach the server. The proof has not been received yet. A copy is waiting on this device.",
       "rateLimited": "Too many attempts. Wait a moment and try again. A copy is waiting on this device.",
       "fileMissing": "The saved copy of the image is no longer on this device. Choose the image again.",
       "storage": "We could not safely save the proof copy on this device. Try again.",
@@ -697,7 +697,7 @@
     "trackBadge": "Step {{step}} of 4, {{label}}, {{badge}}",
     "skippedSteps": "Skipped steps: {{steps}}",
     "badge": {
-      "waiting": "Awaiting start",
+      "waiting": "Waiting to start",
       "interrupted": "Not received",
       "assessing": "Assessing",
       "needsMore": "Needs more proof",
@@ -709,14 +709,14 @@
       "active": "Workout and proof by {{time}}.",
       "activeSoon": "Under an hour left. Workout and proof by {{time}}.",
       "cutoff": "Workout finished by the deadline? Submit proof by {{time}}.",
-      "closed": "The proof window has closed. The Forge is settling the state.",
+      "closed": "The proof window has closed. The Forge is deciding its state.",
       "interrupted": "Proof not received. The copy is here, ready to send again.",
       "assessing": "Proof received. The result will appear here.",
       "needsMore": "More proof is needed. This is not a miss.",
       "review": "This is not a miss. Under review until {{time}}.",
       "fulfilled": "Oath fulfilled {{date}}. The entry stays in the chronicle.",
       "missed": "Oath closed {{date}} as missed.",
-      "unresolved": "No outcome was decided. This is not a miss.",
+      "unresolved": "The outcome could not be decided. This is not a miss.",
       "withdrawn": "Withdrawn {{date}} when the pause began."
     },
     "more": "Full description",
@@ -727,7 +727,7 @@
       "0": "The Oath is waiting for its start. It helps to know where you will train.",
       "1": "There is still time before the start. Get ready whenever you like.",
       "2": "The start is set. Think about when and where you will begin.",
-      "3": "Until the start there is nothing to do. The Oath begins on its own.",
+      "3": "There is nothing to do until the start. The Oath begins on its own.",
       "4": "The plan is in place. When the time comes, I will be at the hearth."
     },
     "active": {
@@ -740,11 +740,11 @@
     "activeSoon": {
       "0": "The deadline is near. This is a good moment to set out.",
       "1": "Under an hour left. If the workout is behind you, submit your proof.",
-      "2": "The fire is burning low, the deadline is close. Set out as soon as you can.",
+      "2": "The fire is burning low and the deadline is close. Set out as soon as you can.",
       "3": "The deadline is close. Workout now, proof right after."
     },
     "cutoff": {
-      "0": "The proof window is still open. Submit it if the workout ended by the deadline.",
+      "0": "The proof window is still open. Submit your proof if the workout ended by the deadline.",
       "1": "If the workout ended by the deadline, the proof can still make it.",
       "2": "The candle is still burning. If the workout ended by the deadline, submit your proof now."
     },
@@ -755,7 +755,7 @@
       "0": "Your proof has arrived. Now we wait for the assessment together.",
       "1": "The proof is in the Forge now. You can get on with your day.",
       "2": "Proof submitted, that was an important step. You can rest now.",
-      "3": "The fire has done its part, now comes the assessment. Nothing more is needed for now.",
+      "3": "The fire has done its part, and now comes the assessment. Nothing more is needed for now.",
       "4": "Your part is done. The rest is now up to the assessment."
     },
     "review": {

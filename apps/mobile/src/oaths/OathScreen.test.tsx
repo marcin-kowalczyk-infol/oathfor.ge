@@ -85,7 +85,7 @@ test('gap error keeps the chosen date and timezone and lets the player correct t
   const f = setup(); jest.mocked(f.api.preview).mockResolvedValueOnce({ kind: 'time_error', code: 'nonexistent_local_time', field: 'deadline' });
   f.controller.start(); await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await selectDate('Completion date', 'March 29, 2026'); await selectTime('Completion time', '02', '30'); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  expect(await screen.findByText('This local time does not exist because the clocks change. Choose another time.')).toBeOnTheScreen();
+  expect(await screen.findByText('This time is skipped when the clocks change. Choose another time.')).toBeOnTheScreen();
   expect(jest.mocked(f.api.preview).mock.calls[0][1].deadline).toEqual({ local: '2026-03-29T02:30:00', timezone: 'Europe/Warsaw' });
   expect(screen.getByText('March 29, 2026')).toBeOnTheScreen(); expect(screen.getByText('02:30')).toBeOnTheScreen();
   await selectTime('Completion time', '03', '30');
@@ -110,7 +110,7 @@ test('a paused character explains the refusal', async () => {
   f.controller.start(); await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
-  expect(await screen.findByText('This character is paused. Resume gameplay before creating a new Oath.')).toBeOnTheScreen();
+  expect(await screen.findByText('This character is paused. Resume play before creating a new Oath.')).toBeOnTheScreen();
 });
 test.each(['preview_superseded', 'activation_elapsed'] as const)('%s removes confirmation until a new review', async code => {
   const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code });
@@ -276,20 +276,20 @@ test('skipping marks the explanation seen, and the Żaromir button replays it wi
   await fireEvent.press(screen.getByRole('button', { name: 'Skip introduction' }));
   expect(screen.queryByTestId('dialogue-panel')).toBeNull();
   expect(storage.markSeen).toHaveBeenCalledWith(accountId);
-  await fireEvent.press(screen.getByRole('button', { name: 'Zharomir explains the rules' }));
-  expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toContain('Before you make the Oath, meet its rules.');
+  await fireEvent.press(screen.getByRole('button', { name: 'Hear Zharomir explain the rules' }));
+  expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toContain('Before you make the Oath, get to know its rules.');
   await fireEvent.press(screen.getByRole('button', { name: 'Skip introduction' }));
   expect(storage.markSeen).toHaveBeenCalledTimes(1);
 });
 test('a seen flag shows no explanation but offers the replay', async () => {
   await openReview(setup(), rulesGuide(true), 'en');
   expect(screen.queryByTestId('dialogue-panel')).toBeNull();
-  expect(screen.getByRole('button', { name: 'Zharomir explains the rules' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Hear Zharomir explain the rules' })).toBeOnTheScreen();
 });
 test('a flag still being read shows nothing', async () => {
   await openReview(setup(), rulesGuide(new Promise<boolean>(() => {})), 'en');
   expect(screen.queryByTestId('dialogue-panel')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Zharomir explains the rules' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Hear Zharomir explain the rules' })).toBeNull();
 });
 
 // MVP-22-B2 (G21): the open guide covered the bottom cards ("M… z podjąć"). While it is open the review gains a bottom inset
@@ -611,7 +611,7 @@ describe('form and review lines', () => {
   const copy = {
     pl: { intro: 'Wybierz trening i termin ukończenia.', required: 'Wybierz trening i termin, aby zobaczyć zasady.', review: 'Przeczytaj zasady i złóż Przysięgę.', seconds: 'Czas wybierasz z dokładnością do minuty (sekundy: 00).',
       date: ['Data ukończenia', '25 października 2026'], time: ['Godzina ukończenia', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' }], view: 'Zobacz zasady', confirm: 'Złóż Przysięgę' },
-    en: { intro: 'Choose a workout and its deadline.', required: 'Choose a workout and deadline to see the rules.', review: 'Read the rules, then make the Oath.', seconds: 'Times are selected to the minute (seconds: 00).',
+    en: { intro: 'Choose a workout and its deadline.', required: 'Choose a workout and deadline to see the rules.', review: 'Read the rules, then make the Oath.', seconds: 'Times are set to the minute, with seconds at 00.',
       date: ['Completion date', 'October 25, 2026'], time: ['Completion time', { hour: 'Hour', minute: 'Minute', done: 'Use this time' }], view: 'View rules', confirm: 'Commit to the Oath' },
   } as const;
   test.each(['pl', 'en'] as const)('%s at text scale 2 keeps one plain line and one filled button on the form and the review', async locale => {
@@ -755,7 +755,7 @@ describe('header text never sits on the hearth art', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
     await screen.findByText('Choose and review the times again before committing.');
     const lines = within(band()).getAllByText(/./).map(node => String(node.props.children));
-    const error = 'The rules have changed before confirmation. Review a new preview before accepting.';
+    const error = 'The rules changed before you confirmed. Review the new preview before accepting.';
     const again = 'Choose and review the times again before committing.';
     expect(lines).toEqual(expect.arrayContaining([error, again, 'Workout']));
     expect(lines.indexOf(error)).toBeLessThan(lines.indexOf('Workout'));
@@ -818,7 +818,7 @@ const g30Words = {
   en: { view: 'View rules', confirm: 'Commit to the Oath', recover: 'Check confirmation', made: 'Oath made', viewOath: 'View the Oath', another: 'Create another Oath',
     date: ['Completion date', 'October 25, 2026'], completion: 'Completion time', time: { hour: 'Hour', minute: 'Minute', done: 'Use this time' },
     storage: 'We could not securely save or read your confirmation. Try again before continuing.', generic: 'We could not confirm this step. Try again.',
-    pending: 'Your confirmation may already have arrived. Check the same Oath before starting another.',
+    pending: 'Your confirmation may already have arrived. Check this Oath before you start another.',
     confirmedLine: 'Your Oath is already made. Check confirmation to finish saving on this device.' },
 } as const;
 const g30OathId = '20000000-0000-4000-8000-0000000000c1';
