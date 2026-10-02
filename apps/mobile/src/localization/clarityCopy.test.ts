@@ -101,7 +101,7 @@ const sliceA = [
   // A5. The tutorial chapter lines are rules, not "what next" lines, so only the two-sentence guard holds them.
   'room.descriptions.seals', 'room.guide.seals', 'room.guide.hearth', 'room.tutorial.heardMark',
   // A6.
-  'oath.reviewIntro', 'oath.formRequired', 'oath.formRequiredScheduled',
+  'oath.reviewIntro', 'oath.formRequired', 'oath.formRequiredStart',
 ];
 test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages', key => {
   const [line, english] = [at(pl, key), at(en, key)];
@@ -160,9 +160,9 @@ test('the menu shows the pause mark, so the old paused line is gone', () => {
 test('the A8c copy decisions hold in both languages', () => {
   expect(at(pl, 'zaromir.cutoff.1')).toBe('Jeśli trening skończył się w terminie, dowód może jeszcze zdążyć.');
   expect(at(en, 'zaromir.cutoff.1')).toBe('If the workout ended by the deadline, the proof can still make it.');
-  // MVP-22-E1.4: the missing line names only what is missing, the start too when it is scheduled.
-  expect(at(pl, 'oath.formRequiredScheduled')).toBe('Potrzebny start i termin.');
-  expect(at(en, 'oath.formRequiredScheduled')).toBe('Start and deadline needed.');
+  // MVP-22-E1.4: the missing line names only what is missing. MVP-22-E1.R: a scheduled start names the start first, then the deadline.
+  expect(at(pl, 'oath.formRequiredStart')).toBe('Potrzebny start.');
+  expect(at(en, 'oath.formRequiredStart')).toBe('Start needed.');
   expect(at(en, 'room.tutorial.seals.1')).toMatch(/awaiting a result/);
   expect(at(en, 'room.tutorial.seals.1')).not.toMatch(/awaiting review/);
   expect(at(en, 'room.tutorial.door.3')).toMatch(/you turn it on in Settings/);

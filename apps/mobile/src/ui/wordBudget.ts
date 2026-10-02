@@ -11,15 +11,19 @@ const ICON_WORDS = 3;
 /** The part of a rendered host element the count reads, as the test renderer exposes it. */
 export type HostNode = { type: string; props: Record<string, unknown>; children: readonly (HostNode | string)[] };
 
-/** Whitespace-separated tokens with at least one letter. "02:30", "29" and "·" are not words, "2 d 5 h" has two. */
+/**
+ * Whitespace-separated tokens with at least one Latin letter, Polish ones included. "02:30", "29", "·" and the ϟ pictogram
+ * are not words, "2 d 5 h" has two. The app draws only Polish and English, so another script is a symbol (MVP-22-E1.R).
+ */
 export function words(text: string): string[] {
-  return text.split(/\s+/).filter(token => /\p{L}/u.test(token));
+  return text.split(/\s+/).filter(token => /\p{Script=Latin}/u.test(token));
 }
 
 // Joins one outermost text with its nested spans, as it is drawn. An exempt span leaves a space so words on either side stay apart.
+// The exemption covers the span's own strings only. An unmarked text nested in it still counts, so a mark cannot hide it (MVP-22-E1.R).
 function drawn(node: HostNode | string): string {
   if (typeof node === 'string') return node;
-  if (node.props.budget) { exempt(node); return ' '; }
+  if (node.props.budget) { exempt(node); return ` ${node.children.filter(child => typeof child !== 'string').map(drawn).join(' ')} `; }
   return node.children.map(drawn).join('');
 }
 

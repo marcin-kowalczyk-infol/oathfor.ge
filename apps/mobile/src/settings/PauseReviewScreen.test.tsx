@@ -191,8 +191,9 @@ test('a paused character shows the Paused mark and the pause fact as a plain lin
 // MVP-22-E1.3: Settings opens this review for a paused character. Resuming withdraws nothing, so only what continues is listed,
 // and the fact that pause does not extend deadlines stays one touch away.
 test.each([
-  ['en', 'Resume play', 'Will be withdrawn', 'Will continue', 'Full description', 'Pause does not extend deadlines.'],
-  ['pl', 'Wznów rozgrywkę', 'Zostaną wycofane', 'Będą kontynuowane', 'Pełny opis', 'Pauza nie przedłuża terminów.'],
+  // MVP-22-E1.R: the link names the one fact it holds, "Full description" promised more than a sentence.
+  ['en', 'Resume play', 'Will be withdrawn', 'Will continue', 'About deadlines', 'Pause does not extend deadlines.'],
+  ['pl', 'Wznów rozgrywkę', 'Zostaną wycofane', 'Będą kontynuowane', 'O terminach', 'Pauza nie przedłuża terminów.'],
 ] as const)('%s paused review keeps the deadline fact behind one link and lists only what continues', async (locale, resume, withdraw, preserve, more, fact) => {
   const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), true) });
   await show(f, locale);
@@ -210,7 +211,17 @@ test('an active character sees the deadline fact in the intro line and both list
   await screen.findByRole('button', { name: 'Confirm pause' });
   expect(screen.getByTestId('pause-line')).toHaveTextContent('Pause does not extend deadlines.');
   expect(screen.getByRole('header', { name: 'Will be withdrawn' })).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Full description' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'About deadlines' })).toBeNull();
+});
+
+// MVP-22-E1.R, review finding: the paused flag alone hides the withdraw list. Pinned with a server summary that still names an Oath
+// to withdraw, so a resume never shows "Zostaną wycofane" whatever the list holds.
+test.each([['pl', 'Wznów rozgrywkę', 'Zostaną wycofane', 'Będą kontynuowane'], ['en', 'Resume play', 'Will be withdrawn', 'Will continue']] as const)('%s paused review hides the withdraw list even when the summary names one', async (locale, resume, withdraw, preserve) => {
+  const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: { ...pauseSummary('a'.repeat(64), true), withdraw: [id] } });
+  await show(f, locale);
+  await screen.findByRole('button', { name: resume });
+  expect(screen.queryByText(withdraw)).toBeNull();
+  expect(screen.getByRole('header', { name: preserve })).toBeOnTheScreen();
 });
 
 test('a changed Oath list replaces the intro instead of stacking under it', async () => {

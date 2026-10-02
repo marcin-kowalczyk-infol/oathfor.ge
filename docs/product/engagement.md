@@ -83,7 +83,7 @@ The owner's "too much text" becomes a number that jest checks. It adds to the 12
 
 - **What is measured.** The whole rendered screen state, scroll content included, because jest has no layout. Folded disclosures are closed. Their children are not rendered, so they cost nothing. Motion is off, so the dialogue panel shows its whole line and its art gate is resolved.
 - **Viewport.** 402 × 874 pt, font scale 1, the iPhone 18 Pro at standard text.
-- **A word** is a whitespace-separated token in drawn text that contains at least one letter. Times, dates, numbers and symbols such as "02:30", "29", "·" and "✓" do not count. "2 d 5 h" counts as two words.
+- **A word** is a whitespace-separated token in drawn text that contains at least one Latin letter, Polish letters included. Times, dates, numbers and symbols such as "02:30", "29", "·", "✓" and the "ϟ" pictogram do not count. "2 d 5 h" counts as two words. The app draws only Polish and English, so another script is a symbol (local clarification, MVP-22-E1.R, 2026-10-02).
 - **Counted:** every drawn text, including buttons, links, the way back, headings, card lines and Żaromir's bubble.
 - **Not counted:** accessibility labels and hints, which are not drawn.
 - **Exempt, marked in code:**
@@ -91,6 +91,7 @@ The owner's "too much text" becomes a number that jest checks. It adds to the 12
   - `error`: a required error or refusal sentence (clarity decision 3).
   - `declaration`: the stored declaration as the label of the hold control (D-E1) or of the proof confirmation.
   - `rules`: stored rule text when a test opens the fold on purpose.
+  - An exemption covers its own text only. A counted text nested inside an exempt one still counts (local clarification, MVP-22-E1.R, 2026-10-02).
 - **Lists.** Today and History are measured with one Oath. Each further row may add at most 8 counted words.
 - **Both languages** are measured. Each must meet the budget.
 

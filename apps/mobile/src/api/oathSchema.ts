@@ -140,7 +140,7 @@ function utc(value: unknown): value is string { return typeof value === 'string'
 export { utc as isUtcTime };
 function zone(value: unknown): value is string { return typeof value === 'string' && value.length <= 128 && (value === 'UTC' || /^[A-Za-z][A-Za-z0-9_+-]*(?:\/[A-Za-z0-9_+-]+)+$/.test(value)); }
 function offset(value: unknown): value is string { return typeof value === 'string' && value !== '-00:00' && /^[+-](?:[01][0-9]|2[0-3]):[0-5][0-9]$/.test(value); }
-function localInput(value: unknown): value is LocalTimeInput {
+export function localInput(value: unknown): value is LocalTimeInput {
   return (exact(value, ['local', 'timezone']) || exact(value, ['local', 'timezone', 'offset'])) && local(value.local) && zone(value.timezone) && (!Object.hasOwn(value, 'offset') || offset(value.offset));
 }
 export function isPreviewInput(value: unknown): value is PreviewInput {

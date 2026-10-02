@@ -3,7 +3,7 @@ import { AccessibilityInfo, Animated, Image, Pressable, StyleSheet, useWindowDim
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
-import { isPreviewInput, type Activity, type LocalTimeInput, type PreviewInput } from '../api/oathSchema';
+import { isPreviewInput, localInput, type Activity, type LocalTimeInput, type PreviewInput } from '../api/oathSchema';
 import { Action } from '../ui/Action';
 import { useSceneEntrance } from '../ui/useSceneEntrance';
 import { GameChoice } from '../ui/GameChoice';
@@ -12,6 +12,7 @@ import { SceneSurface } from '../ui/SceneSurface';
 import { SceneDoor } from '../ui/SceneDoor';
 import { FadeStrips } from '../ui/FadeStrips';
 import { BackLink } from '../ui/BackLink';
+import { Disclosure } from '../ui/Disclosure';
 import { ActivityOffering } from './ActivityOffering';
 import { SealStamp } from './SealStamp';
 import { CountdownChip } from './CountdownChip';
@@ -154,7 +155,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   function timeFields(field: 'activation' | 'deadline', draft: TimeDraft, setDraft: (value: TimeDraft) => void) {
     const occurrence = choices?.field === field ? choices : undefined;
     return <View style={styles.group}>
-      <WallTimePicker field={field} value={draft} disabled={busy} now={() => controller.clock.now() ?? Date.now()} onChange={value => { if (!busy) { setDraft(value); setSubmitted(false); } }} />
+      <WallTimePicker field={field} parts={['date', 'time']} value={draft} disabled={busy} now={() => controller.clock.now() ?? Date.now()} onChange={value => { if (!busy) { setDraft(value); setSubmitted(false); } }} />
       {occurrence && <View style={styles.group}>
         {/* Native check, 2026-09-30: inside the 350 / 323 pt bench the uncapped "dwukrotnie." and "wystąpienie" take about 367 pt. */}
         <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(t('oath.offsetChoice', { field: t(`oath.${field}Time`) }))}</Text>
@@ -166,6 +167,17 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
       </View>}
     </View>;
   }
+  // MVP-22-E1.R: the zones fold under one link that names them, so the form stays within its word budget (clarity rule 2).
+  // Each zone field inside keeps its whole name, start or deadline.
+  function zoneFold() {
+    const drafts = scheduled ? [['activation', activation, setActivation], ['deadline', deadline, setDeadline]] as const : [['deadline', deadline, setDeadline]] as const;
+    const names = [...new Set(drafts.map(([, draft]) => zoneLabel(draft.zone, t)))];
+    return <Disclosure label={t(names.length > 1 ? 'oath.zonesFold' : 'oath.zoneFold', { zones: names.join(', ') })}>
+      {drafts.map(([field, draft, setDraft]) => <WallTimePicker key={field} field={field} parts={['zone']} value={draft} disabled={busy} now={() => controller.clock.now() ?? Date.now()}
+        onChange={value => { if (!busy) { setDraft(value); setSubmitted(false); } }} />)}
+    </Disclosure>;
+  }
+
   // Native check, 2026-09-30: uncapped at the largest size the pending, storage and error lines hold words wider than the
   // 370 pt column ("kontynuowaniem." and "potwierdzeniem." about 501 pt, "potwierdzenie" 434 pt), so they take the display cap.
   // Lines whose words fit stay uncapped as tokens.ts asks, and the consent inside its frame takes the inset cap.
@@ -262,10 +274,11 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
             selected={scheduled === value} disabled={busy} onPress={() => { setScheduled(value); setSubmitted(false); }} />)}
           {scheduled && timeFields('activation', activation, setActivation)}
           {timeFields('deadline', deadline, setDeadline)}
+          {zoneFold()}
         </View>
         <Action label={t('oath.viewRules')} busy={busy} onPress={() => { void preview(); }}
           {...(!valid || (!!choices && !(choices.field === 'activation' ? activation.offset : deadline.offset))
-            ? { disabled: true, unavailableReason: !valid ? t(scheduled ? 'oath.formRequiredScheduled' : 'oath.formRequired') : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
+            ? { disabled: true, unavailableReason: !valid ? t(scheduled && !localInput(local(activation)) ? 'oath.formRequiredStart' : 'oath.formRequired') : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
       </>}
     </Animated.ScrollView>
     {guideShown && <DialoguePanel frame={guideFrame}

@@ -40,7 +40,7 @@ function setup() {
 test('chosen running deadline previews all rules before explicit acceptance can commit', async () => {
   const f = setup(); f.controller.start();
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  await selectDate('Completion date', 'October 25, 2026');
+  await selectDate('Deadline, completion date', 'October 25, 2026');
   await selectTime('Completion time', '02', '30');
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   expect(f.api.preview).toHaveBeenCalledWith(token, { activity: 'running', activation: { mode: 'now' }, deadline: { local: '2026-10-25T02:30:00', timezone: 'Europe/Warsaw' } }, expect.any(AbortSignal));
@@ -58,7 +58,7 @@ test('chosen running deadline previews all rules before explicit acceptance can 
   expect(f.api.confirm).toHaveBeenCalledWith(token, { previewId: id, requestId: id, accepted: true }, expect.any(AbortSignal));
 });
 async function fillDeadline() {
-  await selectDate('Completion date', 'October 25, 2026');
+  await selectDate('Deadline, completion date', 'October 25, 2026');
   await selectTime('Completion time', '02', '30');
 }
 test('repeated local time requires an explicit server choice and editing invalidates that choice', async () => {
@@ -84,7 +84,7 @@ test('gap error keeps the chosen date and timezone and lets the player correct t
   jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-03-28T12:00:00Z'));
   const f = setup(); jest.mocked(f.api.preview).mockResolvedValueOnce({ kind: 'time_error', code: 'nonexistent_local_time', field: 'deadline' });
   f.controller.start(); await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  await selectDate('Completion date', 'March 29, 2026'); await selectTime('Completion time', '02', '30'); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
+  await selectDate('Deadline, completion date', 'March 29, 2026'); await selectTime('Completion time', '02', '30'); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   expect(await screen.findByText('This time is skipped when the clocks change. Choose another time.')).toBeOnTheScreen();
   expect(jest.mocked(f.api.preview).mock.calls[0][1].deadline).toEqual({ local: '2026-03-29T02:30:00', timezone: 'Europe/Warsaw' });
   expect(screen.getByText('March 29, 2026')).toBeOnTheScreen(); expect(screen.getByText('02:30')).toBeOnTheScreen();
@@ -99,9 +99,12 @@ test('scheduled start and deadline retain independently chosen zones, with all a
   await fireEvent.press(screen.getByRole('radio', { name: 'Later' }));
   await selectDate('Start date', 'October 24, 2026, Today');
   await selectTime('Start time', '20', '00');
+  // MVP-22-E1.R: both zones sit in one fold named after them (word budget). Two different zones name both.
+  await fireEvent.press(screen.getByRole('button', { name: 'Timezone: Warsaw' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Start timezone' }));
   await fireEvent.changeText(screen.getByLabelText('Search by city or timezone'), 'London');
   await fireEvent.press(screen.getByRole('radio', { name: 'London · Europe/London' }));
+  expect(screen.getByRole('button', { name: 'Timezones: London, Warsaw' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   expect(jest.mocked(f.api.preview).mock.calls[0][1]).toEqual({ activity: 'strength_training', activation: { mode: 'scheduled', time: { local: '2026-10-24T20:00:00', timezone: 'Europe/London' } }, deadline: { local: '2026-10-25T02:30:00', timezone: 'Europe/Warsaw' } });
 });
@@ -151,8 +154,8 @@ test('Polish form and stored rules support recovery after restart without new co
 test('creation offers a calendar and time controls without raw date inputs', async () => {
   const f = setup(); f.controller.start();
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  expect(await screen.findByRole('button', { name: /Completion date/ })).toBeOnTheScreen();
-  expect(screen.queryByRole('textbox', { name: 'Completion date' })).toBeNull();
+  expect(await screen.findByRole('button', { name: /Deadline, completion date/ })).toBeOnTheScreen();
+  expect(screen.queryByRole('textbox', { name: 'Deadline, completion date' })).toBeNull();
 });
 
 async function selectDate(label: string, day: string) {
@@ -181,10 +184,12 @@ test('closing a time selection discards only unfinished picker changes', async (
 test('Polish city search selects a timezone without typing an identifier', async () => {
   const f = setup(); f.controller.start();
   await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/London" /></LocalizationProvider>);
-  await fireEvent.press(await screen.findByRole('button', { name: 'Strefa ukończenia' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Strefa: Londyn' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Strefa ukończenia' }));
   await fireEvent.changeText(screen.getByLabelText('Szukaj miasta lub strefy czasowej'), 'Warszawa');
   await fireEvent.press(screen.getByRole('radio', { name: 'Warszawa · Europe/Warsaw' }));
   expect(screen.getByText('Warszawa')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Strefa: Warszawa' })).toBeOnTheScreen();
   // MVP-22-E1.4: the zone id is spoken, not drawn.
   expect(screen.queryByText('Europe/Warsaw')).toBeNull();
   expect(screen.getByRole('button', { name: 'Strefa ukończenia' }).props.accessibilityValue).toEqual({ text: 'Warszawa · Europe/Warsaw' });
@@ -194,7 +199,8 @@ test('date, time and zone controls announce their selected values', async () => 
   const f = setup(); f.controller.start();
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fillDeadline();
-  expect(screen.getByRole('button', { name: 'Completion date' }).props.accessibilityValue).toEqual({ text: 'October 25, 2026' });
+  await fireEvent.press(screen.getByRole('button', { name: 'Timezone: Warsaw' }));
+  expect(screen.getByRole('button', { name: 'Deadline, completion date' }).props.accessibilityValue).toEqual({ text: 'October 25, 2026' });
   expect(screen.getByRole('button', { name: 'Completion time' }).props.accessibilityValue).toEqual({ text: '02:30' });
   expect(screen.getByRole('button', { name: 'Completion timezone' }).props.accessibilityValue).toEqual({ text: 'Warsaw · Europe/Warsaw' });
 });
@@ -209,7 +215,7 @@ test('confirmed creation clears the parent draft and explicit new Oath starts em
   expect(await screen.findByText(/^Active · deadline /)).toBeOnTheScreen();
   expect(onDraftChange).toHaveBeenLastCalledWith(null);
   await fireEvent.press(screen.getByRole('button', { name: 'Create another Oath' }));
-  expect(screen.getByRole('button', { name: 'Completion date' }).props.accessibilityValue).toEqual({ text: 'Choose a date' });
+  expect(screen.getByRole('button', { name: 'Deadline, completion date' }).props.accessibilityValue).toEqual({ text: 'Choose a date' });
   expect(screen.queryByRole('button', { name: 'Commit to the Oath' })).toBeNull();
 });
 
@@ -221,7 +227,7 @@ test('a profile timezone missing from device data does not prevent choosing a da
   });
   const f = setup(); f.controller.start();
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  await selectDate('Completion date', 'October 25, 2026');
+  await selectDate('Deadline, completion date', 'October 25, 2026');
   await selectTime('Completion time', '18', '00');
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   expect(jest.mocked(f.api.preview).mock.calls[0][1].deadline).toEqual({ local: '2026-10-25T18:00:00', timezone: 'Europe/Warsaw' });
@@ -238,7 +244,7 @@ function rulesGuide(seen: boolean | Promise<boolean>) {
 async function openReview(f: ReturnType<typeof setup>, storage: ReturnType<typeof rulesGuide>, locale: 'pl' | 'en' = 'pl') {
   f.controller.start();
   await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" rulesGuideStorage={storage} /></LocalizationProvider>);
-  await selectDate(locale === 'pl' ? 'Data ukończenia' : 'Completion date', locale === 'pl' ? '25 października 2026' : 'October 25, 2026');
+  await selectDate(locale === 'pl' ? 'Termin, data ukończenia' : 'Deadline, completion date', locale === 'pl' ? '25 października 2026' : 'October 25, 2026');
   await selectTime(locale === 'pl' ? 'Godzina ukończenia' : 'Completion time', '02', '30', locale === 'pl' ? { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' } : undefined);
   await fireEvent.press(screen.getByRole('button', { name: locale === 'pl' ? 'Zobacz zasady' : 'View rules' }));
   await screen.findByTestId('rule-cards');
@@ -391,7 +397,7 @@ describe('the review at the largest text size', () => {
     Dimensions.set({ window: phone(375), screen: phone(375) });
     const f = setup(); jest.mocked(f.api.preview).mockResolvedValueOnce({ kind: 'time_error', code: 'ambiguous_local_time', field: 'deadline', validOffsets: ['+02:00', '+01:00'] });
     f.controller.start(); await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-    await selectDate('Data ukończenia', '25 października 2026');
+    await selectDate('Termin, data ukończenia', '25 października 2026');
     await selectTime('Godzina ukończenia', '02', '30', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' });
     await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
     expect(await screen.findByText(/Ta godzina występuje dwukrotnie/)).toHaveProp('maxFontSizeMultiplier', 2);
@@ -508,7 +514,7 @@ test('Polish card and a scheduled Oath counting down to its start', async () => 
   if (value.kind === 'success') value.value.oath.state = 'scheduled';
   jest.mocked(f.api.confirm).mockResolvedValueOnce(value);
   await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
-  await selectDate('Data ukończenia', '25 października 2026');
+  await selectDate('Termin, data ukończenia', '25 października 2026');
   await selectTime('Godzina ukończenia', '02', '30', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' });
   await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Złóż Przysięgę' }));
@@ -612,9 +618,9 @@ describe('form and review lines', () => {
   const filled = () => screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0);
   const copy = {
     pl: { required: 'Potrzebny termin.', review: 'Przeczytaj zasady i złóż Przysięgę.', seconds: 'Czas wybierasz z dokładnością do minuty (sekundy: 00).',
-      date: ['Data ukończenia', '25 października 2026'], time: ['Godzina ukończenia', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' }], view: 'Zobacz zasady', confirm: 'Złóż Przysięgę' },
+      date: ['Termin, data ukończenia', '25 października 2026'], time: ['Godzina ukończenia', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' }], view: 'Zobacz zasady', confirm: 'Złóż Przysięgę' },
     en: { required: 'Deadline needed.', review: 'Read the rules, then make the Oath.', seconds: 'Times are set to the minute, with seconds at 00.',
-      date: ['Completion date', 'October 25, 2026'], time: ['Completion time', { hour: 'Hour', minute: 'Minute', done: 'Use this time' }], view: 'View rules', confirm: 'Commit to the Oath' },
+      date: ['Deadline, completion date', 'October 25, 2026'], time: ['Completion time', { hour: 'Hour', minute: 'Minute', done: 'Use this time' }], view: 'View rules', confirm: 'Commit to the Oath' },
   } as const;
   test.each(['pl', 'en'] as const)('%s at text scale 2 keeps one plain line and one filled button on the form and the review', async locale => {
     const words = copy[locale];
@@ -642,16 +648,20 @@ describe('form and review lines', () => {
     expect(within(screen.getByRole('button', { name: words.confirm })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
   });
   // MVP-22-A8c: a scheduled start is one more field, so the missing line names it. A start "now" needs none.
+  // MVP-22-E1.R: the line names only the first missing choice. The start comes first, and once it is set the deadline follows.
   test.each([
-    ['pl', 'Później', 'Potrzebny start i termin.'],
-    ['en', 'Later', 'Start and deadline needed.'],
-  ] as const)('%s a scheduled start names the start in the missing line', async (locale, later, required) => {
+    ['pl', 'Później', 'Potrzebny start.', ['Start, data rozpoczęcia', '24 października 2026, Dziś'], ['Godzina rozpoczęcia', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' }]],
+    ['en', 'Later', 'Start needed.', ['Start date', 'October 24, 2026, Today'], ['Start time', { hour: 'Hour', minute: 'Minute', done: 'Use this time' }]],
+  ] as const)('%s a scheduled start names the start in the missing line, then the deadline', async (locale, later, required, [date, day], [time, words]) => {
     const f = setup(); f.controller.start();
     await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
     expect(await screen.findByText(copy[locale].required)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('radio', { name: later }));
     expect(screen.getByText(required)).toBeOnTheScreen();
     expect(screen.queryByText(copy[locale].required)).toBeNull();
+    await selectDate(date, day); await selectTime(time, '20', '00', words);
+    expect(screen.queryByText(required)).toBeNull();
+    expect(screen.getByText(copy[locale].required)).toBeOnTheScreen();
   });
 });
 
@@ -723,7 +733,7 @@ describe('header text never sits on the hearth art', () => {
       Dimensions.set({ window: phone, screen: phone });
       const f = setup(); f.controller.start();
       await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" onBack={jest.fn()} backLabel="Wróć do Kuźni" backPlain={backPlain} /></LocalizationProvider>);
-      await selectDate('Data ukończenia', '25 października 2026');
+      await selectDate('Termin, data ukończenia', '25 października 2026');
       await selectTime('Godzina ukończenia', '02', '30', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' });
       await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
       await fireEvent.press(await screen.findByRole('button', { name: 'Złóż Przysięgę' }));
@@ -771,7 +781,7 @@ describe('header text never sits on the hearth art', () => {
 // MVP-22-G24b: drawn Polish prose keeps a single-letter word with the next word, and a middle-dot separator never ends a line.
 describe('drawn prose binding', () => {
   const raw = { normalizer: (text: string) => text };
-  const pl = { date: 'Data ukończenia', day: '25 października 2026', time: 'Godzina ukończenia', words: { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' } };
+  const pl = { date: 'Termin, data ukończenia', day: '25 października 2026', time: 'Godzina ukończenia', words: { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' } };
   async function reviewInPolish() {
     await selectDate(pl.date, pl.day); await selectTime(pl.time, '02', '30', pl.words);
     await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
@@ -779,10 +789,11 @@ describe('drawn prose binding', () => {
   test('Polish form, review and consent lines bind single-letter words', async () => {
     const f = setup(); f.controller.start();
     await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-    // MVP-22-E1.4: the form's one line is the missing line. With a scheduled start it names both, joined after "i".
+    // MVP-22-E1.4: the form's one line is the missing line. MVP-22-E1.R: with a scheduled start it names the first missing choice,
+    // the start, then the deadline (word budget, and the line no longer names a deadline that is already set).
     expect(await screen.findByText('Potrzebny termin.', raw)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('radio', { name: 'Później' }));
-    expect(screen.getByText('Potrzebny start i termin.', raw)).toBeOnTheScreen();
+    expect(screen.getByText('Potrzebny start.', raw)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('radio', { name: 'Teraz' }));
     await reviewInPolish();
     expect(await screen.findByText('Przeczytaj zasady i złóż Przysięgę.', raw)).toBeOnTheScreen();
@@ -819,12 +830,12 @@ describe('drawn prose binding', () => {
 // confirmed Oath and the pending record, so the detail and the pending band render together. One filled action stays (clarity.md rule 3).
 const g30Words = {
   pl: { view: 'Zobacz zasady', confirm: 'Złóż Przysięgę', recover: 'Sprawdź potwierdzenie', made: 'Przysięga złożona', viewOath: 'Zobacz Przysięgę', another: 'Złóż kolejną Przysięgę',
-    date: ['Data ukończenia', '25 października 2026'], completion: 'Godzina ukończenia', time: { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' },
+    date: ['Termin, data ukończenia', '25 października 2026'], completion: 'Godzina ukończenia', time: { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' },
     storage: 'Nie udało się bezpiecznie zapisać lub odczytać potwierdzenia. Spróbuj ponownie przed kontynuowaniem.', generic: 'Nie udało się potwierdzić tego kroku. Spróbuj ponownie.',
     pending: 'Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.',
     confirmedLine: 'Przysięga już złożona. Sprawdź potwierdzenie, by dokończyć zapis na urządzeniu.' },
   en: { view: 'View rules', confirm: 'Commit to the Oath', recover: 'Check confirmation', made: 'Oath made', viewOath: 'View the Oath', another: 'Create another Oath',
-    date: ['Completion date', 'October 25, 2026'], completion: 'Completion time', time: { hour: 'Hour', minute: 'Minute', done: 'Use this time' },
+    date: ['Deadline, completion date', 'October 25, 2026'], completion: 'Completion time', time: { hour: 'Hour', minute: 'Minute', done: 'Use this time' },
     storage: 'We could not securely save or read your confirmation. Try again before continuing.', generic: 'We could not confirm this step. Try again.',
     pending: 'Your confirmation may already have arrived. Check this Oath before you start another.',
     confirmedLine: 'Your Oath is already made. Check confirmation to finish saving on this device.' },

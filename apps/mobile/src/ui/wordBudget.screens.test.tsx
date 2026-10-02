@@ -193,8 +193,14 @@ const states: Record<string, (locale: Locale) => Promise<unknown>> = {
   'onboarding.reviewOff': locale => onboarding(locale, onboardingReady({ notificationPreference: 'disabled' }), 'granted'),
   'characterCreation': locale => render(<LocalizationProvider initialLocale={locale}><Creation state={characters()} /></LocalizationProvider>),
   'characterCreation.another': locale => render(<LocalizationProvider initialLocale={locale}><Creation state={characters({ characters: [mira], activeCharacterId: mira.id })} another /></LocalizationProvider>),
+  // A stored creation the Forge has not answered yet, with no error: the pending note is not an error, so it counts.
+  'characterCreation.pending': locale => render(<LocalizationProvider initialLocale={locale}><Creation state={characters({ pendingCreation: { version: 2, accountId, requestId: '50000000-0000-4000-8000-000000000001', name: 'Mira', presetId: 'starter_02', build: 'thin', form: 'feminine' } })} /></LocalizationProvider>),
   'changeCharacter': locale => render(<LocalizationProvider initialLocale={locale}><ChangeCharacterScreen state={characters({ characters: [mira, bor], activeCharacterId: mira.id })} onChoose={jest.fn()} onNew={jest.fn()} onBack={jest.fn()} /></LocalizationProvider>),
   'oathForm': locale => oathScreen(locale, null),
+  'oathForm.scheduled': async locale => {
+    await oathScreen(locale, null);
+    await fireEvent.press(screen.getByRole('radio', { name: copyOf(locale).oath.scheduled }));
+  },
   'review': locale => review(locale, true),
   'review.firstGuide': locale => review(locale, false),
   'confirmation': async locale => {

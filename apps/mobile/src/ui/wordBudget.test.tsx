@@ -25,6 +25,12 @@ describe('visibleWords', () => {
     expect(measure().words).toEqual(['Zapisano', 'i', 'w', 'domu']);
   });
 
+  // MVP-22-E1.R: the "Now" medallion draws ϟ, a Greek letter used as a pictogram. Only Latin letters, Polish ones included, make a word.
+  test('a token without a Latin letter is a symbol, not a word', async () => {
+    await render(<View><Text>ϟ</Text><Text>◷ Później</Text><Text>Żółć ąę</Text></View>);
+    expect(measure().words).toEqual(['Później', 'Żółć', 'ąę']);
+  });
+
   test('a nested span joins its parent text without splitting a word', async () => {
     await render(<Text>Dzień <Text>7</Text> z <Text>30</Text>, Przy<Text>sięga</Text></Text>);
     expect(measure().words).toEqual(['Dzień', 'z', 'Przysięga']);
@@ -61,6 +67,12 @@ describe('visibleWords', () => {
     test.each(['error', 'declaration', 'rules'] as const)('a %s text costs nothing', async budget => {
       await render(<View><Text budget={budget}>Nie udało się wysłać dowodu, spróbuj ponownie za chwilę.</Text><Text>Wróć</Text></View>);
       expect(measure()).toEqual({ count: 1, words: ['Wróć'] });
+    });
+
+    // MVP-22-E1.R: an exemption covers its own strings only. A counted text nested in it is still counted, so a mark cannot hide it.
+    test('an unmarked text nested inside an exempt text still counts', async () => {
+      await render(<Text budget="declaration">Codziennie przejdę <Text>dziesięć tysięcy</Text> kroków <Text budget="declaration">bez wyjątku</Text></Text>);
+      expect(measure().words).toEqual(['dziesięć', 'tysięcy']);
     });
 
     test('an exempt span inside a counted text costs nothing', async () => {

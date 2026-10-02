@@ -502,7 +502,7 @@ test('the room leads to creation, Today and History, the Oath door returns to th
   await enterRoom();
   expect(screen.queryByRole('button', forgeTile)).toBeNull();
   await useStation('Hearth', 'Shape an Oath');
-  expect(await screen.findByLabelText('Completion date')).toBeOnTheScreen();
+  expect(await screen.findByLabelText('Deadline, completion date')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Return to the Forge' }));
   await useStation('Seals', 'View current Oaths');
   expect(await screen.findByRole('button', { name: 'Today', selected: true })).toBeOnTheScreen();

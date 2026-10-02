@@ -113,8 +113,8 @@ export function PauseReviewScreen({ controller, character, onBack, onChanged }: 
           {line && <Text testID="pause-line" maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole={notice ? 'alert' : undefined} accessibilityLiveRegion="polite"
             style={notice ? styles.notice : styles.body}>{bindShortWords(t(line), locale)}</Text>}
           {(failed || pauseFailed) && <Action label={t('oathHome.reviewPause')} onPress={() => { void showPause(); }} />}
-          {/* Paused, the line names what continues. The deadline fact stays one touch away (MVP-22-E1.3). */}
-          {pause?.summary.paused && !notice && <Disclosure label={t('path.more')}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{bindShortWords(t('oathHome.pauseIntro'), locale)}</Text></Disclosure>}
+          {/* Paused, the line names what continues. The deadline fact stays one touch away (MVP-22-E1.3), under a link that names it (MVP-22-E1.R). */}
+          {pause?.summary.paused && !notice && <Disclosure label={t('oathHome.pauseDeadlines')}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{bindShortWords(t('oathHome.pauseIntro'), locale)}</Text></Disclosure>}
           {pause && <>
             {/* Resuming withdraws nothing, so only a pause lists what it would withdraw. */}
             {(pause.summary.paused ? ['preserve'] as const : ['withdraw', 'preserve'] as const).map(key => <View key={key} style={styles.card}>

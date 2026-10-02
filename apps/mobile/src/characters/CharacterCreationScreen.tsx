@@ -121,8 +121,6 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
   // The feet stand a little above the name panel, the light pool is centred on them.
   const feet = stageHeight - STAGE_BOTTOM;
   const title = form ? t(`character.form.${form}`) : t('character.untitled');
-  // An empty name or title draws an ellipsis. The card's label still says what is missing (word budget, MVP-22-E1.3).
-  const EMPTY = '…';
   // A stored creation explains itself even when no error came with it, for example after returning from the change screen.
   const message = errorKey(state.error, pending?.name ?? null) ?? (pending && !state.busy ? { key: 'character.pending', name: pending.name } : null);
   const limitShown = message?.key === 'character.error.character_limit_reached';
@@ -131,41 +129,15 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
   const reason = full ? t('character.error.character_limit_reached')
     : presetId === null ? t('character.unmetLook')
     : !check.valid && !form ? t('character.unmet')
-    : !check.valid ? t('character.unmetName')
+    // MVP-22-E1.R: an empty field asks for a name, a typed one that breaks the rules asks for a fix.
+    : !check.valid ? t(name.trim() === '' ? 'character.unmetNameEmpty' : 'character.unmetName')
     : !form ? t('character.unmetForm') : undefined;
   function submit() {
     if (locked || reason || submitted.current || !check.valid || !form || presetId === null) return;
     submitted.current = true;
     onCreate({ name: check.name, presetId, build, form });
   }
-  return <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets>
-    {onCancel && !pending && <Pressable accessibilityRole="button" accessibilityLabel={t('character.cancel')} accessibilityState={{ disabled: state.busy }} disabled={state.busy}
-      onPress={() => { if (!state.busy) onCancel(); }} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
-      <Text allowFontScaling={false} style={styles.backArrow}>‹</Text>
-      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.backLabel}>{t('character.cancel')}</Text>
-    </Pressable>}
-    <View style={styles.header}>
-      <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('character.title')}</Text>
-    </View>
-
-    <Animated.View testID="character-preview" style={[styles.card, entrance]}>
-      {/* The light spans the whole card and fades out on every side, so no edge cuts it where the name panel begins. */}
-      <View testID="character-glow" pointerEvents="none" style={[styles.glow, { top: feet - GLOW / 2 }]} />
-      <View testID="character-pool" pointerEvents="none" style={[styles.pool, { top: feet - POOL / 2 }]} />
-      <View accessible accessibilityLabel={t('character.preview', { name: check.valid ? check.name : t('character.unnamed'), title })}>
-        <View testID="character-stage" style={[styles.stage, { height: stageHeight }]}>
-          {art ? <Image testID="character-figure" source={art.figure} resizeMode="contain" accessibilityIgnoresInvertColors style={{ height: figureHeight, width: figureHeight * FIGURE_RATIO }} />
-            : <View testID="character-placeholder" style={[styles.placeholder, { height: figureHeight * 0.8, width: figureHeight * 0.8 * FIGURE_RATIO }]} />}
-        </View>
-        <View style={styles.identity}>
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={[styles.cardName, !check.valid && styles.cardNameEmpty]}>{check.valid ? check.name : EMPTY}</Text>
-          <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.role, large && styles.roleLarge, !form && styles.roleEmpty]}>{form ? title : EMPTY}</Text>
-          <View style={styles.rule} />
-        </View>
-      </View>
-      <View pointerEvents="none" style={styles.innerFrame} />
-    </Animated.View>
-
+  const choices = <>
     <View style={styles.section}>
       <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.label, large && styles.labelLarge]}>{t('character.looks')}</Text>
       {looks.length === 0 ? <>
@@ -220,6 +192,41 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
       <Text style={styles.hint}>{prose(t('character.nameHint'))}</Text>
       <Text style={styles.hint}>{prose(t('character.titlesHint'))}</Text>
     </Disclosure>
+  </>;
+  return <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets>
+    {onCancel && !pending && <Pressable accessibilityRole="button" accessibilityLabel={t('character.cancel')} accessibilityState={{ disabled: state.busy }} disabled={state.busy}
+      onPress={() => { if (!state.busy) onCancel(); }} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
+      <Text allowFontScaling={false} style={styles.backArrow}>‹</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.backLabel}>{t('character.cancel')}</Text>
+    </Pressable>}
+    <View style={styles.header}>
+      <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('character.title')}</Text>
+    </View>
+
+    <Animated.View testID="character-preview" style={[styles.card, entrance]}>
+      {/* The light spans the whole card and fades out on every side, so no edge cuts it where the name panel begins. */}
+      <View testID="character-glow" pointerEvents="none" style={[styles.glow, { top: feet - GLOW / 2 }]} />
+      <View testID="character-pool" pointerEvents="none" style={[styles.pool, { top: feet - POOL / 2 }]} />
+      <View accessible accessibilityLabel={t('character.preview', { name: check.valid ? check.name : t('character.unnamed'), title })}>
+        <View testID="character-stage" style={[styles.stage, { height: stageHeight }]}>
+          {art ? <Image testID="character-figure" source={art.figure} resizeMode="contain" accessibilityIgnoresInvertColors style={{ height: figureHeight, width: figureHeight * FIGURE_RATIO }} />
+            : <View testID="character-placeholder" style={[styles.placeholder, { height: figureHeight * 0.8, width: figureHeight * 0.8 * FIGURE_RATIO }]} />}
+        </View>
+        <View style={styles.identity}>
+          {/* MVP-22-E1.R, native check: two ellipses stacked here and read as loading. An empty name is one quiet dotted line,
+              an empty title draws nothing. The card's label still says what is missing (word budget, MVP-22-E1.3). */}
+          {check.valid
+            ? <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={styles.cardName}>{check.name}</Text>
+            : <View testID="character-name-line" style={styles.nameLine}>{Array.from({ length: 7 }, (_, index) => <View key={index} style={styles.nameDot} />)}</View>}
+          {form && <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.role, large && styles.roleLarge]}>{title}</Text>}
+          <View style={styles.rule} />
+        </View>
+      </View>
+      <View pointerEvents="none" style={styles.innerFrame} />
+    </Animated.View>
+
+    {/* MVP-22-E1.R: a stored creation locks every choice and the card shows the character, so the locked choices fold behind one link. */}
+    {pending ? <Disclosure label={t('character.choices')}>{choices}</Disclosure> : choices}
 
     {message && !(limitShown && full) && !waitText && <Message error={message.key !== 'character.pending'} text={prose(t(message.key, message.name === undefined ? {} : { name: message.name }))} />}
     {pending && state.busy && <Text accessibilityLiveRegion="polite" style={styles.intro}>{prose(t('character.finishing', { name: pending.name }))}</Text>}
@@ -273,14 +280,15 @@ const styles = StyleSheet.create({
   placeholder: { borderRadius: 999, borderWidth: 1, borderColor: gold.faint, marginBottom: 12 },
   identity: { alignItems: 'center', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 22, gap: 6 },
   cardName: { fontFamily: tokens.font.display, color: gold.name, fontSize: 28, lineHeight: 34, textAlign: 'center' },
-  cardNameEmpty: { color: tokens.color.secondary, fontStyle: 'italic' },
+  // The dotted line holds the name's 34 pt line, so the card keeps its height when the name arrives.
+  nameLine: { height: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  nameDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: tokens.color.secondary },
   // Small caps tracking would push long words over the line at large text.
   roleLarge: { letterSpacing: 1 },
   labelLarge: { letterSpacing: 1 },
   // At large text the radio moves above the title so the words get the full card width.
   choiceStacked: { flexDirection: 'column', alignItems: 'flex-start' },
   role: { color: gold.role, fontSize: 13, lineHeight: 18, letterSpacing: 2.5, textTransform: 'uppercase', fontWeight: '600', textAlign: 'center' },
-  roleEmpty: { color: tokens.color.secondary },
   rule: { marginTop: 10, width: 140, height: 1, experimental_backgroundImage: 'linear-gradient(90deg, rgba(214,170,105,0) 0%, rgba(214,170,105,0.7) 50%, rgba(214,170,105,0) 100%)' },
   section: { gap: 12 },
   label: { color: gold.role, fontSize: 13, lineHeight: 18, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '600' },

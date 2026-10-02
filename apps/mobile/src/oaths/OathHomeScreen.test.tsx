@@ -61,7 +61,7 @@ test('empty Today has loading, failed retry and explicit creation states', async
   expect(await screen.findByText('No current Oaths. Choose a workout when you are ready.')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Create an Oath' }));
   expect(f.controller.resetCreation).toHaveBeenCalledTimes(1);
-  expect(await screen.findByLabelText('Completion date')).toBeOnTheScreen();
+  expect(await screen.findByLabelText('Deadline, completion date')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Today' }));
   expect(await screen.findByText('No current Oaths. Choose a workout when you are ready.')).toBeOnTheScreen();
   expect(jest.mocked(f.controller.list).mock.calls[2][0]).toEqual({ view: 'today' });
@@ -125,7 +125,7 @@ test('unresolved acceptance remains reachable from Today and cannot be reset int
   expect(screen.queryByText('No current Oaths. Choose a workout when you are ready.')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Check confirmation' }));
   expect(f.controller.resetCreation).not.toHaveBeenCalled();
-  expect(screen.queryByLabelText('Completion date')).toBeNull();
+  expect(screen.queryByLabelText('Deadline, completion date')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Check confirmation' })); expect(f.controller.recover).toHaveBeenCalledTimes(1);
 });
 test('session invalidation hides detail content and ignores pending read completion', async () => {
@@ -295,7 +295,7 @@ test('a hearth request shows only the hearth while Today loads, never the hidden
   expect(screen.getAllByRole('button', { name: /Return to the Forge|Back to menu/ }).length).toBeGreaterThan(0);
   jest.mocked(f.controller.resetCreation).mockReturnValue(true);
   await act(async () => today.resolve(page([oath()])));
-  expect(await screen.findByLabelText('Completion date')).toBeOnTheScreen();
+  expect(await screen.findByLabelText('Deadline, completion date')).toBeOnTheScreen();
 });
 
 test('room return preserves pending acceptance without resetting it', async () => {
@@ -315,7 +315,7 @@ test('hearth navigation on a paused account shows the pause notice instead of ne
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
   expect(await screen.findByText('Oaths awaiting a result continue. Withdrawn ones do not come back.')).toBeOnTheScreen();
   expect(f.controller.resetCreation).not.toHaveBeenCalled();
-  expect(screen.queryByLabelText('Completion date')).toBeNull();
+  expect(screen.queryByLabelText('Deadline, completion date')).toBeNull();
 });
 
 test('each Oath carries a state seal beside its short label in the list and in detail', async () => {
@@ -347,7 +347,7 @@ test('each functional screen stands in its own Forge place', async () => {
   await view.rerender(screenWith({ id: 1, target: 'today' }));
   await screen.findAllByText('Under review');
   await fireEvent.press(screen.getAllByRole('button', { name: 'Create an Oath' })[0]);
-  expect(await screen.findByLabelText('Completion date')).toBeOnTheScreen();
+  expect(await screen.findByLabelText('Deadline, completion date')).toBeOnTheScreen();
   expect(place('hearth')).toBeTruthy();
 });
 
@@ -357,7 +357,7 @@ test('hearth navigation during a busy operation explains that creation must wait
   jest.mocked(f.controller.resetCreation).mockReturnValue(false);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
   expect(await screen.findByText('The Forge is still finishing your last step. Return to the hearth in a moment.')).toBeOnTheScreen();
-  expect(screen.queryByLabelText('Completion date')).toBeNull();
+  expect(screen.queryByLabelText('Deadline, completion date')).toBeNull();
 });
 
 // MVP-22-B2 (G16): while the hearth request waits, its way back stood on the hearth art at the top of the room layout.
@@ -411,7 +411,7 @@ test.each([[1, 'Return to the Forge', 1], [2, 'Back to menu', 0]] as const)('at 
   const f = setup(); const onReturn = jest.fn();
   jest.mocked(f.controller.resetCreation).mockReturnValue(true);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn }} /></LocalizationProvider>);
-  expect(await screen.findByLabelText('Completion date')).toBeOnTheScreen();
+  expect(await screen.findByLabelText('Deadline, completion date')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: label })).toBeOnTheScreen();
   expect(screen.queryAllByTestId('scene-door-picture', { includeHiddenElements: true })).toHaveLength(doors);
 });

@@ -129,13 +129,14 @@ test('busy disables every control', async () => {
 
 test('a stored creation prefills its values and retries it instead of creating a new one', async () => {
   const f = await setup(ready({ pendingCreation: pending, error: { kind: 'unavailable', retry: 'request' } })); await act(async () => {});
+  await fireEvent.press(screen.getByRole('button', { name: 'Your choices' }));
   expect(nameField().props.value).toBe('Zoya');
   expect(nameField().props.editable).toBe(false);
   expect(screen.getByRole('radio', { name: 'Oathkeeper, they/them', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Look 3 of 4', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Stout build', selected: true })).toBeDisabled();
   expect(screen.getByTestId('character-figure').props.source).toBe(presetArt(currentArt.presets, 'starter_03', 'heavy')!.figure);
-  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device, so you can try again.')).toBeOnTheScreen();
+  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Create character' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
   expect(f.onRetry).toHaveBeenCalledTimes(1); expect(f.onCreate).not.toHaveBeenCalled();
@@ -212,7 +213,7 @@ test('the name field announces the current name problem as its hint', async () =
 
 test('a pending creation keeps the pending message for non-storage errors', async () => {
   await setup(ready({ pendingCreation: pending, error: { kind: 'configuration' } })); await act(async () => {});
-  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device, so you can try again.')).toBeOnTheScreen();
+  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device.')).toBeOnTheScreen();
 });
 
 test('a rate limit disables Retry until the server wait has elapsed', async () => {
@@ -242,6 +243,7 @@ test('a stored preset the app cannot draw shows a neutral figure and still retri
   const f = await setup(ready({ pendingCreation: { ...pending, presetId: 'owner_final_01' }, error: { kind: 'unavailable', retry: 'request' } })); await act(async () => {});
   expect(screen.queryByTestId('character-figure')).toBeNull();
   expect(screen.getByTestId('character-placeholder')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Your choices' }));
   expect(screen.getAllByRole('radio', { name: /^Look / })).toHaveLength(4);
   expect(screen.queryAllByRole('radio', { name: /^Look /, selected: true })).toHaveLength(0);
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
@@ -277,7 +279,7 @@ test('an unresolved creation hides the way back and still explains itself withou
   await render(<LocalizationProvider initialLocale="en"><CharacterCreationScreen state={ready({ pendingCreation: pending })} draft={emptyCreationDraft} onDraft={jest.fn()} onCreate={jest.fn()} onRetry={jest.fn()} onReload={jest.fn()} onCancel={onCancel} /></LocalizationProvider>);
   await act(async () => {});
   expect(screen.queryByRole('button', { name: 'Back to characters' })).toBeNull();
-  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device, so you can try again.')).toBeOnTheScreen();
+  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device.')).toBeOnTheScreen();
 });
 
 test('creation opened from the change screen offers a way back when nothing is pending', async () => {
@@ -297,7 +299,10 @@ async function atFontScale<T>(fontScale: number, run: () => Promise<T>) {
 test('at the largest text display words never break mid-word: capped display text, one-line names and stacked title choices', async () => {
   await atFontScale(3.1, async () => {
     await setup(ready(), 'pl'); await act(async () => {});
-    const [unnamed, untitled] = screen.getAllByText('…');
+    await fireEvent.changeText(screen.getByLabelText('Imię'), 'Mira');
+    await fireEvent.press(screen.getByRole('radio', { name: 'Obrończyni Przysięgi, forma żeńska' }));
+    const card = within(screen.getByTestId('character-preview'));
+    const [unnamed, untitled] = [card.getByText('Mira'), card.getByText('Obrończyni Przysięgi')];
     expect(unnamed.props).toMatchObject({ numberOfLines: 1, adjustsFontSizeToFit: true });
     expect(unnamed.props.maxFontSizeMultiplier).toBeLessThanOrEqual(1.5);
     expect(untitled.props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
@@ -305,7 +310,7 @@ test('at the largest text display words never break mid-word: capped display tex
     expect(screen.getByRole('header', { name: 'Nowa postać' }).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
     const choice = screen.getByRole('radio', { name: 'Obrończyni Przysięgi, forma żeńska' });
     expect(StyleSheet.flatten(choice.props.style)).toMatchObject({ flexDirection: 'column' });
-    expect(screen.getByText('Obrończyni Przysięgi').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
+    expect(within(choice).getByText('Obrończyni Przysięgi').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
     await fireEvent.press(screen.getByRole('button', { name: 'Zasady postaci' }));
     expect(screen.getByText('Od 2 do 20 liter. Między nimi może stać spacja, łącznik lub apostrof.').props.maxFontSizeMultiplier).toBeUndefined();
     const build = screen.getByRole('radio', { name: 'Budowa tęga' });
@@ -343,6 +348,7 @@ test.each([[1, 'row'], [1.5, 'row'], [1.6, 'column'], [3.1, 'column']] as const)
 
 test('locked controls look disabled while the words around them stay readable', async () => {
   await setup(ready({ pendingCreation: pending, error: { kind: 'unavailable', retry: 'request' } })); await act(async () => {});
+  await fireEvent.press(screen.getByRole('button', { name: 'Your choices' }));
   const opacity = (element: ReturnType<typeof screen.getByText>) => StyleSheet.flatten(element.props.style)?.opacity;
   expect(opacity(nameField())).toBe(0.55);
   for (const radio of screen.getAllByRole('radio')) { expect(radio).toBeDisabled(); expect(opacity(radio)).toBe(0.55); }
@@ -376,11 +382,43 @@ test.each([
   expect(screen.getByLabelText(locale === 'pl' ? 'Imię' : 'Name').props.accessibilityHint).toBe(name);
 });
 
-test('an empty name and title draw an ellipsis, and the card still says what is missing', async () => {
+// MVP-22-E1.R, native check: two ellipses stacked under the figure, a large one for the name and a small one for the title.
+// An empty card shows one quiet dotted line where the name goes, and the card still says what is missing.
+test('an empty card shows one dotted name line, not two ellipses', async () => {
   await setup(ready(), 'pl'); await act(async () => {});
-  expect(screen.getAllByText('…')).toHaveLength(2);
+  const card = within(screen.getByTestId('character-preview'));
+  expect(screen.queryByText('…')).toBeNull();
+  expect(card.getAllByTestId('character-name-line')).toHaveLength(1);
+  expect(card.queryAllByText(/./)).toHaveLength(0);
   expect(screen.queryByText('Bez imienia')).toBeNull();
   expect(screen.getByLabelText('Podgląd: Bez imienia, Tytuł niewybrany')).toBeOnTheScreen();
+  await fireEvent.changeText(screen.getByLabelText('Imię'), 'Mira');
+  expect(card.queryByTestId('character-name-line')).toBeNull();
+  expect(card.getByText('Mira')).toBeOnTheScreen();
+});
+
+// MVP-22-E1.R, review finding: "Popraw imię." told an empty field to fix a name it never had.
+test.each([
+  ['pl', '', 'Wpisz imię.'],
+  ['pl', 'A', 'Popraw imię.'],
+  ['en', '   ', 'Enter a name.'],
+  ['en', 'R2D2', 'Fix the name.'],
+] as const)('%s with the name "%s" and a title the button asks to "%s"', async (locale, name, reason) => {
+  await setup(ready(), locale); await act(async () => {});
+  await fireEvent.press(screen.getByRole('radio', { name: locale === 'pl' ? 'Obrończyni Przysięgi, forma żeńska' : 'Oathkeeper, she/her' }));
+  await fireEvent.changeText(screen.getByLabelText(locale === 'pl' ? 'Imię' : 'Name'), name);
+  expect(screen.getByRole('button', { name: locale === 'pl' ? 'Stwórz postać' : 'Create character' }).props.accessibilityHint).toBe(reason);
+});
+
+// MVP-22-E1.R, review finding: a stored creation drew every locked control and its note, 37 words in Polish. The card shows the
+// character and the one action retries, so the locked choices fold behind one link, unchanged (clarity rule 2).
+test.each([['pl', 'Twoje wybory', 'Imię'], ['en', 'Your choices', 'Name']] as const)('%s a pending creation folds its locked choices behind one link', async (locale, link, name) => {
+  await setup(ready({ pendingCreation: pending }), locale); await act(async () => {});
+  expect(screen.queryByLabelText(name)).toBeNull();
+  expect(screen.queryAllByRole('radio')).toHaveLength(0);
+  await fireEvent.press(screen.getByRole('button', { name: link }));
+  expect(screen.getByLabelText(name).props.editable).toBe(false);
+  for (const radio of screen.getAllByRole('radio')) expect(radio).toBeDisabled();
 });
 
 test.each([
@@ -396,7 +434,7 @@ test.each([
 
 test('Polish pending creation waits on the device in two sentences', async () => {
   await setup(ready({ pendingCreation: pending, error: { kind: 'unavailable', retry: 'request' } }), 'pl'); await act(async () => {});
-  expect(screen.getByText('Połączenie zerwało się przed odpowiedzią Kuźni. Postać Zoya czeka na tym urządzeniu, spróbuj ponownie.')).toBeOnTheScreen();
+  expect(screen.getByText('Połączenie zerwało się przed odpowiedzią Kuźni. Postać Zoya czeka na tym urządzeniu.')).toBeOnTheScreen();
 });
 
 test.each([[1, 'sekundę'], [2, 'sekundy'], [5, 'sekund'], [12, 'sekund'], [22, 'sekundy']] as const)('Polish rate limit of %i uses "%s"', async (seconds, word) => {

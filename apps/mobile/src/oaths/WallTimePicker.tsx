@@ -31,7 +31,10 @@ function availableZones(current: string) {
   const supported = (Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
   return [...new Set([current, 'UTC', 'Europe/Warsaw', 'Europe/London', ...(supported?.('timeZone') ?? timezoneIdentifiers)])];
 }
-export function WallTimePicker({ field, value, disabled, now, onChange }: { field: 'activation' | 'deadline'; value: TimeDraft; disabled: boolean; now(): number; onChange(value: TimeDraft): void }) {
+type Part = 'date' | 'time' | 'zone';
+const ALL_PARTS: readonly Part[] = ['date', 'time', 'zone'];
+/** `parts` picks the fields to draw, so the form can fold the zones away from the date and time (MVP-22-E1.R). */
+export function WallTimePicker({ field, value, disabled, now, onChange, parts = ALL_PARTS }: { field: 'activation' | 'deadline'; value: TimeDraft; disabled: boolean; now(): number; onChange(value: TimeDraft): void; parts?: readonly Part[] }) {
   const { t, i18n } = useTranslation();
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1.3;
@@ -99,11 +102,21 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
   // Monday first like the grid. 1 January 2024 was a Monday.
   const weekdays = Array.from({ length: 7 }, (_, i) => new Intl.DateTimeFormat(locale, { timeZone: 'UTC', weekday: 'short' }).format(new Date(Date.UTC(2024, 0, 1 + i))));
   return <View style={styles.group}>
-    {(['date', 'time', 'zone'] as const).map(part => <Pressable key={part} accessibilityRole="button" accessibilityLabel={label(part)} accessibilityValue={{ text: part === 'date' ? value.date ? dateName(value.date) : t('timePicker.chooseDate') : part === 'time' ? value.time.slice(0, 5) || t('timePicker.chooseTime') : `${zoneName(value.zone)} · ${value.zone}` }} accessibilityState={{ disabled }} disabled={disabled} onPress={() => show(part)} style={({ pressed }) => [styles.field, largeText && styles.wideField, pressed && styles.pressed]}>
-      {/* Short drawn captions and an ellipsis for an empty value. The full names, the empty value and the zone id stay spoken (MVP-22-E1.4). */}
-      <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{t(part === 'date' ? `oath.${field}Caption` : `oath.${part}Caption`)}</Text>
-      <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.value}>{part === 'date' ? value.date ? dateName(value.date) : '…' : part === 'time' ? value.time.slice(0, 5) || '…' : zoneName(value.zone)}</Text>
-    </Pressable>)}
+    {parts.map(part => {
+      const shown = part === 'date' ? value.date ? dateName(value.date) : null : part === 'time' ? value.time.slice(0, 5) || null : zoneName(value.zone);
+      // MVP-22-E1.R (WCAG 2.5.3): the date's spoken name opens with its drawn caption, "Termin" or "Start". The zone draws its whole name.
+      // The time draws no caption: a clock and "18:30" name it, and the spoken name stays whole (word budget).
+      const caption = part === 'date' ? t(`oath.${field}Caption`) : part === 'zone' ? label('zone') : null;
+      return <Pressable key={part} accessibilityRole="button" accessibilityLabel={part === 'date' ? t(`oath.${field}DateField`) : label(part)} accessibilityValue={{ text: part === 'date' ? value.date ? dateName(value.date) : t('timePicker.chooseDate') : part === 'time' ? value.time.slice(0, 5) || t('timePicker.chooseTime') : `${zoneName(value.zone)} · ${value.zone}` }} accessibilityState={{ disabled }} disabled={disabled} onPress={() => show(part)} style={({ pressed }) => [styles.field, styles.fieldRow, largeText && styles.wideField, pressed && styles.pressed]}>
+        <View style={[styles.fieldText, part === 'time' && styles.inline]}>
+          {caption !== null && <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{caption}</Text>}
+          {/* MVP-22-E1.R, native check: an ellipsis read as loading. An empty date shows a calendar, the time always leads with a clock. */}
+          {part === 'time' && <ClockGlyph />}
+          {shown !== null ? <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.value}>{shown}</Text> : part === 'date' && <CalendarGlyph />}
+        </View>
+        <Text accessible={false} allowFontScaling={false} style={styles.chevron}>›</Text>
+      </Pressable>;
+    })}
     <Modal visible={open !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(null)}>
       {/* A Modal is a separate native window, so it gets its own safe area provider. */}
       <SafeAreaProvider><SafeAreaView style={styles.modal} accessibilityViewIsModal>
@@ -143,8 +156,32 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
     </Modal>
   </View>;
 }
+/** A small calendar drawn with views, so the empty date needs no font glyph or icon library. */
+function CalendarGlyph() {
+  return <View testID="field-calendar" style={glyph.box}>
+    <View style={glyph.band} />
+    <View style={[glyph.ring, { left: 3 }]} /><View style={[glyph.ring, { right: 3 }]} />
+  </View>;
+}
+/** A small clock face with two hands, drawn with views like the calendar. */
+function ClockGlyph() {
+  return <View testID="field-clock" style={[glyph.box, glyph.face]}>
+    <View style={glyph.minute} /><View style={glyph.hour} />
+  </View>;
+}
+// 20 pt, about the value's cap height plus its descender, so an empty field keeps the height of a filled one.
+const glyph = StyleSheet.create({
+  box: { width: 20, height: 20, marginVertical: 1, borderWidth: 2, borderRadius: 4, borderColor: tokens.color.primary },
+  band: { height: 4, backgroundColor: tokens.color.primary },
+  ring: { position: 'absolute', top: -5, width: 2, height: 5, borderRadius: 1, backgroundColor: tokens.color.primary },
+  face: { borderRadius: 10 },
+  minute: { position: 'absolute', left: 7, top: 2, width: 2, height: 7, borderRadius: 1, backgroundColor: tokens.color.primary },
+  hour: { position: 'absolute', left: 7, top: 7, width: 6, height: 2, borderRadius: 1, backgroundColor: tokens.color.primary },
+});
+
 const styles = StyleSheet.create({
   group: { gap: 12 }, field: { padding: 16, gap: 4, minHeight: 64, backgroundColor: tokens.color.surface, borderRadius: 20, borderBottomWidth: 3, borderBottomColor: tokens.warm.edge }, wideField: { paddingHorizontal: tokens.space.small },
+  fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, fieldText: { flex: 1, gap: 4 }, inline: { flexDirection: 'row', alignItems: 'center', gap: 10 }, chevron: { color: tokens.color.secondary, fontSize: 28, lineHeight: 32 },
   caption: { color: tokens.color.secondary, fontSize: 14, lineHeight: 21 }, value: { color: tokens.color.text, fontSize: 17, fontWeight: '600' },
   modal: { flex: 1, backgroundColor: tokens.color.canvas }, header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingLeft: 16, paddingRight: 8 }, title: { color: tokens.color.text, fontSize: 24, fontWeight: '700' },
   month: { flex: 1, flexShrink: 1, textAlign: 'center' },

@@ -172,7 +172,7 @@ test.each([
 
 test.each([
   ['pl', 'Powiadomienia są opcjonalne. Możesz przejść dalej bez nich.', 'Przejście dalej nie tworzy jeszcze Przysięgi.', 'Nie udało się potwierdzić zakończenia przygotowań, ale zapisane wybory zostają. Spróbuj ponownie.'],
-  ['en', 'Notifications are optional. You can continue without them.', 'No Oath is created yet.', 'We could not confirm that setup finished, but your saved choices are kept. Try again.'],
+  ['en', 'Notifications are optional. You can continue without them.', 'Continuing creates no Oath yet.', 'We could not confirm that setup finished, but your saved choices are kept. Try again.'],
 ] as const)('%s notification and review steps use the short lines', async (locale, pending, review, error) => {
   const callbacks = { onComplete: jest.fn(), onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
   const fixture = (state: OnboardingViewProps['state']) => <LocalizationProvider initialLocale={locale}><OnboardingView state={state} {...callbacks} notifications={notificationProps} /></LocalizationProvider>;

@@ -29,7 +29,7 @@ test('an unselected choice and its medallion stand on warm fills', async () => {
 
 test('the date, time and zone fields stand on the warm surface', async () => {
   await render(<LocalizationProvider initialLocale="pl"><WallTimePicker field="deadline" value={{ date: '', time: '', zone: 'Europe/Warsaw' }} disabled={false} now={() => Date.parse('2026-10-02T10:00:00Z')} onChange={jest.fn()} /></LocalizationProvider>);
-  for (const name of ['Data ukończenia', 'Godzina ukończenia', 'Strefa ukończenia']) {
+  for (const name of ['Termin, data ukończenia', 'Godzina ukończenia', 'Strefa ukończenia']) {
     expect(flat(screen.getByRole('button', { name }).props.style)).toMatchObject({ backgroundColor: tokens.color.surface, borderBottomColor: tokens.warm.edge });
   }
 });

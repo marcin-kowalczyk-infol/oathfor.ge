@@ -28,7 +28,7 @@ test('the lost record clear control shows the confirmed Oath with its kept recor
   controller.setCharacter({ accountId, characterId }); controllers.push(controller); controller.start();
   await render(<LocalizationProvider initialLocale="pl"><OathScreen controller={controller} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
   // 18:30 on 25 October is a single Warsaw instant. The 02:30 of that night repeats when clocks go back.
-  await fireEvent.press(await screen.findByRole('button', { name: 'Data ukończenia' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Termin, data ukończenia' }));
   await fireEvent.press(screen.getByRole('button', { name: '25 października 2026' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Godzina ukończenia' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Godzina 18' }));

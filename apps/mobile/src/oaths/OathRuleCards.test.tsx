@@ -6,6 +6,7 @@ import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { OathRuleCards } from './OathRuleCards';
 import { promiseText } from './SnapshotRules';
 import { textSlack } from '../ui/textSlack';
+import { visibleWords, words } from '../ui/wordBudget';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'pl' }] }));
 
 function snapshot(): Snapshot {
@@ -30,6 +31,15 @@ test('Polish cards show the promise, declaration and card values, full rules fol
   expect(screen.getByTestId('rule-cards')).toHaveStyle({ flexDirection: 'row', flexWrap: 'wrap' });
   expect(screen.getByTestId('rule-card-deadline')).toHaveStyle({ width: '48.5%' });
   expect(screen.queryByText(value.copy.pl.sections.appeal)).toBeNull();
+});
+
+// MVP-22-E1.R: D-E4 exempts the declaration only as the hold label (E3) or the proof confirmation. A paragraph above the cards counts.
+test('the declaration paragraph counts toward the word budget', async () => {
+  size(402, 1);
+  const value = snapshot();
+  await render(<LocalizationProvider initialLocale="pl"><OathRuleCards snapshot={value} /></LocalizationProvider>);
+  expect(screen.getByText(value.copy.pl.declaration)).not.toHaveProp('budget');
+  expect(visibleWords(screen.root!).words.join(' ')).toContain(words(value.copy.pl.declaration).join(' '));
 });
 
 // Native check: at text scale 1.4 a wrapping column sized its line to the icon, so each card was about 77 pt wide with no text.
