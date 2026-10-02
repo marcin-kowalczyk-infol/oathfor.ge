@@ -5,6 +5,7 @@ import { Text } from '../ui/Text';
 import type { Character } from '../api/characters';
 import { useArt } from '../art/ArtProvider';
 import { presetArt } from '../characters/presetArt';
+import { preloadPanelArt } from '../forge/panelArt';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { bindShortWords } from '../localization/typography';
 import { layoutMode } from '../ui/layoutMode';
@@ -35,7 +36,10 @@ const DETAIL_LINE = 16;
 /** Home screen after a character exists. Presentational: the caller owns routes, the summary request and the pending acceptance. */
 export function MainMenuScreen({ character, summary, pending, onForge, onTutorial, onSettings, onChangeCharacter }: MainMenuScreenProps) {
   const { t } = useTranslation();
-  const tools = useArt().menuTools;
+  const art = useArt();
+  const tools = art.menuTools;
+  // MVP-22 G35: the room's dialogue panel waits for its art, so the menu fetches the active style's panel files first.
+  useEffect(() => preloadPanelArt(art), [art]);
   const { width, fontScale } = useWindowDimensions();
   // The window rule for the simple layout also stacks the card and turns the tiles into full-width rows.
   const stacked = layoutMode(width, fontScale) === 'simple';

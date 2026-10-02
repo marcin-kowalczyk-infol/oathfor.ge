@@ -58,6 +58,7 @@ Until the player art is delivered the player is the static menu figure of the ch
 - The bottom edge stays fixed and the panel grows upward, so a button never moves under the finger. At large text the content scrolls inside the panel.
 - VoiceOver reads the speaker and the whole line at once. Busts are decorative. Controls are at least 44 pt.
 - Reduce Motion shows the whole line at once and swaps busts without sliding.
+- The panel never shows its text without its art (MVP-22 G35, 2026-10-02). It stays invisible until its frame, plate and Żaromir's bust have loaded, at most 600 ms, then appears at once with no fade. The main menu fetches the active style's panel files ahead of the room. Native confirmation on a cold launch is pending.
 - The same panel serves the first-visit guide, the tutorial, place descriptions and the talk with Żaromir.
 - Until the painted frame, plate and rune are delivered, code draws them. The player bust is the preset portrait. Żaromir needs a new transparent bust.
 

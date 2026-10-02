@@ -1,9 +1,9 @@
-import { AccessibilityInfo, Animated, AppState, Dimensions } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, Dimensions, Image } from 'react-native';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Character } from '../api/characters';
 import { StyleSheet } from 'react-native';
-import { ArtProvider, resolveArt } from '../art/ArtProvider';
+import { ArtProvider, ArtSetProvider, resolveArt } from '../art/ArtProvider';
 import { currentArt } from '../art/current';
 import type { ArtStyle } from '../art/registry';
 import { presetArt } from '../characters/presetArt';
@@ -202,4 +202,26 @@ test.each([
 test('the menu content leaves a top gap above the wordmark', async () => {
   await setup();
   expect(StyleSheet.flatten(screen.getByTestId('menu-scroll').props.contentContainerStyle).paddingTop).toBe(tokens.space.card);
+});
+
+// MVP-22 G35, native check on iPhone 18 Pro: the first room panel showed its text before its frame and bust had loaded.
+// Every asset is 1 in Jest, so the test gives each panel file its own number and reads which ones the menu fetches.
+test('fetches the dialogue panel art of the active style ahead of the room', async () => {
+  jest.spyOn(Image, 'resolveAssetSource').mockImplementation(source => ({ uri: `asset://${String(source)}`, width: 1, height: 1, scale: 1 }));
+  const prefetch = jest.spyOn(Image, 'prefetch').mockResolvedValue(true);
+  const styleArt = (first: number) => ({ ...currentArt, zharomirBust: first + 6,
+    panel: { corner: first, edgeH: first + 1, edgeV: first + 2, fill: first + 3, plate: first + 4, rune: first + 5 } });
+  const menu = (first: number) => <ArtSetProvider art={styleArt(first)}><LocalizationProvider initialLocale="en">
+    <MainMenuScreen character={mira} summary={ready(2)} pending={false} onForge={jest.fn()} onTutorial={jest.fn()} onSettings={jest.fn()} onChangeCharacter={jest.fn()} />
+  </LocalizationProvider></ArtSetProvider>;
+  const fetched = () => prefetch.mock.calls.map(([uri]) => uri).sort();
+  const files = (first: number) => Array.from({ length: 7 }, (_, index) => `asset://${first + index}`).sort();
+  const view = await render(menu(101));
+  await act(async () => {});
+  expect(fetched()).toEqual(files(101));
+  // The demo's style switch fetches the new style's files.
+  prefetch.mockClear();
+  await view.rerender(menu(201));
+  await act(async () => {});
+  expect(fetched()).toEqual(files(201));
 });

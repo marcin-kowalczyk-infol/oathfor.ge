@@ -23,6 +23,11 @@ const TILE_H = 142 / 3;
 const TILE_V = 127 / 3;
 const PLATE = { width: 612 / 3 * 0.8, height: 128 / 3 * 0.8 };
 const RUNE = 26;
+/** MVP-22 G35: the longest the panel waits for its art before it shows its text anyway. */
+export const ART_WAIT_MS = 600;
+// The art the first frame needs. The rune shows only once a line is whole.
+const FIRST_FRAME_ART = ['fill', 'corner', 'edgeH', 'edgeV', 'plate', 'bust'] as const;
+type FrameArt = typeof FIRST_FRAME_ART[number];
 // Hermes may lack Intl.Segmenter. Code points then keep Polish letters whole, only joined emoji may split for a moment.
 const segmenter = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 const graphemesOf = (text: string) => segmenter ? Array.from(segmenter.segment(text), part => part.segment) : Array.from(text);
@@ -112,7 +117,7 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
     const side = who === 'guide' ? -1 : 1;
     return <Animated.View testID={`bust-${who}`} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
       style={[styles.bust, who === 'guide' ? [styles.paintedBust, { left: BUST_INSET }] : { right: BUST_INSET }, { opacity: value, transform: [{ translateX: value.interpolate({ inputRange: [0, 1], outputRange: [side * SLIDE, 0] }) }] }]}>
-      {who === 'guide' ? <Image testID="bust-guide-image" source={zharomir} resizeMode="contain" style={styles.guideBust} />
+      {who === 'guide' ? <Image testID="bust-guide-image" source={zharomir} resizeMode="contain" onLoadEnd={artLoaded('bust')} style={styles.guideBust} />
         : portrait ? <Image testID="bust-player-image" source={portrait} resizeMode="cover" style={styles.portrait} /> : <View style={styles.noPortrait} />}
     </Animated.View>;
   };
@@ -133,6 +138,20 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
   // The frame takes the panel's measured height instead. Both readings arrive already rounded by Yoga to whole device pixels,
   // so snapping only absorbs float noise and the frame ends exactly at the panel's reported bottom, never below it.
   // The layout effect reads it before the frame is shown, onLayout covers a change from inside `extra`.
+  // MVP-22 G35, native check on iPhone 18 Pro: after a cold launch the first panel showed its text without its frame, plate and bust.
+  // The panel stays invisible until each of them has loaded or failed, at most ART_WAIT_MS. It still reads and takes touches.
+  // The menu fetches the files ahead (panelArt.ts), so the wait is usually a frame. The panel then appears at once, with no fade.
+  const loadedArt = useRef(new Set<FrameArt>());
+  const [artReady, setArtReady] = useState(false);
+  const artLoaded = (part: FrameArt) => () => {
+    loadedArt.current.add(part);
+    if (loadedArt.current.size === FIRST_FRAME_ART.length) setArtReady(true);
+  };
+  useEffect(() => {
+    if (artReady) return;
+    const wait = setTimeout(() => setArtReady(true), ART_WAIT_MS);
+    return () => clearTimeout(wait);
+  }, [artReady]);
   const panelRef = useRef<View>(null);
   const [frameHeight, setFrameHeight] = useState<number | null>(null);
   const measured = (height: number) => {
@@ -144,13 +163,13 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
     if (height) measured(height);
   });
   return <View ref={panelRef} testID="dialogue-panel" onLayout={event => { measured(event.nativeEvent.layout.height); onHeight?.(event.nativeEvent.layout.height); }}
-    style={[styles.panel, { left, width, bottom, maxHeight }, largeText && { height: maxHeight }]}>
-    <PaintedFrame width={width} height={maxHeight} fill={frameHeight} />
+    style={[styles.panel, { left, width, bottom, maxHeight }, largeText && { height: maxHeight }, !artReady && styles.waiting]}>
+    <PaintedFrame width={width} height={maxHeight} fill={frameHeight} onArt={artLoaded} />
     {/* Owner review 2026-09-28: the frame hid the lower half of the player's medallion. Busts sit over it. */}
     {bust('guide')}
     {bust('player')}
     <View testID="dialogue-plate" pointerEvents="none" style={[styles.plate, speaker === 'guide' ? { left: BUST_INSET + BUST + 6 } : { right: BUST_INSET + BUST + 6 }]}>
-      <Image testID="dialogue-plate-image" source={art.plate} resizeMode="stretch" style={[styles.plateImage, PLATE]} />
+      <Image testID="dialogue-plate-image" source={art.plate} resizeMode="stretch" onLoadEnd={artLoaded('plate')} style={[styles.plateImage, PLATE]} />
       <Text accessible={false} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={styles.plateName}>{name}</Text>
     </View>
     {/* Native check, 2026-09-30: on iOS a scroll view does not drag while a view above it holds the touch, so a drag in a long line
@@ -189,22 +208,22 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
  * Corners and repeated braid tiles, never a stretched frame, because a stretched braid distorts (agent review 2026-09-28).
  * Tiles are counted for the panel's width and its height limit and clipped at the corners.
  */
-function PaintedFrame({ width, height, fill }: { width: number; height: number; fill: number | null }) {
+function PaintedFrame({ width, height, fill, onArt }: { width: number; height: number; fill: number | null; onArt: (part: FrameArt) => () => void }) {
   const art = useArt().panel;
   const across = Math.max(0, Math.ceil((width - 2 * CORNER + 2) / TILE_H));
   const down = Math.max(0, Math.ceil((height - 2 * CORNER + 2) / TILE_V));
-  const tiles = (count: number, id: string, size: { width: number; height: number }, source: number) =>
-    Array.from({ length: count }, (_, index) => <Image key={index} testID={id} source={source} resizeMode="stretch" style={size} />);
+  const tiles = (count: number, id: string, size: { width: number; height: number }, part: 'edgeH' | 'edgeV') =>
+    Array.from({ length: count }, (_, index) => <Image key={index} testID={id} source={art[part]} resizeMode="stretch" onLoadEnd={onArt(part)} style={size} />);
   const corner = (id: string, place: object, flip: object[]) =>
-    <Image testID={`panel-corner-${id}`} source={art.corner} resizeMode="stretch" style={[styles.corner, place, { transform: flip }]} />;
+    <Image testID={`panel-corner-${id}`} source={art.corner} resizeMode="stretch" onLoadEnd={onArt('corner')} style={[styles.corner, place, { transform: flip }]} />;
   return <View testID="panel-frame" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
     style={fill == null ? StyleSheet.absoluteFill : [styles.frame, { height: fill }]}>
     {/* Native check, 2026-09-30: a covering image is not clipped to its box on iOS, so the wood reached the screen edges. */}
-    <View testID="panel-fill-clip" style={styles.wood}><Image testID="panel-fill" source={art.fill} resizeMode="cover" style={styles.woodImage} /></View>
-    <View style={[styles.edgeH, { top: 0 }]}>{tiles(across, 'panel-edge-top-tile', { width: TILE_H, height: EDGE }, art.edgeH)}</View>
-    <View style={[styles.edgeH, { bottom: 0, transform: [{ scaleY: -1 }] }]}>{tiles(across, 'panel-edge-bottom-tile', { width: TILE_H, height: EDGE }, art.edgeH)}</View>
-    <View style={[styles.edgeV, { left: 0 }]}>{tiles(down, 'panel-edge-left-tile', { width: EDGE, height: TILE_V }, art.edgeV)}</View>
-    <View style={[styles.edgeV, { right: 0, transform: [{ scaleX: -1 }] }]}>{tiles(down, 'panel-edge-right-tile', { width: EDGE, height: TILE_V }, art.edgeV)}</View>
+    <View testID="panel-fill-clip" style={styles.wood}><Image testID="panel-fill" source={art.fill} resizeMode="cover" onLoadEnd={onArt('fill')} style={styles.woodImage} /></View>
+    <View style={[styles.edgeH, { top: 0 }]}>{tiles(across, 'panel-edge-top-tile', { width: TILE_H, height: EDGE }, 'edgeH')}</View>
+    <View style={[styles.edgeH, { bottom: 0, transform: [{ scaleY: -1 }] }]}>{tiles(across, 'panel-edge-bottom-tile', { width: TILE_H, height: EDGE }, 'edgeH')}</View>
+    <View style={[styles.edgeV, { left: 0 }]}>{tiles(down, 'panel-edge-left-tile', { width: EDGE, height: TILE_V }, 'edgeV')}</View>
+    <View style={[styles.edgeV, { right: 0, transform: [{ scaleX: -1 }] }]}>{tiles(down, 'panel-edge-right-tile', { width: EDGE, height: TILE_V }, 'edgeV')}</View>
     {corner('tl', { left: 0, top: 0 }, [])}
     {corner('tr', { right: 0, top: 0 }, [{ scaleX: -1 }])}
     {corner('bl', { left: 0, bottom: 0 }, [{ scaleY: -1 }])}
@@ -220,6 +239,8 @@ const glyph = '#c9a77a';
 const styles = StyleSheet.create({
   panel: { position: 'absolute', zIndex: 5, backgroundColor: wood, borderRadius: 6, paddingTop: 36, paddingBottom: 8,
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
+  // MVP-22 G35: invisible, not unmounted or display none, so its images still load.
+  waiting: { opacity: 0 },
   // MVP-22 G34: a measured frame has its own whole pixel height. Until the panel is measured it fills the panel.
   frame: { position: 'absolute', top: 0, left: 0, right: 0 },
   wood: { position: 'absolute', left: 4, top: 4, right: 4, bottom: 4, overflow: 'hidden' },

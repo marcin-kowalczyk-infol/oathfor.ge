@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Animated, Dimensions, PixelRatio, StyleSheet, View } from 'react-native';
-import { DialoguePanel, TYPE_MS } from './DialoguePanel';
+import { ART_WAIT_MS, DialoguePanel, TYPE_MS } from './DialoguePanel';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Locale } from '../localization/locale';
 
@@ -388,5 +388,39 @@ describe('the braid strips meet the corners', () => {
     } finally {
       delete host.getBoundingClientRect;
     }
+  });
+});
+
+// MVP-22 G35, native check on iPhone 18 Pro: on the first room entry after a cold launch the text showed before the frame,
+// the plate and Żaromir's bust had loaded. The panel stays invisible until that art has loaded, or for ART_WAIT_MS at most.
+describe('the first frame waits for the art', () => {
+  const loadEnd = (id: string) => fireEvent(screen.getAllByTestId(id, hidden)[0], 'loadEnd');
+  const opacity = () => style('dialogue-panel').opacity ?? 1;
+
+  test('shows the panel only once its frame, plate and bust have loaded', async () => {
+    await render(panel());
+    expect(opacity()).toBe(0);
+    for (const id of ['panel-fill', 'panel-corner-tl', 'panel-edge-top-tile', 'panel-edge-left-tile', 'dialogue-plate-image']) await loadEnd(id);
+    expect(opacity()).toBe(0);
+    await loadEnd('bust-guide-image');
+    expect(opacity()).toBe(1);
+    // The waiting panel keeps its text for VoiceOver and its touch.
+    expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toBe(`Zharomir: ${line}`);
+  });
+
+  test('art that never loads holds the text no longer than the wait', async () => {
+    await render(panel({ allowed: false }));
+    await act(async () => { jest.advanceTimersByTime(ART_WAIT_MS - 1); });
+    expect(opacity()).toBe(0);
+    await act(async () => { jest.advanceTimersByTime(1); });
+    expect(opacity()).toBe(1);
+  });
+
+  test('the panel appears at once, with no fade', async () => {
+    const timing = jest.spyOn(Animated, 'timing');
+    await render(panel({ allowed: false }));
+    for (const id of ['panel-fill', 'panel-corner-tl', 'panel-edge-top-tile', 'panel-edge-left-tile', 'dialogue-plate-image', 'bust-guide-image']) await loadEnd(id);
+    expect(opacity()).toBe(1);
+    expect(timing).not.toHaveBeenCalled();
   });
 });
