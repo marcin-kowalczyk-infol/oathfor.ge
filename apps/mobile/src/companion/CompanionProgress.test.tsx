@@ -5,6 +5,7 @@ import type { ArtStyle } from '../art/registry';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { CompanionArt, CompanionProgress } from './CompanionProgress';
 import { CompanionPresentation } from './catalog';
+import { tokens } from '../ui/tokens';
 
 test.each([['pl', 'Płaszcz Iskry', 'Początkowa ścieżka ukończona'], ['en', 'Spark Mantle', 'Initial track complete']] as const)('level 5 completes the initial track in %s without a next unlock', async (locale, name, complete) => {
   await render(<LocalizationProvider initialLocale={locale}><CompanionProgress current="zharomir-spark-mantle-v01" next={null} /></LocalizationProvider>);
@@ -52,4 +53,14 @@ test.each(['current', 'cinematic'] as const)('the panel keeps Żaromir\'s size a
   expect(picture.props.source).toBe(image);
   expect(StyleSheet.flatten(picture.props.style)).toMatchObject({ position: 'absolute', ...frames.panel });
   expect(StyleSheet.flatten(screen.getByTestId('companion-art-frame').props.style)).toMatchObject({ width: 180, height: 270, overflow: 'hidden', alignSelf: 'center' });
+});
+
+// MVP-22-B1 (G3, G5): a scaled panel keeps Żaromir in the same place in a smaller frame, on the warm panel token.
+test('a scaled panel shrinks the frame and Żaromir together on the warm panel', async () => {
+  const { frames } = resolveArt('current').companion['zharomir-wanderer-v01'];
+  await render(<LocalizationProvider initialLocale="en"><CompanionArt appearance="zharomir-wanderer-v01" scale={2 / 3} /></LocalizationProvider>);
+  expect(StyleSheet.flatten(screen.getByTestId('companion-art-frame').props.style)).toMatchObject({ width: 120, height: 180 });
+  const picture = StyleSheet.flatten(screen.getByRole('image').props.style);
+  for (const side of ['left', 'top', 'width', 'height'] as const) expect(picture[side]).toBeCloseTo(frames.panel[side] * 2 / 3);
+  expect(StyleSheet.flatten(screen.getByTestId('companion-art-panel').props.style)).toMatchObject({ backgroundColor: tokens.warm.panel, borderColor: tokens.warm.line });
 });

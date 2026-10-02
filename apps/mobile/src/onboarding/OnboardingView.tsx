@@ -54,12 +54,12 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
     : ready && !ready.draft.intention ? prose(t('onboarding.intentionRequired')) : undefined;
   return <SafeAreaView style={styles.safeArea}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text accessibilityRole="header" style={styles.title}>{heading}</Text>
+      <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{heading}</Text>
       {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.notice}>{prose(error)}</Text>
         : description !== '' && <Text style={styles.body} accessibilityLiveRegion="polite">{prose(description)}</Text>}
       {basics && ready && <>
         <View style={styles.group}>
-          <Text style={styles.label}>{t('onboarding.language')}</Text>
+          <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.label}>{t('onboarding.language')}</Text>
           {(['pl', 'en'] as const).map(locale => <Pressable key={locale}
             accessibilityRole="radio" accessibilityLabel={t(`onboarding.language_${locale}`)}
             accessibilityState={{ selected: ready.draft.locale === locale, disabled: ready.busy }}
@@ -68,7 +68,7 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
           ><Text style={styles.body}>{t(`onboarding.language_${locale}`)}</Text></Pressable>)}
         </View>
         <View style={styles.group}>
-          <Text nativeID="onboarding-timezone-label" style={styles.label}>{t('onboarding.timezone')}</Text>
+          <Text nativeID="onboarding-timezone-label" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.label}>{t('onboarding.timezone')}</Text>
           <TextInput accessibilityLabel={t('onboarding.timezone')} accessibilityLabelledBy="onboarding-timezone-label"
             accessibilityHint={t('onboarding.timezoneExample')} value={ready.draft.timezone}
             onChangeText={timezone => { if (!ready.busy) onDraft({ timezone }); }} editable={!ready.busy}
@@ -88,10 +88,11 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
             {...(reason ? { disabled: true, unavailableReason: reason } : { disabled: false })} />}
       </>}
       {introduction && ready && <>
-        {!ready.error && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('onboarding.companionIntroduction')} /></View>}
+        {/* Figure first, then his bubble pointing up at him, then Dalej (MVP-22-B1, G3). */}
+        <CompanionArt appearance="zharomir-wanderer-v01" decorative scale={2 / 3} />
+        {!ready.error && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('onboarding.companionIntroduction')} tail="centre" /></View>}
         <Action label={t(ready.error ? 'auth.retry' : 'onboarding.continue')}
           onPress={ready.error === 'load' ? onRetry : onIntroduce} busy={ready.busy} />
-        <CompanionArt appearance="zharomir-wanderer-v01" decorative />
       </>}
       {/* One compact card names every saved choice (MVP-22-B1, G7). The zone shows its label, never the IANA id. */}
       {review && profile && <View testID="onboarding-summary" style={styles.summary}>
@@ -101,7 +102,7 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
           ['reviewIntention', t('onboarding.intention')],
           ['reviewNotifications', t(profile.notificationPreference === 'enabled' ? 'settings.notifications.on' : 'settings.notifications.off')],
         ] as const).map(([key, value]) => <View key={key} accessible accessibilityLabel={`${t(`onboarding.${key}`)}: ${value}`} style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>{t(`onboarding.${key}`)}</Text>
+          <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.summaryLabel}>{t(`onboarding.${key}`)}</Text>
           <Text style={styles.body}>{prose(value)}</Text>
         </View>)}
       </View>}
@@ -117,20 +118,26 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
   </SafeAreaView>;
 }
 
+// The warm tokens and display font of Settings and character creation (MVP-22-B1, G2).
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: tokens.color.canvas },
   content: { flexGrow: 1, padding: tokens.space.card, gap: tokens.space.section },
   group: { gap: tokens.space.item },
-  title: { color: tokens.color.text, fontSize: tokens.title, lineHeight: tokens.title * 1.2, fontWeight: '600' },
-  label: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5, fontWeight: '600' },
+  title: { color: tokens.warm.name, fontFamily: tokens.font.display, fontSize: tokens.title, lineHeight: tokens.title * 1.25 },
+  // The section label of Settings cards.
+  label: { color: tokens.warm.role, fontSize: 13, lineHeight: 18, letterSpacing: 2.5, textTransform: 'uppercase', fontWeight: '600' },
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
   // The error box of Settings and the pause review.
   notice: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(217,163,144,0.5)',
     backgroundColor: 'rgba(217,163,144,0.08)', padding: 12, overflow: 'hidden' },
-  choice: { minHeight: tokens.controlHeight, padding: tokens.space.item, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius, gap: tokens.space.small },
-  selected: { backgroundColor: tokens.color.surface, borderColor: tokens.color.primary },
-  summary: { gap: tokens.space.item, padding: tokens.space.card, borderRadius: tokens.radius, backgroundColor: tokens.color.surface },
+  // The choice and input of character creation.
+  choice: { minHeight: 56, paddingVertical: tokens.space.item, paddingHorizontal: tokens.space.card, borderWidth: 1, borderColor: tokens.warm.faint, borderRadius: 20,
+    backgroundColor: tokens.warm.well, gap: tokens.space.small, justifyContent: 'center' },
+  selected: { backgroundColor: tokens.warm.chosen, borderColor: tokens.warm.bright },
+  input: { minHeight: 52, paddingVertical: tokens.space.item, paddingHorizontal: tokens.space.card, borderWidth: 1, borderColor: tokens.warm.field, borderRadius: tokens.radius,
+    backgroundColor: tokens.warm.well, color: tokens.color.text, fontSize: tokens.body },
+  // The card of Settings.
+  summary: { gap: tokens.space.item, padding: tokens.space.card, borderRadius: 22, borderWidth: 1, borderColor: tokens.warm.line, backgroundColor: tokens.warm.panel },
   summaryRow: { gap: 2 },
-  summaryLabel: { color: tokens.color.secondary, fontSize: 15, lineHeight: 22 },
-  input: { minHeight: tokens.controlHeight, padding: tokens.space.item, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius, color: tokens.color.text, fontSize: tokens.body },
+  summaryLabel: { color: tokens.warm.role, fontSize: 13, lineHeight: 18, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: '600' },
 });

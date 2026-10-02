@@ -3,6 +3,10 @@ import { Platform } from 'react-native';
 export const tokens = {
   font: { display: Platform.OS === 'ios' ? 'Georgia' : 'serif', body: Platform.OS === 'ios' ? 'System' : 'sans-serif' },
   color: { canvas: '#141719', surface: '#242a2d', text: '#ede7db', secondary: '#b8b2a7', primary: '#dfac63', neutral: '#a7becb', positive: '#a9c7a0', missed: '#d9a390' },
+  // The warm bronze of Settings and character creation (MVP-22-B1). line and faint draw borders, panel fills a card, well an
+  // input or a choice, chosen a selected choice, raised an idle control such as a switch track that is off.
+  warm: { line: 'rgba(214,170,105,0.55)', faint: 'rgba(214,170,105,0.22)', field: 'rgba(214,170,105,0.35)', bright: '#f0c987', role: '#caa06a', name: '#f6e6c8',
+    panel: '#1f1812', well: '#1b1714', chosen: '#2e2318', raised: '#3c3023' },
   space: { small: 8, item: 12, card: 16, section: 24 },
   body: 17,
   title: 28,

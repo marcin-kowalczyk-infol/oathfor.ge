@@ -1,9 +1,10 @@
 import type { TestInstance } from 'test-renderer';
-import { Dimensions } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { bindShortWords } from '../localization/typography';
 import { OnboardingView, type OnboardingViewProps } from './OnboardingView';
+import { tokens } from '../ui/tokens';
 import type { OnboardingState } from './controller';
 
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
@@ -256,4 +257,40 @@ test.each([
   expect(screen.getByTestId('onboarding-summary')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: link }));
   for (const text of [honesty, denied, disabled]) expect(screen.getByText(text)).toBeOnTheScreen();
+});
+
+// MVP-22-B1 (G2): onboarding uses the display font and the warm tokens of Settings and character creation, never slate.
+test('onboarding titles use the display font and choices and the input use warm tokens', async () => {
+  const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
+  await render(<LocalizationProvider initialLocale="pl"><OnboardingView state={{ ...ready, draft: { ...ready.draft, locale: 'pl', intention: true } }} {...callbacks} /></LocalizationProvider>);
+  expect(StyleSheet.flatten(screen.getByRole('header', { name: 'Twoje pierwsze kroki' }).props.style)).toMatchObject({ fontFamily: tokens.font.display, color: tokens.warm.name });
+  expect(StyleSheet.flatten(screen.getByRole('radio', { name: 'English' }).props.style)).toMatchObject({ borderColor: tokens.warm.faint, backgroundColor: tokens.warm.well });
+  expect(StyleSheet.flatten(screen.getByRole('checkbox', { name: 'Chcę regularnie podejmować aktywność' }).props.style)).toMatchObject({ borderColor: tokens.warm.bright, backgroundColor: tokens.warm.chosen });
+  expect(StyleSheet.flatten(screen.getByLabelText('Strefa czasowa').props.style)).toMatchObject({ borderColor: tokens.warm.field, backgroundColor: tokens.warm.well });
+  const tree = JSON.stringify(screen.toJSON());
+  for (const slate of [tokens.color.neutral, tokens.color.surface]) expect(tree).not.toContain(slate);
+});
+
+test('the review summary card is a warm panel', async () => {
+  const callbacks = { onComplete: jest.fn(), onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
+  await render(<LocalizationProvider initialLocale="pl"><OnboardingView state={{ ...ready, value: { profile, onboardingStatus: 'pending' } }} {...callbacks} notifications={notificationProps} /></LocalizationProvider>);
+  expect(StyleSheet.flatten(screen.getByTestId('onboarding-summary').props.style)).toMatchObject({ backgroundColor: tokens.warm.panel, borderColor: tokens.warm.line });
+  expect(StyleSheet.flatten(screen.getByRole('header', { name: 'Twoje wybory są zapisane' }).props.style)).toMatchObject({ fontFamily: tokens.font.display });
+});
+
+// MVP-22-B1 (G3, G5): Żaromir's smaller figure on a warm panel first, then his bubble with the tail up at him, then Dalej.
+test('the introduction shows the figure, then the bubble pointing up at it, then Dalej', async () => {
+  const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
+  const state: OnboardingViewProps['state'] = { ...ready, value: { profile: { ...profile, companionIntroduced: false, notificationPreference: null }, onboardingStatus: 'pending' } };
+  await render(<LocalizationProvider initialLocale="pl"><OnboardingView state={state} {...callbacks} /></LocalizationProvider>);
+  const tree = JSON.stringify(screen.toJSON());
+  const [figure, bubble, next] = ['"companion-art-frame"', '"companion-avatar"', '"Dalej"'].map(mark => tree.indexOf(mark));
+  expect(figure).toBeGreaterThan(-1);
+  expect(figure).toBeLessThan(bubble);
+  expect(bubble).toBeLessThan(next);
+  const frame = StyleSheet.flatten(screen.getByTestId('companion-art-frame', { includeHiddenElements: true }).props.style);
+  expect(frame.width).toBeLessThan(180);
+  expect(frame.height).toBeLessThan(270);
+  expect(StyleSheet.flatten(screen.getByTestId('companion-art-panel', { includeHiddenElements: true }).props.style)).toMatchObject({ backgroundColor: tokens.warm.panel });
+  expect(StyleSheet.flatten(screen.getByTestId('companion-bubble-tail', { includeHiddenElements: true }).props.style)).toMatchObject({ left: '50%', top: -7 });
 });

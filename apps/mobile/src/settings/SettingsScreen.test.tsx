@@ -1,8 +1,9 @@
-import { Dimensions } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Locale } from '../localization/locale';
 import { SettingsScreen, type SettingsScreenProps } from './SettingsScreen';
+import { tokens } from '../ui/tokens';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 
 type Data = Omit<SettingsScreenProps, 'onLocale' | 'onNotifications' | 'onRetryPermission' | 'onOpenSystemSettings' | 'onPause' | 'onSignOut' | 'onBack'>;
@@ -203,4 +204,21 @@ test.each([
   expect(screen.getByText(mark)).toBeOnTheScreen();
   expect(screen.getByText(line)).toBeOnTheScreen();
   expect(filled()).toHaveLength(0);
+});
+
+// MVP-22-B1 (G8, G9): the off track is warm, and the sign-out row lines up with the pause row instead of a padded button.
+test('the notification switch track is warm when off', async () => {
+  await setup({ preference: 'disabled' });
+  expect(StyleSheet.flatten(screen.getByTestId('notification-track').props.style)).toMatchObject({ backgroundColor: tokens.warm.raised, borderColor: tokens.warm.faint });
+});
+
+test('the sign-out row has no extra inset and the height of a control, like the pause row', async () => {
+  await setup();
+  const signOut = StyleSheet.flatten(screen.getByRole('button', { name: 'Sign out' }).props.style);
+  const pause = StyleSheet.flatten(screen.getByRole('button', { name: /^Mira: / }).props.style);
+  expect(signOut.paddingHorizontal ?? signOut.padding ?? 0).toBe(0);
+  expect(signOut.paddingLeft ?? 0).toBe(0);
+  expect(signOut).toMatchObject({ flexDirection: 'row', alignItems: 'center', minHeight: tokens.controlHeight });
+  expect(signOut.paddingHorizontal ?? 0).toBe(pause.paddingHorizontal ?? 0);
+  expect(signOut.justifyContent).not.toBe('center');
 });

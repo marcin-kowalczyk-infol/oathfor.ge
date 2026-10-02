@@ -35,7 +35,7 @@ export type SettingsScreenProps = {
 };
 
 const locales: Locale[] = ['pl', 'en'];
-const gold = { line: 'rgba(214,170,105,0.55)', faint: 'rgba(214,170,105,0.22)', bright: '#f0c987', role: '#caa06a', name: '#f6e6c8' };
+const gold = tokens.warm;
 
 /** Presentational Settings. The server owns every saved value, so the screen only reflects confirmed props. */
 export function SettingsScreen(props: SettingsScreenProps) {
@@ -117,7 +117,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
             disabled={busy} onPress={() => { if (!busy) props.onNotifications(!enabled); }}
             style={({ pressed }) => [styles.row, pressed && styles.pressed, busy && styles.waiting]}>
             <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.rowLabel}>{t(enabled ? 'settings.notifications.on' : 'settings.notifications.off')}</Text>
-            <View accessible={false} style={[styles.track, enabled && styles.trackOn]}><View style={[styles.knob, enabled && styles.knobOn]} /></View>
+            <View testID="notification-track" accessible={false} style={[styles.track, enabled && styles.trackOn]}><View style={[styles.knob, enabled && styles.knobOn]} /></View>
           </Pressable>
           {/* A permission action shows its own busy reason, so the note covers the other cases. */}
           {busy && !mayRetry && !mayOpenSettings && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.note}>{t('settings.notifications.busy')}</Text>}
@@ -143,7 +143,11 @@ export function SettingsScreen(props: SettingsScreenProps) {
 
         <View style={styles.card}>
           {section('settings.account.title')}
-          <Action label={t('settings.account.signOut')} onPress={signOut} variant="secondary" />
+          {/* A plain row like the pause row, so the label lines up with the card content (MVP-22-B1, G9). */}
+          <Pressable accessibilityRole="button" accessibilityLabel={t('settings.account.signOut')} onPress={signOut} style={({ pressed }) => [styles.row, styles.controlRow, pressed && styles.pressed]}>
+            <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.rowLabel}>{t('settings.account.signOut')}</Text>
+            <Text allowFontScaling={false} style={styles.chevron}>›</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -173,8 +177,9 @@ const styles = StyleSheet.create({
   optionLabel: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.4, fontWeight: '600', flexShrink: 1 },
   selectedLabel: { color: gold.name },
   row: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  controlRow: { minHeight: tokens.controlHeight },
   rowLabel: { flex: 1, color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5, fontWeight: '600' },
-  track: { width: 52, height: 32, borderRadius: 16, padding: 3, backgroundColor: '#30373b', borderWidth: 1, borderColor: gold.faint, justifyContent: 'center' },
+  track: { width: 52, height: 32, borderRadius: 16, padding: 3, backgroundColor: tokens.warm.raised, borderWidth: 1, borderColor: tokens.warm.faint, justifyContent: 'center' },
   trackOn: { backgroundColor: '#775029', borderColor: gold.bright },
   knob: { width: 24, height: 24, borderRadius: 12, backgroundColor: tokens.color.secondary },
   knobOn: { alignSelf: 'flex-end', backgroundColor: gold.bright },
