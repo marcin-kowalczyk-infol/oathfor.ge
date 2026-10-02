@@ -292,11 +292,11 @@ test('routes a completed account without a character to creation', async () => {
   runtime.characterApi.create.mockResolvedValue({ kind: 'success', created: true, value: { character: mira, activeCharacterId: mira.id, serverTime: '2026-09-24T12:00:00Z' } });
   await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
-  expect(await screen.findByRole('header', { name: 'Forge your character' })).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'New character' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', forgeTile)).toBeNull();
   expect(runtime.oathApi.list).not.toHaveBeenCalled();
   await fireEvent.changeText(screen.getByLabelText('Name'), 'Mira');
-  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she/her' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Stout build' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Create character' }));
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
@@ -314,7 +314,7 @@ test('character loading and failures never show creation, and retry reloads', as
   await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
   expect(await screen.findByText('Gathering your characters…')).toBeOnTheScreen();
-  expect(screen.queryByRole('header', { name: 'Forge your character' })).toBeNull();
+  expect(screen.queryByRole('header', { name: 'New character' })).toBeNull();
   await act(async () => resolveList({ kind: 'unavailable', retry: 'request' }));
   expect(screen.getByText('The Forge cannot be reached right now. Check your connection and try again.')).toBeOnTheScreen();
   expect(screen.queryByLabelText('Name')).toBeNull();
@@ -329,7 +329,7 @@ test('character_required from an Oath call reloads characters and returns to cre
   jest.mocked(runtime.oathApi.list).mockResolvedValue({ kind: 'oath_error', code: 'character_required' });
   await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
-  expect(await screen.findByRole('header', { name: 'Forge your character' })).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'New character' })).toBeOnTheScreen();
   expect(runtime.characterApi.list).toHaveBeenCalledTimes(2);
 });
 
@@ -402,12 +402,12 @@ test('the menu card opens character change, and a switch or a new character land
   expect(runtime.acceptanceStorage.read).toHaveBeenLastCalledWith(account.id, bor.id);
   await fireEvent.press(screen.getByRole('button', { name: 'Change character' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'New character' }));
-  expect(await screen.findByRole('header', { name: 'Forge your character' })).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'New character' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Back to characters' }));
   expect(await screen.findByRole('header', { name: 'Change character' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'New character' }));
   await fireEvent.changeText(await screen.findByLabelText('Name'), 'Wit');
-  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, they / them' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, they/them' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Create character' }));
   expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
   expect(screen.getByText('Wit')).toBeOnTheScreen();
@@ -423,7 +423,7 @@ test('first-run creation offers sign-out but no way back', async () => {
   runtime.characterApi.list.mockResolvedValue({ kind: 'success', value: listing([], null) });
   await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
-  expect(await screen.findByRole('header', { name: 'Forge your character' })).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'New character' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Back to characters' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
   expect(await screen.findByText('Welcome to Oathforge')).toBeOnTheScreen();
@@ -440,7 +440,7 @@ test('a failed switch error does not follow the player into new character creati
   await fireEvent.press(await screen.findByRole('button', { name: 'Bor, Oathkeeper' }));
   expect(await screen.findByText('This character is no longer available. Choose another one.')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'New character' }));
-  expect(await screen.findByRole('header', { name: 'Forge your character' })).toBeOnTheScreen();
+  expect(await screen.findByRole('header', { name: 'New character' })).toBeOnTheScreen();
   expect(screen.queryByText('We could not create this character. Check your choices and try again.')).toBeNull();
 });
 
@@ -617,7 +617,7 @@ test('a confirmed pause returns to Settings, refreshes the summary and reloads t
   expect(await screen.findByText('Paused')).toBeOnTheScreen();
   await enterRoom();
   await useStation('Seals', 'View current Oaths');
-  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.')).toBeOnTheScreen();
+  expect(await screen.findByText('Oaths awaiting a result continue. Withdrawn ones do not come back.')).toBeOnTheScreen();
 });
 
 test('sign-out in Settings returns to the sign-in screen', async () => {

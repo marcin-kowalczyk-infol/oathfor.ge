@@ -6,6 +6,7 @@ import type { CharacterBuild, CharacterForm } from '../api/characters';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { bindShortWords } from '../localization/typography';
 import { Action } from '../ui/Action';
+import { Disclosure } from '../ui/Disclosure';
 import { tokens } from '../ui/tokens';
 import { useSceneEntrance } from '../ui/useSceneEntrance';
 import type { CharacterControllerState, CharacterDraft, CharacterError } from './controller';
@@ -113,12 +114,15 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
   const nameProblem = name !== '' && !check.valid ? check.reason : null;
   const full = state.characters.length >= state.limit;
   const art = presetId === null ? null : presetArt(presets, presetId, build);
+  const distinctTitles = new Set(forms.map(option => t(`character.form.${option}`))).size === forms.length;
   // Large text leaves more room for words, the figure is decorative and may shrink.
   const figureHeight = Math.round(Math.min(340, Math.max(200, height * (fontScale > 1.5 ? 0.28 : 0.36))));
   const stageHeight = figureHeight + STAGE_TOP + STAGE_BOTTOM;
   // The feet stand a little above the name panel, the light pool is centred on them.
   const feet = stageHeight - STAGE_BOTTOM;
   const title = form ? t(`character.form.${form}`) : t('character.untitled');
+  // An empty name or title draws an ellipsis. The card's label still says what is missing (word budget, MVP-22-E1.3).
+  const EMPTY = '…';
   // A stored creation explains itself even when no error came with it, for example after returning from the change screen.
   const message = errorKey(state.error, pending?.name ?? null) ?? (pending && !state.busy ? { key: 'character.pending', name: pending.name } : null);
   const limitShown = message?.key === 'character.error.character_limit_reached';
@@ -142,7 +146,6 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
     </Pressable>}
     <View style={styles.header}>
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('character.title')}</Text>
-      <Text style={styles.intro}>{prose(t('character.intro'))}</Text>
     </View>
 
     <Animated.View testID="character-preview" style={[styles.card, entrance]}>
@@ -155,8 +158,8 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
             : <View testID="character-placeholder" style={[styles.placeholder, { height: figureHeight * 0.8, width: figureHeight * 0.8 * FIGURE_RATIO }]} />}
         </View>
         <View style={styles.identity}>
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={[styles.cardName, !check.valid && styles.cardNameEmpty]}>{check.valid ? check.name : t('character.unnamed')}</Text>
-          <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.role, large && styles.roleLarge, !form && styles.roleEmpty]}>{title}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={tokens.maxScale.name} style={[styles.cardName, !check.valid && styles.cardNameEmpty]}>{check.valid ? check.name : EMPTY}</Text>
+          <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.role, large && styles.roleLarge, !form && styles.roleEmpty]}>{form ? title : EMPTY}</Text>
           <View style={styles.rule} />
         </View>
       </View>
@@ -197,9 +200,8 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
         value={name} editable={!locked} onChangeText={value => { if (!locked) onDraft({ name: value }); }}
         autoCapitalize="words" autoCorrect={false} autoComplete="off" textContentType="none" importantForAutofill="no" spellCheck={false} maxLength={40} returnKeyType="done"
         style={[styles.input, nameProblem !== null && styles.inputProblem, locked && styles.inputLocked, locked && styles.locked]} />
-      {nameProblem !== null
-        ? <Text accessibilityLiveRegion="polite" style={styles.problem}>{prose(t(`character.nameError.${nameProblem}`))}</Text>
-        : <Text style={styles.hint}>{prose(t('character.nameHint'))}</Text>}
+      {/* The name rules sit under "Zasady postaci". A problem with the typed name shows here at once. */}
+      {nameProblem !== null && <Text accessibilityLiveRegion="polite" style={styles.problem}>{prose(t(`character.nameError.${nameProblem}`))}</Text>}
     </View>
 
     <View style={styles.section} accessibilityRole="radiogroup" accessibilityLabel={t('character.titles')}>
@@ -207,11 +209,17 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
       {forms.map(option => {
         const title = t(`character.form.${option}`);
         const detail = t(`character.form.${option}Detail`);
-        return <Choice key={option} title={title} detail={detail} label={t('character.formChoice', { title, detail })} stacked={large}
+        // Polish titles already differ by form, English ones all read Oathkeeper. The form is drawn only where titles repeat, and always spoken.
+        return <Choice key={option} title={title} detail={distinctTitles ? undefined : detail} label={t('character.formChoice', { title, detail })} stacked={large}
           selected={form === option} disabled={locked} onPress={() => onDraft({ form: option })} />;
       })}
-      <Text style={styles.hint}>{prose(t('character.titlesHint'))}</Text>
     </View>
+
+    {/* Moved, never deleted (clarity rule 2): the name rules and what the title does, unchanged. */}
+    <Disclosure label={t('character.rules')}>
+      <Text style={styles.hint}>{prose(t('character.nameHint'))}</Text>
+      <Text style={styles.hint}>{prose(t('character.titlesHint'))}</Text>
+    </Disclosure>
 
     {message && !(limitShown && full) && !waitText && <Message error={message.key !== 'character.pending'} text={prose(t(message.key, message.name === undefined ? {} : { name: message.name }))} />}
     {pending && state.busy && <Text accessibilityLiveRegion="polite" style={styles.intro}>{prose(t('character.finishing', { name: pending.name }))}</Text>}

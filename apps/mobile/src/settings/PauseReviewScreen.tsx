@@ -13,6 +13,7 @@ import { pathTimeText } from '../oaths/compactStoredTime';
 import { zoneLabel } from '../oaths/zoneLabel';
 import { Action } from '../ui/Action';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
+import { Disclosure } from '../ui/Disclosure';
 import { layoutMode } from '../ui/layoutMode';
 import { PauseMark } from '../ui/PauseMark';
 import { SceneSurface } from '../ui/SceneSurface';
@@ -112,8 +113,11 @@ export function PauseReviewScreen({ controller, character, onBack, onChanged }: 
           {line && <Text testID="pause-line" maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole={notice ? 'alert' : undefined} accessibilityLiveRegion="polite"
             style={notice ? styles.notice : styles.body}>{bindShortWords(t(line), locale)}</Text>}
           {(failed || pauseFailed) && <Action label={t('oathHome.reviewPause')} onPress={() => { void showPause(); }} />}
+          {/* Paused, the line names what continues. The deadline fact stays one touch away (MVP-22-E1.3). */}
+          {pause?.summary.paused && !notice && <Disclosure label={t('path.more')}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{bindShortWords(t('oathHome.pauseIntro'), locale)}</Text></Disclosure>}
           {pause && <>
-            {(['withdraw', 'preserve'] as const).map(key => <View key={key} style={styles.card}>
+            {/* Resuming withdraws nothing, so only a pause lists what it would withdraw. */}
+            {(pause.summary.paused ? ['preserve'] as const : ['withdraw', 'preserve'] as const).map(key => <View key={key} style={styles.card}>
               <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.section, fontScale > 1.5 && styles.sectionLarge]}>{t(`oathHome.${key}`)}</Text>
               {pause[key].length === 0 && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('oathHome.none')}</Text>}
               {pause[key].map(item => <View key={item.id} style={[styles.entry, simple && styles.stackedEntry]}><ActivityEmblem activity={item.snapshot.activity} size={52} /><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.body, styles.entryCopy]}>{summary(item)}</Text></View>)}

@@ -230,7 +230,7 @@ test('paused Forge makes the paused state visible without a creation affordance 
   const f = setup([]);
   jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.')).toBeOnTheScreen();
+  expect(await screen.findByText('Oaths awaiting a result continue. Withdrawn ones do not come back.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Create an Oath' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Pause and resume' })).toBeNull();
 });
@@ -313,7 +313,7 @@ test('hearth navigation on a paused account shows the pause notice instead of ne
   const f = setup([]); jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
   jest.mocked(f.controller.resetCreation).mockReturnValue(true);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
-  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.')).toBeOnTheScreen();
+  expect(await screen.findByText('Oaths awaiting a result continue. Withdrawn ones do not come back.')).toBeOnTheScreen();
   expect(f.controller.resetCreation).not.toHaveBeenCalled();
   expect(screen.queryByLabelText('Completion date')).toBeNull();
 });
@@ -1253,7 +1253,7 @@ test('a History row names its state before the compact date', async () => {
 test('the pause note is a plain card line without Żaromir', async () => {
   const f = setup([]); jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
   await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
-  const note = await screen.findByText('Pauza jest włączona. Przysięgi czekające na wynik trwają dalej, wycofane nie wrócą.');
+  const note = await screen.findByText('Przysięgi czekające na wynik trwają dalej, wycofane nie wrócą.');
   expect(screen.getByTestId('pause-note')).toContainElement(note);
   expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
 });
@@ -1433,7 +1433,7 @@ describe('list lines', () => {
     await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
     const note = await screen.findByTestId('pause-note');
     expect(within(note).getByTestId('pause-mark')).toHaveProp('accessibilityLabel', locale === 'pl' ? 'W pauzie' : 'Paused');
-    expect(within(note).getByText(locale === 'pl' ? 'Pauza jest włączona. Przysięgi czekające na wynik trwają dalej, wycofane nie wrócą.' : 'Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.')).toBeOnTheScreen();
+    expect(within(note).getByText(locale === 'pl' ? 'Przysięgi czekające na wynik trwają dalej, wycofane nie wrócą.' : 'Oaths awaiting a result continue. Withdrawn ones do not come back.')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: locale === 'pl' ? 'Wczytaj więcej' : 'Load more' })).toBeOnTheScreen();
     expect(filled()).toHaveLength(0);
     expect(avatar()).toBeNull();
@@ -1681,6 +1681,6 @@ describe('drawn prose binding', () => {
   test('English keeps single-letter words unbound in the pause note', async () => {
     const f = setup([]); jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
     await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
-    expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.', raw)).toBeOnTheScreen();
+    expect(await screen.findByText('Oaths awaiting a result continue. Withdrawn ones do not come back.', raw)).toBeOnTheScreen();
   });
 });

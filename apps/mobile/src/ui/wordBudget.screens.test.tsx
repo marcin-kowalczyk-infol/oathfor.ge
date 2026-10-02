@@ -158,9 +158,11 @@ async function onboarding(locale: Locale, state: OnboardingViewProps['state'], p
 
 type CharactersReady = Extract<CharacterControllerState, { kind: 'ready' }>;
 const characters = (patch: Partial<CharactersReady> = {}): CharactersReady => ({ kind: 'ready', characters: [], activeCharacterId: null, presets: ['starter_01', 'starter_02', 'starter_03', 'starter_04'], limit: 3, busy: false, pendingCreation: null, activeRevision: 1, ...patch });
-function Creation({ state }: { state: CharacterControllerState }) {
+/** The first character offers sign-out, a later one the way back to the character screens (AuthScreen). */
+function Creation({ state, another = false }: { state: CharacterControllerState; another?: boolean }) {
   const [draft, setDraft] = useState<CharacterCreationDraft>(emptyCreationDraft);
-  return <CharacterCreationScreen state={state} draft={draft} onDraft={patch => setDraft(value => ({ ...value, ...patch }))} onCreate={jest.fn()} onRetry={jest.fn()} onReload={jest.fn()} />;
+  return <CharacterCreationScreen state={state} draft={draft} onDraft={patch => setDraft(value => ({ ...value, ...patch }))} onCreate={jest.fn()} onRetry={jest.fn()} onReload={jest.fn()}
+    {...(another ? { onCancel: jest.fn() } : { onSignOut: jest.fn() })} />;
 }
 
 async function settings(locale: Locale, paused: boolean) {
@@ -190,6 +192,7 @@ const states: Record<string, (locale: Locale) => Promise<unknown>> = {
   'onboarding.reviewOn': locale => onboarding(locale, onboardingReady({ notificationPreference: 'enabled' }), 'granted'),
   'onboarding.reviewOff': locale => onboarding(locale, onboardingReady({ notificationPreference: 'disabled' }), 'granted'),
   'characterCreation': locale => render(<LocalizationProvider initialLocale={locale}><Creation state={characters()} /></LocalizationProvider>),
+  'characterCreation.another': locale => render(<LocalizationProvider initialLocale={locale}><Creation state={characters({ characters: [mira], activeCharacterId: mira.id })} another /></LocalizationProvider>),
   'changeCharacter': locale => render(<LocalizationProvider initialLocale={locale}><ChangeCharacterScreen state={characters({ characters: [mira, bor], activeCharacterId: mira.id })} onChoose={jest.fn()} onNew={jest.fn()} onBack={jest.fn()} /></LocalizationProvider>),
   'oathForm': locale => oathScreen(locale, null),
   'review': locale => review(locale, true),

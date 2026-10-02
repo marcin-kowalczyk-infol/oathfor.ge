@@ -48,7 +48,7 @@ test('the review loads on entry and names the character it applies to', async ()
   expect(screen.getByText('Loading Oaths…')).toBeOnTheScreen();
   await act(async () => response.resolve({ kind: 'success', value: pauseSummary() }));
   expect(await screen.findByRole('button', { name: 'Confirm pause' })).toBeOnTheScreen();
-  expect(screen.getByText('Review every Oath below before confirming. Pause does not extend deadlines.')).toBeOnTheScreen();
+  expect(screen.getByText('Pause does not extend deadlines.')).toBeOnTheScreen();
   expect(screen.queryByText('Loading Oaths…')).toBeNull();
 });
 test('pause shows meaningful complete-set summaries and a changed revision requires a new confirmation', async () => {
@@ -92,7 +92,7 @@ test('resume only sends the flag, and a failed change requires current-state rel
   const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), true) });
   jest.mocked(f.controller.pause).mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' }).mockResolvedValueOnce({ kind: 'success', value: pauseSummary() });
   await show(f);
-  expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.')).toBeOnTheScreen();
+  expect(await screen.findByText('Oaths awaiting a result continue. Withdrawn ones do not come back.')).toBeOnTheScreen();
   await fireEvent.press(await screen.findByRole('button', { name: 'Resume play' }));
   expect(jest.mocked(f.controller.pause).mock.calls[0][0]).toEqual({ paused: false });
   expect(screen.queryByRole('button', { name: 'Resume play' })).toBeNull();
@@ -159,7 +159,7 @@ test('text inside the review cards is capped so long Polish words never break mi
 const size = (fontScale: number) => Dimensions.set({ window: { width: 402, height: 874, scale: 3, fontScale }, screen: { width: 402, height: 874, scale: 3, fontScale } });
 afterEach(() => size(1));
 const filled = () => screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0);
-const intro = 'Review every Oath below before confirming. Pause does not extend deadlines.';
+const intro = 'Pause does not extend deadlines.';
 function plain(text: string) {
   expect(screen.getByText(text)).toBeOnTheScreen();
   expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
@@ -184,8 +184,33 @@ test('a paused character shows the Paused mark and the pause fact as a plain lin
   const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), true) });
   await show(f);
   await screen.findByRole('button', { name: 'Resume play' });
-  plain('Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.');
+  plain('Oaths awaiting a result continue. Withdrawn ones do not come back.');
   expect(screen.getByTestId('pause-mark')).toHaveProp('accessibilityLabel', 'Paused');
+});
+
+// MVP-22-E1.3: Settings opens this review for a paused character. Resuming withdraws nothing, so only what continues is listed,
+// and the fact that pause does not extend deadlines stays one touch away.
+test.each([
+  ['en', 'Resume play', 'Will be withdrawn', 'Will continue', 'Full description', 'Pause does not extend deadlines.'],
+  ['pl', 'Wznów rozgrywkę', 'Zostaną wycofane', 'Będą kontynuowane', 'Pełny opis', 'Pauza nie przedłuża terminów.'],
+] as const)('%s paused review keeps the deadline fact behind one link and lists only what continues', async (locale, resume, withdraw, preserve, more, fact) => {
+  const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), true) });
+  await show(f, locale);
+  await screen.findByRole('button', { name: resume });
+  expect(screen.queryByRole('header', { name: withdraw })).toBeNull();
+  expect(screen.getByRole('header', { name: preserve })).toBeOnTheScreen();
+  expect(screen.queryByText(fact)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: more }));
+  expect(screen.getByText(fact)).toBeOnTheScreen();
+});
+
+test('an active character sees the deadline fact in the intro line and both lists', async () => {
+  const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
+  await show(f);
+  await screen.findByRole('button', { name: 'Confirm pause' });
+  expect(screen.getByTestId('pause-line')).toHaveTextContent('Pause does not extend deadlines.');
+  expect(screen.getByRole('header', { name: 'Will be withdrawn' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Full description' })).toBeNull();
 });
 
 test('a changed Oath list replaces the intro instead of stacking under it', async () => {
@@ -220,8 +245,8 @@ test('a failed load shows its error as a plain alert line with one filled reload
 });
 
 test.each([
-  ['pl', false, 'Potwierdź pauzę', 'Przed potwierdzeniem sprawdź każdą Przysięgę poniżej. Pauza nie przedłuża terminów.', 'W grze'],
-  ['en', true, 'Resume play', 'Pause is on. Oaths awaiting a result continue, and withdrawn ones do not come back.', 'Paused'],
+  ['pl', false, 'Potwierdź pauzę', 'Pauza nie przedłuża terminów.', 'W grze'],
+  ['en', true, 'Resume play', 'Oaths awaiting a result continue. Withdrawn ones do not come back.', 'Paused'],
 ] as const)('%s at text scale 2 keeps the line, the mark and one filled button', async (locale, paused, button, line, mark) => {
   size(2);
   const f = setup(); jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary('a'.repeat(64), paused) });

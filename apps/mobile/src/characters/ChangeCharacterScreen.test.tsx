@@ -133,7 +133,7 @@ test('card names stay on one line and display text is capped for the largest tex
   expect(name.props.maxFontSizeMultiplier).toBeLessThanOrEqual(1.5);
   expect(screen.getByText('Straż Przysięgi').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
   expect(screen.getByRole('header', { name: 'Zmień postać' }).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
-  expect(screen.getByText('Wybierz, kto niesie Twoje Przysięgi. Każda postać ma własne.').props.maxFontSizeMultiplier).toBeUndefined();
+  expect(screen.getByText('Każda postać ma własne Przysięgi.').props.maxFontSizeMultiplier).toBeUndefined();
 });
 
 test('each card draws its preset in the saved build', async () => {

@@ -33,10 +33,10 @@ const nameField = () => screen.getByLabelText('Name');
 test('keeps submit disabled until name and form are valid', async () => {
   const f = await setup(); await act(async () => {});
   expect(create()).toBeDisabled();
-  expect(screen.getByText('Enter a name and choose a title to continue.')).toBeOnTheScreen();
+  expect(screen.getByText('Name and title needed.')).toBeOnTheScreen();
   await fireEvent.changeText(nameField(), 'Mira');
   expect(create()).toBeDisabled();
-  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she/her' }));
   expect(create()).toBeEnabled();
   await fireEvent.changeText(nameField(), 'A');
   expect(create()).toBeDisabled();
@@ -67,7 +67,7 @@ test('offers only presets the app can draw, preselects the first and submits the
   expect(screen.getByRole('radio', { name: 'Look 2 of 2', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Look 1 of 2', selected: false })).toBeOnTheScreen();
   await fireEvent.changeText(nameField(), 'Mira');
-  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, they / them' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, they/them' }));
   await fireEvent.press(create()); await fireEvent.press(create());
   expect(f.onCreate).toHaveBeenCalledTimes(1);
   expect(f.onCreate).toHaveBeenCalledWith({ name: 'Mira', presetId: 'starter_01', build: 'thin', form: 'neutral' });
@@ -96,7 +96,7 @@ test('submits the chosen build with the look, name and title', async () => {
   await fireEvent.press(screen.getByRole('radio', { name: 'Stout build' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Look 4 of 4' }));
   await fireEvent.changeText(nameField(), 'Bor');
-  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, he / him' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, he/him' }));
   await fireEvent.press(create());
   expect(f.onCreate).toHaveBeenCalledWith({ name: 'Bor', presetId: 'starter_04', build: 'heavy', form: 'masculine' });
 });
@@ -116,7 +116,7 @@ test('shows the name and chosen title on the preview card without a placeholder 
   expect(screen.queryByText('DUMMY')).toBeNull();
   expect(screen.queryByLabelText('Placeholder art')).toBeNull();
   await fireEvent.changeText(nameField(), 'Mira');
-  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she/her' }));
   expect(screen.getByLabelText('Preview: Mira, Oathkeeper')).toBeOnTheScreen();
 });
 
@@ -131,7 +131,7 @@ test('a stored creation prefills its values and retries it instead of creating a
   const f = await setup(ready({ pendingCreation: pending, error: { kind: 'unavailable', retry: 'request' } })); await act(async () => {});
   expect(nameField().props.value).toBe('Zoya');
   expect(nameField().props.editable).toBe(false);
-  expect(screen.getByRole('radio', { name: 'Oathkeeper, they / them', selected: true })).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: 'Oathkeeper, they/them', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Look 3 of 4', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Stout build', selected: true })).toBeDisabled();
   expect(screen.getByTestId('character-figure').props.source).toBe(presetArt(currentArt.presets, 'starter_03', 'heavy')!.figure);
@@ -160,7 +160,7 @@ test('a rejected look offers to reload the looks and the full roster blocks crea
   expect(f.onReload).toHaveBeenCalledTimes(1);
   await f.change(ready({ characters: [1, 2, 3].map(index => ({ id: `30000000-0000-4000-8000-00000000000${index}`, name: 'Mira', presetId: 'starter_01', build: 'thin' as const, form: 'feminine' as const, createdAt: '2026-09-26T12:00:00Z' })), activeCharacterId: '30000000-0000-4000-8000-000000000001' }));
   await fireEvent.changeText(nameField(), 'Mira');
-  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Oathkeeper, she/her' }));
   expect(create()).toBeDisabled();
   expect(screen.getByText('This account already has three characters, which is the limit.')).toBeOnTheScreen();
 });
@@ -179,7 +179,7 @@ test('loading, unavailable and storage states never show a form, and offer reloa
 
 test('Polish shows the three titles as main labels with their grammatical form', async () => {
   await setup(ready(), 'pl'); await act(async () => {});
-  expect(screen.getByRole('header', { name: 'Wykuj swoją postać' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Nowa postać' })).toBeOnTheScreen();
   for (const name of ['Obrońca Przysięgi, forma męska', 'Obrończyni Przysięgi, forma żeńska', 'Straż Przysięgi, forma neutralna']) expect(screen.getByRole('radio', { name })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Stwórz postać' })).toBeDisabled();
 });
@@ -196,7 +196,7 @@ test('a stored creation copies its choices into the draft so a later rejection k
   await f.change(ready({ error: { kind: 'character_error', code: 'invalid_character_name' } }));
   expect(nameField().props.value).toBe('Zoya');
   expect(nameField().props.editable).toBe(true);
-  expect(screen.getByRole('radio', { name: 'Oathkeeper, they / them', selected: true })).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: 'Oathkeeper, they/them', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Look 3 of 4', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Stout build', selected: true })).toBeEnabled();
   expect(screen.getByText('The Forge did not accept this name. Choose another one.')).toBeOnTheScreen();
@@ -297,17 +297,16 @@ async function atFontScale<T>(fontScale: number, run: () => Promise<T>) {
 test('at the largest text display words never break mid-word: capped display text, one-line names and stacked title choices', async () => {
   await atFontScale(3.1, async () => {
     await setup(ready(), 'pl'); await act(async () => {});
-    const unnamed = screen.getByText('Bez imienia');
+    const [unnamed, untitled] = screen.getAllByText('…');
     expect(unnamed.props).toMatchObject({ numberOfLines: 1, adjustsFontSizeToFit: true });
     expect(unnamed.props.maxFontSizeMultiplier).toBeLessThanOrEqual(1.5);
-    const untitled = screen.getByText('Tytuł niewybrany');
     expect(untitled.props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
     expect(StyleSheet.flatten(untitled.props.style).letterSpacing).toBeLessThanOrEqual(1);
-    expect(screen.getByRole('header', { name: 'Wykuj swoją postać' }).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
+    expect(screen.getByRole('header', { name: 'Nowa postać' }).props.maxFontSizeMultiplier).toBeLessThanOrEqual(2);
     const choice = screen.getByRole('radio', { name: 'Obrończyni Przysięgi, forma żeńska' });
     expect(StyleSheet.flatten(choice.props.style)).toMatchObject({ flexDirection: 'column' });
     expect(screen.getByText('Obrończyni Przysięgi').props.maxFontSizeMultiplier).toBeLessThanOrEqual(2.5);
-    expect(screen.getByText('forma żeńska').props.maxFontSizeMultiplier).toBeUndefined();
+    await fireEvent.press(screen.getByRole('button', { name: 'Zasady postaci' }));
     expect(screen.getByText('Od 2 do 20 liter. Między nimi może stać spacja, łącznik lub apostrof.').props.maxFontSizeMultiplier).toBeUndefined();
     const build = screen.getByRole('radio', { name: 'Budowa tęga' });
     expect(StyleSheet.flatten(build.props.style)).toMatchObject({ flexDirection: 'column' });
@@ -318,7 +317,7 @@ test('at the largest text display words never break mid-word: capped display tex
 test('at normal text size title choices keep the radio beside the text', async () => {
   await atFontScale(1, async () => {
     await setup(); await act(async () => {});
-    expect(StyleSheet.flatten(screen.getByRole('radio', { name: 'Oathkeeper, she / her' }).props.style)).toMatchObject({ flexDirection: 'row' });
+    expect(StyleSheet.flatten(screen.getByRole('radio', { name: 'Oathkeeper, she/her' }).props.style)).toMatchObject({ flexDirection: 'row' });
     expect(StyleSheet.flatten(screen.getByRole('radio', { name: 'Slight build' }).props.style)).toMatchObject({ flexDirection: 'row' });
   });
 });
@@ -361,13 +360,38 @@ test('open controls keep full opacity', async () => {
 // at most one filled button in every state, PL and EN at 200% text.
 const filled = () => screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0);
 
+// MVP-22-E1.3 (engagement.md E1): the intro repeated the four section labels and is gone. The name rules and the title hint
+// moved behind one link, unchanged (clarity.md rule 2).
 test.each([
-  ['pl', 'Wybierz wygląd, budowę, imię i tytuł.', 'Tytuł ustala, jak Kuźnia się do Ciebie zwraca.'],
-  ['en', 'Choose a look, build, name and title.', 'In English every form reads Oathkeeper. The form sets how Polish text addresses you.'],
-] as const)('%s intro is one short line and the title hint says what the title does', async (locale, intro, hint) => {
+  ['pl', 'Zasady postaci', 'Od 2 do 20 liter. Między nimi może stać spacja, łącznik lub apostrof.', 'Tytuł ustala, jak Kuźnia się do Ciebie zwraca.'],
+  ['en', 'Character rules', '2 to 20 letters. A space, hyphen or apostrophe can go between them.', 'In English every form reads Oathkeeper. The form sets how Polish text addresses you.'],
+] as const)('%s name rules and the title hint open behind one link, unchanged', async (locale, link, name, title) => {
   await setup(ready(), locale); await act(async () => {});
-  expect(screen.getByText(intro)).toBeOnTheScreen();
-  expect(screen.getByText(hint)).toBeOnTheScreen();
+  expect(screen.queryByText(name)).toBeNull();
+  expect(screen.queryByText(title)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: link }));
+  expect(screen.getByText(name)).toBeOnTheScreen();
+  expect(screen.getByText(title)).toBeOnTheScreen();
+  // The field still speaks its rules.
+  expect(screen.getByLabelText(locale === 'pl' ? 'Imię' : 'Name').props.accessibilityHint).toBe(name);
+});
+
+test('an empty name and title draw an ellipsis, and the card still says what is missing', async () => {
+  await setup(ready(), 'pl'); await act(async () => {});
+  expect(screen.getAllByText('…')).toHaveLength(2);
+  expect(screen.queryByText('Bez imienia')).toBeNull();
+  expect(screen.getByLabelText('Podgląd: Bez imienia, Tytuł niewybrany')).toBeOnTheScreen();
+});
+
+test.each([
+  ['pl', ['forma męska', 'forma żeńska', 'forma neutralna'], false],
+  ['en', ['he/him', 'she/her', 'they/them'], true],
+] as const)('%s draws the grammatical form only where the titles read the same', async (locale, details, drawn) => {
+  await setup(ready(), locale); await act(async () => {});
+  for (const detail of details) {
+    expect(screen.queryByText(detail) !== null).toBe(drawn);
+    expect(screen.getByRole('radio', { name: new RegExp(`, ${detail}$`) })).toBeOnTheScreen();
+  }
 });
 
 test('Polish pending creation waits on the device in two sentences', async () => {
@@ -406,10 +430,9 @@ test.each((['pl', 'en'] as const).flatMap(locale => states.map(([name, state]) =
 const raw = { normalizer: (text: string) => text };
 test('Polish drawn prose keeps single-letter words with the next word', async () => {
   await setup(ready(), 'pl'); await act(async () => {});
-  expect(screen.getByText('Wybierz wygląd, budowę, imię i tytuł.', raw)).toBeOnTheScreen();
-  expect(screen.getByText('Wpisz imię i wybierz tytuł, aby przejść dalej.', raw)).toBeOnTheScreen();
+  expect(screen.getByText('Potrzebne imię i tytuł.', raw)).toBeOnTheScreen();
   // The spoken hint keeps the plain form.
-  expect(screen.getByRole('button', { name: 'Stwórz postać' }).props.accessibilityHint).toBe('Wpisz imię i wybierz tytuł, aby przejść dalej.');
+  expect(screen.getByRole('button', { name: 'Stwórz postać' }).props.accessibilityHint).toBe('Potrzebne imię i tytuł.');
 });
 
 test('the Polish wait line keeps single-letter words with the next word', async () => {
@@ -427,6 +450,5 @@ test('the Polish unavailable message keeps single-letter words with the next wor
 
 test('English drawn prose keeps ordinary spaces', async () => {
   await setup(); await act(async () => {});
-  expect(screen.getByText('Choose a look, build, name and title.', raw)).toBeOnTheScreen();
-  expect(screen.getByText('Enter a name and choose a title to continue.', raw)).toBeOnTheScreen();
+  expect(screen.getByText('Name and title needed.', raw)).toBeOnTheScreen();
 });

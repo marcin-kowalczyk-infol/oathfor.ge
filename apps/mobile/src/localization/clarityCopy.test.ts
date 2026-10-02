@@ -94,7 +94,7 @@ const sliceA = [
   // A3.
   'auth.freshChallenge',
   // A4.
-  'character.intro', 'character.titlesHint',
+  'character.titlesHint',
   // character.pending and character.rateLimited_* (14 PL words, plan copy) are refusal lines, held by the two-sentence guard.
   // T12c: Żaromir's introduction meets his 12-word cap.
   'onboarding.companionIntroduction',
