@@ -78,7 +78,8 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const forming = !!ready && !pending && !review && !detail;
   const titled = !review && !detail;
   // MVP-22-B2c: a pending acceptance has no confirm button, so the band does not ask to make the Oath.
-  const intro = review && !pending ? 'oath.reviewIntro' : forming ? 'oath.intro' : null;
+  // The form has no intro line since MVP-22-E1.4: its disabled "Zobacz zasady" names what is missing (word budget).
+  const intro = review && !pending ? 'oath.reviewIntro' : null;
   // A screen change remounts the scroll view, so it opens at its heading with a short entrance. MVP-22 G31: an error on the
   // same screen does not remount it, because a retry would replay the entrance and lose the VoiceOver focus on the pressed control.
   const scene = detail ? 'detail' : pending ? 'pending' : review ? 'review' : 'form';

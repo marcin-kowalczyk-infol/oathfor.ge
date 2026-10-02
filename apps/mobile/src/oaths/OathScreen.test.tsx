@@ -96,7 +96,7 @@ test('scheduled start and deadline retain independently chosen zones, with all a
   const f = setup(); f.controller.start(); await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fillDeadline(); await fireEvent.press(screen.getByRole('radio', { name: 'Strength training' }));
   expect(screen.getByRole('radio', { name: 'Mobility' })).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('radio', { name: 'At a future time' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Later' }));
   await selectDate('Start date', 'October 24, 2026, Today');
   await selectTime('Start time', '20', '00');
   await fireEvent.press(screen.getByRole('button', { name: 'Start timezone' }));
@@ -185,7 +185,9 @@ test('Polish city search selects a timezone without typing an identifier', async
   await fireEvent.changeText(screen.getByLabelText('Szukaj miasta lub strefy czasowej'), 'Warszawa');
   await fireEvent.press(screen.getByRole('radio', { name: 'Warszawa · Europe/Warsaw' }));
   expect(screen.getByText('Warszawa')).toBeOnTheScreen();
-  expect(screen.getByText('Europe/Warsaw')).toBeOnTheScreen();
+  // MVP-22-E1.4: the zone id is spoken, not drawn.
+  expect(screen.queryByText('Europe/Warsaw')).toBeNull();
+  expect(screen.getByRole('button', { name: 'Strefa ukończenia' }).props.accessibilityValue).toEqual({ text: 'Warszawa · Europe/Warsaw' });
 });
 
 test('date, time and zone controls announce their selected values', async () => {
@@ -207,7 +209,7 @@ test('confirmed creation clears the parent draft and explicit new Oath starts em
   expect(await screen.findByText(/^Active · deadline /)).toBeOnTheScreen();
   expect(onDraftChange).toHaveBeenLastCalledWith(null);
   await fireEvent.press(screen.getByRole('button', { name: 'Create another Oath' }));
-  expect(screen.getByText('Choose a date')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Completion date' }).props.accessibilityValue).toEqual({ text: 'Choose a date' });
   expect(screen.queryByRole('button', { name: 'Commit to the Oath' })).toBeNull();
 });
 
@@ -534,7 +536,7 @@ test('a replayed acceptance that returns a withdrawn Oath shows no Żaromir gree
 });
 
 // Native check, 2026-09-30, iPhone 18 Pro at the largest accessibility size in Polish: beside the picture and the marker
-// "Bieganie", "Trening siłowy" and "W przyszłym terminie" broke mid-word. In the simple layout the label gets its own full-width line.
+// "Bieganie", "Trening siłowy" and "Później" broke mid-word. In the simple layout the label gets its own full-width line.
 describe('creation choices at the largest text size', () => {
   const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
   afterEach(() => act(() => { Dimensions.set(initial); }));
@@ -564,7 +566,7 @@ describe('creation choices at the largest text size', () => {
   });
   test.each([402, 375])('at %s points each start label takes a full-width line under the medallion and the marker', async width => {
     await renderForm(width, 3.12);
-    for (const [name, marker] of [['Teraz', '◆'], ['W przyszłym terminie', '◇']] as const) {
+    for (const [name, marker] of [['Teraz', '◆'], ['Później', '◇']] as const) {
       const radio = screen.getByRole('radio', { name }) as unknown as Node;
       const label = within(radio as never).getByText(name) as unknown as Node;
       expect(hostParent(label)).toBe(radio);
@@ -575,7 +577,7 @@ describe('creation choices at the largest text size', () => {
       expect(flat(top).flexDirection).toBe('row');
       expect(radio).toHaveProp('accessibilityState', { selected: name === 'Teraz', disabled: false });
     }
-    const bench = screen.getByRole('header', { name: 'Kiedy Przysięga ma się rozpocząć?' }) as unknown as Node;
+    const bench = screen.getByRole('header', { name: 'Start' }) as unknown as Node;
     expect(StyleSheet.flatten(hostParent(bench).props.style as StyleProp<ViewStyle>).paddingHorizontal).toBe(10);
   });
   test('at the default text size the activities stay tiles and the start choices stay single rows', async () => {
@@ -588,7 +590,7 @@ describe('creation choices at the largest text size', () => {
       expect(flat(radio).flexDirection).not.toBe('row');
       expect(hostParent(within(radio as never).getByText(marker, { includeHiddenElements: true }) as unknown as Node)).toBe(radio);
     }
-    for (const [name, marker] of [['Teraz', '◆'], ['W przyszłym terminie', '◇']] as const) {
+    for (const [name, marker] of [['Teraz', '◆'], ['Później', '◇']] as const) {
       const radio = screen.getByRole('radio', { name }) as unknown as Node;
       const label = within(radio as never).getByText(name) as unknown as Node;
       expect(hostParent(label)).toBe(radio);
@@ -596,7 +598,7 @@ describe('creation choices at the largest text size', () => {
       expect(flat(radio).flexDirection).toBe('row');
       expect(hostParent(within(radio as never).getByText(marker, { includeHiddenElements: true }) as unknown as Node)).toBe(radio);
     }
-    const bench = screen.getByRole('header', { name: 'Kiedy Przysięga ma się rozpocząć?' }) as unknown as Node;
+    const bench = screen.getByRole('header', { name: 'Start' }) as unknown as Node;
     expect(StyleSheet.flatten(hostParent(bench).props.style as StyleProp<ViewStyle>)).toEqual(expect.objectContaining({ padding: 18 }));
     expect(StyleSheet.flatten(hostParent(bench).props.style as StyleProp<ViewStyle>).paddingHorizontal).toBeUndefined();
   });
@@ -609,9 +611,9 @@ describe('form and review lines', () => {
   afterEach(() => act(() => { Dimensions.set(initial); }));
   const filled = () => screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0);
   const copy = {
-    pl: { intro: 'Wybierz trening i termin ukończenia.', required: 'Wybierz trening i termin, aby zobaczyć zasady.', review: 'Przeczytaj zasady i złóż Przysięgę.', seconds: 'Czas wybierasz z dokładnością do minuty (sekundy: 00).',
+    pl: { required: 'Potrzebny termin.', review: 'Przeczytaj zasady i złóż Przysięgę.', seconds: 'Czas wybierasz z dokładnością do minuty (sekundy: 00).',
       date: ['Data ukończenia', '25 października 2026'], time: ['Godzina ukończenia', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' }], view: 'Zobacz zasady', confirm: 'Złóż Przysięgę' },
-    en: { intro: 'Choose a workout and its deadline.', required: 'Choose a workout and deadline to see the rules.', review: 'Read the rules, then make the Oath.', seconds: 'Times are set to the minute, with seconds at 00.',
+    en: { required: 'Deadline needed.', review: 'Read the rules, then make the Oath.', seconds: 'Times are set to the minute, with seconds at 00.',
       date: ['Completion date', 'October 25, 2026'], time: ['Completion time', { hour: 'Hour', minute: 'Minute', done: 'Use this time' }], view: 'View rules', confirm: 'Commit to the Oath' },
   } as const;
   test.each(['pl', 'en'] as const)('%s at text scale 2 keeps one plain line and one filled button on the form and the review', async locale => {
@@ -620,9 +622,10 @@ describe('form and review lines', () => {
     Dimensions.set({ window: phone, screen: phone });
     const f = setup(); f.controller.start();
     await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-    expect(await screen.findByText(words.intro)).toBeOnTheScreen();
+    // MVP-22-E1.4: the form has no intro line. The missing line under "Zobacz zasady" is its one line.
+    expect(await screen.findByText(words.required)).toBeOnTheScreen();
+    expect(screen.queryByTestId('oath-line')).toBeNull();
     expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
-    expect(screen.getByText(words.required)).toBeOnTheScreen();
     expect(screen.queryByText(words.seconds)).toBeNull();
     expect(filled()).toHaveLength(1);
     await selectDate(words.date[0], words.date[1]);
@@ -640,8 +643,8 @@ describe('form and review lines', () => {
   });
   // MVP-22-A8c: a scheduled start is one more field, so the missing line names it. A start "now" needs none.
   test.each([
-    ['pl', 'W przyszłym terminie', 'Wybierz trening, start i termin, aby zobaczyć zasady.'],
-    ['en', 'At a future time', 'Choose a workout, start and deadline to see the rules.'],
+    ['pl', 'Później', 'Potrzebny start i termin.'],
+    ['en', 'Later', 'Start and deadline needed.'],
   ] as const)('%s a scheduled start names the start in the missing line', async (locale, later, required) => {
     const f = setup(); f.controller.start();
     await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
@@ -663,14 +666,15 @@ describe('header text never sits on the hearth art', () => {
     expect(within(fade).getAllByTestId('header-fade-strip', { includeHiddenElements: true }).length).toBeGreaterThanOrEqual(6);
     return header;
   };
-  test('the form header holds the way back, the title, the intro line and the workout label, and the time bench is warm', async () => {
+  test('the form header holds the way back, the title and the workout label, and the time bench is warm', async () => {
     const f = setup(); f.controller.start();
     await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" onBack={jest.fn()} backLabel="Wróć do Kuźni" /></LocalizationProvider>);
-    await screen.findByTestId('oath-line');
+    await screen.findByRole('header', { name: 'Trening' });
     const header = band();
     expect(within(header).getByRole('button', { name: 'Wróć do Kuźni' })).toBeOnTheScreen();
     expect(within(header).getByRole('header', { name: 'Próba Iskry' })).toBeOnTheScreen();
-    expect(within(header).getByTestId('oath-line')).toHaveTextContent('Wybierz trening i termin ukończenia.');
+    // MVP-22-E1.4: no intro line on the form (word budget).
+    expect(within(header).queryByTestId('oath-line')).toBeNull();
     // The offerings keep their full width below the band, each on its own dark tile.
     expect(within(header).getByRole('header', { name: 'Trening' })).toBeOnTheScreen();
     expect(within(header).queryByRole('radio', { name: 'Bieganie' })).toBeNull();
@@ -775,7 +779,11 @@ describe('drawn prose binding', () => {
   test('Polish form, review and consent lines bind single-letter words', async () => {
     const f = setup(); f.controller.start();
     await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-    expect(await screen.findByText('Wybierz trening i termin ukończenia.', raw)).toBeOnTheScreen();
+    // MVP-22-E1.4: the form's one line is the missing line. With a scheduled start it names both, joined after "i".
+    expect(await screen.findByText('Potrzebny termin.', raw)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Później' }));
+    expect(screen.getByText('Potrzebny start i termin.', raw)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Teraz' }));
     await reviewInPolish();
     expect(await screen.findByText('Przeczytaj zasady i złóż Przysięgę.', raw)).toBeOnTheScreen();
     expect(screen.getByText('Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady.', raw)).toBeOnTheScreen();
@@ -791,7 +799,7 @@ describe('drawn prose binding', () => {
     const f = setup(); f.controller.start();
     jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed('20000000-0000-4000-8000-0000000000b4', f.envelope.preview.snapshot));
     await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
-    expect(await screen.findByText('Choose a workout and its deadline.', raw)).toBeOnTheScreen();
+    expect(await screen.findByText('Deadline needed.', raw)).toBeOnTheScreen();
     await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
     await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
     expect(await screen.findByRole('header', { name: 'Oath made' })).toBeOnTheScreen();

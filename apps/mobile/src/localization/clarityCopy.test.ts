@@ -101,7 +101,7 @@ const sliceA = [
   // A5. The tutorial chapter lines are rules, not "what next" lines, so only the two-sentence guard holds them.
   'room.descriptions.seals', 'room.guide.seals', 'room.guide.hearth', 'room.tutorial.heardMark',
   // A6.
-  'oath.intro', 'oath.reviewIntro', 'oath.formRequired', 'oath.formRequiredScheduled',
+  'oath.reviewIntro', 'oath.formRequired', 'oath.formRequiredScheduled',
 ];
 test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages', key => {
   const [line, english] = [at(pl, key), at(en, key)];
@@ -112,8 +112,9 @@ test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages',
 });
 
 // MVP-22-A4b: the owner-defined term wins (glossary.md "Onboarding intention", owner decision 2026-09-24).
+// MVP-22-E1.4: the basics line keeps only "nothing is saved yet" and no longer names the intention.
 test('onboarding lines name the intention with the owner term, never "cel" or "goal"', () => {
-  for (const key of ['unconfirmed', 'intentionRequired', 'error_intention', 'reviewIntention']) {
+  for (const key of ['intentionRequired', 'error_intention', 'reviewIntention']) {
     expect(group(pl, 'onboarding')[key]).toMatch(/intencj/i);
     expect(group(en, 'onboarding')[key]).toMatch(/intention/i);
   }
@@ -159,8 +160,9 @@ test('the menu shows the pause mark, so the old paused line is gone', () => {
 test('the A8c copy decisions hold in both languages', () => {
   expect(at(pl, 'zaromir.cutoff.1')).toBe('Jeśli trening skończył się w terminie, dowód może jeszcze zdążyć.');
   expect(at(en, 'zaromir.cutoff.1')).toBe('If the workout ended by the deadline, the proof can still make it.');
-  expect(at(pl, 'oath.formRequiredScheduled')).toBe('Wybierz trening, start i termin, aby zobaczyć zasady.');
-  expect(at(en, 'oath.formRequiredScheduled')).toBe('Choose a workout, start and deadline to see the rules.');
+  // MVP-22-E1.4: the missing line names only what is missing, the start too when it is scheduled.
+  expect(at(pl, 'oath.formRequiredScheduled')).toBe('Potrzebny start i termin.');
+  expect(at(en, 'oath.formRequiredScheduled')).toBe('Start and deadline needed.');
   expect(at(en, 'room.tutorial.seals.1')).toMatch(/awaiting a result/);
   expect(at(en, 'room.tutorial.seals.1')).not.toMatch(/awaiting review/);
   expect(at(en, 'room.tutorial.door.3')).toMatch(/you turn it on in Settings/);

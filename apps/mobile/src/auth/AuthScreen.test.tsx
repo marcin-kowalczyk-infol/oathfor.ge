@@ -59,7 +59,7 @@ function setup() {
 }
 afterEach(() => { controllers.splice(0).forEach(controller => controller.dispose()); jest.restoreAllMocks(); });
 
-test.each([['en', 'Your first steps'], ['pl', 'Twoje pierwsze kroki']] as const)('native sign-in reaches persisted onboarding handoff in %s', async (locale, heading) => {
+test.each([['en', 'First steps'], ['pl', 'Pierwsze kroki']] as const)('native sign-in reaches persisted onboarding handoff in %s', async (locale, heading) => {
   const runtime = setup();
   mockDeviceLanguage = locale;
   await render(<LocalizationProvider initialLocale={locale}><AuthScreen {...runtime} /></LocalizationProvider>);
@@ -77,11 +77,11 @@ test('the provider locale, not the device language, is the default before the pr
   await render(<LocalizationProvider initialLocale="pl"><AuthScreen {...runtime} /></LocalizationProvider>);
   expect(await screen.findByText('Witaj w Oathforge')).toBeOnTheScreen();
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
-  expect(await screen.findByText('Twoje pierwsze kroki')).toBeOnTheScreen();
+  expect(await screen.findByText('Pierwsze kroki')).toBeOnTheScreen();
   expect(screen.getByText('Wczytywanie potwierdzonych wyborów…')).toBeOnTheScreen();
-  expect(screen.queryByText('Your first steps')).toBeNull();
+  expect(screen.queryByText('First steps')).toBeNull();
   await act(async () => { loaded({ kind: 'success', value: { profile: { locale: 'pl', timezone: 'Europe/Warsaw', intention: null, companionIntroduced: false, notificationPreference: null }, onboardingStatus: 'pending' } }); });
-  expect(await screen.findByText('Twoje pierwsze kroki')).toBeOnTheScreen();
+  expect(await screen.findByText('Pierwsze kroki')).toBeOnTheScreen();
   await act(async () => { await runtime.controller.logout(); });
   expect(await screen.findByText('Witaj w Oathforge')).toBeOnTheScreen();
 });
@@ -103,11 +103,11 @@ test('native revocation hides access, foreground retries pending logout, and sub
   jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => { listeners.add(listener); return { remove: () => { listeners.delete(listener); } }; });
   const view = await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
-  await screen.findByText('Your first steps');
+  await screen.findByText('First steps');
   runtime.api.logout.mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' });
   await act(async () => runtime.revoke());
   expect(runtime.controller.getState().kind).toBe('revocation_pending');
-  expect(screen.queryByText('Your first steps')).not.toBeOnTheScreen();
+  expect(screen.queryByText('First steps')).not.toBeOnTheScreen();
   await act(async () => { onChange('background'); onChange('active'); });
   expect(runtime.controller.getState().kind).toBe('signed_out');
   await view.unmount();
@@ -147,7 +147,7 @@ test('language preview keeps the draft and explicit confirmation saves basics be
   await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
   await fireEvent.press(await screen.findByRole('radio', { name: 'Polski' }));
-  expect(await screen.findByText('Twoje pierwsze kroki')).toBeOnTheScreen();
+  expect(await screen.findByText('Pierwsze kroki')).toBeOnTheScreen();
   expect(runtime.profileApi.patch).not.toHaveBeenCalled();
   expect(runtime.profileApi.get).toHaveBeenCalledTimes(1);
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Chcę regularnie podejmować aktywność' }));
@@ -233,7 +233,7 @@ test('notification action survives saved-profile routing and native foreground v
   const checks = runtime.api.me.mock.calls.length;
   await act(async () => { onChange('background'); onChange('active'); resolvePermission({ kind: 'denied', canAskAgain: false }); });
   expect(runtime.api.me).toHaveBeenCalledTimes(checks + 1);
-  expect(await screen.findByText('Your choices are saved')).toBeOnTheScreen();
+  expect(await screen.findByText('Choices saved')).toBeOnTheScreen();
   expect(screen.getByText('This device does not allow notifications. You can continue without changing this.')).toBeOnTheScreen();
   runtime.profileApi.complete.mockResolvedValue({ kind: 'success', value: { ...stored, onboardingStatus: 'complete' } });
   await fireEvent.press(await screen.findByRole('button', { name: 'Continue', disabled: false }));
@@ -251,7 +251,7 @@ test.each(['denied', 'unavailable'] as const)('saved opt-in restart reviews with
   const permissions = { read: jest.fn().mockResolvedValue({ kind, canAskAgain: false }), request: jest.fn(), openSettings: jest.fn() };
   await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} permissions={permissions} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
-  expect(await screen.findByText('Your choices are saved')).toBeOnTheScreen();
+  expect(await screen.findByText('Choices saved')).toBeOnTheScreen();
   expect(screen.getByLabelText('Timezone: Coordinated Universal Time')).toBeOnTheScreen();
   expect(permissions.read).toHaveBeenCalled(); expect(permissions.request).not.toHaveBeenCalled();
   expect(runtime.profileApi.complete).not.toHaveBeenCalled();

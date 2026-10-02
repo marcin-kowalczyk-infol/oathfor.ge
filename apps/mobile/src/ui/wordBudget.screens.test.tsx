@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import baseline from './wordBudget.baseline.json';
 import { Text } from './Text';
-import { ratchetProblem, visibleWords, WORD_BUDGET, type Ceiling } from './wordBudget';
+import { ratchetProblem, visibleWords, WORD_BUDGET, words, type Ceiling } from './wordBudget';
 import type { Character } from '../api/characters';
 import type { Oath } from '../api/oathSchema';
 import type { SessionController } from '../auth/session';
@@ -50,7 +50,7 @@ jest.mock('../forge/Sprite', () => ({ ...jest.requireActual('../forge/Sprite'), 
 
 const ceilings = baseline as Record<string, Ceiling>;
 /** Steps whose screens are all at the budget. A ceiling above it must name a later step. */
-const FINISHED: Ceiling['target'][] = [];
+const FINISHED: Ceiling['target'][] = ['E1'];
 const NOW = '2026-10-28T12:00:00Z';
 const copyOf = (locale: Locale) => locale === 'pl' ? pl : en;
 const accountId = '10000000-0000-4000-8000-000000000001';
@@ -274,6 +274,17 @@ describe('screen word budget', () => {
     const steps = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
     const over = Object.entries(ceilings).filter(([, ceiling]) => Math.max(ceiling.pl, ceiling.en) > WORD_BUDGET);
     expect(over.filter(([, ceiling]) => !steps.includes(ceiling.target) || FINISHED.includes(ceiling.target))).toEqual([]);
+  });
+
+  // E1.4 acceptance: an error after the player's own action is exempt and still replaces the step's line.
+  test.each(['pl', 'en'] as const)('a %s onboarding error replaces the line and costs nothing', async locale => {
+    const copy = copyOf(locale).onboarding;
+    const basics = onboardingReady({ locale: null, timezone: null, intention: null, companionIntroduced: false });
+    await onboarding(locale, { ...basics, error: 'save' } as OnboardingViewProps['state']);
+    await settle();
+    expect(screen.getByText(copy.error_save)).toHaveProp('accessibilityRole', 'alert');
+    expect(screen.queryByText(copy.unconfirmed)).toBeNull();
+    expect(visibleWords(screen.root!).count).toBe(ceilings['onboarding.basics'][locale] - words(copy.unconfirmed).length);
   });
 
   test('one added word fails the ratchet and names the screen and the word', async () => {

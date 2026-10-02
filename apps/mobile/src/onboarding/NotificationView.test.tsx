@@ -5,8 +5,8 @@ import { NotificationView, type NotificationViewProps } from './NotificationView
 const callbacks = () => ({ onEnable: jest.fn(), onSkip: jest.fn(), onRetryPermission: jest.fn(), onSettings: jest.fn() });
 
 test.each([
-  ['en', 'Saved preference: notifications enabled.', 'This device does not allow notifications. You can continue without changing this.', 'Continue', 'Open Settings', 'How notifications work'],
-  ['pl', 'Zapisany wybór: powiadomienia włączone.', 'To urządzenie nie zezwala na powiadomienia. Możesz kontynuować bez zmiany tego ustawienia.', 'Dalej', 'Otwórz ustawienia', 'Jak działają powiadomienia'],
+  ['en', 'Saved preference: notifications enabled.', 'This device does not allow notifications. You can continue without changing this.', 'Continue', 'Open Settings', 'About notifications'],
+  ['pl', 'Zapisany wybór: powiadomienia włączone.', 'To urządzenie nie zezwala na powiadomienia. Możesz kontynuować bez zmiany tego ustawienia.', 'Dalej', 'Otwórz ustawienia', 'O powiadomieniach'],
 ] as const)('%s keeps saved opt-in separate from denial and leaves completion to the final review', async (locale, preference, denied, next, settings, link) => {
   const actions = callbacks();
   await render(<LocalizationProvider initialLocale={locale}><NotificationView {...actions} preference="enabled"
@@ -55,8 +55,8 @@ const fixture = (locale: 'pl' | 'en', permission: NotificationViewProps['state']
   <LocalizationProvider initialLocale={locale}><NotificationView {...callbacks()} preference={preference} state={{ permission, busy: false, ...(error ? { error } : {}) }} /></LocalizationProvider>;
 
 test.each([
-  ['pl', 'Przypomnienia nie są jeszcze wysyłane. Zapamiętamy Twój wybór na później.', 'Jak działają powiadomienia', 'Twój wybór', 'To urządzenie zezwala na powiadomienia. Ich dostarczenie zależy też od ustawień urządzenia.'],
-  ['en', 'Reminders are not sent yet. Your choice is kept for later.', 'How notifications work', 'Your choice', 'This device allows notifications. Delivery also depends on your device settings.'],
+  ['pl', 'Przypomnienia nie są jeszcze wysyłane.', 'O powiadomieniach', 'Twój wybór', 'To urządzenie zezwala na powiadomienia. Ich dostarczenie zależy też od ustawień urządzenia.'],
+  ['en', 'Reminders are not sent yet.', 'About notifications', 'Your choice', 'This device allows notifications. Delivery also depends on your device settings.'],
 ] as const)('%s folds the explanations and keeps the honesty line visible', async (locale, honesty, link, heading, granted) => {
   await render(fixture(locale, { kind: 'granted', canAskAgain: true }, null));
   expect(screen.getByText(honesty)).toBeOnTheScreen();
@@ -84,12 +84,12 @@ test.each([
 ] as const)('with preference %s a %o device line blocks nothing and opens behind the link', async (preference, permission, line) => {
   await render(fixture('en', permission, preference));
   expect(screen.queryByText(line)).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: 'How notifications work' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'About notifications' }));
   expect(screen.getAllByText(line)).toHaveLength(1);
 });
 
 test('after the choice the honesty line opens behind the link too, before it the preference sentence does', async () => {
-  const honesty = 'Reminders are not sent yet. Your choice is kept for later.';
+  const honesty = 'Reminders are not sent yet.';
   const undecided = 'Choose whether you want notifications. Nothing is saved until you choose.';
   const view = await render(fixture('en', { kind: 'granted', canAskAgain: true }, null));
   expect(screen.getByText(honesty)).toBeOnTheScreen();

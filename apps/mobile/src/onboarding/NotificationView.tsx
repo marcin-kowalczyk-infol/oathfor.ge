@@ -32,7 +32,8 @@ export function NotificationView({ state, preference, onEnable, onSkip, onRetryP
   const chosen = preference !== null;
   const honestyShown = !chosen || preference === 'enabled';
   const device = <Text style={styles.body}>{text(`notifications.permission_${permission.kind}`)}</Text>;
-  const honesty = <Text style={styles.body}>{text('settings.notifications.future')}</Text>;
+  // The short fact stays beside the choice. That the choice is kept for later reminders opens in the fold (notifications.future).
+  const honesty = <Text style={styles.body}>{text('notifications.notSentYet')}</Text>;
   return <View style={styles.content}>
     {(honestyShown || blocks || error) && <View style={styles.group} accessibilityLiveRegion="polite">
       {honestyShown && honesty}

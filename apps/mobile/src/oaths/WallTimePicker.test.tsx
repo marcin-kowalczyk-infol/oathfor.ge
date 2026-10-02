@@ -219,8 +219,10 @@ test.each([[402], [375]])('at width %i and the largest text size a long Polish m
   const field = screen.getByRole('button', { name: 'Data ukończenia' });
   expect(field).toHaveStyle({ paddingHorizontal: 8, minHeight: 64 });
   expect(screen.getByText('8 października 2026').props.maxFontSizeMultiplier).toBe(2.5);
-  // Native check, 2026-09-30: uncapped 14 pt captions grew past the capped 17 pt value, so the label and zone identifier share the cap.
-  for (const caption of ['Data ukończenia', 'Godzina ukończenia', 'Strefa ukończenia', 'Europe/Warsaw']) expect(screen.getByText(caption).props.maxFontSizeMultiplier).toBe(2.5);
+  // Native check, 2026-09-30: uncapped 14 pt captions grew past the capped 17 pt value, so the captions share the cap.
+  // MVP-22-E1.4: the drawn captions are short and the zone id is only spoken.
+  for (const caption of ['Termin', 'Godzina', 'Strefa']) expect(screen.getByText(caption).props.maxFontSizeMultiplier).toBe(2.5);
+  expect(screen.queryByText('Europe/Warsaw')).toBeNull();
   await fireEvent.press(field);
   expect(screen.getByRole('button', { name: '31 października 2026' })).toHaveTextContent('31 października 2026');
   expect(screen.getByText('31 października 2026').props.maxFontSizeMultiplier).toBe(2.5);

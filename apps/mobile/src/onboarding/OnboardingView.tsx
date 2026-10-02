@@ -81,8 +81,11 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
           accessibilityState={{ checked: ready.draft.intention, disabled: ready.busy }} disabled={ready.busy}
           onPress={() => { if (!ready.busy) onDraft({ intention: !ready.draft.intention }); }}
           style={[styles.choice, ready.draft.intention && styles.selected]}>
-          <Text style={styles.body}>{t('onboarding.intention')}</Text>
-          <Text style={styles.body}>{t(ready.draft.intention ? 'onboarding.checked' : 'onboarding.unchecked')}</Text>
+          {/* The box shows the state as a shape, the checkbox role speaks it (word budget, MVP-22-E1.4). */}
+          <View style={styles.checkRow}>
+            <View testID="intention-box" style={[styles.box, ready.draft.intention && styles.boxOn]}>{ready.draft.intention && <Text allowFontScaling={false} style={styles.tick}>✓</Text>}</View>
+            <Text style={[styles.body, styles.checkText]}>{t('onboarding.intention')}</Text>
+          </View>
         </Pressable>
         {ready.error === 'load'
           ? <Action label={t('auth.retry')} onPress={onRetry} busy={ready.busy} />
@@ -101,11 +104,12 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
         {([
           ['reviewLanguage', profile.locale ? t(`onboarding.language_${profile.locale}`) : ''],
           ['reviewTimezone', profile.timezone ? zoneLabel(profile.timezone, t) : ''],
-          ['reviewIntention', t('onboarding.intention')],
+          ['reviewIntention', t('onboarding.intention'), '✓'],
           ['reviewNotifications', t(profile.notificationPreference === 'enabled' ? 'settings.notifications.on' : 'settings.notifications.off')],
-        ] as const).map(([key, value]) => <View key={key} accessible accessibilityLabel={`${t(`onboarding.${key}`)}: ${value}`} style={styles.summaryRow}>
+        ] as const).map(([key, value, mark]: readonly [string, string, string?]) => <View key={key} accessible accessibilityLabel={`${t(`onboarding.${key}`)}: ${value}`} style={styles.summaryRow}>
           <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.summaryLabel}>{t(`onboarding.${key}`)}</Text>
-          <Text style={styles.body}>{prose(value)}</Text>
+          {/* The one intention draws as a mark, its words stay in the row's label. */}
+          <Text style={styles.body}>{mark ?? prose(value)}</Text>
         </View>)}
       </View>}
       {ready && profile && !complete && !basics && !introduction && notifications && <NotificationView key={review ? 'review' : 'choice'} {...notifications}
@@ -136,6 +140,11 @@ const styles = StyleSheet.create({
   choice: { minHeight: 56, paddingVertical: tokens.space.item, paddingHorizontal: tokens.space.card, borderWidth: 1, borderColor: tokens.warm.faint, borderRadius: 20,
     backgroundColor: tokens.warm.well, gap: tokens.space.small, justifyContent: 'center' },
   selected: { backgroundColor: tokens.warm.chosen, borderColor: tokens.warm.bright },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: tokens.space.item },
+  checkText: { flex: 1 },
+  box: { width: 26, height: 26, borderRadius: 6, borderWidth: 2, borderColor: tokens.warm.field, alignItems: 'center', justifyContent: 'center' },
+  boxOn: { borderColor: tokens.warm.bright, backgroundColor: tokens.warm.chosen },
+  tick: { color: tokens.warm.bright, fontSize: 16, fontWeight: '700' },
   input: { minHeight: 52, paddingVertical: tokens.space.item, paddingHorizontal: tokens.space.card, borderWidth: 1, borderColor: tokens.warm.field, borderRadius: tokens.radius,
     backgroundColor: tokens.warm.well, color: tokens.color.text, fontSize: tokens.body },
   // The card of Settings.

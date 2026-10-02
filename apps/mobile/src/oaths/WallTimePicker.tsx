@@ -100,9 +100,9 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
   const weekdays = Array.from({ length: 7 }, (_, i) => new Intl.DateTimeFormat(locale, { timeZone: 'UTC', weekday: 'short' }).format(new Date(Date.UTC(2024, 0, 1 + i))));
   return <View style={styles.group}>
     {(['date', 'time', 'zone'] as const).map(part => <Pressable key={part} accessibilityRole="button" accessibilityLabel={label(part)} accessibilityValue={{ text: part === 'date' ? value.date ? dateName(value.date) : t('timePicker.chooseDate') : part === 'time' ? value.time.slice(0, 5) || t('timePicker.chooseTime') : `${zoneName(value.zone)} · ${value.zone}` }} accessibilityState={{ disabled }} disabled={disabled} onPress={() => show(part)} style={({ pressed }) => [styles.field, largeText && styles.wideField, pressed && styles.pressed]}>
-      <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{label(part)}</Text>
-      <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.value}>{part === 'date' ? value.date ? dateName(value.date) : t('timePicker.chooseDate') : part === 'time' ? value.time.slice(0, 5) || t('timePicker.chooseTime') : zoneName(value.zone)}</Text>
-      {part === 'zone' && <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{value.zone}</Text>}
+      {/* Short drawn captions and an ellipsis for an empty value. The full names, the empty value and the zone id stay spoken (MVP-22-E1.4). */}
+      <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{t(part === 'date' ? `oath.${field}Caption` : `oath.${part}Caption`)}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.value}>{part === 'date' ? value.date ? dateName(value.date) : '…' : part === 'time' ? value.time.slice(0, 5) || '…' : zoneName(value.zone)}</Text>
     </Pressable>)}
     <Modal visible={open !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(null)}>
       {/* A Modal is a separate native window, so it gets its own safe area provider. */}
