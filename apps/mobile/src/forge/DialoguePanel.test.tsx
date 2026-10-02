@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { Animated, Dimensions, StyleSheet } from 'react-native';
+import { Animated, Dimensions, PixelRatio, StyleSheet } from 'react-native';
 import { DialoguePanel, TYPE_MS } from './DialoguePanel';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Locale } from '../localization/locale';
@@ -292,13 +292,37 @@ describe('the continue mark', () => {
 });
 
 // MVP-22-B2 (G11): a hairline crossed both side braids where the edge strips met the lower corners at a fractional pixel row.
-// The strips now run one device pixel under each corner, which is drawn over them.
-test('the braid strips run under the corners, so no seam shows where they meet', async () => {
-  await render(panel({ allowed: false }));
-  const corner = Number(style('panel-corner-tl').width);
+// MVP-22 G28, native check on iPhone 18 Pro: the one pixel overlap that followed drew a dark line at both lower junctions,
+// because corner and strip carry the same translucent inner shadow and it was drawn twice. The strips now end exactly at the
+// corners and the panel's edges are whole device pixels, so the junction is a whole pixel.
+describe('the braid strips meet the corners', () => {
+  const whole = (points: number) => expect(points * 3).toBeCloseTo(Math.round(points * 3), 6);
   const strip = (id: string) => StyleSheet.flatten(screen.getAllByTestId(id, hidden)[0].parent!.props.style) as Record<string, number>;
-  const seam = StyleSheet.hairlineWidth;
-  expect(seam).toBeGreaterThan(0);
-  for (const id of ['panel-edge-left-tile', 'panel-edge-right-tile']) expect(strip(id)).toMatchObject({ top: corner - seam, bottom: corner - seam });
-  for (const id of ['panel-edge-top-tile', 'panel-edge-bottom-tile']) expect(strip(id)).toMatchObject({ left: corner - seam, right: corner - seam });
+  const tile = (id: string) => StyleSheet.flatten(screen.getAllByTestId(id, hidden)[0].props.style) as Record<string, number>;
+
+  test('end exactly at the corners, with no overlap', async () => {
+    await render(panel({ allowed: false }));
+    const corner = Number(style('panel-corner-tl').width);
+    for (const id of ['panel-edge-left-tile', 'panel-edge-right-tile']) expect(strip(id)).toMatchObject({ top: corner, bottom: corner });
+    for (const id of ['panel-edge-top-tile', 'panel-edge-bottom-tile']) expect(strip(id)).toMatchObject({ left: corner, right: corner });
+  });
+
+  test('the corner and the braid are whole pixels on a 3x screen', async () => {
+    await render(panel({ allowed: false }));
+    whole(Number(style('panel-corner-tl').width));
+    whole(tile('panel-edge-top-tile').height);
+    whole(tile('panel-edge-left-tile').width);
+  });
+
+  test.each([1, 2])('a fractional frame snaps to whole device pixels at font scale %s', async fontScale => {
+    jest.spyOn(PixelRatio, 'get').mockReturnValue(3);
+    Dimensions.set({ window: { width: 402, height: 874, scale: 3, fontScale }, screen: { width: 402, height: 874, scale: 3, fontScale } });
+    await render(panel({ allowed: false, frame: { left: 16.4, width: 370.3, bottom: 20.1, maxHeight: 300.05 } }));
+    const box = style('dialogue-panel') as Record<string, number>;
+    for (const edge of [box.left, box.left + box.width, box.bottom, box.maxHeight]) whole(edge);
+    // Large text fixes the panel's height at its limit, so that height is whole too.
+    if (fontScale > 1.3) whole(box.height);
+    expect(box.left).toBeCloseTo(16.4, 0);
+    expect(box.left + box.width).toBeCloseTo(16.4 + 370.3, 0);
+  });
 });

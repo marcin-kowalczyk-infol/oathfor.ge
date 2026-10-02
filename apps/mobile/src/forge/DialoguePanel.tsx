@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Image, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
+import { Animated, Image, PixelRatio, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
 import { Text } from '../ui/Text';
 import { tokens } from '../ui/tokens';
 import { useTranslation } from '../localization/LocalizationProvider';
@@ -22,8 +22,6 @@ const TILE_H = 142 / 3;
 const TILE_V = 127 / 3;
 const PLATE = { width: 612 / 3 * 0.8, height: 128 / 3 * 0.8 };
 const RUNE = 26;
-// One device pixel of overlap between the braid strips and the corners.
-const SEAM = StyleSheet.hairlineWidth;
 // Hermes may lack Intl.Segmenter. Code points then keep Polish letters whole, only joined emoji may split for a moment.
 const segmenter = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 const graphemesOf = (text: string) => segmenter ? Array.from(segmenter.segment(text), part => part.segment) : Array.from(text);
@@ -123,8 +121,13 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
     <Text style={styles.untyped}>{graphemes.slice(count).join('')}</Text>
   </Text>;
 
-  return <View testID="dialogue-panel" onLayout={onHeight && (event => onHeight(event.nativeEvent.layout.height))} style={[styles.panel, { left: frame.left, width: frame.width, bottom: frame.bottom, maxHeight: frame.maxHeight }, largeText && { height: frame.maxHeight }]}>
-    <PaintedFrame width={frame.width} height={frame.maxHeight} />
+  // MVP-22 G28: whole device pixel edges, so the strips meet the corners on a whole pixel (styles.edgeH). Both edges are snapped, then the width follows.
+  const left = PixelRatio.roundToNearestPixel(frame.left);
+  const width = PixelRatio.roundToNearestPixel(frame.left + frame.width) - left;
+  const bottom = PixelRatio.roundToNearestPixel(frame.bottom);
+  const maxHeight = PixelRatio.roundToNearestPixel(frame.maxHeight);
+  return <View testID="dialogue-panel" onLayout={onHeight && (event => onHeight(event.nativeEvent.layout.height))} style={[styles.panel, { left, width, bottom, maxHeight }, largeText && { height: maxHeight }]}>
+    <PaintedFrame width={width} height={maxHeight} />
     {/* Owner review 2026-09-28: the frame hid the lower half of the player's medallion. Busts sit over it. */}
     {bust('guide')}
     {bust('player')}
@@ -201,11 +204,11 @@ const styles = StyleSheet.create({
   wood: { position: 'absolute', left: 4, top: 4, right: 4, bottom: 4, overflow: 'hidden' },
   woodImage: { width: '100%', height: '100%' },
   corner: { position: 'absolute', width: CORNER, height: CORNER },
-  // MVP-22-B2 (G11): a strip that ended exactly where a corner began left a hairline on a fractional pixel row.
-  // Each strip runs one device pixel under the corners, which are drawn over it. One pixel, because the inner shadow of both
-  // is translucent and a wider overlap would darken it.
-  edgeH: { position: 'absolute', left: CORNER - SEAM, right: CORNER - SEAM, height: EDGE, flexDirection: 'row', overflow: 'hidden' },
-  edgeV: { position: 'absolute', top: CORNER - SEAM, bottom: CORNER - SEAM, width: EDGE, overflow: 'hidden' },
+  // MVP-22-B2 (G11), MVP-22 G28: each strip ends exactly where a corner begins, never under it. Corner and strip edges carry
+  // the same translucent inner shadow, so any overlap draws it twice as a dark line. The panel's edges are snapped to whole
+  // device pixels and the corner is 96 pixels, so the junction is a whole pixel.
+  edgeH: { position: 'absolute', left: CORNER, right: CORNER, height: EDGE, flexDirection: 'row', overflow: 'hidden' },
+  edgeV: { position: 'absolute', top: CORNER, bottom: CORNER, width: EDGE, overflow: 'hidden' },
   bust: { position: 'absolute', top: -BUST_RISE, width: BUST, height: BUST, borderRadius: BUST / 2, overflow: 'hidden', backgroundColor: '#44372c', borderColor: bronze, borderWidth: 2 },
   guideBust: { width: '100%', height: '100%' },
   // Żaromir's bust is painted with a transparent background, so it rises free of a round frame.
