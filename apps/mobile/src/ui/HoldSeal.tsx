@@ -26,11 +26,11 @@ type Phase = 'idle' | 'holding' | 'full';
 const FRAME: Record<Phase, number> = { idle: 0, holding: 1, full: 2 };
 
 export type HoldSealProps = {
-  /** The stored declaration, drawn in full as the label (D-E1). */
-  declaration: string;
+  /** The stored text drawn in full as the label: the promise on the rules review (D-E1, corrected 2026-10-02), the declaration on the proof form once E6 adopts it (D-E11). */
+  label: string;
   /** Called once on release after a full hold, or on the accessibility activate action. */
   onSeal: () => void;
-  /** The action named after the declaration for a screen reader. Defaults to the Oath's "Złóż Przysięgę". */
+  /** The action named after the label for a screen reader. Defaults to the Oath's "Złóż Przysięgę". */
   actionLabel?: string;
   /** The drawn hint, for example the proof form's "Przytrzymaj, by wysłać dowód". */
   hint?: string;
@@ -55,9 +55,9 @@ export function useScreenReaderEnabled(): boolean {
   return enabled;
 }
 
-/** The label a screen reader reads: the declaration, a stop, then the action. */
-function spoken(declaration: string, action: string) {
-  const text = declaration.trim();
+/** The label a screen reader reads: the drawn label, a stop, then the action. */
+function spoken(drawn: string, action: string) {
+  const text = drawn.trim();
   return /[.!?…]$/.test(text) ? `${text} ${action}` : `${text}. ${action}`;
 }
 
@@ -68,7 +68,7 @@ function spoken(declaration: string, action: string) {
  * so the VoiceOver double tap and Switch Control select seal without holding. Reduce Motion shows the full ring in one
  * change at 1.0 s. The ring is drawn in code. The wax too, until the E3.5 hookup gives the registry a sheet.
  */
-export function HoldSeal({ declaration, onSeal, actionLabel, hint, tapHint, busy = false, disabled = false, unavailableReason }: HoldSealProps) {
+export function HoldSeal({ label: drawnLabel, onSeal, actionLabel, hint, tapHint, busy = false, disabled = false, unavailableReason }: HoldSealProps) {
   const { t, i18n } = useTranslation();
   const art = useArt().oaths.holdSeal;
   const motion = useMotionAllowed();
@@ -130,7 +130,7 @@ export function HoldSeal({ declaration, onSeal, actionLabel, hint, tapHint, busy
     sealRef.current();
   }
 
-  const label = spoken(declaration, actionLabel ?? t('oath.confirm'));
+  const label = spoken(drawnLabel, actionLabel ?? t('oath.confirm'));
   const tap = tapHint ?? t('oath.holdTapHint');
   const drawnHint = screenReader ? tap : (hint ?? t('oath.holdHint'));
   const reason = unavailableReason ?? (busy ? t('common.working') : undefined);
@@ -167,7 +167,7 @@ export function HoldSeal({ declaration, onSeal, actionLabel, hint, tapHint, busy
         </View>}
     </View>
     {/* Inset caps as the consent and cards around it on the review, so long Polish words stay whole at the largest size. */}
-    <Text budget="declaration" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.declaration, unavailable && styles.muted]}>{bindShortWords(declaration, i18n.language)}</Text>
+    <Text budget="declaration" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, unavailable && styles.muted]}>{bindShortWords(drawnLabel, i18n.language)}</Text>
     <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.hint}>{bindShortWords(unavailable && reason ? reason : drawnHint, i18n.language)}</Text>
   </View>;
 }
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   well: { width: WAX * 0.62, height: WAX * 0.62, borderRadius: WAX * 0.31, backgroundColor: '#a3301f', borderWidth: 2, borderColor: '#b84a35' },
   pressed: { backgroundColor: '#741d12', borderColor: '#4f120a' },
   full: { backgroundColor: '#c8642a', borderColor: tokens.warm.bright },
-  declaration: { color: tokens.color.text, fontFamily: tokens.font.display, fontSize: tokens.body, lineHeight: tokens.body * 1.5, textAlign: 'center' },
+  label: { color: tokens.color.text, fontFamily: tokens.font.display, fontSize: tokens.body, lineHeight: tokens.body * 1.5, textAlign: 'center' },
   muted: { color: tokens.color.secondary },
   hint: { color: tokens.color.secondary, fontSize: 15, lineHeight: 22, textAlign: 'center' },
 });

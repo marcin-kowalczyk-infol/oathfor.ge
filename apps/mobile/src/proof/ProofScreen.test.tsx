@@ -415,7 +415,7 @@ test('the proof screen stands on a solid background, never on the seal wall artw
 test('step 3 shows the stored declaration once and a short checkbox that speaks it', async () => {
   const value = oath();
   await show('pl', value);
-  expect(screen.queryByText('Wymagane potwierdzenie ukończenia')).toBeNull();
+  expect(screen.queryByText('Potwierdzenie przy dowodzie')).toBeNull();
   expect(screen.getByText(value.snapshot.copy.pl.declaration)).toBeOnTheScreen();
   const box = screen.getByRole('checkbox', { name: /Tak, potwierdzam/ });
   expect(within(box).getByText('Tak, potwierdzam')).toBeOnTheScreen();

@@ -167,6 +167,7 @@
     "holdHint": "Przytrzymaj, by złożyć Przysięgę",
     "holdTapHint": "Stuknij dwukrotnie, by złożyć Przysięgę",
     "edit": "Zmień",
+    "editLabel": "Zmień wybory",
     "loading": "Wczytywanie Przysięgi…",
     "retry": "Spróbuj ponownie",
     "formRequired": "Potrzebny termin.",
@@ -222,7 +223,7 @@
       "activation": "Rozpoczęcie",
       "deadline": "Ukończ do (D)",
       "cutoff": "Dowód musi dotrzeć do (S)",
-      "declaration": "Wymagane potwierdzenie ukończenia",
+      "declaration": "Potwierdzenie przy dowodzie",
       "now": "Teraz, w chwili potwierdzenia na serwerze"
     },
     "sections": {
@@ -290,7 +291,10 @@
     "fullRules": "Pełne zasady",
     "guide": {
       "1": "Skończ trening, zanim przesypie się piasek.",
-      "2": "Po terminie masz kwadrans na dowód.",
+      "2_one": "Po terminie masz {{count}} minutę na dowód.",
+      "2_few": "Po terminie masz {{count}} minuty na dowód.",
+      "2_many": "Po terminie masz {{count}} minut na dowód.",
+      "2_other": "Po terminie masz {{count}} minuty na dowód.",
       "3": "Po pieczęci nic się nie zmieni.",
       "replay": "Zapytaj Żaromira"
     },
@@ -307,7 +311,7 @@
       "reward": "Nagroda",
       "rewardValue": "{{photo}}–{{record}} XP",
       "consequence": "Jeśli nie zdążysz",
-      "consequenceValue": "XP zostaje"
+      "consequenceValue": "{{missed}} XP, bez straty"
     }
   },
   "oathHome": {

@@ -163,6 +163,7 @@
     "holdHint": "Hold to commit to the Oath",
     "holdTapHint": "Double-tap to commit to the Oath",
     "edit": "Change",
+    "editLabel": "Change choices",
     "loading": "Loading your Oath…",
     "retry": "Try again",
     "formRequired": "Deadline needed.",
@@ -218,7 +219,7 @@
       "activation": "Activation",
       "deadline": "Complete by (D)",
       "cutoff": "Proof must arrive by (S)",
-      "declaration": "Required completion declaration",
+      "declaration": "Confirmation with your proof",
       "now": "Now, when the server confirms"
     },
     "sections": {
@@ -282,7 +283,8 @@
     "fullRules": "Full rules",
     "guide": {
       "1": "Finish your workout by then.",
-      "2": "Proof gets 15 extra minutes.",
+      "2_one": "Proof gets {{count}} extra minute.",
+      "2_other": "Proof gets {{count}} extra minutes.",
       "3": "Once sealed, nothing here changes.",
       "replay": "Ask Zharomir"
     },
@@ -299,7 +301,7 @@
       "reward": "Reward",
       "rewardValue": "{{photo}}–{{record}} XP",
       "consequence": "If missed",
-      "consequenceValue": "XP kept"
+      "consequenceValue": "{{missed}} XP, no loss"
     }
   },
   "oathHome": {

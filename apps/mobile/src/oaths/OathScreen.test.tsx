@@ -10,6 +10,8 @@ import type { SessionController } from '../auth/session';
 import type { OathClient } from '../api/oaths';
 import type { PendingStorage } from './pendingStorage';
 import { tokens } from '../ui/tokens';
+import { promiseText } from './SnapshotRules';
+import { plainText } from '../localization/typography';
 import en from '../localization/locales/en/messages.json';
 import pl from '../localization/locales/pl/messages.json';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
@@ -46,7 +48,7 @@ test('chosen running deadline previews all rules before explicit acceptance can 
   await selectTime('Time, deadline', '02', '30');
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   expect(f.api.preview).toHaveBeenCalledWith(token, { activity: 'running', activation: { mode: 'now' }, deadline: { local: '2026-10-25T02:30:00', timezone: 'Europe/Warsaw' } }, expect.any(AbortSignal));
-  expect(await screen.findByText(f.envelope.preview.snapshot.copy.en.declaration)).toBeOnTheScreen();
+  expect(await screen.findByText(promiseText(f.envelope.preview.snapshot, 'en'), { normalizer: plainText })).toBeOnTheScreen();
   expect(screen.getByText('Hold to accept every rule')).toBeOnTheScreen();
   expect(screen.queryByText(f.envelope.preview.snapshot.copy.en.sections.appeal)).toBeNull();
   const fold = screen.getByRole('button', { name: 'Full rules' });
@@ -81,10 +83,10 @@ describe('the review as pictograms', () => {
   }
   const drawn = (testID: string) => within(screen.getByTestId(testID)).getAllByText(/./, { includeHiddenElements: true }).map(node => node.props.children).join(' | ');
   const words = {
-    en: { deadline: 'Deadline | 02:30 | Sun, Oct 25', cutoff: 'Last chance | +15 min', fixed: 'Rules fixed | no changes', reward: 'Reward | 40–50 XP', consequence: 'If missed | XP kept',
+    en: { deadline: 'Deadline | 02:30 | Sun, Oct 25', cutoff: 'Last chance | +15 min', fixed: 'Rules fixed | no changes', reward: 'Reward | 40–50 XP', consequence: 'If missed | 0 XP, no loss',
       spoken: { deadline: 'Deadline, 02:30, Sun, Oct 25, Warsaw', cutoff: 'Last chance, 02:45, 15 minutes after the deadline', fixed: 'Rules fixed. Once made, the rules do not change.',
         reward: 'Reward. 40 XP for a photo, 50 XP for an activity record', consequence: 'If missed. You keep the XP you earned. You can take a Recovery Quest for 15 XP.' } },
-    pl: { deadline: 'Termin | 02:30 | niedz 25 paź', cutoff: 'Ostatni moment | +15 min', fixed: 'Zasady stałe | bez zmian', reward: 'Nagroda | 40–50 XP', consequence: 'Jeśli nie zdążysz | XP zostaje',
+    pl: { deadline: 'Termin | 02:30 | niedz 25 paź', cutoff: 'Ostatni moment | +15 min', fixed: 'Zasady stałe | bez zmian', reward: 'Nagroda | 40–50 XP', consequence: 'Jeśli nie zdążysz | 0 XP, bez straty',
       spoken: { deadline: 'Termin, 02:30, niedz 25 paź, Warszawa', cutoff: 'Ostatni moment, 02:45, 15 minut po terminie', fixed: 'Zasady stałe. Po złożeniu zasady się nie zmienią.',
         reward: 'Nagroda. 40 XP za zdjęcie, 50 XP za zapis aktywności', consequence: 'Jeśli nie zdążysz. Nie tracisz zdobytego XP. Możesz podjąć Zadanie Powrotu za 15 XP.' } },
   };
@@ -105,22 +107,31 @@ describe('the review as pictograms', () => {
     const f = await reviewIn('en');
     const copy = f.envelope.preview.snapshot.copy.en;
     expect(screen.queryAllByTestId(/^rule-card-/)).toEqual([]);
-    expect(screen.queryByText(copy.promise.slice(0, 20), { exact: false })).toBeNull();
+    // Review, 2026-10-02 (D-E1 corrected): the promise is drawn on the review as the hold label. The past-tense declaration
+    // belongs to the proof, so it waits in the fold under a heading that says so.
+    expect(screen.getByText(promiseText(f.envelope.preview.snapshot, 'en'), { normalizer: plainText })).toBeOnTheScreen();
+    expect(screen.queryByText(copy.declaration)).toBeNull();
     expect(screen.queryByText(copy.sections.rewards)).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: 'Full rules' }));
     expect(screen.getAllByTestId(/^rule-card-/).map(card => card.props.testID)).toEqual(['start', 'proof', 'review', 'pause'].map(id => `rule-card-${id}`));
     for (const text of Object.values(copy.sections) as string[]) expect(screen.getByText(text)).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Confirmation with your proof' })).toBeOnTheScreen();
+    expect(screen.getByText(copy.declaration)).toBeOnTheScreen();
   });
-  test('the stored declaration is the drawn hold label, the consent is its hint, and the hold is the only filled control', async () => {
+  test('the stored promise is the drawn hold label, the consent is its hint, and the hold is the only filled control', async () => {
     const f = await reviewIn('pl');
-    const declaration = f.envelope.preview.snapshot.copy.pl.declaration;
+    const promise = promiseText(f.envelope.preview.snapshot, 'pl');
     const control = await holdSeal();
-    expect(control).toHaveProp('accessibilityLabel', `${declaration} Złóż Przysięgę`);
+    expect(within(control).getByText(promise, { normalizer: plainText })).toBeOnTheScreen();
+    expect(within(control).queryByText(f.envelope.preview.snapshot.copy.pl.declaration)).toBeNull();
+    expect(control).toHaveProp('accessibilityLabel', `${promise} Złóż Przysięgę`);
     expect(control).toHaveProp('accessibilityHint', 'Stuknij dwukrotnie, by przyjąć wszystkie zasady');
     expect(within(control).getByText('Przytrzymaj, by przyjąć wszystkie zasady')).toBeOnTheScreen();
     expect(screen.queryByText('Przeczytaj zasady i złóż Przysięgę.')).toBeNull();
     expect(screen.queryAllByText('◆', { includeHiddenElements: true })).toEqual([]);
-    const change = screen.getByRole('button', { name: 'Zmień' });
+    // Review, 2026-10-02: the drawn word stays short, the spoken label names what changes.
+    const change = screen.getByRole('button', { name: 'Zmień wybory' });
+    expect(within(change).getByText('Zmień')).toBeOnTheScreen();
     expect(within(change).queryByText('›', { includeHiddenElements: true })).toBeNull();
     await fireEvent.press(change);
     expect(await screen.findByRole('button', { name: 'Zobacz zasady' })).toBeOnTheScreen();
@@ -155,7 +166,7 @@ test('repeated local time requires an explicit server choice and editing invalid
   await fireEvent.press(screen.getByRole('radio', { name: 'UTC +01:00' }));
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   expect(jest.mocked(f.api.preview).mock.calls[1][1].deadline.offset).toBe('+01:00');
-  await fireEvent.press(await screen.findByRole('button', { name: 'Change' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Change choices' }));
   expect(screen.queryByTestId('hold-seal')).toBeNull();
   expect(screen.getByText('October 25, 2026')).toBeOnTheScreen();
   expect(screen.getByText('02:30')).toBeOnTheScreen();
@@ -365,16 +376,16 @@ test('the first review lets Żaromir name each pictogram once, lighting it and p
   const lit = (id: string) => expect(screen.getByTestId(`pictogram-${id}`)).toHaveStyle({ borderColor: '#e0a84f' });
   const gestures = () => screen.queryAllByTestId(/^pictogram-gesture-/, { includeHiddenElements: true }).map(node => node.props.testID);
   const next = async () => { await fireEvent.press(screen.getByRole('button', { name: 'Dalej' })); };
-  expect(line()).toBe('Żaromir: Skończ trening, zanim przesypie się piasek.');
+  expect(line()).toBe('Termin, 02:30, niedz 25 paź, Warszawa. Żaromir: Skończ trening, zanim przesypie się piasek.');
   lit('deadline'); expect(gestures()).toEqual(['pictogram-gesture-deadline']);
   expect(screen.getByText('1 / 3')).toBeOnTheScreen();
   await next();
-  expect(line()).toBe('Żaromir: Po terminie masz kwadrans na dowód.');
+  expect(line()).toBe('Ostatni moment, 02:45, 15 minut po terminie. Żaromir: Po terminie masz 15 minut na dowód.');
   lit('cutoff'); expect(gestures()).toEqual(['pictogram-gesture-cutoff']);
   expect(screen.getByTestId('pictogram-deadline')).not.toHaveStyle({ borderColor: '#e0a84f' });
   await next();
   // MVP-22 G31: the spoken label stays plain, the drawn line keeps its no-break spaces (clarity.md, MVP-22-G24).
-  expect(line()).toBe('Żaromir: Po pieczęci nic się nie zmieni.');
+  expect(line()).toBe('Zasady stałe. Po złożeniu zasady się nie zmienią. Żaromir: Po pieczęci nic się nie zmieni.');
   expect(line()).not.toMatch(/[\u00a0\u2060]/);
   lit('fixed'); expect(gestures()).toEqual(['pictogram-gesture-fixed']);
   expect(storage.markSeen).not.toHaveBeenCalled();
@@ -389,7 +400,7 @@ test('with Reduce Motion the guide lights each pictogram without a gesture', asy
   restoreMotion = motionPreference(true);
   await openReview(setup(), rulesGuide(false), 'en');
   await screen.findByTestId('dialogue-panel');
-  expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toBe('Zharomir: Finish your workout by then.');
+  expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toBe('Deadline, 02:30, Sun, Oct 25, Warsaw. Zharomir: Finish your workout by then.');
   expect(screen.getByTestId('pictogram-deadline')).toHaveStyle({ borderColor: '#e0a84f' });
   expect(screen.queryAllByTestId(/^pictogram-gesture-/, { includeHiddenElements: true })).toEqual([]);
   await fireEvent.press(screen.getByRole('button', { name: 'Next' }));
@@ -397,11 +408,26 @@ test('with Reduce Motion the guide lights each pictogram without a gesture', asy
   expect(screen.queryAllByTestId(/^pictogram-gesture-/, { includeHiddenElements: true })).toEqual([]);
 });
 // The barks stay short: at most 8 Polish words each (engagement.md E3 and E5), one per large pictogram.
+// Review, 2026-10-02: the second bark named a fixed quarter hour. It counts the snapshot's grace minutes in every plural form.
 test('each guide bark has at most 8 Polish words and both catalogs have one per large pictogram', () => {
   const guide = (messages: { oath: { guide: Record<string, string> } }) => Object.entries(messages.oath.guide).filter(([key]) => key !== 'replay');
-  expect(guide(pl).map(([key]) => key)).toEqual(['1', '2', '3']);
-  expect(guide(en).map(([key]) => key)).toEqual(['1', '2', '3']);
+  const steps = (messages: Parameters<typeof guide>[0]) => [...new Set(guide(messages).map(([key]) => key.replace(/_(one|few|many|other)$/, '')))].sort();
+  expect(steps(pl)).toEqual(['1', '2', '3']);
+  expect(steps(en)).toEqual(['1', '2', '3']);
+  expect(guide(pl).filter(([key]) => key.startsWith('2')).map(([key]) => key)).toEqual(['2_one', '2_few', '2_many', '2_other']);
+  expect(guide(en).filter(([key]) => key.startsWith('2')).map(([key]) => key)).toEqual(['2_one', '2_other']);
+  for (const [key, bark] of [...guide(pl), ...guide(en)]) if (key.startsWith('2')) expect(bark).toContain('{{count}}');
   for (const [, bark] of guide(pl)) expect(bark.trim().split(/\s+/).length).toBeLessThanOrEqual(8);
+});
+// Review, 2026-10-02: a seal held while Żaromir still spoke left the explanation unseen, so it came back on the next review.
+test('sealing while the guide is open marks the explanation seen', async () => {
+  const f = setup(); const storage = rulesGuide(false);
+  await openReview(f, storage);
+  await screen.findByTestId('dialogue-panel');
+  await seal();
+  expect(storage.markSeen).toHaveBeenCalledWith(accountId);
+  expect(storage.markSeen).toHaveBeenCalledTimes(1);
+  expect(f.api.confirm).toHaveBeenCalledTimes(1);
 });
 test('skipping marks the explanation seen, and the Żaromir button replays it without writing again', async () => {
   const f = setup(); const storage = rulesGuide(false);
@@ -411,7 +437,7 @@ test('skipping marks the explanation seen, and the Żaromir button replays it wi
   expect(screen.queryByTestId('dialogue-panel')).toBeNull();
   expect(storage.markSeen).toHaveBeenCalledWith(accountId);
   await fireEvent.press(screen.getByRole('button', { name: 'Ask Zharomir' }));
-  expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toBe('Zharomir: Finish your workout by then.');
+  expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toBe('Deadline, 02:30, Sun, Oct 25, Warsaw. Zharomir: Finish your workout by then.');
   await fireEvent.press(screen.getByRole('button', { name: 'Skip introduction' }));
   expect(storage.markSeen).toHaveBeenCalledTimes(1);
 });
@@ -961,7 +987,7 @@ describe('drawn prose binding', () => {
     await selectDate(pl.date, pl.day); await selectTime(pl.time, '02', '30', pl.words);
     await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
   }
-  test('Polish form lines and the drawn declaration bind single-letter words', async () => {
+  test('Polish form lines and the drawn promise bind single-letter words', async () => {
     const f = setup(); f.controller.start();
     await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
     // MVP-22-E1.4: the form's one line is the missing line. MVP-22-E1.R: with a scheduled start it names the first missing choice,
@@ -971,8 +997,8 @@ describe('drawn prose binding', () => {
     expect(screen.getByText('Potrzebny start.', raw)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('radio', { name: 'Teraz' }));
     await reviewInPolish();
-    expect(await screen.findByText(/wskazanego w\u00a0tej Przysiędze/, raw)).toBeOnTheScreen();
-    expect(await holdSeal()).toHaveProp('accessibilityLabel', expect.stringContaining('wskazanego w tej Przysiędze'));
+    expect(await screen.findByText(/ukończenie i\u00a0prześlę zdjęcie/, raw)).toBeOnTheScreen();
+    expect(await holdSeal()).toHaveProp('accessibilityLabel', expect.stringContaining('ukończenie i prześlę zdjęcie'));
   });
   test('the Polish review-again line binds single-letter words', async () => {
     const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code: 'preview_superseded' });

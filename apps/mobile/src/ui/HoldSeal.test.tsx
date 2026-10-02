@@ -19,11 +19,11 @@ afterEach(() => {
   for (const name of ['isScreenReaderEnabled', 'isReduceMotionEnabled'] as const) (AccessibilityInfo[name] as unknown as jest.Mock).mockImplementation(() => Promise.resolve(false));
 });
 
-type Extra = Partial<Omit<HoldSealProps, 'declaration' | 'onSeal'>>;
+type Extra = Partial<Omit<HoldSealProps, 'label' | 'onSeal'>>;
 async function show(props: Extra = {}, locale: 'pl' | 'en' = 'pl') {
   const onSeal = jest.fn();
   // A merged spread loses the disabled and unavailableReason pairing, which each test keeps itself.
-  const element = (extra: Extra = {}) => <LocalizationProvider initialLocale={locale}><HoldSeal {...{ declaration, onSeal, ...props, ...extra } as HoldSealProps} /></LocalizationProvider>;
+  const element = (extra: Extra = {}) => <LocalizationProvider initialLocale={locale}><HoldSeal {...{ label: declaration, onSeal, ...props, ...extra } as HoldSealProps} /></LocalizationProvider>;
   const view = await render(element());
   // The motion and screen reader preferences arrive as promises after mount.
   await act(async () => {});
@@ -152,7 +152,7 @@ test.each([
 });
 
 test('a declaration without a closing stop gets one before the action', async () => {
-  await render(<LocalizationProvider initialLocale="pl"><HoldSeal declaration="Ćwiczę codziennie" onSeal={jest.fn()} /></LocalizationProvider>);
+  await render(<LocalizationProvider initialLocale="pl"><HoldSeal label="Ćwiczę codziennie" onSeal={jest.fn()} /></LocalizationProvider>);
   await act(async () => {});
   expect(screen.getByRole('button', { name: 'Ćwiczę codziennie. Złóż Przysięgę' })).toBeOnTheScreen();
 });
@@ -222,7 +222,7 @@ test('the target is at least 44 pt and draws a code ring around a code wax seal 
 
 test('a hooked sheet draws its idle, pressed and full cells', async () => {
   const art = { ...currentArt, oaths: { ...currentArt.oaths, holdSeal: { ...currentArt.oaths.stepBadges } } };
-  await render(<LocalizationProvider initialLocale="pl"><ArtSetProvider art={art}><HoldSeal declaration={declaration} onSeal={jest.fn()} /></ArtSetProvider></LocalizationProvider>);
+  await render(<LocalizationProvider initialLocale="pl"><ArtSetProvider art={art}><HoldSeal label={declaration} onSeal={jest.fn()} /></ArtSetProvider></LocalizationProvider>);
   await act(async () => {});
   const target = screen.getByTestId('hold-seal');
   await fireEvent(target, 'layout', layout);

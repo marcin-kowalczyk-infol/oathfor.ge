@@ -76,8 +76,8 @@ test('the review groups cover every card once', () => {
   expect([...REVIEW_GROUPS.large, ...REVIEW_GROUPS.small, ...REVIEW_GROUPS.folded].sort()).toEqual([...ids].sort());
 });
 test.each([
-  ['pl', { deadline: ['Termin', '18:00', 'pt 2 paź'], cutoff: ['Ostatni moment', '+15 min'], fixed: ['Zasady stałe', 'bez zmian'], reward: ['Nagroda', '40–50 XP'], consequence: ['Jeśli nie zdążysz', 'XP zostaje'] }],
-  ['en', { deadline: ['Deadline', '18:00', 'Fri, Oct 2'], cutoff: ['Last chance', '+15 min'], fixed: ['Rules fixed', 'no changes'], reward: ['Reward', '40–50 XP'], consequence: ['If missed', 'XP kept'] }],
+  ['pl', { deadline: ['Termin', '18:00', 'pt 2 paź'], cutoff: ['Ostatni moment', '+15 min'], fixed: ['Zasady stałe', 'bez zmian'], reward: ['Nagroda', '40–50 XP'], consequence: ['Jeśli nie zdążysz', '0 XP, bez straty'] }],
+  ['en', { deadline: ['Deadline', '18:00', 'Fri, Oct 2'], cutoff: ['Last chance', '+15 min'], fixed: ['Rules fixed', 'no changes'], reward: ['Reward', '40–50 XP'], consequence: ['If missed', '0 XP, no loss'] }],
 ] as const)('%s pictograms carry a short label and short snapshot values', (locale, expected) => {
   const pictograms = pictogramsOf(snapshot(), locale);
   const shown = Object.fromEntries([...pictograms.large, ...pictograms.small].map(item => [item.id, [item.label, ...item.values]]));
@@ -85,14 +85,17 @@ test.each([
   for (const item of [...pictograms.large, ...pictograms.small]) expect(item.label.split(/\s+/).length).toBeLessThanOrEqual(3);
   // Native check, 2026-10-02: the fixed rules card stood with an empty lower half beside 18:00 and +15 min. Its value line is
   // words, not a snapshot figure, so it counts as a pictogram label of at most three words (owner decision, MVP-22-E3r).
-  const fixed = pictograms.large.find(item => item.id === 'fixed')!;
-  expect(fixed.labelValues).toBe(true);
-  for (const value of fixed.values) expect(value.split(/\s+/).length).toBeLessThanOrEqual(3);
-  expect(pictograms.large.filter(item => item.labelValues).map(item => item.id)).toEqual(['fixed']);
+  // Review, 2026-10-02: "XP zostaje" was fixed copy and unclear. The consequence value is the snapshot's missed XP with a short
+  // word line, so it is a pictogram label too.
+  const labelled = [...pictograms.large, ...pictograms.small].filter(item => item.labelValues);
+  expect(labelled.map(item => item.id)).toEqual(['fixed', 'consequence']);
+  for (const item of labelled) for (const value of item.values) expect(value.split(/\s+/).filter(word => /\p{L}/u.test(word)).length).toBeLessThanOrEqual(3);
 });
 test('the pictogram values follow the snapshot, not fixed copy', () => {
   const value = snapshot(next => { Object.assign(next.review, { receiptGraceSeconds: 1800 }); Object.assign(next.rewards, { photoTotal: 45, recordTotal: 60 }); });
   const pictograms = pictogramsOf(value, 'en');
   expect(pictograms.large.find(item => item.id === 'cutoff')!.values).toEqual(['+30 min']);
   expect(pictograms.small.find(item => item.id === 'reward')!.values).toEqual(['45–60 XP']);
+  const missed = snapshot(next => { Object.assign(next.consequences, { missedXp: 5 }); });
+  expect(pictogramsOf(missed, 'pl').small.find(item => item.id === 'consequence')!.values).toEqual(['5 XP, bez straty']);
 });

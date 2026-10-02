@@ -69,7 +69,7 @@ Below the cards a scroll icon opens "Pełne zasady" / "Full rules": the complete
 
 The reward and consequence cards let the player see both without opening the full rules (decision Q2).
 
-Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, not implemented yet): the review shows the promise, three large pictograms (deadline, last chance, rules fixed), two small pictograms for reward and consequence (keeping Q2, D-E6) and a press-and-hold seal whose label is the stored declaration (D-E1, D-E5). The cards for start, proof, review and pause move into "Pełne zasady" with the stored rules. The consent line is reworded because the "Złóż Przysięgę" button no longer exists.
+Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, not implemented yet): the review shows the promise, three large pictograms (deadline, last chance, rules fixed), two small pictograms for reward and consequence (keeping Q2, D-E6) and a press-and-hold seal whose label is the stored promise (D-E1, D-E5, corrected 2026-10-02 after review, it was the stored declaration, which now waits in "Pełne zasady" as the proof-time confirmation). The cards for start, proof, review and pause move into "Pełne zasady" with the stored rules. The consent line is reworded because the "Złóż Przysięgę" button no longer exists.
 
 **Żaromir the first time.** The first time a player reaches the review screen, Żaromir's dialogue panel (the MVP-20 `DialoguePanel`) rises over the bottom of the screen. Each line lights the card it names. Accepted lines (decision Q5):
 

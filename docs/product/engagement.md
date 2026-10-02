@@ -37,7 +37,7 @@ Evidence behind the goals:
 
 Each is a **delegated decision 2026-10-02, owner review pending**.
 
-- **D-E1 Declaration.** The rules review shows the stored declaration as the label of a press-and-hold seal control. The label is fully readable before acceptance. Explicit acceptance stays: a completed hold is the acceptance. VoiceOver and Switch Control get a double-tap alternative. Reduce Motion gets a still fallback.
+- **D-E1 Declaration.** The rules review shows the stored declaration as the label of a press-and-hold seal control. The label is fully readable before acceptance. Explicit acceptance stays: a completed hold is the acceptance. VoiceOver and Switch Control get a double-tap alternative. Reduce Motion gets a still fallback. Corrected 2026-10-02 after review: the hold label is the promise, the declaration is the proof-time confirmation. The past-tense declaration was accepted before the workout, which is not honest. It stays readable before acceptance in "Pełne zasady" under "Potwierdzenie przy dowodzie" / "Confirmation with your proof".
 - **D-E2 Oracle.** Światowid, a four-faced idol in the Forge, "reads" the proof and reports. The Forge seals the result. AI cannot grant rewards, unclear is never failure and no duration is promised. Until MVP-08 and MVP-09 deliver verdicts only the hand-over and the waiting state exist.
 - **D-E3 The seal is never sad.** It is only anticipatory. No decay, withering, death, cracks or red for neutral states. A paused character shows the pause mark. States come only from the server.
 
@@ -90,7 +90,7 @@ The owner's "too much text" becomes a number that jest checks. It adds to the 12
   - `icon`: a pictogram label of one to three words drawn beside its pictogram (clarity rule 4). The helper fails a test if an `icon` text has more than three words.
   - A one-word field caption drawn beside its calendar or clock pictogram is an `icon` label. The Oath form's date and time rows use it (local clarification, MVP-22-E1.5, 2026-10-02).
   - `error`: a required error or refusal sentence (clarity decision 3).
-  - `declaration`: the stored declaration as the label of the hold control (D-E1) or of the proof confirmation.
+  - `declaration`: the stored promise as the label of the hold control (D-E1, corrected 2026-10-02) or the stored declaration of the proof confirmation.
   - `rules`: stored rule text when a test opens the fold on purpose.
   - An exemption covers its own text only. A counted text nested inside an exempt one still counts (local clarification, MVP-22-E1.R, 2026-10-02).
 - **Lists.** Today and History are measured with one Oath. Each further row may add at most 8 counted words.
@@ -219,11 +219,11 @@ From the top:
    - Hourglass, "Termin" / "Deadline", the hour of D with the short day.
    - Candle, "Ostatni moment" / "Last chance", "+15 min".
    - Anvil with a lock, "Zasady stałe" / "Rules fixed", the value "bez zmian" / "no changes". The value is words, so it counts as a pictogram label (native check and owner instruction, 2026-10-02, MVP-22-E3r). It replaced "no value", which left the card half empty.
-3. **Two small pictograms (D-E6)**, about 48 pt, "Nagroda" / "Reward" and "Jeśli nie zdążysz" / "If you miss it", each with one short snapshot value. This keeps owner decision Q2: reward and consequence are seen without opening the full rules.
-4. **The hold-to-seal control (D-E1).** A wax seal under the player's hand. Its label is the stored declaration, fully drawn. A short hint that names the action, "Przytrzymaj, by złożyć Przysięgę" / "Hold to commit to the Oath" (proposal wording under Q5, clarity rules 4 and 10).
+3. **Two small pictograms (D-E6)**, about 48 pt, "Nagroda" / "Reward" and "Jeśli nie zdążysz" / "If you miss it", each with one short snapshot value. This keeps owner decision Q2: reward and consequence are seen without opening the full rules. The consequence value is the snapshot's missed XP with "bez straty" / "no loss", for example "0 XP, bez straty", and counts as a pictogram label. It replaced the fixed "XP zostaje" / "XP kept" (review, 2026-10-02).
+4. **The hold-to-seal control (D-E1).** A wax seal under the player's hand. Its label is the stored promise, fully drawn (corrected 2026-10-02 after review, it was the declaration). A short hint that names the action, "Przytrzymaj, by złożyć Przysięgę" / "Hold to commit to the Oath" (proposal wording under Q5, clarity rules 4 and 10).
 5. One consent line, reworded because the button "Złóż Przysięgę" no longer exists, for example PL "Przytrzymując pieczęć, akceptuję zasady z kart i pełne zasady." EN "By holding the seal, I accept the rules shown here and the full rules." Final wording is a copy task under Q5.
 6. "Pełne zasady" / "Full rules" opens the other four cards (start, proof, review, pause) and the complete stored rules, unchanged.
-7. "Zmień" / "Change" returns to the form, as a text-style action.
+7. "Zmień" / "Change" returns to the form, as a text-style action. VoiceOver hears "Zmień wybory" / "Change choices" (review, 2026-10-02).
 
 **Hold rules (D-E5).**
 
@@ -231,10 +231,10 @@ From the top:
 - The acceptance fires on release after the ring is full. Releasing early or sliding off cancels and the ring empties. Completion on the up-event with a way to abort meets [WCAG 2.1, 2.5.2 Pointer Cancellation](https://www.w3.org/WAI/WCAG21/Understanding/pointer-cancellation.html) (opened for this spec).
 - A full hold calls the existing idempotent `controller.confirm()`. While the request runs the control is busy and ignores touches. The stamping animation still waits for the server's confirmation.
 - A long press is not a path-based gesture, so [WCAG 2.1, 2.5.1](https://www.w3.org/WAI/WCAG21/Understanding/pointer-gestures.html) does not require an alternative (not opened for this spec). The alternatives below are a local decision.
-- **VoiceOver and Switch Control.** The control is always an accessible button with the standard `activate` action. Its label is the declaration followed by "Złóż Przysięgę" / "Commit to the Oath". React Native engages `activate` on the VoiceOver double tap. Source: [React Native accessibility](https://reactnative.dev/docs/accessibility) (opened for this spec). Switch Control's select is expected to send the same activation, which the native check confirms. When `AccessibilityInfo.isScreenReaderEnabled()` reports a screen reader, the drawn hint reads "Stuknij dwukrotnie, by złożyć Przysięgę" / "Double-tap to commit to the Oath".
+- **VoiceOver and Switch Control.** The control is always an accessible button with the standard `activate` action. Its label is the promise followed by "Złóż Przysięgę" / "Commit to the Oath" (corrected 2026-10-02, it was the declaration). React Native engages `activate` on the VoiceOver double tap. Source: [React Native accessibility](https://reactnative.dev/docs/accessibility) (opened for this spec). Switch Control's select is expected to send the same activation, which the native check confirms. When `AccessibilityInfo.isScreenReaderEnabled()` reports a screen reader, the drawn hint reads "Stuknij dwukrotnie, by złożyć Przysięgę" / "Double-tap to commit to the Oath".
 - **Reduce Motion.** The ring does not animate. After 1.0 s of holding the seal shows its full state in one change, and the release accepts.
 
-**Żaromir on the first review.** His four bubbles become one bark per pictogram, at most 8 words, while that pictogram plays its gesture: the sand runs, the candle flickers, the lock clicks. The dialogue panel and the "seen" flag stay as accepted in decision Q4. Reduce Motion highlights the pictogram without motion. While the panel is open the review ends above the panel and the rising bust, so neither covers a card, the seal or its hint. A seal block that crosses that edge moves the page down, but never past the named card (native check, 2026-10-02, MVP-22-E3r).
+**Żaromir on the first review.** His four bubbles become one bark per pictogram, at most 8 words, while that pictogram plays its gesture: the sand runs, the candle flickers, the lock clicks. The dialogue panel and the "seen" flag stay as accepted in decision Q4. Reduce Motion highlights the pictogram without motion. While the panel is open the review ends above the panel and the rising bust, so neither covers a card, the seal or its hint. A seal block that crosses that edge moves the page down, but never past the named card (native check, 2026-10-02, MVP-22-E3r). Review, 2026-10-02: the second bark counts the snapshot's grace minutes with plural forms instead of a fixed quarter hour. VoiceOver hears the named pictogram's spoken label before each bark. A hold while he speaks closes his explanation as seen.
 
 ### What it replaces
 
@@ -250,9 +250,9 @@ The eight-card grid, the declaration block above the cards, Żaromir's four-line
 ### Acceptance
 
 - Jest: `HoldSeal` releases early and nothing is called, a full hold and release calls `onSeal` once, a second hold while busy does nothing, the `activate` action calls `onSeal` once, a screen reader changes the drawn hint, Reduce Motion renders no animated ring.
-- Jest: the review shows the promise, three large and two small pictograms with snapshot values, the declaration drawn as the hold label, the four other cards and the stored rules only after "Pełne zasady".
+- Jest: the review shows three large and two small pictograms with snapshot values, the promise drawn as the hold label, the four other cards, the declaration and the stored rules only after "Pełne zasady".
 - Jest: an accepted Oath only after the server confirms, a lost response still replays once.
-- Jest: the review is at 25 counted words or less in PL and EN with the declaration exempt.
+- Jest: the review is at 25 counted words or less in PL and EN with the hold label exempt.
 - Native, iPhone 18 Pro, PL and EN: hold, early release, full hold, the first-review barks, Reduce Motion on.
 
 ### Art needs
@@ -460,7 +460,7 @@ Each is superseded only by a delegated decision and needs owner review.
 
 | Accepted decision | Changed by | Note |
 | --- | --- | --- |
-| [Oath screens](oath-screens.md) Q1: promise and declaration as text above the cards | D-E1, E3 | The declaration becomes the hold label, still fully drawn |
+| [Oath screens](oath-screens.md) Q1: promise and declaration as text above the cards | D-E1, E3 | The promise becomes the hold label, still fully drawn. The declaration moves into the fold as the proof-time confirmation (corrected 2026-10-02) |
 | [Oath screens](oath-screens.md) Q5: card titles, Żaromir's four guide lines and the consent line accepted as written | E3 | The consent line names a button that no longer exists. New guide barks |
 | [Oath screens](oath-screens.md) Q2: reward and consequence cards visible | kept by D-E6 | No conflict if the owner accepts the small pictograms |
 | [Clarity](clarity.md) rule 7 and decision 5: two sentences, one neutral sentence in review | D-E10, E5 | Shorter barks, wordless review and assessment |

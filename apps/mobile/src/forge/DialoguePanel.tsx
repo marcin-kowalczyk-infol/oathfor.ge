@@ -42,9 +42,11 @@ export type PanelControls = { action?: { label: string; onPress: () => void }; s
  * A new lineId types its text again. The first touch shows the whole line, the next calls onContinue.
  * The frame, plate and rune are the painted exports of docs/art/forge-scene-assets.md. Both busts are drawn over the frame.
  */
-export function DialoguePanel({ frame, speaker, lineId, text, title, extra, playerName, portrait, allowed, more, continueLabel, onContinue, controls, dismissLabel, onDismiss, onHeight }: {
+export function DialoguePanel({ frame, speaker, lineId, text, subject, title, extra, playerName, portrait, allowed, more, continueLabel, onContinue, controls, dismissLabel, onDismiss, onHeight }: {
   frame: { left: number; width: number; bottom: number; maxHeight: number };
-  speaker: Speaker; lineId: string; text: string; title?: string;
+  speaker: Speaker; lineId: string; text: string;
+  /** Spoken before the line, naming what it is about, for example the pictogram Żaromir names. Never drawn. */
+  subject?: string; title?: string;
   /** Content under the line, for example Żaromir's counters. */
   extra?: ReactNode; playerName: string; portrait: ImageSourcePropType | null;
   allowed: boolean;
@@ -123,7 +125,10 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
     </Animated.View>;
   };
   // Callers pass drawn prose with its bindings. The spoken label keeps the plain form (MVP-22-G24, G31).
-  const body = <Text testID="dialogue-text" accessibilityLabel={`${name}: ${plainText(text)}`} maxFontSizeMultiplier={2} style={styles.text}>
+  // A subject comes first, so VoiceOver hears what the line is about before the line (review, 2026-10-02).
+  const line = `${name}: ${plainText(text)}`;
+  const spokenLine = subject ? `${/[.!?…]$/.test(subject.trim()) ? subject.trim() : `${subject.trim()}.`} ${line}` : line;
+  const body = <Text testID="dialogue-text" accessibilityLabel={spokenLine} maxFontSizeMultiplier={2} style={styles.text}>
     {graphemes.slice(0, count).join('')}
     {/* The untyped rest keeps its place, so the panel never grows while typing. */}
     <Text style={styles.untyped}>{graphemes.slice(count).join('')}</Text>

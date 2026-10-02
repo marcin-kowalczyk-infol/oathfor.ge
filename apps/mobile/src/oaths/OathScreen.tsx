@@ -25,9 +25,9 @@ import { zaromirSeed } from '../companion/zaromirLine';
 import { zoneLabel } from './zoneLabel';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { resolveLocale } from '../localization/locale';
-import { SnapshotRules } from './SnapshotRules';
+import { promiseText, SnapshotRules } from './SnapshotRules';
 import { ReviewFold, ReviewRules } from './ReviewRules';
-import type { PictogramId } from './ruleCards';
+import { reviewPictograms, type PictogramId } from './ruleCards';
 import { HoldSeal } from '../ui/HoldSeal';
 import { DialoguePanel, PANEL_RISE } from '../forge/DialoguePanel';
 import type { GuideStorage } from '../forge/guideStorage';
@@ -267,14 +267,16 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
           <ReviewRules snapshot={ready.preview!.snapshot} highlight={guideCard} gesture={motion} onRowLayout={y => setGuideTops(tops => tops.grid === y ? tops : { ...tops, grid: y })}
             onPictogramLayout={(id, y) => setGuideTops(tops => tops.cards[id] === y ? tops : { ...tops, cards: { ...tops.cards, [id]: y } })} />
         </View>
-        {/* MVP-22-E3.2 (D-E1, D-E5): the hold seal is the one filled control. Its label is the stored declaration, its drawn hint
-            is the consent. A full hold calls the idempotent confirm, and the stamping still waits for the server. */}
+        {/* MVP-22-E3.2 (D-E1, D-E5): the hold seal is the one filled control. Its label is the stored promise (D-E1 corrected
+            2026-10-02, the past-tense declaration belongs to the proof and stays in the fold), its drawn hint is the consent.
+            A full hold calls the idempotent confirm, and the stamping still waits for the server. A hold while Żaromir
+            speaks closes his explanation as seen. */}
         {!pending && <View testID="oath-hold-block" onLayout={event => { const { y, height } = event.nativeEvent.layout; setHold(last => last?.y === y && last.height === height ? last : { y, height }); }}>
-          <HoldSeal declaration={ready.preview!.snapshot.copy[locale].declaration} busy={busy} hint={t('oath.consent')} tapHint={t('oath.consentTap')}
-            onSeal={() => { void controller.confirm(); }} />
+          <HoldSeal label={promiseText(ready.preview!.snapshot, locale)} busy={busy} hint={t('oath.consent')} tapHint={t('oath.consentTap')}
+            onSeal={() => { if (guideLine !== null) closeGuide(); void controller.confirm(); }} />
         </View>}
         <ReviewFold snapshot={ready.preview!.snapshot} />
-        {!pending && <Pressable accessibilityRole="button" accessibilityLabel={t('oath.edit')} accessibilityState={{ disabled: busy }} disabled={busy}
+        {!pending && <Pressable accessibilityRole="button" accessibilityLabel={t('oath.editLabel')} accessibilityState={{ disabled: busy }} disabled={busy}
           onPress={() => { setMode('form'); setSubmitted(false); }} style={({ pressed }) => [styles.textAction, pressed && styles.pressed]}>
           <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.textActionLabel, busy && styles.muted]}>{t('oath.edit')}</Text>
         </Pressable>}
@@ -301,8 +303,10 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
             ? { disabled: true, unavailableReason: !valid ? t(missingChoice()) : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
       </>}
     </Animated.ScrollView>
-    {guideShown && <DialoguePanel frame={guideFrame}
-      speaker="guide" lineId={`rules-${guideLine}`} text={bindShortWords(t(`oath.guide.${guideLine! + 1}`), i18n.language)} playerName="" portrait={null} allowed={motion} more={guideLine! < LAST_GUIDE_LINE}
+    {/* Review, 2026-10-02: the barks count the snapshot's grace minutes, and VoiceOver hears the named pictogram before the bark. */}
+    {guideShown && ready?.preview && <DialoguePanel frame={guideFrame}
+      speaker="guide" lineId={`rules-${guideLine}`} text={bindShortWords(t(`oath.guide.${guideLine! + 1}`, { count: ready.preview.snapshot.review.receiptGraceSeconds / 60 }), i18n.language)}
+      subject={reviewPictograms(ready.preview.snapshot, t, locale).large.find(item => item.id === guideCard)?.spoken} playerName="" portrait={null} allowed={motion} more={guideLine! < LAST_GUIDE_LINE}
       continueLabel={guideStep} onContinue={() => guideLine! < LAST_GUIDE_LINE ? setGuideLine(guideLine! + 1) : closeGuide()}
       controls={{ step: { count: `${guideLine! + 1} / ${GUIDE_CARDS.length}`, label: guideStep, text: true, onPress: () => guideLine! < LAST_GUIDE_LINE ? setGuideLine(guideLine! + 1) : closeGuide() } }}
       dismissLabel={t('room.guide.skip')} onDismiss={closeGuide} onHeight={setPanelHeight} />}

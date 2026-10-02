@@ -52,7 +52,7 @@ export const REVIEW_GROUPS = {
 export type PictogramId = typeof REVIEW_GROUPS.large[number] | typeof REVIEW_GROUPS.small[number];
 /**
  * label: one to three words beside the pictogram (clarity rule 4). values: short drawn snapshot values. spoken: the card's full facts.
- * labelValues: the values are words, not snapshot figures, so each counts as a pictogram label of at most three words.
+ * labelValues: the values are short word lines, so each counts as a pictogram label of at most three words.
  */
 export type Pictogram = { id: PictogramId; icon: RuleIconId; label: string; values: string[]; spoken: string; labelValues?: true };
 
@@ -72,7 +72,9 @@ export function reviewPictograms(snapshot: Snapshot, t: Translate, locale: Local
     ],
     small: [
       item('reward', [t('oath.pictograms.rewardValue', { photo: snapshot.rewards.photoTotal, record: snapshot.rewards.recordTotal })], `${label('reward')}. ${lines('reward')}`),
-      item('consequence', [t('oath.pictograms.consequenceValue')], `${label('consequence')}. ${lines('consequence')}`),
+      // Review, 2026-10-02: the fixed "XP zostaje" was unclear. The line names the missed XP from the snapshot, and "no loss" holds
+      // because the wire policy pins existingXpLoss to 0 (api/oathSchema.ts).
+      { ...item('consequence', [t('oath.pictograms.consequenceValue', { missed: snapshot.consequences.missedXp })], `${label('consequence')}. ${lines('consequence')}`), labelValues: true },
     ],
   };
 }
