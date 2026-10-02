@@ -61,7 +61,9 @@ test('pause shows meaningful complete-set summaries and a changed revision requi
   expect(await screen.findByRole('button', { name: 'Confirm pause' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Will be withdrawn' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Will continue' })).toBeOnTheScreen();
-  expect(screen.getAllByText(/Running ·.*Europe\/Warsaw/)).toHaveLength(2);
+  // MVP-22-B1 (G10): the short path time and the zone label. The fixture deadline falls in the repeated hour, so the offset stays.
+  expect(screen.getAllByText('Running · Sun, Oct 25, 02:30 (UTC+02:00) · Warsaw')).toHaveLength(2);
+  expect(screen.queryByText(/Europe\/Warsaw/)).toBeNull();
   expect(screen.queryByText(id)).toBeNull(); expect(f.controller.pause).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('button', { name: 'Confirm pause' }));
   expect(await screen.findByText('Your Oaths changed. Review them again, pause does not extend deadlines.')).toBeOnTheScreen();
@@ -245,4 +247,30 @@ test('a failed load shows the Unknown mark', async () => {
   await show(f);
   await screen.findByRole('button', { name: 'Reload pause review' });
   expect(screen.getByTestId('pause-mark')).toHaveProp('accessibilityLabel', 'Unknown');
+});
+
+// MVP-22-B1 (G10, G4): an unambiguous wall time has no offset. Polish rows and the intro keep single-letter words with the next word.
+test.each([
+  ['en', 'Running · Fri, Oct 2, 06:29 · Warsaw', 'Confirm pause'],
+  ['pl', 'Bieganie · pt 2 paź 06:29 · Warszawa', 'Potwierdź pauzę'],
+] as const)('%s rows show the short time and the zone label without the offset', async (locale, row, confirm) => {
+  const f = setup();
+  const plain = oath();
+  plain.snapshot.deadline = { ...plain.snapshot.deadline, local: '2026-10-02T06:29:20', utc: '2026-10-02T04:29:20Z', receiptCutoff: '2026-10-02T04:44:20Z' };
+  jest.mocked(f.controller.detail).mockResolvedValue({ kind: 'success', value: { oath: plain, serverTime } });
+  jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
+  await show(f, locale);
+  expect(await screen.findByRole('button', { name: confirm })).toBeOnTheScreen();
+  expect(screen.getByText(row)).toBeOnTheScreen();
+  expect(screen.queryByText(/UTC/)).toBeNull();
+});
+test('a Polish row binds a single-letter word in the activity name', async () => {
+  const f = setup();
+  const walk = oath();
+  walk.snapshot.copy.pl.activity = 'Spacer z psem';
+  jest.mocked(f.controller.detail).mockResolvedValue({ kind: 'success', value: { oath: walk, serverTime } });
+  jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
+  await show(f, 'pl');
+  expect(await screen.findByRole('button', { name: 'Potwierdź pauzę' })).toBeOnTheScreen();
+  expect(screen.getByText(/^Spacer z\u00a0psem · /, { normalizer: text => text })).toBeOnTheScreen();
 });

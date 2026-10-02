@@ -2,6 +2,7 @@ import { Image, StyleSheet, View } from 'react-native';
 import { useArt } from '../art/ArtProvider';
 import { pickLine, ZAROMIR_POOLS } from '../companion/zaromirLine';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import type { ZaromirSituation } from '../oaths/oathPath';
 import { Text } from './Text';
 import { tokens } from './tokens';
@@ -13,7 +14,7 @@ const BUST = 40;
  * The seed keeps the line stable, the name is only in the accessibility label, and the bubble adds tone, never a fact.
  */
 export function ZaromirLine({ situation, seed }: { situation: ZaromirSituation | null; seed: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const bust = useArt().zharomirBust;
   if (situation === null) return null;
   const line = t(`zaromir.${situation}.${pickLine(seed, ZAROMIR_POOLS[situation])}`);
@@ -23,7 +24,7 @@ export function ZaromirLine({ situation, seed }: { situation: ZaromirSituation |
     </View>
     <View style={styles.bubble}>
       <View pointerEvents="none" style={styles.tail} />
-      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.line}>{line}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.line}>{bindShortWords(line, i18n.language)}</Text>
     </View>
   </View>;
 }

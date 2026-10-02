@@ -2,6 +2,7 @@ import type { TestInstance } from 'test-renderer';
 import { Dimensions } from 'react-native';
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import { OnboardingView, type OnboardingViewProps } from './OnboardingView';
 import type { OnboardingState } from './controller';
 
@@ -57,9 +58,9 @@ test('waits for profile hydration and exposes only the server-confirmed destinat
 });
 
 test.each([
-  ['en', 'Continue', 'Try again', 'Language: English', 'Timezone: Europe/Warsaw', 'Intention: I want to be active regularly', 'You have met Zharomir.', 'Trial of the Spark'],
-  ['pl', 'Dalej', 'Spróbuj ponownie', 'Język: Polski', 'Strefa czasowa: Europe/Warsaw', 'Intencja: Chcę regularnie podejmować aktywność', 'Żaromir już Ci się przedstawił.', 'Próba Iskry'],
-] as const)('%s reviews saved choices and completes only by explicit action, with safe retries', async (locale, next, retry, language, timezone, intention, companion, trial) => {
+  ['en', 'Continue', 'Try again', 'Language: English', 'Timezone: Warsaw', 'Intention: I want to be active regularly', 'Notifications: On', 'You have met Zharomir.', 'Trial of the Spark'],
+  ['pl', 'Dalej', 'Spróbuj ponownie', 'Język: Polski', 'Strefa: Warszawa', 'Intencja: Chcę regularnie podejmować aktywność', 'Powiadomienia: Włączone', 'Żaromir już Ci się przedstawił.', 'Próba Iskry'],
+] as const)('%s reviews saved choices in one summary card and completes only by explicit action, with safe retries', async (locale, next, retry, language, timezone, intention, notificationsRow, companion, trial) => {
   const callbacks = { onComplete: jest.fn(), onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
   const notifications = {
     state: { permission: { kind: 'denied' as const, canAskAgain: false }, busy: false },
@@ -72,7 +73,11 @@ test.each([
     <OnboardingView state={state} {...callbacks} notifications={{ ...notifications, state: { ...notifications.state, busy: nativeBusy } }} />
   </LocalizationProvider>;
   const view = await render(fixture());
-  for (const text of [language, timezone, intention, companion]) expect(screen.getByText(text)).toBeOnTheScreen();
+  // MVP-22-B1 (G7): four rows in one card, the zone by its label, never the IANA id. The companion line is gone.
+  const summary = screen.getByTestId('onboarding-summary');
+  for (const row of [language, timezone, intention, notificationsRow]) expect(within(summary).getByLabelText(row)).toBeOnTheScreen();
+  expect(screen.queryByText(companion)).toBeNull();
+  expect(screen.queryByText(/Europe\/Warsaw/)).toBeNull();
   expect(callbacks.onComplete).not.toHaveBeenCalled();
   expect(notifications.onRetryPermission).not.toHaveBeenCalled();
   expect(screen.getAllByRole('button', { name: next })).toHaveLength(1);
@@ -159,13 +164,14 @@ test.each([
   await render(<LocalizationProvider initialLocale={locale}><OnboardingView state={state} {...callbacks} /></LocalizationProvider>);
   expect(screen.getByTestId('companion-avatar', { includeHiddenElements: true })).toBeTruthy();
   const tree = JSON.stringify(screen.toJSON());
-  expect(tree.indexOf(line)).toBeGreaterThan(-1);
-  expect(tree.indexOf(line)).toBeLessThan(tree.indexOf(`"${next}"`));
+  const drawn = bindShortWords(line, locale);
+  expect(tree.indexOf(drawn)).toBeGreaterThan(-1);
+  expect(tree.indexOf(drawn)).toBeLessThan(tree.indexOf(`"${next}"`));
 });
 
 test.each([
-  ['pl', 'Powiadomienia są opcjonalne. Możesz przejść dalej bez nich.', 'Wszystko zapisane. Przejście dalej nie tworzy jeszcze Przysięgi.', 'Nie udało się zakończyć przygotowań, zapisane wybory zostają. Spróbuj ponownie.'],
-  ['en', 'Notifications are optional. You can continue without them.', 'All saved. Continuing does not create an Oath yet.', 'Could not finish setup, your saved choices stay. Try again.'],
+  ['pl', 'Powiadomienia są opcjonalne. Możesz przejść dalej bez nich.', 'Przejście dalej nie tworzy jeszcze Przysięgi.', 'Nie udało się zakończyć przygotowań, zapisane wybory zostają. Spróbuj ponownie.'],
+  ['en', 'Notifications are optional. You can continue without them.', 'Continuing does not create an Oath yet.', 'Could not finish setup, your saved choices stay. Try again.'],
 ] as const)('%s notification and review steps use the short lines', async (locale, pending, review, error) => {
   const callbacks = { onComplete: jest.fn(), onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
   const fixture = (state: OnboardingViewProps['state']) => <LocalizationProvider initialLocale={locale}><OnboardingView state={state} {...callbacks} notifications={notificationProps} /></LocalizationProvider>;
@@ -202,4 +208,52 @@ test.each([
   expect(screen.getAllByText(error)).toHaveLength(1);
   expect(screen.getByText(error)).toHaveProp('accessibilityRole', 'alert');
   expect(screen.queryByText(pending)).toBeNull();
+});
+
+// MVP-22-B1 (G1): the IANA example never breaks after its slash. The word joiner is only in the drawn text, VoiceOver hears the plain hint.
+test.each([
+  ['pl', 'Strefa czasowa', 'Wpisz strefę czasową, na przykład Europe/Warsaw. Możesz zmienić proponowaną wartość.'],
+  ['en', 'Timezone', 'Enter a timezone such as Europe/Warsaw. You can change the suggested value.'],
+] as const)('%s keeps the timezone example whole on one line', async (locale, label, hint) => {
+  const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
+  await render(<LocalizationProvider initialLocale={locale}><OnboardingView state={{ ...ready, draft: { ...ready.draft, locale } }} {...callbacks} /></LocalizationProvider>);
+  expect(screen.getByText(hint.replace('Europe/', 'Europe/\u2060'), { normalizer: text => text })).toBeOnTheScreen();
+  expect(screen.getByLabelText(label)).toHaveProp('accessibilityHint', hint);
+});
+
+// MVP-22-B1 (G4): Polish single-letter words stay with the next word in Żaromir's introduction.
+test('the Polish introduction keeps "z" with "Welesem"', async () => {
+  const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
+  const state: OnboardingViewProps['state'] = { ...ready, value: { profile: { ...profile, companionIntroduced: false, notificationPreference: null }, onboardingStatus: 'pending' } };
+  await render(<LocalizationProvider initialLocale="pl"><OnboardingView state={state} {...callbacks} /></LocalizationProvider>);
+  expect(screen.getByText(/związany z\u00a0Welesem/, { normalizer: text => text })).toBeOnTheScreen();
+});
+
+// MVP-22-B1 (G6, G7): the notification step keeps the optional line and the honesty line. The review keeps one line and the
+// summary card. Every other explanation, the saved preference sentence and a device line that blocks nothing open behind the link.
+test.each([
+  ['pl', 'Przypomnienia nie są jeszcze wysyłane. Zapamiętamy Twój wybór na później.', 'To urządzenie nie zezwala na powiadomienia. Możesz kontynuować bez zmiany tego ustawienia.',
+    'Wybierz, czy chcesz otrzymywać powiadomienia. Nic nie zostanie zapisane, dopóki nie wybierzesz.', 'Zapisany wybór: powiadomienia wyłączone.', 'Jak działają powiadomienia'],
+  ['en', 'Reminders are not sent yet. Your choice is kept for later.', 'This device does not allow notifications. You can continue without changing this.',
+    'Choose whether you want notifications. Nothing is saved until you choose.', 'Saved preference: notifications disabled.', 'How notifications work'],
+] as const)('%s a denied device that blocks nothing folds on the notification step and the review', async (locale, honesty, denied, undecided, disabled, link) => {
+  const callbacks = { onComplete: jest.fn(), onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
+  const deniedProps = { ...notificationProps, state: { permission: { kind: 'denied' as const, canAskAgain: false }, busy: false } };
+  const fixture = (preference: 'disabled' | null) => <LocalizationProvider initialLocale={locale}>
+    <OnboardingView state={{ ...ready, value: { profile: { ...profile, locale, notificationPreference: preference }, onboardingStatus: 'pending' } }} {...callbacks} notifications={deniedProps} />
+  </LocalizationProvider>;
+  const view = await render(fixture(null));
+  expect(screen.getByText(honesty)).toBeOnTheScreen();
+  expect(screen.queryByText(undecided)).toBeNull();
+  expect(screen.queryByText(denied)).toBeNull();
+  expect(filled()).toHaveLength(1);
+  await fireEvent.press(screen.getByRole('button', { name: link }));
+  expect(screen.getByText(undecided)).toBeOnTheScreen();
+  expect(screen.getByText(denied)).toBeOnTheScreen();
+  await view.rerender(fixture('disabled'));
+  // A fresh review: the fold of the previous step does not carry over, because the step remounts it.
+  for (const text of [honesty, denied, disabled]) expect(screen.queryByText(text)).toBeNull();
+  expect(screen.getByTestId('onboarding-summary')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: link }));
+  for (const text of [honesty, denied, disabled]) expect(screen.getByText(text)).toBeOnTheScreen();
 });

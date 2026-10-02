@@ -23,3 +23,13 @@ test.each(['current', 'cinematic'] as const)('the avatar frames Żaromir\'s head
   expect(StyleSheet.flatten(picture.props.style)).toMatchObject({ position: 'absolute', ...place });
   expect(StyleSheet.flatten(screen.getByTestId('companion-avatar', { includeHiddenElements: true }).props.style)).toMatchObject({ width: 44, height: 44, backgroundColor: backdrop });
 });
+
+// MVP-22-B1 (G4): a Polish single-letter word never ends a line in the bubble. English keeps ordinary spaces.
+test('the Polish message keeps single-letter words with the next word', async () => {
+  await render(<LocalizationProvider initialLocale="pl"><CompanionBubble message="Jestem Żaromir, strażnik związany z Welesem." /></LocalizationProvider>);
+  expect(screen.getByText('Jestem Żaromir, strażnik związany z\u00a0Welesem.', { normalizer: text => text })).toBeOnTheScreen();
+});
+test('the English message is drawn as given', async () => {
+  await render(<LocalizationProvider initialLocale="en"><CompanionBubble message="I am a guardian." /></LocalizationProvider>);
+  expect(screen.getByText('I am a guardian.', { normalizer: text => text })).toBeOnTheScreen();
+});

@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import { Action } from '../ui/Action';
 import { Disclosure } from '../ui/Disclosure';
 import { tokens } from '../ui/tokens';
@@ -16,27 +17,36 @@ export type NotificationViewProps = {
 };
 
 export function NotificationView({ state, preference, onEnable, onSkip, onRetryPermission, onSettings }: NotificationViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const text = (key: string) => bindShortWords(t(key), i18n.language);
   const { permission, busy, error } = state;
   const mayRequest = preference === 'enabled' && permission.canAskAgain
     && (permission.kind === 'not_determined' || permission.kind === 'denied');
   const mayOpenSettings = preference === 'enabled' && permission.kind === 'denied' && !permission.canAskAgain;
-  // Only a device state that changes what the player can do stays outside the fold (docs/product/clarity.md rule 1).
-  const deviceMatters = permission.kind === 'denied' || permission.kind === 'unavailable' || permission.kind === 'provisional';
-  const device = <Text style={styles.body}>{t(`notifications.permission_${permission.kind}`)}</Text>;
+  // Only a device state that blocks the notifications the player turned on stays outside the fold (docs/product/clarity.md
+  // rule 1, MVP-22-B1). Settings shows the same cases. Quiet (provisional) delivery counts, because alerts are not guaranteed.
+  const blocks = preference === 'enabled' && (permission.kind === 'denied' || permission.kind === 'not_determined'
+    || permission.kind === 'unavailable' || permission.kind === 'provisional');
+  // Before the choice the honesty line stays visible. After it the review's summary card names the choice, so it folds.
+  const chosen = preference !== null;
+  const device = <Text style={styles.body}>{text(`notifications.permission_${permission.kind}`)}</Text>;
+  const honesty = <Text style={styles.body}>{text('settings.notifications.future')}</Text>;
   return <View style={styles.content}>
-    <View style={styles.group} accessibilityLiveRegion="polite">
-      <Text style={styles.body}>{t(`notifications.preference_${preference ?? 'undecided'}`)}</Text>
-      <Text style={styles.body}>{t('settings.notifications.future')}</Text>
-      {deviceMatters && device}
-      {error && <Text accessibilityRole="alert" style={styles.body}>{t(`notifications.error_${error}`)}</Text>}
-    </View>
+    {(!chosen || blocks || error) && <View style={styles.group} accessibilityLiveRegion="polite">
+      {!chosen && honesty}
+      {blocks && device}
+      {error && <Text accessibilityRole="alert" style={styles.body}>{text(`notifications.error_${error}`)}</Text>}
+    </View>}
     <Disclosure label={t('notifications.howItWorks')}>
       <View style={styles.group}>
-        <Text style={styles.heading} accessibilityRole="header">{t('notifications.accountTitle')}</Text>
-        <Text style={styles.body}>{t('notifications.future')}</Text>
+        <Text style={styles.body}>{text(`notifications.preference_${preference ?? 'undecided'}`)}</Text>
+        {chosen && honesty}
       </View>
-      {!deviceMatters && <View style={styles.group}>
+      <View style={styles.group}>
+        <Text style={styles.heading} accessibilityRole="header">{t('notifications.accountTitle')}</Text>
+        <Text style={styles.body}>{text('notifications.future')}</Text>
+      </View>
+      {!blocks && <View style={styles.group}>
         <Text style={styles.heading} accessibilityRole="header">{t('notifications.deviceTitle')}</Text>
         {device}
       </View>}

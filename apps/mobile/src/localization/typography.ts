@@ -14,3 +14,14 @@ export function bindShortWords(text: string, language: string): string {
   }
   return bound;
 }
+
+const slashBetweenLetters = /(\p{L})\/(?=\p{L})/gu;
+
+/**
+ * A slash between letters, as in the IANA zone Europe/Warsaw, gets a word joiner after it, so the line never breaks there.
+ * Only for drawn text. Spoken labels and hints keep the plain form.
+ */
+export function keepSlashJoined(text: string): string {
+  return text.replace(slashBetweenLetters, `$1/${WORD_JOINER}`);
+}
+const WORD_JOINER = '\u2060';

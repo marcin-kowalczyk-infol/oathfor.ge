@@ -3,9 +3,10 @@ import { Text } from './Text';
 import { tokens } from './tokens';
 import { useArt } from '../art/ArtProvider';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 
 export function CompanionBubble({ message }: { message: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // The style's frame fills the avatar with Żaromir's head.
   const { image, frames: { bubble: { backdrop, ...frame } } } = useArt().companion['zharomir-wanderer-v01'];
   return <View style={styles.bubble}>
@@ -16,7 +17,7 @@ export function CompanionBubble({ message }: { message: string }) {
       </View>
       <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.name}>{t('companion.speaker')}</Text>
     </View>
-    <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.message}>{message}</Text>
+    <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.message}>{bindShortWords(message, i18n.language)}</Text>
   </View>;
 }
 const styles = StyleSheet.create({

@@ -72,3 +72,13 @@ test('a line changed after a press is announced once, an unchanged line or a lin
     expect(announce).toHaveBeenCalledTimes(1);
   } finally { announce.mockRestore(); }
 });
+
+// MVP-22-B1 (G4): the drawn line binds Polish single-letter words. The announcement keeps the line as given.
+test('the Polish line keeps "w" with the next word and announces the plain line', async () => {
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibilityWithOptions').mockImplementation(() => {});
+  const view = await render(card('active', { line: 'Dowód wyślij w terminie.' }));
+  expect(screen.getByText('Dowód wyślij w\u00a0terminie.', { normalizer: text => text })).toBeOnTheScreen();
+  await view.rerender(card('proof_pending', { line: 'Dowód jest w Kuźni.' }));
+  expect(announce).toHaveBeenCalledWith(expect.stringContaining('Dowód jest w Kuźni.'), { queue: true });
+  announce.mockRestore();
+});

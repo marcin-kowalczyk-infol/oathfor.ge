@@ -2,6 +2,8 @@ import { Pressable, SafeAreaView, ScrollView, StyleSheet, TextInput, View } from
 import { Text } from '../ui/Text';
 import { isSupportedTimezone } from '../api/profile';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords, keepSlashJoined } from '../localization/typography';
+import { zoneLabel } from '../oaths/zoneLabel';
 import { CompanionArt } from '../companion/CompanionProgress';
 import { NotificationView, type NotificationViewProps } from './NotificationView';
 import { Action } from '../ui/Action';
@@ -20,7 +22,9 @@ export type OnboardingViewProps = {
   onLogout: () => void;
 };
 export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete, onRetry, onLogout, notifications }: OnboardingViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Drawn prose keeps Polish single-letter words with the next word and an IANA example whole (MVP-22-B1, G1 and G4).
+  const prose = (value: string) => keepSlashJoined(bindShortWords(value, i18n.language));
   const ready = state.kind === 'ready' ? state : undefined;
   const profile = ready?.value.profile;
   const complete = ready?.value.onboardingStatus === 'complete';
@@ -46,13 +50,13 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
   else if (ready?.error && introduction) error = t('onboarding.introductionError');
   else if (ready?.error && review) error = t(ready.error === 'load' ? 'onboarding.completionLoadError' : 'onboarding.error_complete');
   else if (ready && !complete && !basics && !introduction && notificationError) error = t(`notifications.error_${notificationError}`);
-  const reason = ready && !isSupportedTimezone(ready.draft.timezone) ? t('onboarding.timezoneRequired')
-    : ready && !ready.draft.intention ? t('onboarding.intentionRequired') : undefined;
+  const reason = ready && !isSupportedTimezone(ready.draft.timezone) ? prose(t('onboarding.timezoneRequired'))
+    : ready && !ready.draft.intention ? prose(t('onboarding.intentionRequired')) : undefined;
   return <SafeAreaView style={styles.safeArea}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text accessibilityRole="header" style={styles.title}>{heading}</Text>
-      {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.notice}>{error}</Text>
-        : description !== '' && <Text style={styles.body} accessibilityLiveRegion="polite">{description}</Text>}
+      {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.notice}>{prose(error)}</Text>
+        : description !== '' && <Text style={styles.body} accessibilityLiveRegion="polite">{prose(description)}</Text>}
       {basics && ready && <>
         <View style={styles.group}>
           <Text style={styles.label}>{t('onboarding.language')}</Text>
@@ -69,7 +73,7 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
             accessibilityHint={t('onboarding.timezoneExample')} value={ready.draft.timezone}
             onChangeText={timezone => { if (!ready.busy) onDraft({ timezone }); }} editable={!ready.busy}
             autoCapitalize="none" autoCorrect={false} maxLength={128} style={styles.input} />
-          <Text style={styles.body}>{t('onboarding.timezoneExample')}</Text>
+          <Text style={styles.body}>{prose(t('onboarding.timezoneExample'))}</Text>
         </View>
         <Pressable accessibilityRole="checkbox" accessibilityLabel={t('onboarding.intention')}
           accessibilityState={{ checked: ready.draft.intention, disabled: ready.busy }} disabled={ready.busy}
@@ -89,13 +93,19 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
           onPress={ready.error === 'load' ? onRetry : onIntroduce} busy={ready.busy} />
         <CompanionArt appearance="zharomir-wanderer-v01" decorative />
       </>}
-      {review && profile && <View style={styles.group}>
-        <Text style={styles.body}>{t('onboarding.reviewLanguage', { language: t(`onboarding.language_${profile.locale}`) })}</Text>
-        <Text style={styles.body}>{t('onboarding.reviewTimezone', { timezone: profile.timezone })}</Text>
-        <Text style={styles.body}>{t('onboarding.reviewIntention')}</Text>
-        <Text style={styles.body}>{t('onboarding.reviewCompanion')}</Text>
+      {/* One compact card names every saved choice (MVP-22-B1, G7). The zone shows its label, never the IANA id. */}
+      {review && profile && <View testID="onboarding-summary" style={styles.summary}>
+        {([
+          ['reviewLanguage', profile.locale ? t(`onboarding.language_${profile.locale}`) : ''],
+          ['reviewTimezone', profile.timezone ? zoneLabel(profile.timezone, t) : ''],
+          ['reviewIntention', t('onboarding.intention')],
+          ['reviewNotifications', t(profile.notificationPreference === 'enabled' ? 'settings.notifications.on' : 'settings.notifications.off')],
+        ] as const).map(([key, value]) => <View key={key} accessible accessibilityLabel={`${t(`onboarding.${key}`)}: ${value}`} style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>{t(`onboarding.${key}`)}</Text>
+          <Text style={styles.body}>{prose(value)}</Text>
+        </View>)}
       </View>}
-      {ready && profile && !complete && !basics && !introduction && notifications && <NotificationView {...notifications}
+      {ready && profile && !complete && !basics && !introduction && notifications && <NotificationView key={review ? 'review' : 'choice'} {...notifications}
         state={{ ...notifications.state, busy: ready.busy || notifications.state.busy, error: undefined }} preference={profile.notificationPreference} />}
       {review && ready && <>
         {onComplete && <Action label={t(ready.error ? 'auth.retry' : 'onboarding.continue')}
@@ -119,5 +129,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(217,163,144,0.08)', padding: 12, overflow: 'hidden' },
   choice: { minHeight: tokens.controlHeight, padding: tokens.space.item, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius, gap: tokens.space.small },
   selected: { backgroundColor: tokens.color.surface, borderColor: tokens.color.primary },
+  summary: { gap: tokens.space.item, padding: tokens.space.card, borderRadius: tokens.radius, backgroundColor: tokens.color.surface },
+  summaryRow: { gap: 2 },
+  summaryLabel: { color: tokens.color.secondary, fontSize: 15, lineHeight: 22 },
   input: { minHeight: tokens.controlHeight, padding: tokens.space.item, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius, color: tokens.color.text, fontSize: tokens.body },
 });

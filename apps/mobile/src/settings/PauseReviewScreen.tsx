@@ -5,9 +5,11 @@ import type { Character } from '../api/characters';
 import type { Oath } from '../api/oathSchema';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
+import { bindShortWords } from '../localization/typography';
 import type { OathController } from '../oaths/controller';
 import { loadPauseReview, type PauseReview } from '../oaths/pauseReview';
-import { storedTime } from '../oaths/SnapshotRules';
+import { pathTimeText } from '../oaths/compactStoredTime';
+import { zoneLabel } from '../oaths/zoneLabel';
 import { Action } from '../ui/Action';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { layoutMode } from '../ui/layoutMode';
@@ -77,7 +79,11 @@ export function PauseReviewScreen({ controller, character, onBack, onChanged }: 
   const notice = pauseChanged === 'character' ? 'oath.error.character_changed' : pauseFailed ? 'oathHome.pauseError' : failed ? 'oathHome.loadError'
     : pauseChanged === 'oaths' ? 'oathHome.pauseChanged' : null;
   const line = notice ?? (pause ? (pause.summary.paused ? 'oathHome.paused' : 'oathHome.pauseIntro') : null);
-  function summary(item: Oath) { return t('oathHome.summary', { activity: item.snapshot.copy[locale].activity, deadline: storedTime(item.snapshot.deadline, locale) }); }
+  // The short path time with the zone label. The offset appears only in the repeated hour (MVP-22-B1, G10).
+  function summary(item: Oath) {
+    const { deadline } = item.snapshot;
+    return bindShortWords(t('oathHome.summary', { activity: item.snapshot.copy[locale].activity, deadline: `${pathTimeText(deadline, locale)} · ${zoneLabel(deadline.timezone, t)}` }), locale);
+  }
 
   return <SceneSurface place="room">
     <SafeAreaView style={styles.root}>
@@ -102,7 +108,7 @@ export function PauseReviewScreen({ controller, character, onBack, onChanged }: 
         {available && <>
           {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
           {line && <Text testID="pause-line" maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole={notice ? 'alert' : undefined} accessibilityLiveRegion="polite"
-            style={notice ? styles.notice : styles.body}>{t(line)}</Text>}
+            style={notice ? styles.notice : styles.body}>{bindShortWords(t(line), locale)}</Text>}
           {(failed || pauseFailed) && <Action label={t('oathHome.reviewPause')} onPress={() => { void showPause(); }} />}
           {pause && <>
             {(['withdraw', 'preserve'] as const).map(key => <View key={key} style={styles.card}>

@@ -252,7 +252,7 @@ test.each(['denied', 'unavailable'] as const)('saved opt-in restart reviews with
   await render(<LocalizationProvider initialLocale="en"><AuthScreen {...runtime} permissions={permissions} /></LocalizationProvider>);
   await fireEvent.press(await screen.findByTestId('native-apple-button'));
   expect(await screen.findByText('Your choices are saved')).toBeOnTheScreen();
-  expect(screen.getByText('Timezone: UTC')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Timezone: Coordinated Universal Time')).toBeOnTheScreen();
   expect(permissions.read).toHaveBeenCalled(); expect(permissions.request).not.toHaveBeenCalled();
   expect(runtime.profileApi.complete).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
