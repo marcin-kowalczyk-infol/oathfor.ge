@@ -102,6 +102,8 @@ const sliceA = [
   'room.descriptions.seals', 'room.tutorial.heardMark',
   // A6.
   'oath.reviewIntro', 'oath.formRequired', 'oath.formRequiredStart',
+  // E1r2: a chosen date without its time names the time.
+  'oath.formRequiredTime', 'oath.formRequiredStartTime',
 ];
 test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages', key => {
   const [line, english] = [at(pl, key), at(en, key)];
@@ -163,6 +165,11 @@ test('the A8c copy decisions hold in both languages', () => {
   // MVP-22-E1.4: the missing line names only what is missing. MVP-22-E1.R: a scheduled start names the start first, then the deadline.
   expect(at(pl, 'oath.formRequiredStart')).toBe('Potrzebny start.');
   expect(at(en, 'oath.formRequiredStart')).toBe('Start needed.');
+  // MVP-22-E1r2: a chosen date without its time names the time, not the date row already filled.
+  expect(at(pl, 'oath.formRequiredTime')).toBe('Potrzebna godzina.');
+  expect(at(en, 'oath.formRequiredTime')).toBe('Time needed.');
+  expect(at(pl, 'oath.formRequiredStartTime')).toBe('Potrzebna godzina startu.');
+  expect(at(en, 'oath.formRequiredStartTime')).toBe('Start time needed.');
   expect(at(en, 'room.tutorial.seals.1')).toMatch(/awaiting a result/);
   expect(at(en, 'room.tutorial.seals.1')).not.toMatch(/awaiting review/);
   expect(at(en, 'room.tutorial.door.3')).toMatch(/you turn it on in Settings/);

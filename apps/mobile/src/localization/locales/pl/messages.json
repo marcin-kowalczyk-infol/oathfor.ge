@@ -171,6 +171,8 @@
     "retry": "Spróbuj ponownie",
     "formRequired": "Potrzebny termin.",
     "formRequiredStart": "Potrzebny start.",
+    "formRequiredTime": "Potrzebna godzina.",
+    "formRequiredStartTime": "Potrzebna godzina startu.",
     "reviewIntro": "Przeczytaj zasady i złóż Przysięgę.",
     "consent": "Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady.",
     "pending": "Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.",

@@ -663,6 +663,25 @@ describe('form and review lines', () => {
     expect(screen.queryByText(required)).toBeNull();
     expect(screen.getByText(copy[locale].required)).toBeOnTheScreen();
   });
+  // MVP-22-E1r2, native check 2026-10-02: with the date chosen the line still said "Potrzebny termin." while the "Termin" row
+  // showed the date. A chosen date with no time names the time, for the start and for the deadline.
+  test.each([
+    ['pl', 'Później', ['Start, data rozpoczęcia', '24 października 2026, Dziś'], 'Potrzebna godzina startu.', ['Godzina rozpoczęcia', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' }], 'Potrzebna godzina.'],
+    ['en', 'Later', ['Start date', 'October 24, 2026, Today'], 'Start time needed.', ['Time, start', { hour: 'Hour', minute: 'Minute', done: 'Use this time' }], 'Time needed.'],
+  ] as const)('%s a chosen date without a time names the missing time', async (locale, later, [startDate, startDay], startTime, [time, words], deadlineTime) => {
+    const f = setup(); f.controller.start();
+    await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await selectDate(copy[locale].date[0], copy[locale].date[1]);
+    expect(screen.getByText(deadlineTime)).toBeOnTheScreen();
+    expect(screen.queryByText(copy[locale].required)).toBeNull();
+    await fireEvent.press(screen.getByRole('radio', { name: later }));
+    await selectDate(startDate, startDay);
+    expect(screen.getByText(startTime)).toBeOnTheScreen();
+    expect(screen.queryByText(deadlineTime)).toBeNull();
+    await selectTime(time, '20', '00', words);
+    expect(screen.queryByText(startTime)).toBeNull();
+    expect(screen.getByText(deadlineTime)).toBeOnTheScreen();
+  });
 });
 
 // MVP-22-B2 (G16), native check: the creation header ("Wróć do Kuźni", "Próba Iskry", the intro line) and the confirmation's way back

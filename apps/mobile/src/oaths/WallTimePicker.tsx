@@ -107,11 +107,13 @@ export function WallTimePicker({ field, value, disabled, now, onChange, parts = 
       // MVP-22-E1.R (WCAG 2.5.3): each spoken name opens with its drawn caption, "Termin", "Start" or "Godzina". The zone draws its whole name.
       // MVP-22-E1.5, native check 2026-10-02: the date drew its caption above a calendar and the time only a clock, so the rows differed.
       // Date and time now share one row: pictogram, caption, chevron. Empty, the caption stands where the value goes. Chosen, the value
-      // stands under the small caption, which keeps a start apart from a deadline. Both rows keep FIELD_HEIGHT in either state.
+      // stands under the small caption, which keeps a start apart from a deadline. Both rows keep one height in either state.
+      // MVP-22-E1r2, native check 2026-10-02: a least height let the chosen row grow 3 pt past the empty one, so the height is fixed.
+      // At large text a long value may wrap, so there the row grows from that height instead of clipping.
       // The caption is the pictogram's one-word label, the `icon` exemption of the word budget (engagement.md D-E4).
       if (part !== 'zone') {
         const caption = part === 'date' ? t(`oath.${field}Caption`) : t('oath.timeCaption');
-        return <Pressable key={part} accessibilityRole="button" accessibilityLabel={t(`oath.${field}${part === 'date' ? 'Date' : 'Time'}Field`)} accessibilityValue={{ text: shown ?? t(part === 'date' ? 'timePicker.chooseDate' : 'timePicker.chooseTime') }} accessibilityState={{ disabled }} disabled={disabled} onPress={() => show(part)} style={({ pressed }) => [styles.field, styles.fieldRow, styles.pictured, largeText && styles.wideField, pressed && styles.pressed]}>
+        return <Pressable key={part} accessibilityRole="button" accessibilityLabel={t(`oath.${field}${part === 'date' ? 'Date' : 'Time'}Field`)} accessibilityValue={{ text: shown ?? t(part === 'date' ? 'timePicker.chooseDate' : 'timePicker.chooseTime') }} accessibilityState={{ disabled }} disabled={disabled} onPress={() => show(part)} style={({ pressed }) => [styles.field, styles.fieldRow, largeText ? { minHeight: FIELD_HEIGHT } : { height: fieldHeight(fontScale) }, largeText && styles.wideField, pressed && styles.pressed]}>
           {part === 'date' ? <CalendarGlyph /> : <ClockGlyph />}
           <View style={[styles.fieldText, styles.stacked]}>
             <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.choice} style={shown === null ? styles.placeholder : styles.caption}>{caption}</Text>
@@ -190,12 +192,19 @@ const glyph = StyleSheet.create({
   hour: { position: 'absolute', left: 7, top: 7, width: 6, height: 2, borderRadius: 1, backgroundColor: tokens.color.primary },
 });
 
-/** A date or time row: 16 pt padding, the 21 pt caption line, the 22 pt value line and 16 pt padding (MVP-22-E1.5). An empty row keeps it too. */
-export const FIELD_HEIGHT = 16 + 21 + 22 + 16;
+/**
+ * A date or time row: 16 pt padding, the 21 pt caption line, the 22 pt value line, 16 pt padding and the 3 pt bottom edge, which
+ * the row's height includes (MVP-22-E1.5, MVP-22-E1r2). An empty row keeps it too.
+ */
+const FIELD_LINES = 21 + 22;
+const FIELD_FRAME = 16 + 16 + 3;
+export const FIELD_HEIGHT = FIELD_FRAME + FIELD_LINES;
+/** The lines grow with the text scale below the large text threshold, so the fixed height grows with them. */
+function fieldHeight(fontScale: number) { return Math.ceil(FIELD_FRAME + FIELD_LINES * fontScale); }
 
 const styles = StyleSheet.create({
   group: { gap: 12 }, field: { padding: 16, gap: 4, minHeight: 64, backgroundColor: tokens.color.surface, borderRadius: 20, borderBottomWidth: 3, borderBottomColor: tokens.warm.edge }, wideField: { paddingHorizontal: tokens.space.small },
-  fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, fieldText: { flex: 1, gap: 4 }, stacked: { gap: 0 }, pictured: { minHeight: FIELD_HEIGHT },
+  fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, fieldText: { flex: 1, gap: 4 }, stacked: { gap: 0 },
   placeholder: { color: tokens.color.secondary, fontSize: 17, lineHeight: 22 }, fieldValue: { lineHeight: 22 }, chevron: { color: tokens.color.secondary, fontSize: 28, lineHeight: 32 },
   caption: { color: tokens.color.secondary, fontSize: 14, lineHeight: 21 }, value: { color: tokens.color.text, fontSize: 17, fontWeight: '600' },
   modal: { flex: 1, backgroundColor: tokens.color.canvas }, header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingLeft: 16, paddingRight: 8 }, title: { color: tokens.color.text, fontSize: 24, fontWeight: '700' },

@@ -167,6 +167,8 @@
     "retry": "Try again",
     "formRequired": "Deadline needed.",
     "formRequiredStart": "Start needed.",
+    "formRequiredTime": "Time needed.",
+    "formRequiredStartTime": "Start time needed.",
     "reviewIntro": "Read the rules, then make the Oath.",
     "consent": "By choosing “Commit to the Oath”, I accept the rules on the cards and the full rules.",
     "pending": "Your confirmation may already have arrived. Check this Oath before you start another.",

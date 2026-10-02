@@ -219,6 +219,7 @@ test.each([[402], [375]])('at width %i and the largest text size a long Polish m
   size(width, 3.571);
   await picker({ date: '2026-10-08' }, jest.fn(), 'pl');
   const field = screen.getByRole('button', { name: 'Termin, data ukończenia' });
+  // A long value may wrap at this size, so the row grows from its least height instead of clipping.
   expect(field).toHaveStyle({ paddingHorizontal: 8, minHeight: FIELD_HEIGHT });
   expect(screen.getByText('8 października 2026').props.maxFontSizeMultiplier).toBe(2.5);
   // Native check, 2026-09-30: uncapped 14 pt captions grew past the capped 17 pt value, so the captions share the cap.
@@ -234,8 +235,24 @@ test('at the default text size the field keeps its padding and height', async ()
   size(402, 1);
   await picker({ date: '2026-10-08' }, jest.fn(), 'pl');
   const field = screen.getByRole('button', { name: 'Termin, data ukończenia' });
-  expect(field).toHaveStyle({ padding: 16, minHeight: FIELD_HEIGHT });
+  expect(field).toHaveStyle({ padding: 16, height: FIELD_HEIGHT });
   expect(field).not.toHaveStyle({ paddingHorizontal: 8 });
+});
+
+// MVP-22-E1r2, native check 2026-10-02 (iPhone 18 Pro, PL): the chosen date row stood 3 pt taller than the empty time row under it.
+// FIELD_HEIGHT left out the 3 pt bottom edge, so the empty row kept the least height and the chosen one grew past it.
+// Both rows now take one fixed height that holds padding, edge, caption line and value line.
+test.each([[1], [1.2]])('at text scale %f an empty and a chosen row take one fixed height that holds both lines', async fontScale => {
+  size(402, fontScale);
+  await picker({ date: '2026-10-03' }, jest.fn(), 'pl');
+  const [date, time] = screen.getAllByRole('button');
+  const row = flat(date.props.style);
+  expect(row.minHeight ?? 0).toBeLessThanOrEqual(row.height);
+  expect(flat(time.props.style)).toEqual(row);
+  const caption = flat(within(date).getByText('Termin').props.style);
+  const value = flat(within(date).getByText('3 października 2026').props.style);
+  expect(row.height).toBe(Math.ceil(row.padding * 2 + row.borderBottomWidth + (caption.lineHeight + value.lineHeight) * fontScale));
+  expect(flat(within(time).getByText('Godzina').props.style).lineHeight).toBeLessThanOrEqual(caption.lineHeight + value.lineHeight);
 });
 
 const flat = (style: unknown) => Object.assign({}, ...[style].flat(Infinity).filter(Boolean));
@@ -369,12 +386,13 @@ test('a chosen value stands under its small caption, beside its pictogram', asyn
 
 // The pictogram labels are the `icon` exemption of the word budget (engagement.md D-E4): one word beside a calendar or a clock.
 test.each([['empty', {}], ['chosen', { date: '2026-10-08', time: '18:30:00' }]] as const)('%s date and time fields share one structure, style and height', async (_case, value) => {
+  size(402, 1);
   await picker(value);
   const [date, time] = screen.getAllByRole('button');
   expect(flat(date.props.style)).toEqual(flat(time.props.style));
-  // 16 pt padding, the 21 pt caption line and the 22 pt value line, 16 pt padding. An empty row keeps the height of a chosen one.
-  expect(FIELD_HEIGHT).toBe(16 + 21 + 22 + 16);
-  expect(flat(date.props.style).minHeight).toBe(FIELD_HEIGHT);
+  // 16 pt padding, the 21 pt caption line, the 22 pt value line, 16 pt padding and the 3 pt bottom edge. An empty row keeps the height of a chosen one.
+  expect(FIELD_HEIGHT).toBe(16 + 21 + 22 + 16 + 3);
+  expect(flat(date.props.style).height).toBe(FIELD_HEIGHT);
   const texts = (button: typeof date) => within(button).getAllByText(/./).map(text => [flat(text.props.style), text.props.budget ?? null]);
   expect(texts(date)).toEqual(texts(time));
   const caption = within(date).getByText('Deadline');

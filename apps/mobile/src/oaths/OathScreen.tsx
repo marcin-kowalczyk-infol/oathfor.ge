@@ -146,6 +146,12 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
     const left = target && now !== null ? `${t(`countdown.${target.kind}`)} ${formatCountdown(target.at - now, t, target.kind === 'start' ? 'accusative' : 'nominative').spoken}` : '';
     AccessibilityInfo.announceForAccessibility(left ? `${t('oath.made')}. ${left}` : t('oath.made'));
   }
+  // MVP-22-E1r2, native check 2026-10-02: the line names the first missing part. A chosen date without its time names the time,
+  // because its row already shows the date. The start comes first, then the deadline (MVP-22-E1.R).
+  function missingChoice() {
+    if (scheduled && !localInput(local(activation))) return activation.date && !activation.time ? 'oath.formRequiredStartTime' : 'oath.formRequiredStart';
+    return deadline.date && !deadline.time ? 'oath.formRequiredTime' : 'oath.formRequired';
+  }
   async function preview() {
     if (!valid || busy || pending) return;
     setSubmitted(true); await controller.preview(input);
@@ -278,7 +284,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         </View>
         <Action label={t('oath.viewRules')} busy={busy} onPress={() => { void preview(); }}
           {...(!valid || (!!choices && !(choices.field === 'activation' ? activation.offset : deadline.offset))
-            ? { disabled: true, unavailableReason: !valid ? t(scheduled && !localInput(local(activation)) ? 'oath.formRequiredStart' : 'oath.formRequired') : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
+            ? { disabled: true, unavailableReason: !valid ? t(missingChoice()) : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
       </>}
     </Animated.ScrollView>
     {guideShown && <DialoguePanel frame={guideFrame}
