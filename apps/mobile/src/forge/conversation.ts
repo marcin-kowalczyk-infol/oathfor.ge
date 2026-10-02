@@ -28,5 +28,8 @@ export function chapterScript(place: TutorialPlace, form: CharacterForm): Script
   ];
 }
 
-/** A first-visit guide step: Żaromir alone. */
-export const guideScript = (place: TutorialPlace): ScriptLine[] => [{ speaker: 'guide', key: `room.guide.${place}` }];
+/** The first room entry: Żaromir alone beside the hearth, one bark (docs/product/engagement.md E2, D-E7). */
+export const startScript: ScriptLine[] = [{ speaker: 'guide', key: 'room.gate.start' }];
+
+/** An unlit place: Żaromir alone, one bark that says when it lights, and no action. */
+export const unlitScript = (place: 'seals' | 'chronicle'): ScriptLine[] => [{ speaker: 'guide', key: `room.gate.${place}` }];

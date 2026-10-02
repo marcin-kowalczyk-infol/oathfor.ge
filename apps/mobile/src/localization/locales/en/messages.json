@@ -588,6 +588,15 @@
       "chronicle_one": "chronicle entry",
       "chronicle_other": "chronicle entries",
       "chronicleUnknown": "Number of chronicle entries unknown"
+    },
+    "gate": {
+      "start": "Start here, at the fire.",
+      "seals": "Your Oaths’ seals will glow here.",
+      "chronicle": "The chronicle will glow after your first finished Oath.",
+      "inactive": {
+        "seals": "not active yet",
+        "chronicle": "not active yet"
+      }
     }
   },
   "tutorial": {

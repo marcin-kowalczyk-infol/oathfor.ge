@@ -488,6 +488,17 @@ async function enterRoom() {
   await fireEvent.press(await screen.findByRole('button', forgeTile));
   expect(await screen.findByRole('button', { name: 'Door' })).toBeOnTheScreen();
 }
+/** A current Oath and a chronicle entry light every room place (MVP-22-E2.2). Only the one-row counts change, the lists stay as they are. */
+function lightRoom(runtime: ReturnType<typeof setup>) {
+  const list = jest.mocked(runtime.oathApi.list);
+  const answer = list.getMockImplementation()!;
+  list.mockImplementation(async (token, query) => {
+    const result = await answer(token, query);
+    return query.limit === 1 && result.kind === 'success' ? { ...result, value: { ...result.value, total: 1 } } : result;
+  });
+}
+/** Żaromir's one bark on the first room entry (MVP-22-E2.2). */
+const START = 'Start here, at the fire.';
 async function useStation(station: 'Hearth' | 'Seals' | 'Chronicle', action: string) {
   await fireEvent.press(screen.getByRole('button', { name: station }));
   // The player speaks first, the next touch brings Żaromir's line with the place action.
@@ -496,7 +507,7 @@ async function useStation(station: 'Hearth' | 'Seals' | 'Chronicle', action: str
 }
 
 test('the room leads to creation, Today and History, the Oath door returns to the room and the room door to the menu', async () => {
-  const runtime = setup();
+  const runtime = setup(); lightRoom(runtime);
   runtime.guideStorage.read.mockResolvedValue(true);
   await signIn(runtime);
   await enterRoom();
@@ -515,7 +526,7 @@ test('the room leads to creation, Today and History, the Oath door returns to th
   expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
 });
 
-test('the first room entry shows the guide and stores the flag, the next entry does not, and Tutorial starts the rules conversation', async () => {
+test('the first room entry plays the start bark and stores the flag, the next entry does not, and Tutorial starts the rules conversation', async () => {
   const runtime = setup();
   let answer!: (seen: boolean) => void;
   runtime.guideStorage.read.mockImplementationOnce(() => new Promise(resolve => { answer = resolve; }));
@@ -525,19 +536,20 @@ test('the first room entry shows the guide and stores the flag, the next entry d
   expect(screen.getByTestId('forge-room-waiting')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Door' })).toBeNull();
   await act(async () => answer(false));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Skip introduction' }));
+  expect(await screen.findByText(START)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Close the conversation' }));
   expect(runtime.guideStorage.markSeen).toHaveBeenCalledWith(account.id);
   await leaveRoom();
   await enterRoom();
-  expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
+  expect(screen.queryByText(START)).toBeNull();
   await leaveRoom();
   await fireEvent.press(await screen.findByRole('button', { name: 'Tutorial, Learn the rules from Zharomir' }));
   expect(await screen.findByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
+  expect(screen.queryByText(START)).toBeNull();
   expect(runtime.guideStorage.read).toHaveBeenCalledTimes(1);
 });
 
-test('a guide flag read that does not answer within 1.5 s opens the room with the guide and a late answer is ignored', async () => {
+test('a guide flag read that does not answer within 1.5 s opens the room with the start bark and a late answer is ignored', async () => {
   const runtime = setup();
   let answer!: (seen: boolean) => void;
   runtime.guideStorage.read.mockImplementationOnce(() => new Promise(resolve => { answer = resolve; }));
@@ -549,9 +561,9 @@ test('a guide flag read that does not answer within 1.5 s opens the room with th
     await act(async () => { jest.advanceTimersByTime(1499); });
     expect(screen.getByTestId('forge-room-waiting')).toBeOnTheScreen();
     await act(async () => { jest.advanceTimersByTime(1); });
-    expect(screen.getByRole('button', { name: 'Skip introduction' })).toBeOnTheScreen();
+    expect(screen.getByText(START)).toBeOnTheScreen();
     await act(async () => answer(true));
-    expect(screen.getByRole('button', { name: 'Skip introduction' })).toBeOnTheScreen();
+    expect(screen.getByText(START)).toBeOnTheScreen();
   } finally { jest.useRealTimers(); }
 });
 
@@ -605,7 +617,7 @@ test('Settings opens the pause review, which returns to Settings', async () => {
 });
 
 test('a confirmed pause returns to Settings, refreshes the summary and reloads the mounted Oath list', async () => {
-  const runtime = setup(); pausable(runtime);
+  const runtime = setup(); pausable(runtime); lightRoom(runtime);
   await signIn(runtime);
   await fireEvent.press(await screen.findByRole('button', { name: 'Settings, Language, pause, account' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Mira: in play' }));

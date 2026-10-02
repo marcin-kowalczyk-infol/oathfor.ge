@@ -235,6 +235,15 @@ const states: Record<string, (locale: Locale) => Promise<unknown>> = {
   'proof.otherPending': locale => proof(locale, NOW, { kind: 'ready', busy: false, pending: record(otherOathId), oath: null }),
   'room': locale => room(locale),
   'room.firstEntry': locale => room(locale, { progress: progress(0, 0), showGuide: true }),
+  // MVP-22-E2.2: an unlit place answers with one bark and no action.
+  'room.unlitSeals': async locale => {
+    await room(locale, { progress: progress(0, 0) });
+    await fireEvent.press(screen.getByRole('button', { name: `${copyOf(locale).room.seals}, ${copyOf(locale).room.gate.inactive.seals}` }));
+  },
+  'room.unlitChronicle': async locale => {
+    await room(locale, { progress: progress(0, 0) });
+    await fireEvent.press(screen.getByRole('button', { name: `${copyOf(locale).room.chronicle}, ${copyOf(locale).room.gate.inactive.chronicle}` }));
+  },
   'room.hearth': locale => place(locale, 'hearth'),
   'room.seals': locale => place(locale, 'seals'),
   'room.chronicle': locale => place(locale, 'chronicle'),

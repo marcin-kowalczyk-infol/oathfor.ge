@@ -602,6 +602,15 @@
       "chronicle_many": "wpisów w kronice",
       "chronicle_other": "wpisu w kronice",
       "chronicleUnknown": "Liczba wpisów w kronice nieznana"
+    },
+    "gate": {
+      "start": "Zacznij tutaj, od ognia.",
+      "seals": "Tu zapłoną pieczęcie Twoich Przysiąg.",
+      "chronicle": "Kronika zapłonie po pierwszej zakończonej Przysiędze.",
+      "inactive": {
+        "seals": "jeszcze nieaktywne",
+        "chronicle": "jeszcze nieaktywna"
+      }
     }
   },
   "tutorial": {

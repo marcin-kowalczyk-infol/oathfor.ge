@@ -1,7 +1,7 @@
 import { createTranslation } from '../localization/createTranslation';
 import { validateCatalogs } from '../localization/validateCatalogs';
 import { catalogs } from '../localization/createTranslation';
-import { chapterScript, guideScript, playerLineKey, visitScript } from './conversation';
+import { chapterScript, playerLineKey, startScript, unlitScript, visitScript } from './conversation';
 
 const pl = createTranslation('pl');
 const en = createTranslation('en');
@@ -74,8 +74,20 @@ test('the chronicle and door chapters open with the line for the character\'s fo
   expect(pl.t(chapterScript('door', 'neutral')[0].key)).toBe('A jeśli przyjdzie mi przerwać?');
 });
 
-test('the first-visit guide is Żaromir alone', () => {
-  expect(guideScript('chronicle')).toEqual([{ speaker: 'guide', key: 'room.guide.chronicle' }]);
+// MVP-22-E2.2 (engagement.md E2, D-E7): the first entry and each unlit place are one bark from Żaromir.
+test('the first entry and the unlit places are Żaromir alone', () => {
+  expect(startScript).toEqual([{ speaker: 'guide', key: 'room.gate.start' }]);
+  expect(unlitScript('seals')).toEqual([{ speaker: 'guide', key: 'room.gate.seals' }]);
+  expect(unlitScript('chronicle')).toEqual([{ speaker: 'guide', key: 'room.gate.chronicle' }]);
+});
+
+test.each([
+  ['room.gate.start', 'Zacznij tutaj, od ognia.', 'Start here, at the fire.'],
+  ['room.gate.seals', 'Tu zapłoną pieczęcie Twoich Przysiąg.', 'Your Oaths’ seals will glow here.'],
+  ['room.gate.chronicle', 'Kronika zapłonie po pierwszej zakończonej Przysiędze.', 'The chronicle will glow after your first finished Oath.'],
+])('%s is one short bark in both languages', (key, polish, english) => {
+  expect([pl.t(key), en.t(key)]).toEqual([polish, english]);
+  expect(polish.split(/\s+/).length).toBeLessThanOrEqual(8);
 });
 
 test('the new copy keeps the catalogs valid', () => {

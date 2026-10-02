@@ -21,7 +21,9 @@ jest.mock('../ui/HearthFire', () => ({ HearthFire: () => null }));
 jest.mock('./Sprite', () => ({ ...jest.requireActual('./Sprite'), SpriteLoop: () => null }));
 type Props = Parameters<typeof ForgeRoom>[0];
 const character = { name: 'Mira', presetId: 'starter_02', build: 'thin', form: 'feminine' } as const;
-const known = { today: { total: 0, paused: false }, history: { total: 0 }, loading: false };
+// Lit counts by default: a current Oath and a chronicle entry light every place (MVP-22-E2.2). Gate tests pass their own counts.
+const known = { today: { total: 1, paused: false }, history: { total: 1 }, loading: false };
+const nothing = { today: { total: 0, paused: false }, history: { total: 0 }, loading: false };
 const room = (props: Partial<Props> = {}, locale: Locale = 'en') =>
   <LocalizationProvider initialLocale={locale}><ForgeRoom character={character} progress={known} onTalk={jest.fn()} onExit={jest.fn()} onOpenStation={jest.fn()} {...props} /></LocalizationProvider>;
 const motion = jest.mocked(useMotionAllowed);
@@ -207,8 +209,8 @@ describe('the menu plate', () => {
     const view = await render(room({ tutorial: 1 }));
     expect(plate()).toBeOnTheScreen();
     await view.unmount();
-    await render(room({ onExit, showGuide: true, onGuideComplete }));
-    expect(screen.getByRole('button', { name: 'Next place' })).toBeOnTheScreen();
+    await render(room({ onExit, showGuide: true, onGuideComplete, progress: nothing }));
+    expect(screen.getByText(en.room.gate.start)).toBeOnTheScreen();
     await fireEvent.press(plate()!);
     await act(async () => { jest.advanceTimersByTime(700); });
     expect(onGuideComplete).toHaveBeenCalledTimes(1);
@@ -222,16 +224,13 @@ describe('the menu plate', () => {
   });
 });
 
-test('guide advances manually without walking or exiting', async () => {
+test('the first entry bark closes without walking or exiting', async () => {
   const onExit = jest.fn(); const onGuideComplete = jest.fn();
   await render(room({ onExit, showGuide: true, onGuideComplete }));
   expect(screen.getByText('Zharomir')).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
-  expect(screen.getByText('These glowing seals are your current Oaths.')).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
-  expect(screen.getByText('The moonlit door leads to the menu. Find me in the Tutorial to learn the Forge rules.')).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Start exploring' }));
+  expect(screen.getByText(en.room.gate.start)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: en.room.dismiss }));
+  expect(screen.queryByText(en.room.gate.start)).toBeNull();
   expect(onGuideComplete).toHaveBeenCalledTimes(1);
   expect(onExit).not.toHaveBeenCalled();
   expect(walkTimers()).toHaveLength(0);
@@ -242,7 +241,7 @@ test('touching a station ends the introduction and the player opens the visit', 
   await render(room({ showGuide: true, onGuideComplete }));
   await fireEvent.press(screen.getByRole('button', { name: en.room.chronicle }));
   expect(onGuideComplete).toHaveBeenCalledTimes(1);
-  expect(screen.queryByRole('button', { name: 'Next place' })).toBeNull();
+  expect(screen.queryByText(en.room.gate.start)).toBeNull();
   expect(screen.getByText('Mira')).toBeOnTheScreen();
   expect(screen.getByText(en.room.player.chronicle)).toBeOnTheScreen();
 });
@@ -318,28 +317,16 @@ test.each([['pl', pl], ['en', en]] as const)('the %s door leaves the room and na
   expect(onExit).toHaveBeenCalledTimes(1);
 });
 
-// MVP-22-A5: the guide step control shows its words, not only an arrow or a check.
-test.each([['en', en], ['pl', pl]] as const)('the %s guide step control shows its text', async (locale, copy) => {
-  await render(room({ showGuide: true }, locale));
-  expect(screen.getByText(copy.room.guide.next)).toBeOnTheScreen();
-  for (let step = 0; step < 3; step++) await fireEvent.press(screen.getByRole('button', { name: copy.room.guide.next }));
-  expect(screen.getByText(copy.room.guide.done)).toBeOnTheScreen();
-  expect(screen.queryByText('✓')).toBeNull();
-});
-
-test('a later guide request starts the guide from the first place', async () => {
+test('a later first-entry request plays the start bark again', async () => {
   const onGuideComplete = jest.fn();
   const view = await render(room({ showGuide: false, onGuideComplete }));
-  expect(screen.queryByRole('button', { name: en.room.guide.next })).toBeNull();
+  expect(screen.queryByText(en.room.gate.start)).toBeNull();
   await view.rerender(room({ showGuide: true, onGuideComplete }));
-  expect(screen.getByText(en.room.guide.hearth)).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: en.room.guide.skip }));
+  expect(screen.getByText(en.room.gate.start)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: en.room.dismiss }));
   expect(onGuideComplete).toHaveBeenCalledTimes(1);
   await view.rerender(room({ showGuide: 2, onGuideComplete }));
-  expect(screen.getByText(en.room.guide.hearth)).toBeOnTheScreen();
-  await view.rerender(room({ showGuide: 2, onGuideComplete }));
-  await fireEvent.press(screen.getByRole('button', { name: en.room.guide.next }));
-  expect(screen.getByText(en.room.guide.seals)).toBeOnTheScreen();
+  expect(screen.getByText(en.room.gate.start)).toBeOnTheScreen();
 });
 
 test('a guide restart in an open room closes the station bubble', async () => {
@@ -347,7 +334,7 @@ test('a guide restart in an open room closes the station bubble', async () => {
   await fireEvent.press(screen.getByRole('button', { name: en.room.seals }));
   expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
   await view.rerender(room({ showGuide: 1 }));
-  await fireEvent.press(screen.getByRole('button', { name: en.room.guide.skip }));
+  await fireEvent.press(screen.getByRole('button', { name: en.room.dismiss }));
   expect(screen.queryByText(en.room.player.seals)).toBeNull();
 });
 
@@ -390,7 +377,7 @@ describe('tutorial', () => {
     const onTutorialStart = jest.fn();
     await render(room({ tutorial: 1, showGuide: true, onTutorialStart }));
     expect(screen.getByText(tut.intro)).toBeOnTheScreen();
-    expect(screen.queryByText(en.room.guide.hearth)).toBeNull();
+    expect(screen.queryByText(en.room.gate.start)).toBeNull();
     expect(screen.queryByRole('button', { name: en.room.actions.hearth })).toBeNull();
     expect(screen.getByRole('button', { name: hear('door') })).toBeOnTheScreen();
     expect(onTutorialStart).toHaveBeenCalledTimes(1);
@@ -599,7 +586,7 @@ describe('tutorial after review', () => {
   test('a guide restart during the tutorial stays hidden', async () => {
     const view = await render(room({ tutorial: 1 }));
     await view.rerender(room({ tutorial: 1, showGuide: 3 }));
-    expect(screen.queryByText(en.room.guide.hearth)).toBeNull();
+    expect(screen.queryByText(en.room.gate.start)).toBeNull();
     expect(screen.getByText(tut.intro)).toBeOnTheScreen();
   });
 
@@ -901,11 +888,11 @@ describe('dialogue panel', () => {
     expect(screen.getByText(pl.room.player.tutorial.chronicle.feminine)).toBeOnTheScreen();
   });
 
-  test('in the first-visit guide only Żaromir speaks', async () => {
+  test('on the first entry only Żaromir speaks, beside the hearth', async () => {
     await render(room({ showGuide: true }));
-    expect(screen.getByText(en.room.guide.hearth)).toBeOnTheScreen();
+    expect(screen.getByText(en.room.gate.start)).toBeOnTheScreen();
     expect(plate()).toHaveTextContent('Zharomir');
-    expect(screen.getByText('1 / 4')).toBeOnTheScreen();
+    expect(screen.queryByText('1 / 4')).toBeNull();
     ringAt(places.hearth.guide);
   });
 
@@ -937,9 +924,9 @@ describe('dialogue panel', () => {
     jest.spyOn(Animated, 'timing').mockImplementation(() => ({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() }));
     await render(room({ showGuide: true }));
     const text = () => ((screen.getByTestId('dialogue-text').props.children as unknown[])[0] as string);
-    expect(text()).not.toBe(en.room.guide.hearth);
+    expect(text()).not.toBe(en.room.gate.start);
     await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
-    expect(text()).toBe(en.room.guide.hearth);
+    expect(text()).toBe(en.room.gate.start);
   });
 
   // The longest Polish line on a 375 × 667 screen with slightly larger text.
@@ -963,7 +950,7 @@ describe('dialogue panel', () => {
   });
 });
 
-describe('first-visit guide with Żaromir walking', () => {
+describe('first entry with Żaromir at the hearth', () => {
   function captureWalks() {
     motion.mockReturnValue(true);
     const walks: { to: unknown; done: (result: { finished: boolean }) => void }[] = [];
@@ -974,20 +961,17 @@ describe('first-visit guide with Żaromir walking', () => {
   }
   const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
 
-  test('Żaromir walks to each step\'s place while the player stays at the start', async () => {
+  test('Żaromir walks to the hearth while the player stays at the start', async () => {
     const walks = captureWalks();
     await render(room({ showGuide: true }));
     expect(walks.map(walk => walk.to)).toEqual([places.hearth.guide]);
-    expect(screen.getByText(en.room.guide.hearth)).toBeOnTheScreen();
-    for (const place of ['seals', 'chronicle', 'door'] as const) {
-      await act(async () => walks[walks.length - 1].done({ finished: true }));
-      await press(en.room.guide.next);
-      expect(walks[walks.length - 1].to).toEqual(places[place].guide);
-    }
+    expect(screen.getByText(en.room.gate.start)).toBeOnTheScreen();
+    await act(async () => walks[0].done({ finished: true }));
+    expect(walks).toHaveLength(1);
     expectAt('room-player', playerStart);
   });
 
-  test('at a step\'s place Żaromir turns to the player and talks', async () => {
+  test('at the hearth Żaromir turns to the player and talks', async () => {
     const walks = captureWalks();
     await render(room({ showGuide: true }));
     await act(async () => walks[0].done({ finished: true }));
@@ -1005,19 +989,124 @@ describe('first-visit guide with Żaromir walking', () => {
     expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
   });
 
-  test.each([['finished', 'done'], ['skipped', 'skip']] as const)('a %s guide sends Żaromir aside', async (_name, how) => {
+  test('closing the start bark sends Żaromir aside', async () => {
     await render(room({ showGuide: true }));
-    if (how === 'skip') await press(en.room.guide.skip);
-    else for (const label of [en.room.guide.next, en.room.guide.next, en.room.guide.next, en.room.guide.done]) await press(label);
+    await press(en.room.dismiss);
     expectAt('room-guide', aside);
   });
 
-  test('with reduced motion Żaromir stands at the step\'s place at once', async () => {
+  test('with reduced motion Żaromir stands at the hearth at once', async () => {
     await render(room({ showGuide: true }));
     expectAt('room-guide', places.hearth.guide);
-    await press(en.room.guide.next);
-    expectAt('room-guide', places.seals.guide);
     expect(walkTimers()).toHaveLength(0);
+  });
+});
+
+// MVP-22-E2.2 (docs/product/engagement.md E2, D-E7): a place glows when it has something, unlit places walk and bark without an action.
+describe('skill gate', () => {
+  const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
+  const glowOf = (id: 'hearth' | 'seals' | 'chronicle') => StyleSheet.flatten(screen.getByTestId(`station-glow-${id}`, hidden).props.style).opacity as number;
+  const unlit = (place: 'seals' | 'chronicle', copy = en) => `${copy.room[place]}, ${copy.room.gate.inactive[place]}`;
+  const unknown = { today: null, history: null, loading: false };
+
+  test('the first entry with nothing yet lights only the hearth and Żaromir starts there', async () => {
+    await render(room({ showGuide: true, progress: nothing }));
+    expect(glowOf('hearth')).toBeGreaterThan(0);
+    expect(glowOf('seals')).toBe(0);
+    expect(glowOf('chronicle')).toBe(0);
+    expect(screen.getByText(en.room.gate.start)).toBeOnTheScreen();
+    expectAt('room-guide', places.hearth.guide);
+  });
+
+  test('touching the unlit seals walks there and plays their bark without an action', async () => {
+    const onOpenStation = jest.fn(); const onGuideComplete = jest.fn();
+    await render(room({ showGuide: true, onGuideComplete, onOpenStation, progress: nothing }));
+    await press(unlit('seals'));
+    expect(onGuideComplete).toHaveBeenCalledTimes(1);
+    expectAt('room-player', places.seals.player);
+    expect(screen.getByText(en.room.gate.seals)).toBeOnTheScreen();
+    expect(screen.queryByText(en.room.player.seals)).toBeNull();
+    expect(screen.queryByRole('button', { name: en.room.actions.seals })).toBeNull();
+    expect(screen.queryByRole('button', { name: en.room.tutorial.next })).toBeNull();
+    await press(unlit('chronicle'));
+    expect(screen.getByText(en.room.gate.chronicle)).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: en.room.actions.chronicle })).toBeNull();
+    expect(onOpenStation).not.toHaveBeenCalled();
+  });
+
+  test('the hearth stays a working place with nothing yet', async () => {
+    const onOpenStation = jest.fn();
+    await render(room({ onOpenStation, progress: nothing }));
+    await press(en.room.hearth);
+    await press(en.room.tutorial.next);
+    await pressAction(en.room.actions.hearth);
+    expect(onOpenStation).toHaveBeenCalledWith('hearth');
+  });
+
+  test.each([['the door', 'door'], ['the menu plate', 'plate']] as const)('%s leaves the room within 700 ms on the first entry', async (_name, way) => {
+    const onExit = jest.fn();
+    await render(room({ showGuide: true, onExit, progress: nothing }));
+    if (way === 'door') await leave();
+    else { await press(en.forge.returnMenu); await act(async () => { jest.advanceTimersByTime(700); }); }
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  test('unknown counts light every place and their actions work', async () => {
+    const onOpenStation = jest.fn();
+    await render(room({ showGuide: true, onOpenStation, progress: unknown }));
+    for (const id of ['hearth', 'seals', 'chronicle'] as const) expect(glowOf(id)).toBeGreaterThan(0);
+    await press(en.room.seals);
+    await press(en.room.tutorial.next);
+    await pressAction(en.room.actions.seals);
+    expect(onOpenStation).toHaveBeenCalledWith('seals');
+  });
+
+  test('while the first count is loading the gated places stay unlit, and a failed read lights them', async () => {
+    const view = await render(room({ progress: { today: null, history: null, loading: true } }));
+    expect(glowOf('seals')).toBe(0);
+    expect(screen.getByRole('button', { name: unlit('seals') })).toBeOnTheScreen();
+    await view.rerender(room({ progress: unknown }));
+    expect(glowOf('seals')).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: en.room.seals })).toBeOnTheScreen();
+  });
+
+  test('the first current Oath lights the seals and the chronicle waits for its first entry', async () => {
+    const view = await render(room({ progress: nothing }));
+    await view.rerender(room({ progress: { today: { total: 1, paused: false }, history: { total: 0 }, loading: false } }));
+    expect(glowOf('seals')).toBeGreaterThan(0);
+    expect(glowOf('chronicle')).toBe(0);
+    await press(en.room.seals);
+    expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
+  });
+
+  test.each([['en', en], ['pl', pl]] as const)('in %s the unlit places say so to VoiceOver and stay touchable', async (locale, copy) => {
+    await render(room({ progress: nothing }, locale));
+    expect(screen.getByRole('button', { name: unlit('seals', copy) })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: unlit('chronicle', copy) })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: copy.room.hearth })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: copy.room.door })).toBeOnTheScreen();
+  });
+
+  test('reduced motion keeps a still glow on lit places and none on unlit ones', async () => {
+    const loop = jest.spyOn(Animated, 'loop');
+    await render(room({ progress: nothing }));
+    expect(loop).not.toHaveBeenCalled();
+    expect(glowOf('hearth')).toBeGreaterThan(0);
+    expect(glowOf('seals')).toBe(0);
+  });
+
+  test('with motion the unlit places do not pulse', async () => {
+    motion.mockReturnValue(true);
+    jest.spyOn(Animated, 'loop').mockReturnValue({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() });
+    await render(room({ progress: nothing }));
+    expect(glowOf('seals')).toBe(0);
+    expect(glowOf('chronicle')).toBe(0);
+  });
+
+  test('the tutorial still tells every place with nothing yet', async () => {
+    await render(room({ tutorial: 1, progress: nothing }));
+    await press(en.room.tutorial.hear.replace('{{place}}', en.room.seals));
+    expect(screen.getByText(en.room.player.tutorial.seals)).toBeOnTheScreen();
   });
 });
 
@@ -1053,10 +1142,10 @@ describe('talking to Żaromir', () => {
     }
   });
 
-  test('the guide hides the talk until it ends', async () => {
+  test('the start bark hides the talk until it ends', async () => {
     await render(room({ showGuide: true }));
     expect(screen.queryByRole('button', { name: en.room.talk.label })).toBeNull();
-    await press(en.room.guide.skip);
+    await press(en.room.dismiss);
     expect(screen.getByRole('button', { name: en.room.talk.label })).toBeOnTheScreen();
   });
 
@@ -1095,7 +1184,7 @@ describe('talking to Żaromir', () => {
     const view = await render(room());
     await talk();
     await view.rerender(room({ showGuide: 2 }));
-    await press(en.room.guide.skip);
+    await press(en.room.dismiss);
     expect(screen.queryByTestId('talk-counters')).toBeNull();
   });
 

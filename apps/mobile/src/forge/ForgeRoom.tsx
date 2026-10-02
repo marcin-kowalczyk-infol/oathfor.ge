@@ -7,7 +7,8 @@ import { SceneHotspot } from './SceneHotspot';
 import { DialoguePanel, type PanelControls } from './DialoguePanel';
 import { TalkCounters } from './TalkCounters';
 import { progressHint, type ForgeProgress } from './progressHint';
-import { chapterScript, guideScript, visitScript, type ScriptLine } from './conversation';
+import { chapterScript, startScript, unlitScript, visitScript, type ScriptLine } from './conversation';
+import { placeLit } from './placeLit';
 import { useArt } from '../art/ArtProvider';
 import { presetArt } from '../characters/presetArt';
 import { advanceTour, freshTour, hearPlace, tourControl, tourTextKey, type Tour, type TutorialPlace } from './tutorialChapters';
@@ -61,7 +62,8 @@ const sealsCover = (position: Animated.ValueXY) => position.y.interpolate({ inpu
 
 /**
  * The Forge room entrance: visiting a station never mutates an Oath, only its named action leaves the room.
- * showGuide starts the four-step guide. A later change to a new truthy value (true or a restart id) starts it again.
+ * A place glows when the server counts give it something (placeLit). An unlit place still walks the player there, with one bark and no action.
+ * showGuide marks the first entry: Żaromir stands by the hearth with one bark. A later change to a new truthy value (true or a restart id) plays it again.
  * tutorial starts the rules conversation, and a new id restarts it with no heard places. It takes priority over the guide.
  * onTutorialEnd reports a close or finish, so the parent can drop the id and a remount does not start it again.
  */
@@ -125,13 +127,14 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     const limit = setTimeout(() => setTalk(current => current && { ...current, spoken: true }), HINT_WAIT_MS);
     return () => clearTimeout(limit);
   }, [waitingTalk]);
-  const [guideStep, setGuideStep] = useState<number | null>(() => showGuide && !tutorial ? 0 : null);
+  // MVP-22-E2.2 (engagement.md D-E7): the first entry is one bark from Żaromir beside the hearth, replacing the four-step guide.
+  const [starting, setStarting] = useState(() => !!showGuide && !tutorial);
   const [tour, setTour] = useState<Tour | null>(() => tutorial ? freshTour : null);
   const tutorialRequest = useRef<number | null>(null);
   useEffect(() => {
     if (!tutorial || tutorialRequest.current === tutorial) return;
     tutorialRequest.current = tutorial;
-    setTour(freshTour); setGuideStep(null); setBubbleOpen(false); setTalk(null);
+    setTour(freshTour); setStarting(false); setBubbleOpen(false); setTalk(null);
     // Żaromir walks into the room from the start point to talk, above the bubble.
     guide.walkTo('tutor');
     onTutorialStart?.();
@@ -140,18 +143,23 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   useEffect(() => {
     if (guideRequest.current === showGuide) return;
     guideRequest.current = showGuide;
-    // A restart replaces whatever station the player had open, so its bubble never returns after the guide.
-    if (showGuide && !tour) { setGuideStep(0); setBubbleOpen(false); setTalk(null); }
+    // A restart replaces whatever station the player had open, so its bubble never returns after the bark.
+    if (showGuide && !tour) { setStarting(true); setBubbleOpen(false); setTalk(null); }
   }, [showGuide]);
-  const guidePlace = guideStep === null ? null : (['hearth', 'seals', 'chronicle', 'door'] as const)[guideStep];
+  const guidePlace = starting ? 'hearth' : null;
   function finishGuide() {
-    if (guideStep === null) return;
-    setGuideStep(null);
+    if (!starting) return;
+    setStarting(false);
     guide.walkTo('aside');
     onGuideComplete?.();
   }
-  // Local decision D3 (owner, 2026-09-28): in the guide only Żaromir walks, to his spot beside each step's place.
+  // Local decision D3 (owner, 2026-09-28): on the first entry only Żaromir walks, to his spot beside the hearth.
   useEffect(() => { if (guidePlace) guide.walkTo(guidePlace); }, [guidePlace]);
+  // Until the first answer lands the counts read as nothing yet, so places light up rather than go dark. A failed read then fails open.
+  // The tutorial tells every place, so in it no place is unlit.
+  const settling = progress.loading && !progress.today && !progress.history;
+  const counts = settling ? { today: 0, history: 0 } : { today: progress.today?.total ?? null, history: progress.history?.total ?? null };
+  const unlit = (place: ScenePlace): place is 'seals' | 'chronicle' => !tour && !placeLit(place, counts);
   const camera = useRef(new Animated.Value(0)).current;
   const entered = useRef(false);
   const [touchRequest, setTouchRequest] = useState(0);
@@ -224,11 +232,14 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   function advance() {
     setTour(current => current && advanceTour(current));
   }
+  // Unlit is not locked: an unlit place stays touchable and its name tells VoiceOver it is not active yet.
   const placeLabel = (place: TutorialPlace) => tour
     ? `${t('room.tutorial.hear', { place: t(`room.${place}`) })}${tour.heard.includes(place) ? `, ${t('room.tutorial.heard')}` : ''}`
-    : t(`room.${place}`);
+    : unlit(place) ? `${t(`room.${place}`)}, ${t(`room.gate.inactive.${place}`)}` : t(`room.${place}`);
   const heardMark = (place: TutorialPlace) => tour?.heard.includes(place) ? { testID: `heard-${place}`, label: t('room.tutorial.heardMark') } : undefined;
-  const stationGlow = (id: ForgeStation) => glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === id || tour?.place === id ? [0.45, 0.75] : player.target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
+  // An unlit place has no glow at all, so it neither pulses nor keeps the still glow of Reduce Motion.
+  const stationGlow = (id: ForgeStation) => glow.interpolate({ inputRange: [0, 1], outputRange: unlit(id) ? [0, 0]
+    : guidePlace === id || tour?.place === id ? [0.45, 0.75] : player.target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
   const seals = stations.find(station => station.id === 'seals')!;
   // The panel and the ring sit relative to the camera zoom, so scene points are projected through it.
   const zoom = zoomed ? 1.08 : 1;
@@ -247,24 +258,22 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     : talk && !guide.walking ? { kind: 'talk', gestures: [0, 3] }
     : { kind: 'idle' };
   // At a visited place the player handles it, facing it.
+  // At an unlit place there is nothing to handle yet, so the player waits there and the place does not respond.
   const playerPose: HeroPose = player.walking ? { kind: 'walk', direction: player.direction }
     : told ? { kind: 'act', place: told }
-    : !tour && visited ? { kind: 'act', place: visited } : { kind: 'idle' };
+    : !tour && visited && !unlit(visited) ? { kind: 'act', place: visited } : { kind: 'idle' };
   // The place responds once the figure stands there and starts working. Touching it again while it is there replays it.
-  const effectPlace = tour ? told : player.arrived === player.target ? visited : null;
+  const effectPlace = tour ? told : player.arrived === player.target && visited && !unlit(visited) ? visited : null;
   // Lower on screen is drawn in front. Each figure brings its own seal cut, so the drums cover only a figure behind them.
   const figures = ([
     { id: 'guide', walker: guide, node: <HeroSprite run={guide.run} pose={pose} allowed={allowed} height={FIGURE_HEIGHT} scale={guide.scale} /> },
     { id: 'player', walker: player, node: <PlayerFigure presetId={character.presetId} build={character.build} run={player.run} pose={playerPose} allowed={allowed} scale={player.scale} /> },
   ] as const).slice().sort((one, two) => one.id === front ? 1 : two.id === front ? -1 : 0);
-  // What the panel says now: the guide step, the tutorial choice or chapter, or the visited place.
+  // What the panel says now: the first entry bark, the tutorial choice or chapter, or the visited place.
   const form = character.form;
   let line: (ScriptLine & { id: string; title?: string; more?: boolean; controls?: PanelControls; next?: () => void; dismiss: () => void }) | null = null;
   if (guidePlace) {
-    const last = guideStep === 3;
-    line = { ...guideScript(guidePlace)[0], id: `guide-${guideStep}`, dismiss: finishGuide, next: last ? undefined : () => setGuideStep(value => value! + 1),
-      // MVP-22-A5: the step control shows its words ("Następne miejsce", "Zacznij odkrywać"), not a bare arrow or check.
-      controls: { step: { count: `${guideStep! + 1} / 4`, label: t(last ? 'room.guide.done' : 'room.guide.next'), text: true, onPress: () => last ? finishGuide() : setGuideStep(value => value! + 1) } } };
+    line = { ...startScript[0], id: 'gate-start', dismiss: finishGuide };
   } else if (tour && (telling || !tour.place)) {
     const script = told ? chapterScript(told, form) : null;
     if (script && opening) line = { ...script[0], id: `tour-${told}-open`, more: true, next: () => setOpening(false), dismiss: endTour };
@@ -275,6 +284,8 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   } else if (talk) {
     // An empty line while Żaromir waits for the counts. The hint then types once.
     line = { speaker: 'guide', key: talk.spoken ? progressHint(progress).key : '', id: `talk-${talk.id}`, dismiss: () => setTalk(null) };
+  } else if (placeBubble && unlit(visited!)) {
+    line = { ...unlitScript(visited!)[0], id: `unlit-${touchRequest}`, dismiss: () => setBubbleOpen(false) };
   } else if (placeBubble) {
     const place = visited!;
     const script = visitScript(place, form);
@@ -311,14 +322,14 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
       {/* Native check: drawn over the glows, the turning drums lost their glow and brightened when they stopped. The response lies under them. */}
       {effectPlace && <StationEffect key={touchRequest} station={effectPlace} request={touchRequest} allowed={allowed} point={point} sceneWidth={sceneWidth} />}
       {stations.map(station => <Animated.Image testID={`station-glow-${station.id}`} source={haze} key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: stationGlow(station.id) }]} />)}
-      <Animated.Image source={haze} style={[styles.doorGlow, { ...point(door.x, door.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === 'door' || tour?.place === 'door' ? [0.45, 0.72] : tour ? [0.30, 0.60] : [0.16, 0.48] }) }]} />
-      {stations.map(station => {
-        // The ember wisp floats above each station's touch area, where its mote used to be.
+      <Animated.Image source={haze} style={[styles.doorGlow, { ...point(door.x, door.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: tour?.place === 'door' ? [0.45, 0.72] : tour ? [0.30, 0.60] : [0.16, 0.48] }) }]} />
+      {stations.filter(station => !unlit(station.id)).map(station => {
+        // The ember wisp floats above each lit station's touch area, where its mote used to be.
         const spot = hotspot(station.x, station.y);
-        const lit = tour ? tour.place === station.id : player.target === station.id;
+        const chosen = tour ? tour.place === station.id : player.target === station.id;
         return <SpriteLoop key={`wisp-${station.id}`} sheet={art.effects.wisp} width={WISP} duration={1300} allowed={allowed}
           style={{ left: spot.left - WISP / 2, top: spot.top - 30 - WISP * 0.55 / art.effects.wisp.aspect,
-            opacity: lit ? 1 : glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
+            opacity: chosen ? 1 : glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
             transform: [{ translateY: glow.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }} />;
       })}
     </View>
@@ -365,7 +376,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
       extra={talk && line.id === `talk-${talk.id}` ? <TalkCounters progress={progress} waiting={!talk.spoken} /> : undefined}
       playerName={character.name} portrait={presetArt(art.presets, character.presetId, character.build)?.portrait ?? null} allowed={allowed} more={!!line.more}
       continueLabel={t('room.tutorial.next')} onContinue={still(() => line?.next?.())} controls={line.controls}
-      dismissLabel={t(guidePlace ? 'room.guide.skip' : tour ? 'room.tutorial.close' : 'room.dismiss')} onDismiss={still(line.dismiss)} />}
+      dismissLabel={t(tour ? 'room.tutorial.close' : 'room.dismiss')} onDismiss={still(line.dismiss)} />}
   </View>;
 }
 

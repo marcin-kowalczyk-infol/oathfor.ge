@@ -83,6 +83,8 @@ const readyOaths = () => ({
   boundCharacter: () => ({ accountId, characterId: mira.id }),
 }) as unknown as OathController;
 const unseenGuide = () => ({ read: jest.fn().mockResolvedValue(false), markSeen: jest.fn().mockResolvedValue(undefined) });
+/** Żaromir's one bark on the first room entry (MVP-22-E2.2). */
+const START = 'Start here, at the fire.';
 const tutorialTile = { name: 'Tutorial, Learn the rules from Zharomir' };
 const forgeTile = { name: 'Enter the Forge, Hearth, seals and chronicle' };
 
@@ -91,20 +93,20 @@ test('the Tutorial tile opens the room tutorial instead of the first-visit guide
   await render(<Harness oaths={readyOaths()} initial={menu} guideStorage={guideStorage} />);
   await fireEvent.press(await screen.findByRole('button', tutorialTile));
   expect(await screen.findByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
+  expect(screen.queryByText(START)).toBeNull();
   expect(guideStorage.markSeen).toHaveBeenCalledTimes(1);
   expect(guideStorage.markSeen).toHaveBeenCalledWith(accountId);
   await fireEvent.press(screen.getByRole('button', { name: 'Close the tutorial' }));
   await leaveRoom();
   await fireEvent.press(await screen.findByRole('button', forgeTile));
   expect(await screen.findByRole('button', { name: 'Door' })).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
+  expect(screen.queryByText(START)).toBeNull();
 });
 
-test('the Forge tile still starts the guide on the first visit', async () => {
+test('the Forge tile plays Żaromir\'s start bark on the first visit', async () => {
   await render(<Harness oaths={readyOaths()} initial={menu} guideStorage={unseenGuide()} />);
   await fireEvent.press(await screen.findByRole('button', forgeTile));
-  expect(await screen.findByRole('button', { name: 'Skip introduction' })).toBeOnTheScreen();
+  expect(await screen.findByText(START)).toBeOnTheScreen();
 });
 
 test('in simple layout the Tutorial tile opens the rules screen and back returns to the menu', async () => {
@@ -150,7 +152,7 @@ test('the tutorial as the first room entry waits for the guide flag and then rep
   expect(guideStorage.markSeen).not.toHaveBeenCalled();
   await act(async () => answer(false));
   expect(await screen.findByText('I will tell you how the Forge works. Touch the place you want to hear about.')).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Skip introduction' })).toBeNull();
+  expect(screen.queryByText(START)).toBeNull();
   expect(guideStorage.markSeen).toHaveBeenCalledTimes(1);
 });
 
@@ -194,7 +196,10 @@ test('a place action in the room asks for a flown request', async () => {
   const route = jest.fn();
   let home: HomeState | null = { ...menu, route: { kind: 'forge', tutorial: null } };
   const onHome: HomeRoutesProps['onHome'] = update => { home = typeof update === 'function' ? update(home) : update; route(home); };
-  await render(<Harness oaths={readyOaths()} initial={home!} route={[home, onHome]} />);
+  // A current Oath lights the seals, so their action shows (MVP-22-E2.2).
+  const oaths = readyOaths();
+  jest.mocked(oaths.list).mockResolvedValue({ kind: 'success', value: { items: [], nextCursor: null, total: 1, serverTime: '2026-09-26T12:00:00Z', paused: false, characterId: mira.id } });
+  await render(<Harness oaths={oaths} initial={home!} route={[home, onHome]} />);
   await fireEvent.press(await screen.findByRole('button', { name: 'Seals' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Next' }));
   await fireEvent.press(screen.getByRole('button', { name: 'View current Oaths' }));
