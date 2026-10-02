@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Image, PixelRatio, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
 import { Text } from '../ui/Text';
 import { tokens } from '../ui/tokens';
@@ -128,8 +128,23 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
   const width = PixelRatio.roundToNearestPixel(frame.left + frame.width) - left;
   const bottom = PixelRatio.roundToNearestPixel(frame.bottom);
   const maxHeight = PixelRatio.roundToNearestPixel(frame.maxHeight);
-  return <View testID="dialogue-panel" onLayout={onHeight && (event => onHeight(event.nativeEvent.layout.height))} style={[styles.panel, { left, width, bottom, maxHeight }, largeText && { height: maxHeight }]}>
-    <PaintedFrame width={width} height={maxHeight} />
+  // MVP-22 G34: the height follows the text and can end in half a device pixel (ui/textSlack.ts). Yoga rounds a child's place
+  // from its parent but its size from screen edges, so at that tie the side strips ended a pixel above the lower corners.
+  // The frame takes the panel's measured height in whole pixels instead. The layout effect reads it before the frame is shown,
+  // onLayout covers a change from inside `extra`.
+  const panelRef = useRef<View>(null);
+  const [frameHeight, setFrameHeight] = useState<number | null>(null);
+  const measured = (height: number) => {
+    const snapped = PixelRatio.roundToNearestPixel(height);
+    setFrameHeight(current => current === snapped ? current : snapped);
+  };
+  useLayoutEffect(() => {
+    const height = panelRef.current?.getBoundingClientRect?.().height;
+    if (height) measured(height);
+  });
+  return <View ref={panelRef} testID="dialogue-panel" onLayout={event => { measured(event.nativeEvent.layout.height); onHeight?.(event.nativeEvent.layout.height); }}
+    style={[styles.panel, { left, width, bottom, maxHeight }, largeText && { height: maxHeight }]}>
+    <PaintedFrame width={width} height={maxHeight} fill={frameHeight} />
     {/* Owner review 2026-09-28: the frame hid the lower half of the player's medallion. Busts sit over it. */}
     {bust('guide')}
     {bust('player')}
@@ -173,7 +188,7 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
  * Corners and repeated braid tiles, never a stretched frame, because a stretched braid distorts (agent review 2026-09-28).
  * Tiles are counted for the panel's width and its height limit and clipped at the corners.
  */
-function PaintedFrame({ width, height }: { width: number; height: number }) {
+function PaintedFrame({ width, height, fill }: { width: number; height: number; fill: number | null }) {
   const art = useArt().panel;
   const across = Math.max(0, Math.ceil((width - 2 * CORNER + 2) / TILE_H));
   const down = Math.max(0, Math.ceil((height - 2 * CORNER + 2) / TILE_V));
@@ -181,7 +196,8 @@ function PaintedFrame({ width, height }: { width: number; height: number }) {
     Array.from({ length: count }, (_, index) => <Image key={index} testID={id} source={source} resizeMode="stretch" style={size} />);
   const corner = (id: string, place: object, flip: object[]) =>
     <Image testID={`panel-corner-${id}`} source={art.corner} resizeMode="stretch" style={[styles.corner, place, { transform: flip }]} />;
-  return <View testID="panel-frame" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>
+  return <View testID="panel-frame" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+    style={fill == null ? StyleSheet.absoluteFill : [styles.frame, { height: fill }]}>
     {/* Native check, 2026-09-30: a covering image is not clipped to its box on iOS, so the wood reached the screen edges. */}
     <View testID="panel-fill-clip" style={styles.wood}><Image testID="panel-fill" source={art.fill} resizeMode="cover" style={styles.woodImage} /></View>
     <View style={[styles.edgeH, { top: 0 }]}>{tiles(across, 'panel-edge-top-tile', { width: TILE_H, height: EDGE }, art.edgeH)}</View>
@@ -203,6 +219,8 @@ const glyph = '#c9a77a';
 const styles = StyleSheet.create({
   panel: { position: 'absolute', zIndex: 5, backgroundColor: wood, borderRadius: 6, paddingTop: 36, paddingBottom: 8,
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
+  // MVP-22 G34: a measured frame has its own whole pixel height. Until the panel is measured it fills the panel.
+  frame: { position: 'absolute', top: 0, left: 0, right: 0 },
   wood: { position: 'absolute', left: 4, top: 4, right: 4, bottom: 4, overflow: 'hidden' },
   woodImage: { width: '100%', height: '100%' },
   corner: { position: 'absolute', width: CORNER, height: CORNER },

@@ -335,4 +335,36 @@ describe('the braid strips meet the corners', () => {
     expect(box.left).toBeCloseTo(16.4, 0);
     expect(box.left + box.width).toBeCloseTo(16.4 + 370.3, 0);
   });
+
+  // MVP-22 G34, native check on iPhone 18 Pro: a line without a title left a 1 px gap where both side strips meet the lower corners.
+  // Each outermost text adds half a device pixel (ui/textSlack.ts), so the content-driven height ended in a half pixel, and Yoga
+  // rounds the strip's end and the corner's place apart at that tie. 161 1/6 pt is that tie at 3x (483.5 px).
+  const layout = (height: number) => fireEvent(screen.getByTestId('dialogue-panel'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 370, height } } });
+  test.each([161 + 1 / 6, 160.9, 161.1])('a measured height of %s pt puts both lower side junctions on a whole device pixel', async height => {
+    jest.spyOn(PixelRatio, 'get').mockReturnValue(3);
+    Dimensions.set({ window: { width: 402, height: 874, scale: 3, fontScale: 1 }, screen: { width: 402, height: 874, scale: 3, fontScale: 1 } });
+    await render(panel({ allowed: false }));
+    await layout(height);
+    const box = style('panel-frame') as Record<string, number>;
+    // The frame is anchored at the panel's top with a whole pixel height, not stretched to the panel's fractional bottom.
+    expect(box).toMatchObject({ position: 'absolute', top: 0, left: 0, right: 0 });
+    expect(box.bottom).toBeUndefined();
+    whole(box.height);
+    expect(box.height).toBeCloseTo(Math.round(height * 3) / 3, 9);
+    const corner = style('panel-corner-bl') as Record<string, number>;
+    expect(corner.bottom).toBe(0);
+    for (const id of ['panel-edge-left-tile', 'panel-edge-right-tile']) {
+      const end = box.height - strip(id).bottom;
+      whole(end);
+      expect(end).toBe(box.height - corner.height);
+    }
+  });
+
+  test('the frame follows a new measured height', async () => {
+    jest.spyOn(PixelRatio, 'get').mockReturnValue(3);
+    await render(panel({ allowed: false }));
+    await layout(161 + 1 / 6);
+    await layout(130.5);
+    expect(style('panel-frame').height).toBeCloseTo(392 / 3, 9);
+  });
 });
