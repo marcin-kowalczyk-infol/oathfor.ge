@@ -535,14 +535,14 @@ Visual defects found in (d) were fixed and rechecked on the 18 Pro: proof screen
 
 ## Clarity acceptance (MVP-22), 2026-10-02
 
-The implementation landed in T00 to T12c, A0 to A8c and B1 to B2c, from 34573fe to 12aaa8f. The native pass of 2026-10-02 added D1, G24, G24b and G27 to G30, from 463a06a to 5248c34. The rules are in [clarity](../product/clarity.md). The local plan and task records name every commit. This section records what ran and what is still open.
+The implementation landed in T00 to T12c, A0 to A8c and B1 to B2c, from 34573fe to 12aaa8f. The native pass of 2026-10-02 added D1, G24, G24b and G27 to G30, from 463a06a to 9d39b89. The rules are in [clarity](../product/clarity.md). The local plan and task records name every commit. This section records what ran and what is still open.
 
 | Layer | Status | Result |
 | --- | --- | --- |
-| Mobile jest and typecheck | Ran | Last run on 5248c34 (G30), Node 24.21.0: 109 suites and 1819 tests passed, typecheck exit 0 |
+| Mobile jest and typecheck | Ran | Last run on 9d39b89 (G31), Node 24.21.0: 109 suites and 1827 tests passed, typecheck exit 0 |
 | Catalog guards | Ran | `clarityCopy.test.ts` checks "what next" lines at 12 Polish words and 70 characters, Żaromir lines at two sentences, pool sizes and the catalog-wide two-sentence cap. `review_copy.py` ran after each copy change, the last flags were resolved |
 | Screen tests | Ran | Every touched screen state asserts at most one filled action and renders in PL and EN at text scale 2 |
-| Independent reviews | Ran per batch | T01 to T03, T02b with T04, T05 to T08b, T09 with T09b, T09c to T09e, T10 to T12b, A0 to A4, A5 to A8b, B1 with A8c, B2 with B2b, D1 with G24, G27 and G28. Findings were fixed in T02b, T08b, T09b, T09d, T12b, T12c, A4b, A8c, B2b, B2c and G30 |
+| Independent reviews | Ran per batch | T01 to T03, T02b with T04, T05 to T08b, T09 with T09b, T09c to T09e, T10 to T12b, A0 to A4, A5 to A8b, B1 with A8c, B2 with B2b, D1 with G24, G27 and G28, G24b with G30. Findings were fixed in T02b, T08b, T09b, T09d, T12b, T12c, A4b, A8c, B2b, B2c, G30 and G31 |
 | Native checks | Ran in part | iPhone 18 Pro simulator, demo build after a cold relaunch, default and largest standard text. Each check found defects that later tasks fixed with a failing test first |
 | English native pass | Ran in part | Main menu, room, hearth, Oath form and review, Today, detail, History and Settings at default text. Character creation, the menu and the simple Today list at the largest text |
 
@@ -558,7 +558,7 @@ Native observations on the iPhone 18 Pro, all in Polish. Screenshots are local e
 | Main menu, room dialogue, seals panel, simple Oath list | T09 checkpoint | Contract tone on the seals line fixed in A5, list header over art fixed in T09c. The menu header touching the demo bar is still open |
 | Onboarding steps, Settings, pause review | Sweep 1 | Slate styling, a broken IANA example, long notification and review text, single-letter line ends and long pause rows. Fixed in B1 (G1 to G10) |
 | Room dialogue, tutorial heard plate, History, Oath form, review, confirmation, date and time sheets | Sweep 2 | Low-contrast continue mark, a system-style plate, a large History bubble, header text on hearth art, slate fields, heavy sheet headers, a hidden minute scroll, a repeated review title, the guide covering cards and split number units. Fixed in B2 (G11 to G23) |
-| Character intro, main menu, pending acceptance, dialogue panel corners | Native pass 2026-10-02 | "imię i" ended a line (G24), the wordmark touched the demo bar, the pending line and its button sat on the hearth fire (G27), a 1 px dark column at both lower panel corners (G28). Fixed in 038745e, 9c8e778 and 2d7750d, then observed again: the intro keeps "i tytuł." together, the wordmark has its gap, the pending line and button stand on the band at default and largest text, and the column at x 143 px is clean |
+| Character intro, main menu, pending acceptance, dialogue panel corners | Native pass 2026-10-02 | "imię i" ended a line (G24), the wordmark touched the demo bar, the pending line and its button sat on the hearth fire (G27), a 1 px dark column at both lower panel corners (G28). Fixed in 038745e, 9c8e778 and 2d7750d, then observed again: the intro keeps "i tytuł." together, the wordmark has its gap, the pending line and button stand on the band at default and largest text, and the column at x 143 px is clean at default text. At largest text no corner column shows either |
 | Date and time sheets, countdown chip, confirmation, needs more proof | Native pass 2026-10-02 | The disabled ‹ and past days read as dimmed, not hidden. The chip and the confirmation fit at largest text. The seal wall shows "Do uzupełnienia" at default text, and its row and detail fit at largest text (demo control from 463a06a) |
 | Polish tutorial in the room and the simple tutorial | Native pass 2026-10-02 | The new lines read whole, the heard plate shows, and the simple chapters fold and open at largest text |
 | Separators at line ends | Native pass 2026-10-02 | "18:00 ·" and "15:32 ·" ended lines at largest text. 498972f moves the dot to the next line. Covered by jest, the wrapped case was not observed again |
@@ -570,7 +570,7 @@ Open native gates:
 | Recheck after the fixes | Proof screen, review with the guide open and pause review were not observed again after their fixes |
 | English at largest text | Room dialogue, Oath detail, confirmation and proof screen in English were seen at default text only |
 | Separator wrap | The dot that moves to the next line (498972f) is covered by jest only |
-| G30 outline check | The outlined "Sprawdź potwierdzenie" beside a confirmed detail after a failed save is covered by jest only |
+| G30 and G31 checks | The outlined "Sprawdź potwierdzenie" beside a confirmed detail after a failed save, the retry that keeps the screen in place and the "· Zmień" unit on the proof screen are covered by jest only |
 | Panel art on first entry | After a cold launch the first room entry showed one frame of the dialogue panel without its frame and plate, while the art loaded over Metro. Likely a development build effect, needs the Release build |
 | Simple layout and Reduce Motion | Proof steps open, fold behaviour and the static equivalents are covered by jest only |
 | VoiceOver | Deferred. Labels, headings and announcements are set and tested, the rotor, the B2 sheet hints and the onboarding hint from G30 are unverified |
