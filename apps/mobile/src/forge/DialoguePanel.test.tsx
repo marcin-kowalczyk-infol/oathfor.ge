@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { Animated, Dimensions, PixelRatio, StyleSheet } from 'react-native';
+import { Animated, Dimensions, PixelRatio, StyleSheet, View } from 'react-native';
 import { DialoguePanel, TYPE_MS } from './DialoguePanel';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Locale } from '../localization/locale';
@@ -337,34 +337,56 @@ describe('the braid strips meet the corners', () => {
   });
 
   // MVP-22 G34, native check on iPhone 18 Pro: a line without a title left a 1 px gap where both side strips meet the lower corners.
-  // Each outermost text adds half a device pixel (ui/textSlack.ts), so the content-driven height ended in a half pixel, and Yoga
-  // rounds the strip's end and the corner's place apart at that tie. 161 1/6 pt is that tie at 3x (483.5 px).
+  // Each outermost text adds half a device pixel (ui/textSlack.ts), so inside Yoga the content height could end in a half pixel,
+  // and Yoga rounded the strip's end and the corner's place apart at that tie. onLayout and getBoundingClientRect report the
+  // height Yoga already rounded, so the inputs here are whole pixels at 3x (483 and 484 px) and one float a hair below 483 px.
+  // Jest only pins the frame box and its anchors. The pixel junction itself is proven natively (pixel scan and recording).
   const layout = (height: number) => fireEvent(screen.getByTestId('dialogue-panel'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 370, height } } });
-  test.each([161 + 1 / 6, 160.9, 161.1])('a measured height of %s pt puts both lower side junctions on a whole device pixel', async height => {
+  test.each([161, 161 + 1 / 3, 160.99999])('a reported height of %s pt gives the frame that height in whole device pixels', async height => {
     jest.spyOn(PixelRatio, 'get').mockReturnValue(3);
     Dimensions.set({ window: { width: 402, height: 874, scale: 3, fontScale: 1 }, screen: { width: 402, height: 874, scale: 3, fontScale: 1 } });
     await render(panel({ allowed: false }));
     await layout(height);
     const box = style('panel-frame') as Record<string, number>;
-    // The frame is anchored at the panel's top with a whole pixel height, not stretched to the panel's fractional bottom.
+    // The frame is anchored at the panel's top with its own height, so its bottom is the panel's reported bottom, never below it.
     expect(box).toMatchObject({ position: 'absolute', top: 0, left: 0, right: 0 });
     expect(box.bottom).toBeUndefined();
     whole(box.height);
     expect(box.height).toBeCloseTo(Math.round(height * 3) / 3, 9);
-    const corner = style('panel-corner-bl') as Record<string, number>;
-    expect(corner.bottom).toBe(0);
-    for (const id of ['panel-edge-left-tile', 'panel-edge-right-tile']) {
-      const end = box.height - strip(id).bottom;
-      whole(end);
-      expect(end).toBe(box.height - corner.height);
-    }
+    expect(box.height).toBeCloseTo(height, 4);
+    // The lower corners and the side strips keep the whole pixel corner size, measured from the frame's own edges.
+    const corner = Number(style('panel-corner-bl').width);
+    whole(corner);
+    expect(style('panel-corner-bl')).toMatchObject({ bottom: 0, width: corner, height: corner });
+    for (const id of ['panel-edge-left-tile', 'panel-edge-right-tile']) expect(strip(id)).toMatchObject({ top: corner, bottom: corner });
   });
 
-  test('the frame follows a new measured height', async () => {
+  test('the frame follows a new reported height', async () => {
     jest.spyOn(PixelRatio, 'get').mockReturnValue(3);
     await render(panel({ allowed: false }));
-    await layout(161 + 1 / 6);
-    await layout(130.5);
-    expect(style('panel-frame').height).toBeCloseTo(392 / 3, 9);
+    await layout(161);
+    expect(style('panel-frame').height).toBe(161);
+    await layout(130 + 1 / 3);
+    expect(style('panel-frame').height).toBeCloseTo(391 / 3, 9);
+  });
+
+  test('until the panel is measured the frame fills it', async () => {
+    await render(panel({ allowed: false }));
+    expect(style('panel-frame')).toMatchObject({ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 });
+    expect(style('panel-frame').height).toBeUndefined();
+  });
+
+  // Jest's host View has no getBoundingClientRect, so the test gives it one. The frame takes the height before any onLayout.
+  test('the layout effect gives the frame the panel height before onLayout fires', async () => {
+    jest.spyOn(PixelRatio, 'get').mockReturnValue(3);
+    const host = View.prototype as unknown as { getBoundingClientRect?: () => { height: number } };
+    host.getBoundingClientRect = () => ({ height: 161 + 1 / 3 });
+    try {
+      await render(panel({ allowed: false }));
+      expect(style('panel-frame').height).toBeCloseTo(484 / 3, 9);
+      expect(style('panel-frame').bottom).toBeUndefined();
+    } finally {
+      delete host.getBoundingClientRect;
+    }
   });
 });

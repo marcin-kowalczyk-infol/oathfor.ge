@@ -130,8 +130,9 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
   const maxHeight = PixelRatio.roundToNearestPixel(frame.maxHeight);
   // MVP-22 G34: the height follows the text and can end in half a device pixel (ui/textSlack.ts). Yoga rounds a child's place
   // from its parent but its size from screen edges, so at that tie the side strips ended a pixel above the lower corners.
-  // The frame takes the panel's measured height in whole pixels instead. The layout effect reads it before the frame is shown,
-  // onLayout covers a change from inside `extra`.
+  // The frame takes the panel's measured height instead. Both readings arrive already rounded by Yoga to whole device pixels,
+  // so snapping only absorbs float noise and the frame ends exactly at the panel's reported bottom, never below it.
+  // The layout effect reads it before the frame is shown, onLayout covers a change from inside `extra`.
   const panelRef = useRef<View>(null);
   const [frameHeight, setFrameHeight] = useState<number | null>(null);
   const measured = (height: number) => {
