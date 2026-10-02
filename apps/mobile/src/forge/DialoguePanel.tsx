@@ -22,6 +22,8 @@ const TILE_H = 142 / 3;
 const TILE_V = 127 / 3;
 const PLATE = { width: 612 / 3 * 0.8, height: 128 / 3 * 0.8 };
 const RUNE = 26;
+// One device pixel of overlap between the braid strips and the corners.
+const SEAM = StyleSheet.hairlineWidth;
 // Hermes may lack Intl.Segmenter. Code points then keep Polish letters whole, only joined emoji may split for a moment.
 const segmenter = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 const graphemesOf = (text: string) => segmenter ? Array.from(segmenter.segment(text), part => part.segment) : Array.from(text);
@@ -199,10 +201,11 @@ const styles = StyleSheet.create({
   wood: { position: 'absolute', left: 4, top: 4, right: 4, bottom: 4, overflow: 'hidden' },
   woodImage: { width: '100%', height: '100%' },
   corner: { position: 'absolute', width: CORNER, height: CORNER },
-  // MVP-22-B2 (G11): a strip that ended exactly where a corner began left a hairline on a fractional pixel row,
-  // because the panel's height follows its text. Each strip runs 1 pt under the corners, which are drawn over it.
-  edgeH: { position: 'absolute', left: CORNER - 1, right: CORNER - 1, height: EDGE, flexDirection: 'row', overflow: 'hidden' },
-  edgeV: { position: 'absolute', top: CORNER - 1, bottom: CORNER - 1, width: EDGE, overflow: 'hidden' },
+  // MVP-22-B2 (G11): a strip that ended exactly where a corner began left a hairline on a fractional pixel row.
+  // Each strip runs one device pixel under the corners, which are drawn over it. One pixel, because the inner shadow of both
+  // is translucent and a wider overlap would darken it.
+  edgeH: { position: 'absolute', left: CORNER - SEAM, right: CORNER - SEAM, height: EDGE, flexDirection: 'row', overflow: 'hidden' },
+  edgeV: { position: 'absolute', top: CORNER - SEAM, bottom: CORNER - SEAM, width: EDGE, overflow: 'hidden' },
   bust: { position: 'absolute', top: -BUST_RISE, width: BUST, height: BUST, borderRadius: BUST / 2, overflow: 'hidden', backgroundColor: '#44372c', borderColor: bronze, borderWidth: 2 },
   guideBust: { width: '100%', height: '100%' },
   // Żaromir's bust is painted with a transparent background, so it rises free of a round frame.

@@ -292,11 +292,13 @@ describe('the continue mark', () => {
 });
 
 // MVP-22-B2 (G11): a hairline crossed both side braids where the edge strips met the lower corners at a fractional pixel row.
-// The strips now run 1 pt under each corner, which is drawn over them.
+// The strips now run one device pixel under each corner, which is drawn over them.
 test('the braid strips run under the corners, so no seam shows where they meet', async () => {
   await render(panel({ allowed: false }));
   const corner = Number(style('panel-corner-tl').width);
   const strip = (id: string) => StyleSheet.flatten(screen.getAllByTestId(id, hidden)[0].parent!.props.style) as Record<string, number>;
-  for (const id of ['panel-edge-left-tile', 'panel-edge-right-tile']) expect(strip(id)).toMatchObject({ top: corner - 1, bottom: corner - 1 });
-  for (const id of ['panel-edge-top-tile', 'panel-edge-bottom-tile']) expect(strip(id)).toMatchObject({ left: corner - 1, right: corner - 1 });
+  const seam = StyleSheet.hairlineWidth;
+  expect(seam).toBeGreaterThan(0);
+  for (const id of ['panel-edge-left-tile', 'panel-edge-right-tile']) expect(strip(id)).toMatchObject({ top: corner - seam, bottom: corner - seam });
+  for (const id of ['panel-edge-top-tile', 'panel-edge-bottom-tile']) expect(strip(id)).toMatchObject({ left: corner - seam, right: corner - seam });
 });

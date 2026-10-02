@@ -285,3 +285,20 @@ test('at the default text size the sheets keep their layout', async () => {
   expect(row).toHaveStyle({ padding: 16 });
   expect(row).not.toHaveStyle({ paddingHorizontal: 8 });
 });
+
+// Review after MVP-22-B2: scrolling the minutes must not re-render the sheet on every tick, only when the fade flips.
+test('scrolling the minutes re-renders the sheet only when the fade appears or goes', async () => {
+  const renders = jest.fn();
+  const { Profiler } = jest.requireActual<typeof import('react')>('react');
+  await render(<Profiler id="picker" onRender={renders}><LocalizationProvider initialLocale="pl"><WallTimePicker field="deadline" value={{ date: '', time: '', zone: 'Europe/Warsaw' }} disabled={false} now={now} onChange={jest.fn()} /></LocalizationProvider></Profiler>);
+  await fireEvent.press(screen.getByRole('button', { name: 'Godzina ukończenia' }));
+  const sheet = screen.getByTestId('time-sheet');
+  await fireEvent(sheet, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 520 } } });
+  await fireEvent(sheet, 'contentSizeChange', 402, 1400);
+  renders.mockClear();
+  for (const y of [40, 80, 120, 160, 200]) await fireEvent.scroll(sheet, { nativeEvent: { contentOffset: { x: 0, y }, contentSize: { width: 402, height: 1400 }, layoutMeasurement: { width: 402, height: 520 } } });
+  expect(renders).not.toHaveBeenCalled();
+  await fireEvent.scroll(sheet, { nativeEvent: { contentOffset: { x: 0, y: 880 }, contentSize: { width: 402, height: 1400 }, layoutMeasurement: { width: 402, height: 520 } } });
+  expect(renders).toHaveBeenCalled();
+  expect(screen.queryByTestId('time-sheet-fade', { includeHiddenElements: true })).toBeNull();
+});

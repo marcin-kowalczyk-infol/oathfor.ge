@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
@@ -40,7 +40,14 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
   const [minute, setMinute] = useState('00');
   const [query, setQuery] = useState('');
   // The time sheet's scroll: how tall it is, how tall its content and how far it moved, so a fade can show that more minutes follow.
-  const [minutes, setMinutes] = useState({ height: 0, content: 0, offset: 0 });
+  // Only the flag is state, so a scroll re-renders the sheet just when the fade appears or goes.
+  const minutes = useRef({ height: 0, content: 0, offset: 0 });
+  const [moreMinutes, setMoreMinutes] = useState(false);
+  function measureMinutes(patch: Partial<typeof minutes.current>) {
+    const next = { ...minutes.current, ...patch }; minutes.current = next;
+    const more = next.content > next.height + 1 && next.offset + next.height < next.content - 1;
+    if (more !== moreMinutes) setMoreMinutes(more);
+  }
   // Review, 2026-09-30: an idle form rendered at 22:50 opened at 22:56 on a greyed 22:51. The sheets use the time of opening.
   const [openedAt, setOpenedAt] = useState(now);
   const locale = i18n.resolvedLanguage ?? 'en';
@@ -63,6 +70,8 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
       const after = Number(openHour) * 60 + Number(openMinute) + 1;
       const [h, m] = value.date === opened.date && `${held[0]}:${held[1]}` <= opened.time && after < 24 * 60 ? [pad(Math.floor(after / 60)), pad(after % 60)] : held;
       setHour(h); setMinute(m);
+      // A new sheet starts at its top and measures itself again.
+      minutes.current = { height: 0, content: 0, offset: 0 }; setMoreMinutes(false);
     }
     setQuery(''); setOpen(part);
   }
@@ -86,7 +95,6 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
     style={({ pressed }) => [styles.icon, pressed && styles.pressed]}>
     <Text accessible={false} allowFontScaling={false} style={[styles.glyph, !!unavailable && styles.goneGlyph]}>{glyph}</Text>
   </Pressable>;
-  const moreMinutes = minutes.content > minutes.height + 1 && minutes.offset + minutes.height < minutes.content - 1;
   // Monday first like the grid. 1 January 2024 was a Monday.
   const weekdays = Array.from({ length: 7 }, (_, i) => new Intl.DateTimeFormat(locale, { timeZone: 'UTC', weekday: 'short' }).format(new Date(Date.UTC(2024, 0, 1 + i))));
   return <View style={styles.group}>
@@ -112,9 +120,9 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
           })}</View>
         </ScrollView>}
         {open === 'time' && <><View style={styles.flex}><ScrollView testID="time-sheet" contentContainerStyle={styles.content} scrollEventThrottle={32}
-          onLayout={({ nativeEvent: { layout } }) => setMinutes(value => ({ ...value, height: layout.height }))}
-          onContentSizeChange={(_, height) => setMinutes(value => ({ ...value, content: height }))}
-          onScroll={({ nativeEvent }) => setMinutes({ height: nativeEvent.layoutMeasurement.height, content: nativeEvent.contentSize.height, offset: nativeEvent.contentOffset.y })}>
+          onLayout={({ nativeEvent: { layout } }) => measureMinutes({ height: layout.height })}
+          onContentSizeChange={(_, height) => measureMinutes({ content: height })}
+          onScroll={({ nativeEvent }) => measureMinutes({ height: nativeEvent.layoutMeasurement.height, content: nativeEvent.contentSize.height, offset: nativeEvent.contentOffset.y })}>
           <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.clock}>{hour}:{minute}</Text>
           {(['hour', 'minute'] as const).map(part => <View key={part} style={styles.group}><Text accessibilityRole="header" style={styles.value}>{t(`timePicker.${part}`)}</Text><View style={styles.grid}>{Array.from({ length: part === 'hour' ? 24 : 60 }, (_, i) => {
             const number = pad(i); const selected = number === (part === 'hour' ? hour : minute);
