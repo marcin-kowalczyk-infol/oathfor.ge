@@ -161,6 +161,9 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   // So a character switch goes from lit to its answer and never flashes dark. The tutorial tells every place, so in it no place is unlit.
   const counts = { today: progress.today?.total ?? null, history: progress.history?.total ?? null };
   const unlit = (place: ScenePlace) => !tour && !placeLit(place, counts);
+  // engagement.md invariant 3: no urging while paused. New Oaths wait for the resume, so dark places keep their shade
+  // but drop the beacon, the "not active yet" names and the barks that point to the fire. Żaromir gives the pause line instead.
+  const paused = progress.today?.paused === true;
   // A visit keeps the light its place had when touched, so an answer arriving mid-visit never swaps the bark or takes the action away.
   const [visitUnlit, setVisitUnlit] = useState(false);
   const camera = useRef(new Animated.Value(0)).current;
@@ -243,12 +246,12 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   // Unlit is not locked: an unlit place stays touchable and its name tells VoiceOver it is not active yet.
   const placeLabel = (place: TutorialPlace) => tour
     ? `${t('room.tutorial.hear', { place: t(`room.${place}`) })}${tour.heard.includes(place) ? `, ${t('room.tutorial.heard')}` : ''}`
-    : unlit(place) ? `${t(`room.${place}`)}, ${t(`room.gate.inactive.${place}`)}` : t(`room.${place}`);
+    : unlit(place) && !paused ? `${t(`room.${place}`)}, ${t(`room.gate.inactive.${place}`)}` : t(`room.${place}`);
   const heardMark = (place: TutorialPlace) => tour?.heard.includes(place) ? { testID: `heard-${place}`, label: t('room.tutorial.heardMark') } : undefined;
   // An unlit place has no glow at all, so it neither pulses nor keeps the still glow of Reduce Motion.
   // E2.2 follow-up, native check on iPhone 18 Pro: while another place is unlit the hearth is the one place to go, so it glows
   // brighter and breathes with the room's glow loop. Reduce Motion holds the loop still, so the hearth then keeps a steady glow.
-  const beacon = !tour && stations.some(station => unlit(station.id));
+  const beacon = !tour && !paused && stations.some(station => unlit(station.id));
   const stationGlow = (id: ForgeStation) => glow.interpolate({ inputRange: [0, 1], outputRange: unlit(id) ? [0, 0]
     : beacon && id === 'hearth' ? [0.6, 1] : guidePlace === id || tour?.place === id ? [0.45, 0.75] : player.target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
   const glowBreath = (id: ForgeStation) => beacon && id === 'hearth' ? { transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1.1, 1.3] }) }] } : null;
@@ -294,7 +297,8 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   const form = character.form;
   let line: (ScriptLine & { id: string; title?: string; more?: boolean; controls?: PanelControls; next?: () => void; dismiss: () => void }) | null = null;
   if (guidePlace) {
-    line = { ...startScript[0], id: 'gate-start', dismiss: finishGuide };
+    line = paused ? { speaker: 'guide', key: 'room.talk.hint.paused', id: 'gate-start-paused', dismiss: finishGuide }
+      : { ...startScript[0], id: 'gate-start', dismiss: finishGuide };
   } else if (tour && (telling || !tour.place)) {
     const script = told ? chapterScript(told, form) : null;
     // MVP-22-E2.3 (engagement.md D-E8): a chapter opens on Żaromir's bark. "Więcej" plays the player's question, then the accepted lines.
@@ -309,7 +313,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     // An empty line while Żaromir waits for the counts. The hint then types once.
     line = { speaker: 'guide', key: talk.spoken ? progressHint(progress).key : '', id: `talk-${talk.id}`, dismiss: () => setTalk(null) };
   } else if (placeBubble && visitUnlit && (visited === 'seals' || visited === 'chronicle')) {
-    line = { ...unlitScript(visited)[0], id: `unlit-${touchRequest}`, dismiss: () => setBubbleOpen(false) };
+    line = { ...(paused ? { speaker: 'guide' as const, key: 'room.talk.hint.paused' } : unlitScript(visited)[0]), id: `unlit-${touchRequest}`, dismiss: () => setBubbleOpen(false) };
   } else if (placeBubble) {
     const place = visited!;
     const script = visitScript(place, form);

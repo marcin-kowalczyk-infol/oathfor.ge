@@ -71,7 +71,7 @@ export function errorMessage(error: ProofControllerError, t: Translate): string 
 export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock, guide }: { oath: Oath; controller: ProofController; onDone(oath: Oath): void; onBack(): void; backLabel: string; clock?: ServerClock; guide?: { storage: GuideStorage; accountId: string } }) {
   const { t, i18n } = useTranslation();
   // Unknown while read, and he is silent meanwhile. A failed read counts as unseen: teaching again is the safe loss.
-  // The bark is marked seen once it shows and stays for the rest of this visit.
+  // The bark is marked seen once it shows. It teaches the first step, so a chosen type hands over to his rotating line.
   const [guideSeen, setGuideSeen] = useState<boolean | null>(guide ? null : true);
   useEffect(() => {
     if (!guide || guideSeen !== null) return;
@@ -237,8 +237,8 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
       {/* While sending Żaromir is silent (decision 5). Between D and S he keeps the conditional cutoff line. */}
       {/* MVP-22-E2.4: the first visit teaches the first step instead of his rotating line. */}
       {!busy && (proofScreenSituation(path) !== 'proofScreen' ? speaker(proofScreenSituation(path))
-        : guideSeen === false ? <FirstBark onShown={barkShown}><ZaromirLine message={t('zaromir.proofFirst.0')} /></FirstBark>
-        : guideSeen ? speaker('proofScreen') : null)}
+        : guideSeen === false && mode === null ? <FirstBark onShown={barkShown}><ZaromirLine message={t('zaromir.proofFirst.0')} /></FirstBark>
+        : guideSeen !== null ? speaker('proofScreen') : null)}
       <View style={styles.section}>
         <StepHead number={1} title={t('proof.steps.type')} />
         {typeFolded ? <Summary choice={t(`proof.routes.${mode}.title`)} change={t('proof.change')} step={t('proof.steps.type')} disabled={busy} onChange={() => setReopened('type')} /> : <>

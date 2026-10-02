@@ -671,11 +671,11 @@ describe('the first proof bark', () => {
     expect(guide.markSeen).toHaveBeenCalledWith(accountId);
   });
 
-  test('the bark stays for the rest of the visit after it is marked', async () => {
+  test('once the type is chosen the bark gives way to the rotating line, and the flag is written once', async () => {
     const guide = storage(async () => false);
     await visit(guide);
     await fireEvent.press(screen.getByRole('radio', { name: /Zdjęcie kontekstu/ }));
-    expect(said()).toBe(first.pl);
+    expect(rotating).toContain(said());
     expect(guide.markSeen).toHaveBeenCalledTimes(1);
   });
 

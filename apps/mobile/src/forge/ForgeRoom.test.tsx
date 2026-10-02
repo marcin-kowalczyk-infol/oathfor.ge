@@ -1298,6 +1298,54 @@ describe('skill gate', () => {
     await press(en.room.tutorial.hear.replace('{{place}}', en.room.seals));
     expect(screen.getByText(en.room.tutorial.seals.bark)).toBeOnTheScreen();
   });
+
+  // engagement.md invariant 3: no urging while paused. New Oaths wait for the resume, so nothing points to the fire.
+  describe('a paused character', () => {
+    const paused = { today: { total: 0, paused: true }, history: { total: 0 }, loading: false };
+
+    test('gets no breathing beacon on the hearth', async () => {
+      const view = await render(room({ progress: known }));
+      const among = glowOf('hearth');
+      await view.rerender(room({ progress: paused }));
+      expect(glowOf('hearth')).toBe(among);
+      expect(screen.getByTestId('station-glow-hearth', hidden).props.style).not.toEqual(expect.arrayContaining([expect.objectContaining({ transform: expect.anything() })]));
+    });
+
+    test.each([['en', en], ['pl', pl]] as const)('in %s hears the places by their plain names, without "not active yet"', async (locale, copy) => {
+      await render(room({ progress: paused }, locale));
+      expect(screen.getByRole('button', { name: copy.room.seals })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: copy.room.chronicle })).toBeOnTheScreen();
+    });
+
+    test('touching the dark seals or chronicle gives the pause line, never a call to make an Oath', async () => {
+      const onOpenStation = jest.fn();
+      await render(room({ onOpenStation, progress: paused }));
+      await press(en.room.seals);
+      expect(screen.getByText(en.room.talk.hint.paused)).toBeOnTheScreen();
+      expect(screen.queryByText(en.room.gate.seals)).toBeNull();
+      expect(screen.queryByRole('button', { name: en.room.actions.seals })).toBeNull();
+      await press(en.room.chronicle);
+      expect(screen.getByText(en.room.talk.hint.paused)).toBeOnTheScreen();
+      expect(screen.queryByText(en.room.gate.chronicle)).toBeNull();
+      expect(onOpenStation).not.toHaveBeenCalled();
+    });
+
+    test('the first entry gives the pause line instead of "start here, at the fire"', async () => {
+      await render(room({ showGuide: true, progress: paused }));
+      expect(screen.getByText(en.room.talk.hint.paused)).toBeOnTheScreen();
+      expect(screen.queryByText(en.room.gate.start)).toBeNull();
+    });
+
+    test('with current Oaths still lights the seals and opens them', async () => {
+      const onOpenStation = jest.fn();
+      await render(room({ onOpenStation, progress: { today: { total: 2, paused: true }, history: { total: 0 }, loading: false } }));
+      expect(glowOf('seals')).toBeGreaterThan(0);
+      await press(en.room.seals);
+      await press(en.room.tutorial.next);
+      await pressAction(en.room.actions.seals);
+      expect(onOpenStation).toHaveBeenCalledWith('seals');
+    });
+  });
 });
 
 describe('talking to Żaromir', () => {
