@@ -49,7 +49,7 @@ Denied, unavailable, provisional and ephemeral permission all have accurate copy
 
 These local labels preserve the accepted meaning; implementation can adjust surrounding phrasing naturally in each language without changing the rules.
 
-Superseded on 2026-10-02: player lines around the intention call it "cel" / "goal", for example "Cel: Chcę regularnie podejmować aktywność". The intention label itself is unchanged. See [clarity](clarity.md).
+Corrected on 2026-10-02 (MVP-22-B2): player lines around the intention name it "intencja" / "intention", as the owner term requires, never "cel" / "goal". The review summary row reads "Intencja" / "Intention". The intention label itself is unchanged. See [glossary](glossary.md#onboarding-intention) and [clarity](clarity.md).
 
 | Purpose | Polish | English |
 | --- | --- | --- |

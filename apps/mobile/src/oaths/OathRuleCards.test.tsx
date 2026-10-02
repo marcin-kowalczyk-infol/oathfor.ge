@@ -42,6 +42,18 @@ test.each([[340, 1], [402, 1.4]])('at width %i and text scale %d the cards stack
   expect(screen.getByTestId('rule-card-consequence')).toHaveTextContent(/Nie tracisz zdobytego XP/);
 });
 
+// MVP-22-B2 (G20, G23): the review card no longer repeats its title, and a number never ends a line apart from its unit.
+test.each([
+  ['pl', 'Najdłużej 3\u00a0dni', 'Zadanie Powrotu za 15\u00a0XP.'],
+  ['en', 'Up to 3\u00a0days', 'Recovery Quest for 15\u00a0XP.'],
+] as const)('the %s review and consequence cards keep each number with its unit', async (locale, review, consequence) => {
+  await render(<LocalizationProvider initialLocale={locale}><OathRuleCards snapshot={snapshot()} /></LocalizationProvider>);
+  // The text matchers fold a no-break space into a space, so the drawn strings are compared directly.
+  const drawn = (pattern: RegExp) => String(screen.getByText(pattern).props.children);
+  expect(drawn(/^(Najdłużej|Up to) 3/)).toBe(review);
+  expect(drawn(/(Zadanie Powrotu|Recovery Quest)/)).toContain(consequence);
+});
+
 test('a highlighted card is marked for the explanation', async () => {
   await render(<LocalizationProvider initialLocale="pl"><OathRuleCards snapshot={snapshot()} highlight="cutoff" /></LocalizationProvider>);
   expect(screen.getByTestId('rule-card-cutoff')).toHaveStyle({ borderColor: '#e0a84f' });

@@ -245,8 +245,8 @@
       },
       "review": {
         "title": "Review",
-        "line_one": "Review takes up to {{count}} day",
-        "line_other": "Review takes up to {{count}} days"
+        "line_one": "Up to {{count}} day",
+        "line_other": "Up to {{count}} days"
       },
       "reward": {
         "title": "Reward",

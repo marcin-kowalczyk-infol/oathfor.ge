@@ -1387,7 +1387,7 @@ test('the list Retry steps back to an outline while a row offers "Wyślij ponown
 });
 
 // MVP-22-A8 (clarity.md rules 3 and 14): list facts are plain lines, never Żaromir's bubble, "Wczytaj więcej" is outlined,
-// and the pause line carries the pause mark. History keeps its own line in Żaromir's bubble.
+// and the pause line carries the pause mark. History keeps its own line in Żaromir's compact line (MVP-22-B2).
 describe('list lines', () => {
   const avatar = () => screen.queryByTestId('companion-avatar', { includeHiddenElements: true });
   test.each(['pl', 'en'] as const)('%s at text scale 2: paused list with more pages shows the marked plain line and no filled button', async locale => {
@@ -1439,11 +1439,25 @@ describe('list lines', () => {
     await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
     expect(await screen.findByTestId('busy-line')).toHaveTextContent('The Forge is still finishing your last step. Return to the hearth in a moment.');
   });
-  test('History keeps its line in Żaromir\'s bubble', async () => {
-    const f = setup(); await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
-    await screen.findByText('Under review');
-    await fireEvent.press(screen.getByRole('button', { name: 'History' }));
-    expect(within(await screen.findByTestId('history-header')).getByTestId('companion-avatar', { includeHiddenElements: true })).toBeTruthy();
+  // MVP-22-B2 (G15): the History line uses the compact line of the Oath path, with its text unchanged.
+  test.each([
+    ['pl', 'Historia', 'Każdy wpis to Twoja historia w Kuźni.', 'Żaromir'],
+    ['en', 'History', 'Every entry is part of your story in the Forge.', 'Zharomir'],
+  ] as const)('%s History speaks its line in Żaromir\'s compact line, not the big bubble', async (locale, tab, text, speaker) => {
+    const f = setup(); await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await screen.findByText(locale === 'pl' ? 'Pod rozwagą' : 'Under review');
+    await fireEvent.press(screen.getByRole('button', { name: tab }));
+    const header = await screen.findByTestId('history-header');
+    expect(within(header).getByTestId('zaromir-bust', { includeHiddenElements: true })).toBeTruthy();
+    expect(within(header).queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
+    expect(within(header).getByLabelText(`${speaker}: ${text}`)).toBeOnTheScreen();
+  });
+  test('an empty History speaks its own line in the compact style', async () => {
+    const f = setup([]); await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await fireEvent.press(await screen.findByRole('button', { name: 'History' }));
+    expect(await screen.findByText('The chronicle is waiting for its first entry.')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('history-header')).getByTestId('zaromir-bust', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
   });
 });
 

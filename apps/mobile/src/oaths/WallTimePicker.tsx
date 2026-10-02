@@ -4,6 +4,7 @@ import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
+import { FadeStrips } from '../ui/FadeStrips';
 import timezoneIdentifiers from './timezoneIdentifiers.json';
 import { zoneLabel } from './zoneLabel';
 
@@ -38,6 +39,8 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
   const [hour, setHour] = useState('18');
   const [minute, setMinute] = useState('00');
   const [query, setQuery] = useState('');
+  // The time sheet's scroll: how tall it is, how tall its content and how far it moved, so a fade can show that more minutes follow.
+  const [minutes, setMinutes] = useState({ height: 0, content: 0, offset: 0 });
   // Review, 2026-09-30: an idle form rendered at 22:50 opened at 22:56 on a greyed 22:51. The sheets use the time of opening.
   const [openedAt, setOpenedAt] = useState(now);
   const locale = i18n.resolvedLanguage ?? 'en';
@@ -74,11 +77,16 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
   // The 14 pt label and zone identifier share the cap (35 pt at most), so they stay below the value.
   // Native check, 2026-09-30: at fontScale 3.571 the sheet titles broke as "ukończe" / "nia" ("ukończenia" needs 445 pt at 85.7 pt).
   // Titles, the month heading and the clock take the display cap (253 pt, "październik" 256 pt, "23:59" about 198 pt).
-  // The month buttons broke as "Poprze" / "dni" in half-width columns (label about 148 pt, "Poprzedni" 192 pt), so they stack.
-  // The past month note is Action's uncapped reason, "Wcześniejsze" needs 347 pt, so the date sheet trims its side padding to 8 pt (359 pt at 375).
+  // MVP-22-B2 (G18): the month buttons are ‹ and › icons with their names for VoiceOver, and the past month reason is the disabled button's hint.
+  // The full-width day rows keep the date sheet's 8 pt side padding at large text.
   // Zone rows take the choice cap and the narrower padding ("DumontDUrville" 430 pt uncapped, 304 pt capped, 327 pt row at 375).
   const title = (text: string) => <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{text}</Text>;
-  const monthSlot = largeText ? undefined : styles.flex;
+  const icon = (glyph: string, name: string, onPress: () => void, unavailable?: string) => <Pressable accessibilityRole="button" accessibilityLabel={name}
+    accessibilityHint={unavailable} accessibilityState={{ disabled: !!unavailable }} disabled={!!unavailable} onPress={onPress}
+    style={({ pressed }) => [styles.icon, pressed && styles.pressed]}>
+    <Text accessible={false} allowFontScaling={false} style={[styles.glyph, !!unavailable && styles.goneGlyph]}>{glyph}</Text>
+  </Pressable>;
+  const moreMinutes = minutes.content > minutes.height + 1 && minutes.offset + minutes.height < minutes.content - 1;
   // Monday first like the grid. 1 January 2024 was a Monday.
   const weekdays = Array.from({ length: 7 }, (_, i) => new Intl.DateTimeFormat(locale, { timeZone: 'UTC', weekday: 'short' }).format(new Date(Date.UTC(2024, 0, 1 + i))));
   return <View style={styles.group}>
@@ -89,10 +97,13 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
     </Pressable>)}
     <Modal visible={open !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(null)}>
       <SafeAreaView style={styles.modal} accessibilityViewIsModal>
-        <View style={styles.header}>{title(open ? label(open) : '')}<Action label={t('timePicker.close')} variant="secondary" onPress={() => setOpen(null)} /></View>
+        <View testID="sheet-header" style={styles.header}><View style={styles.flex}>{title(open ? label(open) : '')}</View>{icon('×', t('timePicker.close'), () => setOpen(null))}</View>
         {open === 'date' && first && <ScrollView testID="date-sheet" contentContainerStyle={[styles.content, largeText && styles.wideContent]}>
-          {title(new Intl.DateTimeFormat(locale, { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(first))}
-          <View testID="month-nav" style={[styles.row, largeText && styles.stack]}><View style={monthSlot}>{month <= current.date.slice(0, 7) ? <Action label={t('timePicker.previousMonth')} variant="secondary" direction="back" disabled unavailableReason={t('timePicker.pastMonth')} onPress={() => {}} /> : <Action label={t('timePicker.previousMonth')} variant="secondary" direction="back" onPress={() => moveMonth(-1)} />}</View><View style={monthSlot}><Action label={t('timePicker.nextMonth')} variant="secondary" onPress={() => moveMonth(1)} /></View></View>
+          <View testID="month-nav" style={styles.row}>
+            {icon('‹', t('timePicker.previousMonth'), () => moveMonth(-1), month <= current.date.slice(0, 7) ? t('timePicker.pastMonth') : undefined)}
+            <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.title, styles.month]}>{new Intl.DateTimeFormat(locale, { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(first)}</Text>
+            {icon('›', t('timePicker.nextMonth'), () => moveMonth(1))}
+          </View>
           {!largeText && <View testID="weekday-header" style={styles.grid} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{weekdays.map(name => <Text key={name} numberOfLines={1} maxFontSizeMultiplier={1.3} style={[styles.day, styles.weekday]}>{name}</Text>)}</View>}
           <View style={styles.grid}>{Array.from({ length: largeText ? 0 : blank }, (_, i) => <View key={`blank-${i}`} style={styles.day} />)}{Array.from({ length: days }, (_, i) => {
             const date = `${month}-${pad(i + 1)}`;
@@ -100,14 +111,20 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
             return <Pressable key={date} accessibilityRole="button" accessibilityLabel={marked ? `${dateName(date)}, ${t('timePicker.today')}` : dateName(date)} accessibilityState={{ selected: value.date === date, disabled: gone }} disabled={gone} onPress={() => change('date', date)} style={[largeText ? styles.wideDay : styles.day, styles.cell, marked && styles.today, value.date === date && styles.selected, gone && styles.gone]}><Text maxFontSizeMultiplier={tokens.maxScale.choice} style={[styles.value, gone && styles.goneText]}>{largeText ? dateName(date) : i + 1}</Text></Pressable>;
           })}</View>
         </ScrollView>}
-        {open === 'time' && <><ScrollView contentContainerStyle={styles.content}>
+        {open === 'time' && <><View style={styles.flex}><ScrollView testID="time-sheet" contentContainerStyle={styles.content} scrollEventThrottle={32}
+          onLayout={({ nativeEvent: { layout } }) => setMinutes(value => ({ ...value, height: layout.height }))}
+          onContentSizeChange={(_, height) => setMinutes(value => ({ ...value, content: height }))}
+          onScroll={({ nativeEvent }) => setMinutes({ height: nativeEvent.layoutMeasurement.height, content: nativeEvent.contentSize.height, offset: nativeEvent.contentOffset.y })}>
           <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.clock}>{hour}:{minute}</Text>
           {(['hour', 'minute'] as const).map(part => <View key={part} style={styles.group}><Text accessibilityRole="header" style={styles.value}>{t(`timePicker.${part}`)}</Text><View style={styles.grid}>{Array.from({ length: part === 'hour' ? 24 : 60 }, (_, i) => {
             const number = pad(i); const selected = number === (part === 'hour' ? hour : minute);
             const gone = isToday && (part === 'hour' ? number < nowHour : hour < nowHour || (hour === nowHour && number <= nowMinute));
             return <Pressable key={number} accessibilityRole="radio" accessibilityLabel={`${t(`timePicker.${part}`)} ${number}`} accessibilityState={{ selected, disabled: gone }} disabled={gone} onPress={() => part === 'hour' ? setHour(number) : setMinute(number)} style={[styles.number, styles.cell, selected && styles.selected, gone && styles.gone]}><Text style={[styles.value, gone && styles.goneText]}>{number}</Text></Pressable>;
           })}</View></View>)}
-        </ScrollView><View style={styles.footer}>
+        </ScrollView>
+        {/* MVP-22-B2 (G19): the minutes run past the sheet's edge, so a fade above the footer shows that more follow until the end. */}
+        {moreMinutes && <FadeStrips testID="time-sheet-fade" stripTestID="time-sheet-fade-strip" from="bottom" style={styles.minuteFade} />}
+        </View><View style={styles.footer}>
           {/* MVP-22-A6: the minute note belongs to choosing a time, so it sits only in this sheet's footer. */}
           <Text style={styles.caption}>{t('timePicker.seconds')}</Text>
           {past ? <Action label={t('timePicker.done')} disabled unavailableReason={t('timePicker.pastTime')} onPress={() => {}} /> : <Action label={t('timePicker.done')} onPress={() => change('time', `${hour}:${minute}:00`)} />}</View></>}
@@ -119,8 +136,11 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
 const styles = StyleSheet.create({
   group: { gap: 12 }, field: { padding: 16, gap: 4, minHeight: 64, backgroundColor: tokens.color.surface, borderRadius: 20, borderBottomWidth: 3, borderBottomColor: '#101416' }, wideField: { paddingHorizontal: tokens.space.small },
   caption: { color: tokens.color.secondary, fontSize: 14, lineHeight: 21 }, value: { color: tokens.color.text, fontSize: 17, fontWeight: '600' },
-  modal: { flex: 1, backgroundColor: tokens.color.canvas }, header: { padding: 16, gap: 12 }, title: { color: tokens.color.text, fontSize: 24, fontWeight: '700' },
-  content: { padding: 16, gap: 16 }, wideContent: { paddingHorizontal: tokens.space.small }, row: { flexDirection: 'row', gap: 12 }, stack: { flexDirection: 'column' }, flex: { flex: 1 }, grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  modal: { flex: 1, backgroundColor: tokens.color.canvas }, header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingLeft: 16, paddingRight: 8 }, title: { color: tokens.color.text, fontSize: 24, fontWeight: '700' },
+  month: { flex: 1, flexShrink: 1, textAlign: 'center' },
+  icon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, glyph: { color: tokens.color.primary, fontSize: 30, lineHeight: 36 }, goneGlyph: { color: tokens.color.secondary, opacity: 0.35 },
+  minuteFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 32 },
+  content: { padding: 16, gap: 16 }, wideContent: { paddingHorizontal: tokens.space.small }, row: { flexDirection: 'row', alignItems: 'center', gap: 4 }, flex: { flex: 1 }, grid: { flexDirection: 'row', flexWrap: 'wrap' },
   wideDay: { width: '100%', minHeight: 52 },
   day: { width: '14.2857%', minHeight: 52 }, weekday: { minHeight: 0, color: tokens.color.secondary, fontSize: 13, lineHeight: 18, textAlign: 'center' }, number: { minWidth: 52, minHeight: 52, flexGrow: 1, margin: 3 }, cell: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12 }, selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
   today: { borderWidth: 2, borderColor: '#b58a52' }, gone: { opacity: 0.35 }, goneText: { color: tokens.color.secondary },

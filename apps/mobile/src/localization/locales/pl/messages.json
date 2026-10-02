@@ -251,10 +251,10 @@
       },
       "review": {
         "title": "Pod rozwagą",
-        "line_one": "Pod rozwagą do {{count}} dnia",
-        "line_few": "Pod rozwagą do {{count}} dni",
-        "line_many": "Pod rozwagą do {{count}} dni",
-        "line_other": "Pod rozwagą do {{count}} dnia"
+        "line_one": "Najdłużej {{count}} dzień",
+        "line_few": "Najdłużej {{count}} dni",
+        "line_many": "Najdłużej {{count}} dni",
+        "line_other": "Najdłużej {{count}} dnia"
       },
       "reward": {
         "title": "Nagroda",

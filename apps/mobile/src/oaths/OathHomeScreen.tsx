@@ -484,7 +484,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
           <Text style={styles.historyTotal}>{list.total}</Text>
           <Text style={styles.historyLabel}>{bindShortWords(t('room.talk.chronicle', { count: list.total }), locale)}</Text>
         </View>
-        <CompanionBubble message={t(list.total > 0 ? 'oathHome.historyLine' : 'oathHome.historyEmpty')} />
+        {/* The compact line of the Oath path, so History and the detail speak alike (MVP-22-B2). */}
+        <ZaromirLine message={t(list.total > 0 ? 'oathHome.historyLine' : 'oathHome.historyEmpty')} />
       </View>}
       {route === 'list' && <>
         {view === 'today' && !!list?.items.length && !wallShowsAll && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.section}>{t('forge.all')}</Text>}

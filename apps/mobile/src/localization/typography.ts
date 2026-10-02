@@ -1,16 +1,23 @@
 const shortWord = /(^|[\s („"«])([aiouwz]) +/gi;
 
+// Units that follow a count in rendered copy. Whole words only, so "dniach" or "history" keep their space.
+const units = ['XP', 'min', 'h', 'd', 'dzień', 'dnia', 'dni', 'minuta', 'minutę', 'minuty', 'minut', 'godzina', 'godzinę', 'godziny', 'godzin',
+  'day', 'days', 'hour', 'hours', 'minute', 'minutes'];
+const numberUnit = new RegExp(`(^|[^\\p{L}\\p{N}_])(\\d+(?:[.,]\\d+)?) +(${units.join('|')})(?![\\p{L}\\p{N}_])`, 'gu');
+
 /**
  * Polish typesetting keeps a single-letter word (a, i, o, u, w, z) with the word after it, so no line ends with one.
- * Other languages are returned unchanged.
+ * In every language a number keeps its unit (15 XP, 3 dni, 15 minutes) on the same line (MVP-22-B2).
+ * Other languages keep their single-letter words unbound.
  */
 export function bindShortWords(text: string, language: string): string {
-  if (!language.startsWith('pl')) return text;
+  const counted = text.replace(numberUnit, '$1$2\u00a0$3');
+  if (!language.startsWith('pl')) return counted;
   // Neighbouring short words share a space, so a second pass binds the one the first match consumed.
-  let bound = text;
+  let bound = counted;
   for (let previous = ''; previous !== bound;) {
     previous = bound;
-    bound = bound.replace(shortWord, '$1$2 ');
+    bound = bound.replace(shortWord, '$1$2\u00a0');
   }
   return bound;
 }

@@ -25,7 +25,7 @@ import { resolveLocale } from '../localization/locale';
 import { SnapshotRules } from './SnapshotRules';
 import { OathRuleCards } from './OathRuleCards';
 import type { RuleCardId } from './ruleCards';
-import { DialoguePanel } from '../forge/DialoguePanel';
+import { DialoguePanel, PANEL_RISE } from '../forge/DialoguePanel';
 import type { GuideStorage } from '../forge/guideStorage';
 import { bindShortWords } from '../localization/typography';
 import { layoutMode } from '../ui/layoutMode';
@@ -115,6 +115,10 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   // The line is capped at 2x, 46 pt a line, and the longest Polish and English lines wrap to four lines at 375 and 402 pt.
   // The frame and the step row take 114 pt, so 344 pt holds five lines and leaves the upper half of the screen for the card.
   const guideFrame = { left: 12, width: Math.min(window.width - 24, 560), bottom: 24, maxHeight: largeText ? Math.min(344, window.height * 0.5) : Math.min(280, window.height * 0.45) };
+  // MVP-22-B2 (G21): while the guide is open the content ends with an inset as tall as the panel, its bottom gap and the rising bust,
+  // so every card and the consent can scroll above it. Until the panel is measured its height limit stands in.
+  const [panelHeight, setPanelHeight] = useState<number | null>(null);
+  const guideInset = guideShown ? (panelHeight ?? guideFrame.maxHeight) + guideFrame.bottom + PANEL_RISE : null;
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   // VoiceOver hears once that the Oath was made and how long is left, when the stamp settles.
   function announceMade(made: NonNullable<typeof oath>) {
@@ -153,7 +157,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
     else errorText = t(error.kind === 'invalid_request' ? 'oath.error.invalid_request' : 'oath.error.generic');
   }
   return <SceneSurface place="hearth" approach={approach} scroll={scroll}><SafeAreaView style={styles.safeArea}>
-    <Animated.ScrollView ref={scrollView as never} style={entrance} key={scene} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
+    <Animated.ScrollView testID="oath-scroll" ref={scrollView as never} style={entrance} key={scene} contentContainerStyle={[styles.content, guideInset !== null && { paddingBottom: guideInset }]} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
       {onBack && (backPlain ? <BackLink label={backLabel ?? t('oathHome.today')} onPress={onBack} /> : <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />)}
       {!review && !detail && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
       {!ready && <>
@@ -200,7 +204,6 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
           <OathRuleCards snapshot={ready.preview!.snapshot} highlight={guideCard} onCardsLayout={y => setGuideTops(tops => tops.grid === y ? tops : { ...tops, grid: y })}
             onCardLayout={(id, y) => setGuideTops(tops => tops.cards[id] === y ? tops : { ...tops, cards: { ...tops.cards, [id]: y } })} />
         </View>
-        {guideShown && <View style={{ height: 240 }} />}
         {!pending && <>
           <View style={styles.consent}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('oath.consent')}</Text></View>
           <Action label={t('oath.confirm')} busy={busy} onPress={() => { void controller.confirm(); }} />
@@ -234,7 +237,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
       speaker="guide" lineId={`rules-${guideLine}`} text={bindShortWords(t(`oath.guide.${guideLine! + 1}`), i18n.language)} playerName="" portrait={null} allowed={motion} more={guideLine! < 3}
       continueLabel={guideStep} onContinue={() => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide()}
       controls={{ step: { count: `${guideLine! + 1} / ${GUIDE_CARDS.length}`, label: guideStep, text: true, onPress: () => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide() } }}
-      dismissLabel={t('room.guide.skip')} onDismiss={closeGuide} />}
+      dismissLabel={t('room.guide.skip')} onDismiss={closeGuide} onHeight={setPanelHeight} />}
   </SafeAreaView></SceneSurface>;
 }
 const styles = StyleSheet.create({

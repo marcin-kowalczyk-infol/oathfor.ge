@@ -116,14 +116,73 @@ test('with no minute left today the sheet keeps 18:00 and cannot confirm it', as
   expect(screen.getByRole('button', { name: 'Use this time' })).toBeDisabled();
 });
 
-// Native check, 2026-09-30: both month buttons pointed right, and the Monday-first grid had no weekday names.
-test('the previous month points back and the next month points forward', async () => {
-  await picker();
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion date' }));
-  expect(screen.getByRole('button', { name: 'Previous month' })).toHaveTextContent(/^‹\s*Previous month$/);
-  expect(screen.getByRole('button', { name: 'Next month' })).toHaveTextContent(/^Next month\s*›$/);
-  await fireEvent.press(screen.getByRole('button', { name: 'Next month' }));
-  expect(screen.getByRole('button', { name: 'Previous month' })).toHaveTextContent(/^‹\s*Previous month$/);
+// MVP-22-B2 (G18): the sheet header is a title row with an × close, and the month sits between ‹ and › icon buttons.
+// The buttons keep their names for VoiceOver. The past month reason is only the disabled button's hint.
+test.each([
+  ['pl', 'Data ukończenia', 'Zamknij', 'Poprzedni miesiąc', 'Następny miesiąc', 'Wcześniejsze miesiące już minęły.', 'wrzesień 2026'],
+  ['en', 'Completion date', 'Close', 'Previous month', 'Next month', 'Earlier months have passed.', 'September 2026'],
+] as const)('the %s date sheet has an × close and ‹ › month buttons with spoken names', async (locale, field, close, previous, next, past, month) => {
+  size(402, 1);
+  await picker({}, jest.fn(), locale);
+  await fireEvent.press(screen.getByRole('button', { name: field }));
+  const closer = screen.getByRole('button', { name: close });
+  expect(closer).toHaveTextContent('×', { exact: true });
+  expect(closer).toHaveStyle({ minWidth: 44, minHeight: 44 });
+  expect(screen.getByTestId('sheet-header')).toHaveStyle({ flexDirection: 'row' });
+  expect(screen.getByTestId('sheet-header')).toContainElement(screen.getByRole('header', { name: field }));
+  const back = screen.getByRole('button', { name: previous });
+  const forward = screen.getByRole('button', { name: next });
+  expect(back).toHaveTextContent('‹', { exact: true });
+  expect(forward).toHaveTextContent('›', { exact: true });
+  for (const control of [back, forward]) expect(control).toHaveStyle({ minWidth: 44, minHeight: 44 });
+  expect(screen.getByTestId('month-nav')).toContainElement(screen.getByRole('header', { name: month }));
+  expect(back).toBeDisabled();
+  expect(back).toHaveProp('accessibilityHint', past);
+  expect(screen.queryByText(past)).toBeNull();
+  await fireEvent.press(forward);
+  expect(screen.getByRole('button', { name: previous })).toBeEnabled();
+  expect(screen.getByRole('button', { name: previous })).not.toHaveProp('accessibilityHint', past);
+  await fireEvent.press(screen.getByRole('button', { name: previous }));
+  expect(screen.getByRole('header', { name: month })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: close }));
+  expect(screen.queryByRole('header', { name: month })).toBeNull();
+});
+
+test('the time sheet closes with the same × control', async () => {
+  await picker({}, jest.fn(), 'pl');
+  await fireEvent.press(screen.getByRole('button', { name: 'Godzina ukończenia' }));
+  const closer = screen.getByRole('button', { name: 'Zamknij' });
+  expect(closer).toHaveTextContent('×', { exact: true });
+  await fireEvent.press(closer);
+  expect(screen.queryByText('18:00')).toBeNull();
+});
+
+// MVP-22-B2 (G19): only 00 to 11 showed, the rest of the minutes scrolled inside the sheet without a cue.
+test('a fade marks more minutes below until the sheet reaches its end', async () => {
+  await picker({}, jest.fn(), 'pl');
+  await fireEvent.press(screen.getByRole('button', { name: 'Godzina ukończenia' }));
+  const sheet = screen.getByTestId('time-sheet');
+  await fireEvent(sheet, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 520 } } });
+  await fireEvent(sheet, 'contentSizeChange', 402, 1400);
+  const fade = screen.getByTestId('time-sheet-fade', { includeHiddenElements: true });
+  expect(fade).toHaveProp('pointerEvents', 'none');
+  expect(fade).toHaveProp('importantForAccessibility', 'no-hide-descendants');
+  expect(screen.getAllByTestId('time-sheet-fade-strip', { includeHiddenElements: true }).length).toBeGreaterThan(3);
+  await fireEvent.scroll(sheet, { nativeEvent: { contentOffset: { x: 0, y: 880 }, contentSize: { width: 402, height: 1400 }, layoutMeasurement: { width: 402, height: 520 } } });
+  expect(screen.queryByTestId('time-sheet-fade', { includeHiddenElements: true })).toBeNull();
+  await fireEvent.scroll(sheet, { nativeEvent: { contentOffset: { x: 0, y: 200 }, contentSize: { width: 402, height: 1400 }, layoutMeasurement: { width: 402, height: 520 } } });
+  expect(screen.getByTestId('time-sheet-fade', { includeHiddenElements: true })).toBeTruthy();
+  // Every minute stays reachable, to the minute.
+  expect(screen.getByRole('radio', { name: 'Minuta 59' })).toBeOnTheScreen();
+});
+
+test('a time sheet whose minutes all fit shows no fade', async () => {
+  await picker({}, jest.fn(), 'pl');
+  await fireEvent.press(screen.getByRole('button', { name: 'Godzina ukończenia' }));
+  const sheet = screen.getByTestId('time-sheet');
+  await fireEvent(sheet, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 1500 } } });
+  await fireEvent(sheet, 'contentSizeChange', 402, 1400);
+  expect(screen.queryByTestId('time-sheet-fade', { includeHiddenElements: true })).toBeNull();
 });
 
 test.each([
@@ -177,7 +236,7 @@ test('at the default text size the field keeps its padding and height', async ()
 
 const flat = (style: unknown) => Object.assign({}, ...[style].flat(Infinity).filter(Boolean));
 // Native check, 2026-09-30: at fontScale 3.571 the sheet titles broke as "ukończe" / "nia", the month buttons as "Poprze" / "dni"
-// and the past month note as "miesią" / "ce". Widths below are measured with the system font, the sheet content is 370 pt wide at 402 and 343 pt at 375.
+// and the past month note as "miesią" / "ce" (the note is a hint since MVP-22-B2). Widths below are measured with the system font, the sheet content is 370 pt wide at 402 and 343 pt at 375.
 test.each([[402], [375]])('at width %i and the largest text size the picker sheets keep every word whole', async width => {
   size(width, 3.571);
   await picker({ date: '', time: '' }, jest.fn(), 'pl');
@@ -192,15 +251,14 @@ test.each([[402], [375]])('at width %i and the largest text size the picker shee
   // "październik" needs 450 pt uncapped and "wrzesień" 351 pt, which breaks at 375.
   const heading = screen.getByRole('header', { name: 'wrzesień 2026' });
   expect(heading.props.maxFontSizeMultiplier).toBe(2);
-  // "Wcześniejsze" needs 347 pt at 60.7 pt, so the date sheet trims its side padding to 8 pt for 359 pt at 375.
+  // The full-width day rows ("31 października 2026" at the choice cap) keep the trimmed 8 pt side padding.
   expect(flat(screen.getByTestId('date-sheet').props.contentContainerStyle)).toMatchObject({ paddingHorizontal: 8 });
-  // "Poprzedni" needs 192 pt, a half-width label has about 148 pt, so the buttons stack at full width.
+  // MVP-22-B2: the month buttons are icons, so the row keeps ‹ month › and the heading wraps between them.
   const nav = screen.getByTestId('month-nav');
-  expect(nav).toHaveStyle({ flexDirection: 'column' });
-  expect(nav.children).toHaveLength(2);
-  for (const slot of nav.children) expect(flat((slot as { props: { style?: unknown } }).props.style)).not.toMatchObject({ flex: 1 });
+  expect(nav).toHaveStyle({ flexDirection: 'row' });
+  expect(flat(heading.props.style)).toMatchObject({ flexShrink: 1 });
   expect(screen.getByRole('button', { name: 'Poprzedni miesiąc' })).toBeDisabled();
-  expect(screen.getByText('Wcześniejsze miesiące już minęły.')).toBeOnTheScreen();
+  expect(screen.queryByText('Wcześniejsze miesiące już minęły.')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Zamknij' }));
 
   await fireEvent.press(screen.getByRole('button', { name: 'Strefa ukończenia' }));
@@ -220,10 +278,7 @@ test('at the default text size the sheets keep their layout', async () => {
   const content = flat(screen.getByTestId('date-sheet').props.contentContainerStyle);
   expect(content).toMatchObject({ padding: 16 });
   expect(content).not.toHaveProperty('paddingHorizontal');
-  const nav = screen.getByTestId('month-nav');
-  expect(nav).toHaveStyle({ flexDirection: 'row' });
-  expect(nav.children).toHaveLength(2);
-  for (const slot of nav.children) expect(flat((slot as { props: { style?: unknown } }).props.style)).toMatchObject({ flex: 1 });
+  expect(screen.getByTestId('month-nav')).toHaveStyle({ flexDirection: 'row' });
   await fireEvent.press(screen.getByRole('button', { name: 'Zamknij' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Strefa ukończenia' }));
   const row = screen.getByRole('radio', { name: 'Uniwersalny czas koordynowany · UTC' });

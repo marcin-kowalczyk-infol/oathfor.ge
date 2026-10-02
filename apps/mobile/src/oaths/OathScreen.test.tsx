@@ -286,6 +286,21 @@ test('a flag still being read shows nothing', async () => {
   expect(screen.queryByRole('button', { name: 'Zharomir explains the rules' })).toBeNull();
 });
 
+// MVP-22-B2 (G21): the open guide covered the bottom cards ("M… z podjąć"). While it is open the review gains a bottom inset
+// as tall as the panel with its rising bust, so every card can scroll above it.
+test.each([[180], [300]])('while the guide is open the review scrolls %i points of panel clear of the cards', async height => {
+  await openReview(setup(), rulesGuide(false));
+  const panel = await screen.findByTestId('dialogue-panel');
+  const inset = () => (StyleSheet.flatten(screen.getByTestId('oath-scroll').props.contentContainerStyle) as ViewStyle).paddingBottom as number;
+  const closed = 36;
+  await fireEvent(panel, 'layout', { nativeEvent: { layout: { x: 12, y: 500, width: 378, height } } });
+  // The panel stands 24 pt above the bottom and Żaromir's bust rises 48 pt above its frame.
+  expect(inset()).toBe(height + 24 + 48);
+  expect(screen.queryByTestId('guide-spacer')).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Pomiń wprowadzenie' }));
+  expect(inset()).toBe(closed);
+});
+
 // Native check, 2026-09-30, iPhone 18 Pro at the largest accessibility size in Polish: the 280 pt panel cut the fourth line of
 // the first guide line, and the cards Żaromir named sat far below the one-column grid top, hidden while he spoke about them.
 describe('the rules guide at the largest text size', () => {

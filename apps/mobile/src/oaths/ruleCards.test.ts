@@ -27,7 +27,7 @@ test('Polish cards carry the snapshot values in order', () => {
   expect(line(cards, 'cutoff')).toBe('15 minut po terminie');
   expect(time(cards, 'start')).toBeUndefined();
   expect(line(cards, 'proof')).toBe('Zdjęcie albo zapis aktywności');
-  expect(line(cards, 'review')).toBe('Pod rozwagą do 3 dni');
+  expect(line(cards, 'review')).toBe('Najdłużej 3 dni');
   expect(line(cards, 'reward')).toBe('40 XP za zdjęcie, 50 XP za zapis aktywności');
   expect(line(cards, 'consequence')).toBe('Nie tracisz zdobytego XP. Możesz podjąć Zadanie Powrotu za 15 XP.');
   expect(line(cards, 'fixed')).toBe('Po złożeniu zasady się nie zmienią.');
@@ -44,7 +44,7 @@ test('English cards and a scheduled start in its own zone', () => {
   expect(time(cards, 'cutoff')).toBe('18:15');
   expect(line(cards, 'cutoff')).toBe('15 minutes after the deadline');
   expect(line(cards, 'proof')).toBe('A photo or an activity record');
-  expect(line(cards, 'review')).toBe('Review takes up to 3 days');
+  expect(line(cards, 'review')).toBe('Up to 3 days');
   expect(line(cards, 'reward')).toBe('40 XP for a photo, 50 XP for an activity record');
   expect(line(cards, 'consequence')).toBe('You keep the XP you earned. You can take a Recovery Quest for 15 XP.');
 });
@@ -56,6 +56,14 @@ test('numbers come from the snapshot, not from the current policy', () => {
     Object.assign(value.recovery, { totalXp: 20 });
   }), 'pl');
   expect(line(cards, 'reward')).toBe('45 XP za zdjęcie, 55 XP za zapis aktywności');
-  expect(line(cards, 'review')).toBe('Pod rozwagą do 1 dnia');
+  expect(line(cards, 'review')).toBe('Najdłużej 1 dzień');
   expect(line(cards, 'consequence')).toContain('20 XP');
 });
+
+// MVP-22-B2 (G20): the line under "Pod rozwagą" names only the length, in every plural form.
+test.each([[1, 'Najdłużej 1 dzień', 'Up to 1 day'], [2, 'Najdłużej 2 dni', 'Up to 2 days'], [5, 'Najdłużej 5 dni', 'Up to 5 days'], [22, 'Najdłużej 22 dni', 'Up to 22 days']])(
+  'a review window of %i days reads in both languages', (days, pl, en) => {
+    const value = snapshot(patch => { Object.assign(patch.review, { reviewWindowSeconds: days * 86400 }); });
+    expect(line(build(value, 'pl'), 'review')).toBe(pl);
+    expect(line(build(value, 'en'), 'review')).toBe(en);
+  });

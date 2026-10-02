@@ -12,12 +12,13 @@ const BUST = 40;
 /**
  * Żaromir's one line beside his bust (docs/product/clarity.md rules 7 and 8, decision 14). Silent when the situation is null.
  * The seed keeps the line stable, the name is only in the accessibility label, and the bubble adds tone, never a fact.
+ * A screen with one fixed line, such as History, passes it as message (MVP-22-B2).
  */
-export function ZaromirLine({ situation, seed }: { situation: ZaromirSituation | null; seed: string }) {
+export function ZaromirLine(props: { situation: ZaromirSituation | null; seed: string } | { message: string }) {
   const { t, i18n } = useTranslation();
   const bust = useArt().zharomirBust;
-  if (situation === null) return null;
-  const line = t(`zaromir.${situation}.${pickLine(seed, ZAROMIR_POOLS[situation])}`);
+  if ('situation' in props && props.situation === null) return null;
+  const line = 'message' in props ? props.message : t(`zaromir.${props.situation}.${pickLine(props.seed, ZAROMIR_POOLS[props.situation!])}`);
   return <View accessible accessibilityLabel={`${t('companion.speaker')}: ${line}`} style={styles.row}>
     <View testID="zaromir-bust" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.bust}>
       <Image source={bust} resizeMode="cover" style={styles.image} />

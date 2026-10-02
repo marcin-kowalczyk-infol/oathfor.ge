@@ -9,6 +9,8 @@ import type { Speaker } from './conversation';
 export const TYPE_MS = 30;
 const BUST = 76;
 const BUST_RISE = 40;
+/** How far Żaromir's painted bust rises above the panel's frame. A screen that scrolls under the panel clears this much more. */
+export const PANEL_RISE = BUST_RISE + 8;
 const SLIDE = 24;
 const SWAP_MS = 220;
 // Busts sit inside the corners, clear of the × in the top right.
@@ -33,7 +35,7 @@ export type PanelControls = { action?: { label: string; onPress: () => void }; s
  * A new lineId types its text again. The first touch shows the whole line, the next calls onContinue.
  * The frame, plate and rune are the painted exports of docs/art/forge-scene-assets.md. Both busts are drawn over the frame.
  */
-export function DialoguePanel({ frame, speaker, lineId, text, title, extra, playerName, portrait, allowed, more, continueLabel, onContinue, controls, dismissLabel, onDismiss }: {
+export function DialoguePanel({ frame, speaker, lineId, text, title, extra, playerName, portrait, allowed, more, continueLabel, onContinue, controls, dismissLabel, onDismiss, onHeight }: {
   frame: { left: number; width: number; bottom: number; maxHeight: number };
   speaker: Speaker; lineId: string; text: string; title?: string;
   /** Content under the line, for example Żaromir's counters. */
@@ -42,6 +44,8 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
   /** Another line follows, so a whole line shows the rune. */
   more: boolean;
   continueLabel: string; onContinue: () => void; controls?: PanelControls; dismissLabel: string; onDismiss: () => void;
+  /** The panel's measured height, for a screen that keeps its content clear of it. */
+  onHeight?: (height: number) => void;
 }) {
   const { panel: art, zharomirBust: zharomir } = useArt();
   const { t } = useTranslation();
@@ -117,7 +121,7 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
     <Text style={styles.untyped}>{graphemes.slice(count).join('')}</Text>
   </Text>;
 
-  return <View testID="dialogue-panel" style={[styles.panel, { left: frame.left, width: frame.width, bottom: frame.bottom, maxHeight: frame.maxHeight }, largeText && { height: frame.maxHeight }]}>
+  return <View testID="dialogue-panel" onLayout={onHeight && (event => onHeight(event.nativeEvent.layout.height))} style={[styles.panel, { left: frame.left, width: frame.width, bottom: frame.bottom, maxHeight: frame.maxHeight }, largeText && { height: frame.maxHeight }]}>
     <PaintedFrame width={frame.width} height={frame.maxHeight} />
     {/* Owner review 2026-09-28: the frame hid the lower half of the player's medallion. Busts sit over it. */}
     {bust('guide')}
@@ -197,7 +201,7 @@ const styles = StyleSheet.create({
   bust: { position: 'absolute', top: -BUST_RISE, width: BUST, height: BUST, borderRadius: BUST / 2, overflow: 'hidden', backgroundColor: '#44372c', borderColor: bronze, borderWidth: 2 },
   guideBust: { width: '100%', height: '100%' },
   // Żaromir's bust is painted with a transparent background, so it rises free of a round frame.
-  paintedBust: { width: BUST + 8, height: BUST + 4, top: -BUST_RISE - 8, borderRadius: 0, borderWidth: 0, backgroundColor: 'transparent', overflow: 'visible' },
+  paintedBust: { width: BUST + 8, height: BUST + 4, top: -PANEL_RISE, borderRadius: 0, borderWidth: 0, backgroundColor: 'transparent', overflow: 'visible' },
   portrait: { width: '100%', height: '100%' },
   noPortrait: { flex: 1, backgroundColor: '#3a2c20' },
   // The name sits in the plate's text band, clear of its 64 pixel caps.
