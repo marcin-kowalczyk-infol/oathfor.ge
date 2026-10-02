@@ -20,10 +20,14 @@ test('the build environment marks the development demo and compiles in the Metro
   });
 });
 
-test('pod install gets a UTF-8 locale, a caller UTF-8 locale is kept', () => {
-  expect(buildEnvironment({ LANG: '', LC_ALL: '' }, 8083)).toMatchObject({ LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' });
-  expect(buildEnvironment({ LANG: 'C', LC_ALL: 'POSIX' }, 8083)).toMatchObject({ LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' });
-  expect(buildEnvironment({ LANG: 'pl_PL.UTF-8', LC_ALL: 'pl_PL.utf8' }, 8083)).toMatchObject({ LANG: 'pl_PL.UTF-8', LC_ALL: 'pl_PL.utf8' });
+test('pod install gets a UTF-8 locale, a UTF-8 shell locale is left untouched', () => {
+  const utf8 = { LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' };
+  expect(buildEnvironment({ LANG: '', LC_ALL: '' }, 8083)).toMatchObject(utf8);
+  expect(buildEnvironment({ LANG: 'C', LC_ALL: 'POSIX' }, 8083)).toMatchObject(utf8);
+  expect(buildEnvironment({ LANG: 'pl_PL.UTF-8', LC_CTYPE: 'C' }, 8083)).toMatchObject(utf8);
+  expect(buildEnvironment({ LANG: 'pl_PL.UTF-8' }, 8083)).not.toHaveProperty('LC_ALL');
+  expect(buildEnvironment({ LANG: 'pl_PL.UTF-8' }, 8083).LANG).toBe('pl_PL.UTF-8');
+  expect(buildEnvironment({ LANG: 'C', LC_ALL: 'pl_PL.utf8' }, 8083)).toMatchObject({ LANG: 'C', LC_ALL: 'pl_PL.utf8' });
 });
 
 test('arguments default to the iPhone 18 Pro and port 8082', () => {

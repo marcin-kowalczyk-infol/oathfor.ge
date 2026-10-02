@@ -14,9 +14,10 @@ function buildEnvironment(env, port) {
   for (const name of ['RCT_USE_PREBUILT_RNCORE', 'RCT_USE_RN_DEP']) {
     if (env[name] === '1') throw new Error(`${name}=1 links the unpatched prebuilt React Native. Unset it and rerun.`);
   }
-  // CocoaPods aborts with "Unicode Normalization not appropriate for ASCII-8BIT" without a UTF-8 locale.
-  const utf8 = value => (/utf-?8/i.test(value ?? '') ? value : 'en_US.UTF-8');
-  return { ...env, NODE_ENV: 'development', OATHFORGE_DEMO: '1', RCT_METRO_PORT: String(port), LANG: utf8(env.LANG), LC_ALL: utf8(env.LC_ALL) };
+  // CocoaPods aborts with "Unicode Normalization not appropriate for ASCII-8BIT" without a UTF-8 character locale.
+  const utf8 = /utf-?8/i.test(env.LC_ALL || env.LC_CTYPE || env.LANG || '');
+  const locale = utf8 ? {} : { LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' };
+  return { ...env, NODE_ENV: 'development', OATHFORGE_DEMO: '1', RCT_METRO_PORT: String(port), ...locale };
 }
 
 function parseArguments(argv) {
