@@ -26,6 +26,8 @@ The owner found the room below the bar: the bubbles are plain, the book and seal
 
 Simple layout at large text keeps its current screens without the room or characters.
 
+**Addition, owner decision 2026-10-02 (MVP-22-B3).** After the tutorial and whenever no panel is open the room showed no control, and only the moonlit door led out. A plate "Wróć do menu" / "Back to menu" now stays in the top-left corner in every room mode, 16 pt from the left and 12 pt below the top safe area, at least 44 pt tall. It is the game plate of the speaker and the heard mark: dark bronze, a bronze border and gold display text. It is fixed to the screen, outside the camera, so it does not zoom. It leaves like the door's action: the camera pulls back and the menu opens within 700 ms. Like a touch on the door, it ends the first-visit guide. It hides while the camera flies. The door stays a way out. Simple layout keeps its own "Back to menu" link and has no plate.
+
 ## The player in the room
 
 - The active character appears at the start point in the lower middle of the room, drawn from its preset and build.

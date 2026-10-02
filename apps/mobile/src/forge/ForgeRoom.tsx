@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, Pressable, SafeAreaView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useMotionAllowed } from '../ui/useMotion';
 import { StationEffect } from './StationEffect';
 import { SceneHotspot } from './SceneHotspot';
@@ -21,6 +21,8 @@ import { PlayerFigure } from './PlayerFigure';
 import type { Character } from '../api/characters';
 import { useWalker } from './useWalker';
 import { useCameraFlight } from './cameraFlight';
+import { Text } from '../ui/Text';
+import { tokens } from '../ui/tokens';
 
 export type ForgeStation = 'hearth' | 'seals' | 'chronicle';
 const stations: { id: ForgeStation; x: number; y: number }[] = [
@@ -32,6 +34,9 @@ const WISP = 22;
 const ORDER_CHECK_MS = 100;
 const PANEL_BOTTOM = 20;
 const HINT_WAIT_MS = 2000;
+// The menu plate's offset inside the safe area. The room exists only up to text scale 1.3 (layoutMode), so its label grows no further.
+const PLATE_INSET = { left: 16, top: 12 };
+const PLATE_SCALE = 1.3;
 // Żaromir's touch target aside, around his body above the feet.
 // Kept narrow so it never covers the hearth or chronicle touch areas on 375 point wide screens.
 const TALK_TARGET = { width: 44, height: 88 };
@@ -195,6 +200,11 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     setTalk(null);
     setVisitLine(0);
   }
+  // MVP-22-B3 (owner decision, 2026-10-02): the plate leaves like the door's action, and like touching the door it ends the guide.
+  function leaveToMenu() {
+    finishGuide();
+    flight.fly('door', onExit);
+  }
   function hear(place: TutorialPlace) {
     if (tour?.place === place) return;
     setTouchRequest(value => value + 1);
@@ -339,6 +349,13 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     </Animated.View>
     {flight.overlay(viewport)}
     {flight.busy && <View testID="flight-shield" style={styles.shield} onStartShouldSetResponder={() => true} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />}
+    {/* MVP-22-B3: the way back to the menu stays visible in every room mode. It is fixed to the screen, outside the camera, and leaves with the flight. */}
+    {!flight.busy && <SafeAreaView testID="room-menu-corner" pointerEvents="box-none" style={styles.corner}>
+      <Pressable testID="room-menu-plate" accessibilityRole="button" accessibilityLabel={t('forge.returnMenu')} onPress={still(leaveToMenu)}
+        style={({ pressed }) => [styles.menuPlate, pressed && styles.menuPlatePressed]}>
+        <Text accessible={false} numberOfLines={1} maxFontSizeMultiplier={PLATE_SCALE} style={styles.menuPlateText}>‹ {t('forge.returnMenu')}</Text>
+      </Pressable>
+    </SafeAreaView>}
     {/* The panel leaves with the camera, so the close-up is not covered during the flight. */}
     {line && !flight.busy && <DialoguePanel frame={{ left: (viewport.width - panelWidth) / 2, width: panelWidth, bottom: PANEL_BOTTOM, maxHeight: viewport.height - PANEL_BOTTOM - stationEdge }}
       speaker={line.speaker} lineId={line.id} text={line.key ? bindShortWords(t(line.key, line.values), i18n.language) : ''} title={line.title}
@@ -360,5 +377,12 @@ const styles = StyleSheet.create({
   figureShadow: { position: 'absolute', width: 76, height: 18, top: FIGURE_HEIGHT * FIGURE_FOOT - 10, left: FIGURE_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
   talkTarget: { position: 'absolute', zIndex: 3 },
   shield: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 10 },
+  // The game plate of the heard mark and the speaker (MVP-22-B2), as a 44 pt control. Hotspots, figures and the panel all sit well below it.
+  corner: { position: 'absolute', top: 0, left: 0, zIndex: 4 },
+  menuPlate: { marginLeft: PLATE_INSET.left, marginTop: PLATE_INSET.top, minHeight: 44, minWidth: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 6,
+    backgroundColor: tokens.warm.raised, borderWidth: 1, borderColor: tokens.warm.role,
+    shadowColor: '#000', shadowOpacity: 0.8, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
+  menuPlatePressed: { backgroundColor: tokens.warm.chosen },
+  menuPlateText: { color: tokens.warm.bright, fontFamily: tokens.font.display, fontSize: 15, lineHeight: 20, fontWeight: '700' },
   ring: { position: 'absolute', zIndex: 3, width: RING.width, height: RING.height, tintColor: '#ffc46e', opacity: 0.9, pointerEvents: 'none' },
 });

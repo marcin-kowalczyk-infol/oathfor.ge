@@ -117,6 +117,22 @@ test('in simple layout the Tutorial tile opens the rules screen and back returns
   expect(await screen.findByRole('button', tutorialTile)).toBeOnTheScreen();
 });
 
+test('the room menu plate returns to the menu', async () => {
+  await render(<Harness oaths={readyOaths()} initial={menu} />);
+  await fireEvent.press(await screen.findByRole('button', forgeTile));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Back to menu' }));
+  expect(await screen.findByRole('button', forgeTile)).toBeOnTheScreen();
+});
+
+test('in simple layout the Forge keeps its own back link and has no room plate', async () => {
+  const large = { ...phone, fontScale: 2 };
+  Dimensions.set({ window: large, screen: large });
+  await render(<Harness oaths={readyOaths()} initial={menu} />);
+  await fireEvent.press(await screen.findByRole('button', forgeTile));
+  expect(await screen.findAllByRole('button', { name: 'Back to menu' })).toHaveLength(1);
+  expect(screen.queryByTestId('room-menu-plate')).toBeNull();
+});
+
 test('a seen guide is not stored again when the tutorial starts', async () => {
   const guideStorage = { read: jest.fn().mockResolvedValue(true), markSeen: jest.fn() };
   await render(<Harness oaths={readyOaths()} initial={menu} guideStorage={guideStorage} />);

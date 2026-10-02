@@ -171,6 +171,55 @@ test('ambient glow starts only with motion allowed and stops when motion is disa
   expect(stop).toHaveBeenCalledTimes(1);
 });
 
+// MVP-22-B3, owner decision 2026-10-02: a plate in the top-left corner always leads back to the menu.
+describe('the menu plate', () => {
+  const plate = (copy = en) => screen.queryByRole('button', { name: copy.forge.returnMenu });
+  test.each([['en', en], ['pl', pl]] as const)('in %s it shows the back-to-menu label as a 44 pt button in the top-left corner', async (locale, copy) => {
+    await render(room({}, locale));
+    expect(plate(copy)).toBeOnTheScreen();
+    expect(screen.getByTestId('room-menu-plate')).toHaveTextContent(`‹ ${copy.forge.returnMenu}`);
+    const style = StyleSheet.flatten(screen.getByTestId('room-menu-plate').props.style);
+    expect(style).toMatchObject({ minHeight: 44, minWidth: 44 });
+    const corner = StyleSheet.flatten(screen.getByTestId('room-menu-corner').props.style);
+    expect(corner).toMatchObject({ position: 'absolute', top: 0, left: 0 });
+  });
+  test('it pulls the camera out like the door and opens the menu within 700 ms', async () => {
+    const onExit = jest.fn();
+    await render(room({ onExit }));
+    await fireEvent.press(plate()!);
+    expect(onExit).not.toHaveBeenCalled();
+    expect(screen.getByTestId('flight-shield', hidden)).toBeOnTheScreen();
+    await act(async () => { jest.advanceTimersByTime(700); });
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+  test('it hides while the camera flies, so it never floats over the flight', async () => {
+    await render(room());
+    await fireEvent.press(screen.getByRole('button', { name: en.room.door }));
+    await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.next }));
+    expect(plate()).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: en.room.exit }));
+    expect(plate()).toBeNull();
+  });
+  test('it stays during the tutorial and the guide, and leaving ends the guide like the door does', async () => {
+    const onExit = jest.fn(); const onGuideComplete = jest.fn();
+    const view = await render(room({ tutorial: 1 }));
+    expect(plate()).toBeOnTheScreen();
+    await view.unmount();
+    await render(room({ onExit, showGuide: true, onGuideComplete }));
+    expect(screen.getByRole('button', { name: 'Next place' })).toBeOnTheScreen();
+    await fireEvent.press(plate()!);
+    await act(async () => { jest.advanceTimersByTime(700); });
+    expect(onGuideComplete).toHaveBeenCalledTimes(1);
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+  test('the door stays a way out with the plate present', async () => {
+    const onExit = jest.fn();
+    await render(room({ onExit }));
+    await leave();
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+});
+
 test('guide advances manually without walking or exiting', async () => {
   const onExit = jest.fn(); const onGuideComplete = jest.fn();
   await render(room({ onExit, showGuide: true, onGuideComplete }));

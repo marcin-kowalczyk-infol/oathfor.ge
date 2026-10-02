@@ -24,6 +24,7 @@ Sign-in, onboarding and a first character come before the menu, as in [player ch
 | Forge room | Seals | Today list |
 | Forge room | Chronicle | History list |
 | Forge room | Moonlit door | Menu |
+| Forge room | Plate "Wróć do menu" / "Back to menu" in the top-left corner | Menu (MVP-22-B3) |
 | Oath screens | Door "Return to the Forge" | Forge room. In simple layout, a plain "Back to menu" button returns to the menu. |
 | Settings | Pause row | Pause review of the active character, back returns to Settings |
 | Settings | Back | Menu |
