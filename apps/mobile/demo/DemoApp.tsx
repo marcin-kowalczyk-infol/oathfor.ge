@@ -46,6 +46,7 @@ export default function DemoApp() {
     [dummy.state.offline ? copy.online : copy.offline, () => { dummy.setOffline(!dummy.state.offline); repaint(value => value + 1); }],
     [copy.lose, () => { dummy.state.loseNext = true; repaint(value => value + 1); }],
     [copy.loseProof, () => { dummy.state.loseNextProof = true; repaint(value => value + 1); }],
+    [copy.loseRecordClear, () => { dummy.state.loseNextRecordClear = true; repaint(value => value + 1); }],
     [copy.add, () => { dummy.add(); repaint(value => value + 1); setControls(false); }],
     [copy.addNeedsMore, () => { dummy.addNeedsMore(); repaint(value => value + 1); setControls(false); }],
   ];
@@ -64,6 +65,7 @@ export default function DemoApp() {
         {buttons.map(([label, action]) => <Pressable key={label} accessibilityRole="button" style={styles.button} onPress={action}><Text style={styles.text}>{label}</Text></Pressable>)}
         {dummy.state.loseNext && <Text accessibilityRole="alert" style={styles.text}>{copy.armed}</Text>}
         {dummy.state.loseNextProof && <Text accessibilityRole="alert" style={styles.text}>{copy.proofArmed}</Text>}
+        {dummy.state.loseNextRecordClear && <Text accessibilityRole="alert" style={styles.text}>{copy.recordClearArmed}</Text>}
         <Pressable accessibilityRole="switch" accessibilityState={{ checked: dummy.state.wireCheck }} accessibilityLabel={copy.wireCheck} style={styles.button} onPress={() => { dummy.state.wireCheck = !dummy.state.wireCheck; repaint(value => value + 1); }}>
           <Text style={styles.text}>{copy.wireCheck} · {dummy.state.wireCheck ? copy.wireCheckOn : copy.wireCheckOff}</Text>
         </Pressable>

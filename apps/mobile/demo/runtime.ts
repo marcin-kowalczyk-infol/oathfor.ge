@@ -66,6 +66,8 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     now: initialNow, expired: false, offline: false, loseNext: false, revision: 1, counter: 1,
     // A lost proof reply: the DUMMY server records the receipt but the answer never arrives, so the next send replays it.
     loseNextProof: false,
+    // A lost record clear: the server confirms the Oath, but the next clear of the device acceptance record fails and keeps it.
+    loseNextRecordClear: false,
     // DUMMY wire check: proof goes through the real client to the local capture server. Everything else stays DUMMY.
     wireCheck: false,
     profile: { profile: { locale, timezone: 'Europe/Warsaw', intention: completed ? 'regular_activity' : null, companionIntroduced: completed, notificationPreference: completed ? 'disabled' : null }, onboardingStatus: completed ? 'complete' : 'pending' } as ProfileEnvelope,
@@ -246,7 +248,7 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
       // The record is DUMMY memory like the acceptance record. The picker, the manipulator and the cache copy are real.
       proofStorage: { async read(owner: string, character: string) { return success(clone(state.proofRecords.get(`${owner}.${character}`) ?? null)); }, async write(owner: string, character: string, value: PendingProof | null) { if (value && (value.accountId !== owner || value.characterId !== character)) return { kind: 'unavailable' as const }; state.proofRecords.set(`${owner}.${character}`, clone(value)); return { kind: 'success' as const }; } },
       proofFiles: cacheProofFiles,
-      acceptanceStorage: { async read(owner: string, character: string) { return success(clone(state.pending.get(`${owner}.${character}`) ?? null)); }, async write(owner: string, character: string, value: PendingAcceptance | null) { if (value && (value.accountId !== owner || value.characterId !== character)) return { kind: 'unavailable' as const }; state.pending.set(`${owner}.${character}`, clone(value)); return { kind: 'success' as const }; } },
+      acceptanceStorage: { async read(owner: string, character: string) { return success(clone(state.pending.get(`${owner}.${character}`) ?? null)); }, async write(owner: string, character: string, value: PendingAcceptance | null) { if (value && (value.accountId !== owner || value.characterId !== character)) return { kind: 'unavailable' as const }; if (value === null && state.loseNextRecordClear) { state.loseNextRecordClear = false; return { kind: 'unavailable' as const }; } state.pending.set(`${owner}.${character}`, clone(value)); return { kind: 'success' as const }; } },
       creationStorage: { async read(owner: string) { return success(state.creation?.accountId === owner ? clone(state.creation) : null); }, async write(owner: string, value: PendingCreation | null) { if (value && value.accountId !== owner) return { kind: 'unavailable' as const }; state.creation = clone(value); return { kind: 'success' as const }; } },
       guideStorage: { async read(owner: string) { return state.guideSeen.has(owner); }, async markSeen(owner: string) { state.guideSeen.add(owner); } },
       rulesGuideStorage: { async read(owner: string) { return state.rulesGuideSeen.has(owner); }, async markSeen(owner: string) { state.rulesGuideSeen.add(owner); } },

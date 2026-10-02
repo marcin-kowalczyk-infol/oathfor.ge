@@ -62,6 +62,20 @@ test('a control arms one lost proof reply for checking an interrupted upload', a
   expect(screen.getByText(pl.proofArmed)).toBeOnTheScreen();
 });
 
+test('a control arms one lost acceptance record clear for checking a confirmed Oath with a kept record', async () => {
+  await render(<DemoApp />);
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  const dummy = mockDummies.at(-1)!;
+  expect(screen.queryByText(pl.recordClearArmed)).toBeNull();
+  expect(dummy.state.loseNextRecordClear).toBe(false);
+  await fireEvent.press(screen.getByRole('button', { name: pl.loseRecordClear }));
+  expect(screen.getByText(pl.recordClearArmed)).toBeOnTheScreen();
+  expect(dummy.state.loseNextRecordClear).toBe(true);
+  await fireEvent.press(screen.getByRole('button', { name: 'English' }));
+  expect(screen.getByRole('button', { name: en.loseRecordClear })).toBeOnTheScreen();
+  expect(screen.getByText(en.recordClearArmed)).toBeOnTheScreen();
+});
+
 test('a control adds a needs-more-proof Oath and closes the controls', async () => {
   await render(<DemoApp />);
   await fireEvent.press(screen.getByRole('button', { name: pl.badge }));

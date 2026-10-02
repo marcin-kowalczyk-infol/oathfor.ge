@@ -56,6 +56,21 @@ test('reusing an acceptance request for another preview is a conflict', async ()
   expect(await api.confirm(token, { previewId: await preview(dummy), requestId, accepted: true })).toEqual({ kind: 'oath_error', code: 'idempotency_conflict' });
   expect(dummy.state.oaths).toHaveLength(1);
 });
+// MVP-22 G30/G32: a lost record clear keeps the device acceptance record once, so the confirmed Oath and its check show together.
+test('a lost record clear fails the next clear only, keeps the record and leaves record saves alone', async () => {
+  const dummy = createDummy('en', true);
+  const storage = dummy.runtime().acceptanceStorage;
+  const [owner, character] = ['10000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001'];
+  const record = { version: 2 as const, accountId: owner, characterId: character, previewId: '20000000-0000-4000-8000-000000000001', requestId: '20000000-0000-4000-8000-000000000001' };
+  dummy.state.loseNextRecordClear = true;
+  expect(await storage.write(owner, character, record)).toEqual({ kind: 'success' });
+  expect(dummy.state.loseNextRecordClear).toBe(true);
+  expect(await storage.write(owner, character, null)).toEqual({ kind: 'unavailable' });
+  expect(dummy.state.loseNextRecordClear).toBe(false);
+  expect(await storage.read(owner, character)).toEqual({ kind: 'success', value: record });
+  expect(await storage.write(owner, character, null)).toEqual({ kind: 'success' });
+  expect(await storage.read(owner, character)).toEqual({ kind: 'success', value: null });
+});
 
 test('DUMMY characters: empty accounts start without one, creation replays and switching changes Oath ownership', async () => {
   const dummy = createDummy('en', true, false);

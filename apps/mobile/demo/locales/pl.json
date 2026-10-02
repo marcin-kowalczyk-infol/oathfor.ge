@@ -14,6 +14,8 @@
   "armed": "Następna odpowiedź na przyjęcie zostanie zgubiona",
   "loseProof": "Zgub odpowiedź na dowód",
   "proofArmed": "Następna odpowiedź na dowód zostanie zgubiona. Serwer demonstracyjny zapisze dowód, a ponowne wysłanie zwróci to samo potwierdzenie.",
+  "loseRecordClear": "Zgub czyszczenie zapisu przyjęcia",
+  "recordClearArmed": "Następne czyszczenie zapisu przyjęcia zostanie zgubione. Serwer demonstracyjny potwierdzi Przysięgę, a urządzenie zachowa zapis.",
   "add": "Dodaj demonstracyjną Przysięgę",
   "addNeedsMore": "Dodaj Przysięgę: do uzupełnienia",
   "resetHint": "Scenariusze usuwają wszystkie dane demonstracyjne.",

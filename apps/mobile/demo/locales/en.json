@@ -14,6 +14,8 @@
   "armed": "Next acceptance reply will be lost",
   "loseProof": "Lose next proof reply",
   "proofArmed": "Next proof reply will be lost. The demo server records the proof, and sending again returns the same receipt.",
+  "loseRecordClear": "Lose next acceptance record clear",
+  "recordClearArmed": "Next acceptance record clear will be lost. The demo server confirms the Oath, and the device keeps the record.",
   "add": "Add demo Oath",
   "addNeedsMore": "Add Oath: needs more proof",
   "resetHint": "Scenarios reset all synthetic data.",
