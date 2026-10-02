@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Animated, Dimensions, Easing, StyleSheet } from 'react-native';
-import { ForgeRoom } from './ForgeRoom';
+import { ForgeRoom, UNLIT_FADE_MS } from './ForgeRoom';
 import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, PEDESTAL_WAYPOINT, places, playerStart, tutor, walkDirection, walkDuration } from './sceneLayout';
 import { ArtProvider, ArtSetProvider, resolveArt } from '../art/ArtProvider';
 import { currentArt } from '../art/current';
@@ -1008,6 +1008,7 @@ describe('skill gate', () => {
   const glowOf = (id: 'hearth' | 'seals' | 'chronicle') => StyleSheet.flatten(screen.getByTestId(`station-glow-${id}`, hidden).props.style).opacity as number;
   const unlit = (place: 'seals' | 'chronicle', copy = en) => `${copy.room[place]}, ${copy.room.gate.inactive[place]}`;
   const unknown = { today: null, history: null, loading: false };
+  const loading = { today: null, history: null, loading: true };
 
   test('the first entry with nothing yet lights only the hearth and Żaromir starts there', async () => {
     await render(room({ showGuide: true, progress: nothing }));
@@ -1061,13 +1062,77 @@ describe('skill gate', () => {
     expect(onOpenStation).toHaveBeenCalledWith('seals');
   });
 
-  test('while the first count is loading the gated places stay unlit, and a failed read lights them', async () => {
-    const view = await render(room({ progress: { today: null, history: null, loading: true } }));
-    expect(glowOf('seals')).toBe(0);
-    expect(screen.getByRole('button', { name: unlit('seals') })).toBeOnTheScreen();
-    await view.rerender(room({ progress: unknown }));
-    expect(glowOf('seals')).toBeGreaterThan(0);
+  // Review E2.R: the first request may take seconds, and a player with Oaths must never hear that the seals are not lit yet.
+  test('while the first count is loading every place is lit and named plainly', async () => {
+    await render(room({ progress: loading }));
+    for (const id of ['hearth', 'seals', 'chronicle'] as const) expect(glowOf(id)).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: en.room.seals })).toBeOnTheScreen();
+    expect(screen.queryByTestId('unlit-shade-seals', hidden)).toBeNull();
+  });
+
+  // Review E2.R: after a character switch the counts go empty, then loading, then the answer. The seals must not flash dark.
+  test.each([
+    ['a character with Oaths stays lit', { today: { total: 2, paused: false }, history: { total: 3 }, loading: false }, [true, true, true]],
+    ['a new character goes dark once, at the answer', nothing, [true, true, false]],
+  ] as const)('across empty, loading and the answer %s', async (_name, answer, expected) => {
+    const seen: boolean[] = [];
+    const view = await render(room({ progress: unknown }));
+    seen.push(glowOf('seals') > 0);
+    await view.rerender(room({ progress: loading }));
+    seen.push(glowOf('seals') > 0);
+    await view.rerender(room({ progress: answer }));
+    seen.push(glowOf('seals') > 0);
+    expect(seen).toEqual(expected);
+  });
+
+  test('a place touched while loading keeps its visit and action when the answer finds nothing', async () => {
+    const onOpenStation = jest.fn();
+    const view = await render(room({ onOpenStation, progress: loading }));
+    await press(en.room.seals);
+    expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
+    await view.rerender(room({ onOpenStation, progress: nothing }));
+    expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
+    await press(en.room.tutorial.next);
+    await pressAction(en.room.actions.seals);
+    expect(onOpenStation).toHaveBeenCalledWith('seals');
+  });
+
+  test('counts arriving while the unlit bark is open keep the bark, and the next touch opens the lit place', async () => {
+    const view = await render(room({ progress: nothing }));
+    await press(unlit('seals'));
+    expect(screen.getByText(en.room.gate.seals)).toBeOnTheScreen();
+    await view.rerender(room({ progress: { today: { total: 1, paused: false }, history: { total: 0 }, loading: false } }));
+    expect(screen.getByText(en.room.gate.seals)).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: en.room.actions.seals })).toBeNull();
+    expect(glowOf('seals')).toBeGreaterThan(0);
+    expect(screen.queryByTestId('unlit-shade-seals', hidden)).toBeNull();
+    await press(en.room.seals);
+    expect(screen.getByText(en.room.player.seals)).toBeOnTheScreen();
+  });
+
+  // engagement.md E2 "Fallback": unlit places are dimmed by a code-drawn shade, DUMMY until unlit place art exists.
+  test('unlit places are dimmed by a shade, lit ones are not, and the seal cut repeats it', async () => {
+    await render(room({ progress: nothing }));
+    expect(screen.getByTestId('unlit-shade-seals', hidden)).toBeTruthy();
+    expect(screen.getByTestId('unlit-shade-chronicle', hidden)).toBeTruthy();
+    expect(screen.queryByTestId('unlit-shade-hearth', hidden)).toBeNull();
+    expect(screen.getAllByTestId(/^unlit-shade-seals-front-/, hidden)).toHaveLength(2);
+    expect(screen.getByTestId('unlit-shade-seals', hidden).props.pointerEvents).toBe('none');
+  });
+
+  test('with reduced motion the shade is there at once, with motion it fades in', async () => {
+    const view = await render(room({ progress: nothing }));
+    expect(StyleSheet.flatten(screen.getByTestId('unlit-shade-seals', hidden).props.style).opacity).toBe(1);
+    await view.unmount();
+    motion.mockReturnValue(true);
+    const fades: number[] = [];
+    jest.spyOn(Animated, 'timing').mockImplementation((_value, config) => ({
+      start: () => { if (config.duration === UNLIT_FADE_MS) fades.push(config.toValue as number); }, stop: jest.fn(), reset: jest.fn(),
+    }));
+    jest.spyOn(Animated, 'loop').mockReturnValue({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() });
+    await render(room({ progress: nothing }));
+    expect(fades.length).toBeGreaterThan(0);
+    expect(fades.every(value => value === 1)).toBe(true);
   });
 
   test('the first current Oath lights the seals and the chronicle waits for its first entry', async () => {

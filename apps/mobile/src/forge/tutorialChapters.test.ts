@@ -37,7 +37,6 @@ const specRows: [string, string, string][] = [
   ['room.tutorial.door.2', 'Każda postać ma własne Przysięgi, własną kronikę i własną pauzę.', 'Each character has its own Oaths, chronicle and pause.'],
   ['room.tutorial.door.3', 'Pauza, włączana w Ustawieniach, wycofuje zaplanowane i trwające Przysięgi tej postaci. Czekające na wynik trwają dalej.', 'When you turn it on in Settings, pause withdraws this character’s scheduled and active Oaths. Those awaiting a result continue.'],
   ['room.tutorial.door.4', 'W czasie pauzy nie złożysz nowej Przysięgi. Wznowienie zdejmuje pauzę, ale nie przywraca wycofanych.', 'While paused you cannot make a new Oath. Resuming lifts the pause but does not restore withdrawn Oaths.'],
-  ['room.guide.door', 'Drzwi w blasku księżyca prowadzą do menu. Zasady Kuźni opowiem w Samouczku.', 'The moonlit door leads to the menu. Find me in the Tutorial to learn the Forge rules.'],
   ['menu.tutorialDetail', 'Żaromir wyjaśni zasady', 'Learn the rules from Zharomir'],
   ['tutorial.title', 'Zasady Kuźni', 'Forge rules'],
 ];

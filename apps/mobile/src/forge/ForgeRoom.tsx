@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, Pressable, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMotionAllowed } from '../ui/useMotion';
 import { StationEffect } from './StationEffect';
@@ -33,6 +33,9 @@ const stations: { id: ForgeStation; x: number; y: number }[] = [
   { id: 'chronicle', ...places.chronicle.anchor },
 ];
 const WISP = 22;
+/** The DUMMY unlit shade as fractions of the scene width, and its fade in with motion. Native check pending. */
+const SHADE = { width: 0.34, height: 0.3 };
+export const UNLIT_FADE_MS = 400;
 const ORDER_CHECK_MS = 100;
 const PANEL_BOTTOM = 20;
 const HINT_WAIT_MS = 2000;
@@ -155,11 +158,12 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   }
   // Local decision D3 (owner, 2026-09-28): on the first entry only Żaromir walks, to his spot beside the hearth.
   useEffect(() => { if (guidePlace) guide.walkTo(guidePlace); }, [guidePlace]);
-  // Until the first answer lands the counts read as nothing yet, so places light up rather than go dark. A failed read then fails open.
-  // The tutorial tells every place, so in it no place is unlit.
-  const settling = progress.loading && !progress.today && !progress.history;
-  const counts = settling ? { today: 0, history: 0 } : { today: progress.today?.total ?? null, history: progress.history?.total ?? null };
-  const unlit = (place: ScenePlace): place is 'seals' | 'chronicle' => !tour && !placeLit(place, counts);
+  // Counts without an answer, while loading or after a failed read, light every place (fail open, review E2.R).
+  // So a character switch goes from lit to its answer and never flashes dark. The tutorial tells every place, so in it no place is unlit.
+  const counts = { today: progress.today?.total ?? null, history: progress.history?.total ?? null };
+  const unlit = (place: ScenePlace) => !tour && !placeLit(place, counts);
+  // A visit keeps the light its place had when touched, so an answer arriving mid-visit never swaps the bark or takes the action away.
+  const [visitUnlit, setVisitUnlit] = useState(false);
   const camera = useRef(new Animated.Value(0)).current;
   const entered = useRef(false);
   const [touchRequest, setTouchRequest] = useState(0);
@@ -203,6 +207,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
 
   function choose(id: ScenePlace) {
     finishGuide();
+    setVisitUnlit(unlit(id));
     player.walkTo(id);
     setTouchRequest(value => value + 1);
     setBubbleOpen(true);
@@ -241,6 +246,12 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   const stationGlow = (id: ForgeStation) => glow.interpolate({ inputRange: [0, 1], outputRange: unlit(id) ? [0, 0]
     : guidePlace === id || tour?.place === id ? [0.45, 0.75] : player.target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
   const seals = stations.find(station => station.id === 'seals')!;
+  // DUMMY until unlit place art exists (engagement.md E2 "Fallback"): a soft dark shade over the place, sized with the room.
+  const shadeBox = (spot: Spot) => {
+    const shade = { width: sceneWidth * SHADE.width, height: sceneWidth * SHADE.height };
+    const centre = point(spot.x, spot.y);
+    return { ...shade, left: centre.left - shade.width / 2, top: centre.top - shade.height / 2 };
+  };
   // The panel and the ring sit relative to the camera zoom, so scene points are projected through it.
   const zoom = zoomed ? 1.08 : 1;
   // A scene point as the room camera shows it, so the flight zooms around the object where the player sees it.
@@ -261,9 +272,9 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   // At an unlit place there is nothing to handle yet, so the player waits there and the place does not respond.
   const playerPose: HeroPose = player.walking ? { kind: 'walk', direction: player.direction }
     : told ? { kind: 'act', place: told }
-    : !tour && visited && !unlit(visited) ? { kind: 'act', place: visited } : { kind: 'idle' };
+    : !tour && visited && !visitUnlit ? { kind: 'act', place: visited } : { kind: 'idle' };
   // The place responds once the figure stands there and starts working. Touching it again while it is there replays it.
-  const effectPlace = tour ? told : player.arrived === player.target && visited && !unlit(visited) ? visited : null;
+  const effectPlace = tour ? told : player.arrived === player.target && !visitUnlit ? visited : null;
   // Lower on screen is drawn in front. Each figure brings its own seal cut, so the drums cover only a figure behind them.
   const figures = ([
     { id: 'guide', walker: guide, node: <HeroSprite run={guide.run} pose={pose} allowed={allowed} height={FIGURE_HEIGHT} scale={guide.scale} /> },
@@ -284,8 +295,8 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   } else if (talk) {
     // An empty line while Żaromir waits for the counts. The hint then types once.
     line = { speaker: 'guide', key: talk.spoken ? progressHint(progress).key : '', id: `talk-${talk.id}`, dismiss: () => setTalk(null) };
-  } else if (placeBubble && unlit(visited!)) {
-    line = { ...unlitScript(visited!)[0], id: `unlit-${touchRequest}`, dismiss: () => setBubbleOpen(false) };
+  } else if (placeBubble && visitUnlit && (visited === 'seals' || visited === 'chronicle')) {
+    line = { ...unlitScript(visited)[0], id: `unlit-${touchRequest}`, dismiss: () => setBubbleOpen(false) };
   } else if (placeBubble) {
     const place = visited!;
     const script = visitScript(place, form);
@@ -332,6 +343,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
             opacity: chosen ? 1 : glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
             transform: [{ translateY: glow.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }} />;
       })}
+      {stations.filter(station => unlit(station.id)).map(station => <UnlitShade key={`shade-${station.id}`} testID={`unlit-shade-${station.id}`} allowed={allowed} style={shadeBox(station)} />)}
     </View>
     <SceneHotspot label={placeLabel('door')} onPress={still(() => tour ? hear('door') : choose('door'))} hint={tour ? undefined : t('room.inspect')} anchor={hotspot(door.x, door.y)} door allowed={allowed} glow={glow} heard={heardMark('door')} selected={tour ? tour.place === 'door' : player.target === 'door'} />
     {stations.map(station => <SceneHotspot key={station.id} cue={false} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : player.target === station.id}
@@ -352,6 +364,8 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
         style={[styles.front, { ...point(sealsFront.box[0] / ARTWORK.width, sealsFront.box[1] / ARTWORK.height), width: sealsFront.box[2] / ARTWORK.width * sceneWidth, height: sealsFront.box[3] / ARTWORK.height * sceneHeight, opacity: sealsCover(walker.position) }]} />
       {/* Native check: the cut hid the seal glow, so the seals darkened as he stepped behind them. The glow is repeated over the cut. */}
       <Animated.Image source={haze} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.objectGlow, styles.front, { ...point(seals.x, seals.y), opacity: Animated.multiply(stationGlow('seals'), sealsCover(walker.position)) }]} />
+      {/* The cut redraws the drums, so unlit seals repeat their shade over it. */}
+      {unlit('seals') && <UnlitShade testID={`unlit-shade-seals-front-${id}`} allowed={allowed} style={[styles.front, shadeBox(seals)]} cover={sealsCover(walker.position)} />}
       </>}
     </Fragment>)}
     {!tour && !guidePlace && !guide.walking && (guide.arrived ?? 'aside') === 'aside' && <Pressable accessibilityRole="button" accessibilityLabel={t('room.talk.label')}
@@ -380,6 +394,22 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   </View>;
 }
 
+/**
+ * The code-drawn dimming over an unlit place, DUMMY until unlit place art exists (engagement.md E2 "Fallback").
+ * With motion it fades in, so a place that goes dark when the counts arrive does not snap. Reduce Motion shows it at once.
+ */
+function UnlitShade({ testID, allowed, style, cover }: { testID: string; allowed: boolean; style: StyleProp<ViewStyle>; cover?: Animated.AnimatedInterpolation<number> }) {
+  const fade = useRef(new Animated.Value(allowed ? 0 : 1)).current;
+  useEffect(() => {
+    if (!allowed) { fade.setValue(1); return; }
+    const show = Animated.timing(fade, { toValue: 1, duration: UNLIT_FADE_MS, isInteraction: false, useNativeDriver: true });
+    show.start();
+    return () => show.stop();
+  }, [allowed, fade]);
+  return <Animated.View testID={testID} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+    style={[styles.unlitShade, style, { opacity: cover ? Animated.multiply(fade, cover) : fade }]} />;
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, overflow: 'hidden', backgroundColor: '#111719' },
   scenery: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden' },
@@ -388,6 +418,7 @@ const styles = StyleSheet.create({
   // Figures and seal cuts share one layer above the touch areas, so their tree order is the drawing order.
   figure: { position: 'absolute', width: FIGURE_WIDTH, height: FIGURE_HEIGHT, zIndex: 3 },
   front: { position: 'absolute', zIndex: 3, pointerEvents: 'none' },
+  unlitShade: { position: 'absolute', experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(5,7,8,0.58) 0%, rgba(5,7,8,0.4) 55%, rgba(5,7,8,0) 100%)' },
   figureShadow: { position: 'absolute', width: 76, height: 18, top: FIGURE_HEIGHT * FIGURE_FOOT - 10, left: FIGURE_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
   talkTarget: { position: 'absolute', zIndex: 3 },
   shield: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 10 },

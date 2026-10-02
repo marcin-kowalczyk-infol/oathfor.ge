@@ -504,12 +504,6 @@
     "dismiss": "Close the conversation",
     "speaker": "Zharomir",
     "guide": {
-      "hearth": "I’m Zharomir. Touch the hearth, where Oaths take shape.",
-      "seals": "These glowing seals are your current Oaths.",
-      "chronicle": "The chronicle records your journey. Touch the book.",
-      "door": "The moonlit door leads to the menu. Find me in the Tutorial to learn the Forge rules.",
-      "next": "Next place",
-      "done": "Start exploring",
       "skip": "Skip introduction"
     },
     "actions": {
@@ -591,7 +585,7 @@
     },
     "gate": {
       "start": "Start here, at the fire.",
-      "seals": "Your Oaths’ seals will glow here.",
+      "seals": "The seals light up once you make an Oath at the fire.",
       "chronicle": "The chronicle will glow after your first finished Oath.",
       "inactive": {
         "seals": "not active yet",

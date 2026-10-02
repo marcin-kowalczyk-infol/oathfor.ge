@@ -21,6 +21,7 @@ export type Candle = { x: number; y: number; core: number };
 /**
  * The room artwork (887 × 1774) with everything cut from or measured on it.
  * Cut layers repeat the painted room, so a room without its own cuts has none. Old cuts are never drawn over a new room.
+ * DUMMY: no style has unlit place art yet. ForgeRoom dims an unlit seals or chronicle with a code-drawn shade (MVP-22-E2, engagement.md E2 "Fallback").
  */
 export type RoomArt = {
   image: number;

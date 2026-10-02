@@ -83,11 +83,17 @@ test('the first entry and the unlit places are Żaromir alone', () => {
 
 test.each([
   ['room.gate.start', 'Zacznij tutaj, od ognia.', 'Start here, at the fire.'],
-  ['room.gate.seals', 'Tu zapłoną pieczęcie Twoich Przysiąg.', 'Your Oaths’ seals will glow here.'],
+  ['room.gate.seals', 'Pieczęcie zapłoną, gdy złożysz Przysięgę przy ogniu.', 'The seals light up once you make an Oath at the fire.'],
   ['room.gate.chronicle', 'Kronika zapłonie po pierwszej zakończonej Przysiędze.', 'The chronicle will glow after your first finished Oath.'],
 ])('%s is one short bark in both languages', (key, polish, english) => {
   expect([pl.t(key), en.t(key)]).toEqual([polish, english]);
   expect(polish.split(/\s+/).length).toBeLessThanOrEqual(8);
+});
+
+// Review E2.R: the four-step guide is gone, only its dismiss label stays for Żaromir's rule cards.
+test('the room guide keeps only its dismiss label', () => {
+  expect(Object.keys((catalogs.pl as { room: { guide: object } }).room.guide)).toEqual(['skip']);
+  expect(Object.keys((catalogs.en as { room: { guide: object } }).room.guide)).toEqual(['skip']);
 });
 
 test('the new copy keeps the catalogs valid', () => {

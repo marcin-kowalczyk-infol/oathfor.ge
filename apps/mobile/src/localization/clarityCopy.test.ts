@@ -99,7 +99,7 @@ const sliceA = [
   // T12c: Żaromir's introduction meets his 12-word cap.
   'onboarding.companionIntroduction',
   // A5. The tutorial chapter lines are rules, not "what next" lines, so only the two-sentence guard holds them.
-  'room.descriptions.seals', 'room.guide.seals', 'room.guide.hearth', 'room.tutorial.heardMark',
+  'room.descriptions.seals', 'room.tutorial.heardMark',
   // A6.
   'oath.reviewIntro', 'oath.formRequired', 'oath.formRequiredStart',
 ];

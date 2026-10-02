@@ -516,12 +516,6 @@
     "dismiss": "Zamknij rozmowę",
     "speaker": "Żaromir",
     "guide": {
-      "hearth": "Jestem Żaromir. Dotknij paleniska, tu rodzą się Przysięgi.",
-      "seals": "Te świetliste pieczęcie to Twoje bieżące Przysięgi.",
-      "chronicle": "W kronice zostają ślady Twojej drogi. Dotknij księgi.",
-      "door": "Drzwi w blasku księżyca prowadzą do menu. Zasady Kuźni opowiem w Samouczku.",
-      "next": "Następne miejsce",
-      "done": "Zacznij odkrywać",
       "skip": "Pomiń wprowadzenie"
     },
     "actions": {
@@ -605,7 +599,7 @@
     },
     "gate": {
       "start": "Zacznij tutaj, od ognia.",
-      "seals": "Tu zapłoną pieczęcie Twoich Przysiąg.",
+      "seals": "Pieczęcie zapłoną, gdy złożysz Przysięgę przy ogniu.",
       "chronicle": "Kronika zapłonie po pierwszej zakończonej Przysiędze.",
       "inactive": {
         "seals": "jeszcze nieaktywne",
