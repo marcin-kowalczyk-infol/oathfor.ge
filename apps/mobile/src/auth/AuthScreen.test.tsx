@@ -614,7 +614,7 @@ test('a confirmed pause returns to Settings, refreshes the summary and reloads t
   expect(await screen.findByRole('button', { name: 'Mira: paused' })).toBeOnTheScreen();
   expect(oathLists(runtime)).toHaveLength(lists + 1);
   await fireEvent.press(screen.getByRole('button', { name: 'Back to menu' }));
-  expect(await screen.findByText('Character paused')).toBeOnTheScreen();
+  expect(await screen.findByText('Paused')).toBeOnTheScreen();
   await enterRoom();
   await useStation('Seals', 'View current Oaths');
   expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.')).toBeOnTheScreen();

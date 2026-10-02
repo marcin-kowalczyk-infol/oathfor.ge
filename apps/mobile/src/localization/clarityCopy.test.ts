@@ -140,3 +140,17 @@ test('no cutoff line of Żaromir opens with the words of the cutoff card line', 
     for (const line of Object.values(group(catalog, 'zaromir', 'cutoff')) as string[]) expect(line.startsWith(card)).toBe(false);
   }
 });
+
+// MVP-22-A7: a menu tile detail is a label, not a sentence. At most five Polish words (local decision, the longest has four).
+test.each(['forgeDetail', 'forgePending', 'tutorialDetail', 'settingsDetail'])('menu.%s is a short label in both languages', key => {
+  for (const catalog of [pl, en]) {
+    const line = group(catalog, 'menu')[key] as string;
+    expect(words(line)).toBeLessThanOrEqual(5);
+    expect(line).not.toMatch(/[.!?]/);
+  }
+});
+
+test('the menu shows the pause mark, so the old paused line is gone', () => {
+  expect(group(pl, 'menu').paused).toBeUndefined();
+  expect(group(en, 'menu').paused).toBeUndefined();
+});

@@ -7,6 +7,7 @@ import { presetArt } from '../characters/presetArt';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { layoutMode } from '../ui/layoutMode';
 import { StateSeal } from '../ui/StateSeal';
+import { PauseMark } from '../ui/PauseMark';
 import { tokens } from '../ui/tokens';
 import { useMotionAllowed } from '../ui/useMotion';
 import type { OathSummaryState } from './useOathSummary';
@@ -123,7 +124,8 @@ function CharacterCard({ character, summary, stacked, onChangeCharacter }: { cha
             <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.statLabel}>{label}</Text>
           </View>
         </View>
-        {current?.paused && <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.paused}>{t('menu.paused')}</Text>}
+        {/* MVP-22-A7: the shared pause mark, two bars and "W pauzie" (clarity.md "Pause mark"). Shown only while paused. */}
+        {current?.paused && <View style={styles.paused}><PauseMark state="paused" /></View>}
         <Pressable accessibilityRole="button" accessibilityLabel={t('menu.changeCharacter')} onPress={onChangeCharacter} style={styles.pillTarget}>
           {({ pressed }) => <View style={[styles.pill, pressed && styles.pillPressed]}>
             <Text allowFontScaling={false} style={styles.pillMark}>✎</Text>
@@ -273,7 +275,7 @@ const styles = StyleSheet.create({
   statText: { flexShrink: 1 },
   count: { fontFamily: tokens.font.display, color: '#ffd08a', fontSize: 30, lineHeight: 32 },
   statLabel: { color: '#bfa682', fontSize: 13, lineHeight: 17 },
-  paused: { marginTop: 10, color: tokens.color.neutral, fontSize: 13, lineHeight: 17, fontWeight: '600' },
+  paused: { marginTop: 10 },
   // The visible pill is 33 pt high, the touch target keeps 48 pt.
   // The column width limits the pill, so the one-line label shrinks instead of running past the column on a 375 pt screen.
   pillTarget: { marginTop: 14, minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center', maxWidth: '100%' },

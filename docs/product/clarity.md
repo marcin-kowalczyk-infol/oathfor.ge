@@ -61,7 +61,7 @@ The state seal and state name, one line of at most 12 words, the countdown chip 
 
 ### Pause mark
 
-The character's pause state as a shape with a visible label: a filled seal "W grze" / "In play", two bars "W pauzie" / "Paused", a hollow ring "Stan nieznany" / "Unknown". None is red (rule 5). Settings and the pause review show it (MVP-22-A1). Żaromir's counters in the Forge room show "W pauzie" while paused (MVP-22-A5). The menu and the History list follow in their slice A tasks.
+The character's pause state as a shape with a visible label: a filled seal "W grze" / "In play", two bars "W pauzie" / "Paused", a hollow ring "Stan nieznany" / "Unknown". None is red (rule 5). Settings and the pause review show it (MVP-22-A1). Żaromir's counters in the Forge room show "W pauzie" while paused (MVP-22-A5). The menu card shows it instead of the paused line (MVP-22-A7). The History list follows in its slice A task.
 
 ### Żaromir's line
 
@@ -88,7 +88,8 @@ The owner delegated these choices on 2026-10-01 ("work without further approvals
 
 ## Later
 
-- Remaining screen groups against the rules above: main menu, History list. One task each.
+- Remaining screen groups against the rules above: History list.
+- The main menu follows the rules since MVP-22-A7. It has no filled button, its tile details are labels of at most five Polish words, and a paused character shows the pause mark.
 - The Oath form and review follow the rules since MVP-22-A6. Each opens with one plain line instead of Żaromir's bubble, the disabled "Zobacz zasady" names what is missing in one line and the minute note sits only in the time sheet. The consent line is unchanged.
 - The Forge room and the tutorial follow the rules since MVP-22-A5. The seals are named "bieżące Przysięgi" / "current Oaths", never "zobowiązania". A heard place shows the plate "✓ Wysłuchane" / "✓ Heard". The guide's step control shows its words. The simple tutorial screen folds each chapter behind its title. Żaromir's paused hint stays, because it states a fact, and the counters add the pause mark.
 - Settings and the pause review follow the rules since MVP-22-A1. Every pause fact is a plain line, an error replaces the intro line and Żaromir does not speak there. The changed-list line keeps the fact that pause does not extend deadlines. The pause mark appears once the review has loaded, or as "Unknown" after a failed load (MVP-22-A4b).

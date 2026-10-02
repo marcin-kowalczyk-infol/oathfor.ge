@@ -1,5 +1,5 @@
 import { AccessibilityInfo, Animated, AppState, Dimensions } from 'react-native';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import type { Character } from '../api/characters';
 import { StyleSheet } from 'react-native';
@@ -66,19 +66,23 @@ test.each([['loading', { kind: 'loading' as const }], ['failed', { kind: 'failed
   expect(screen.getByLabelText('Number of current Oaths unknown')).toBeOnTheScreen();
 });
 
-test('a paused character adds the paused line', async () => {
+// MVP-22-A7: the paused line is the shared pause mark, two bars with the word "Paused" (clarity.md "Pause mark").
+test('a paused character shows the pause mark', async () => {
   await setup({ summary: ready(0, { paused: true }) });
-  expect(screen.getByText('Character paused')).toBeOnTheScreen();
+  expect(screen.getByTestId('pause-mark')).toHaveProp('accessibilityLabel', 'Paused');
+  expect(screen.getByTestId('pause-mark-bars', { includeHiddenElements: true })).toBeTruthy();
+  expect(screen.getByText('Paused')).toBeOnTheScreen();
+  expect(screen.queryByText('Character paused')).toBeNull();
 });
 
-test('an active character has no paused line', async () => {
+test('an active character has no pause mark', async () => {
   await setup({ summary: ready(2, { paused: false }) });
-  expect(screen.queryByText('Character paused')).toBeNull();
+  expect(screen.queryByTestId('pause-mark')).toBeNull();
 });
 
-test('a paused summary of another character adds no paused line', async () => {
+test('a paused summary of another character adds no pause mark', async () => {
   await setup({ summary: ready(2, { paused: true, characterId: '30000000-0000-4000-8000-00000000000b' }) });
-  expect(screen.queryByText('Character paused')).toBeNull();
+  expect(screen.queryByTestId('pause-mark')).toBeNull();
 });
 
 function spyOnLoop() {
@@ -171,4 +175,13 @@ test.each(['current', 'cinematic'] as const)('the Tutorial tile frames Żaromir 
   // Stacked, the figure keeps its inset from the right edge of the full-width tile.
   await act(async () => { fireEvent(screen.getByTestId('menu-tutorial'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 350, height: 120 } } }); });
   expect(figure().left + frames.tile.width + frames.tile.right).toBeCloseTo(350, 5);
+});
+
+// MVP-22-A7 (clarity.md rule 3): the menu has no filled button in any state, and both languages hold at 200% text.
+test.each([['pl', 'W pauzie', 'Przysięga czeka na potwierdzenie'], ['en', 'Paused', 'An Oath awaits confirmation']] as const)('%s at text scale 2 keeps the mark, the tiles and no filled button', async (locale, mark, detail) => {
+  Dimensions.set({ window: phone(2), screen: phone(2) });
+  await setup({ summary: ready(1, { paused: true }), pending: true }, locale);
+  expect(screen.getByText(mark)).toBeOnTheScreen();
+  expect(screen.getByText(detail)).toBeOnTheScreen();
+  expect(screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0)).toHaveLength(0);
 });

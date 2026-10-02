@@ -42,7 +42,7 @@ Layout follows the accepted mockup, direction C "character card" v6 (390 × 844 
 
 - Background: the Forge room, blurred and darkened, with a vignette. Wordmark "OATHFORGE" at the top.
 - Character card: full width inside 20 pt margins, radius 24, double gold hairline frame, warm under-light. The preset figure stands on the left. On the right are the name in serif, the form title in small caps, a gold rule, the stat and a "Change character" pill.
-- Stat: a fire seal, the number and a label with plural forms (PL: 1 bieżąca Przysięga, 2 bieżące Przysięgi, 5 bieżących Przysiąg. EN: 1 current Oath, 2 current Oaths). While loading or after a failure the number shows "–", without blocking the menu. A paused character adds the line "Character paused".
+- Stat: a fire seal, the number and a label with plural forms (PL: 1 bieżąca Przysięga, 2 bieżące Przysięgi, 5 bieżących Przysiąg. EN: 1 current Oath, 2 current Oaths). While loading or after a failure the number shows "–", without blocking the menu. A paused character adds the line "Character paused". Superseded on 2026-10-02: a paused character shows the pause mark instead, two bars with "W pauzie" / "Paused", and the line and its key are gone. See [clarity](clarity.md).
 - Tiles below the card, 12 pt gap: "Enter the Forge" full width, 190 pt, room art, glowing border and a round arrow button. "Tutorial" (Żaromir art) and "Settings" (forge tools art) half width, 176 pt. Radius 20, a single 1 px gold line.
 - Large text: the card stacks the figure above the text and the tiles become full-width rows. The menu scrolls. Decorative words use `tokens.maxScale` limits so no word breaks inside.
 - No XP, level or reward appears. None exists yet.
@@ -56,7 +56,7 @@ Copy (PL / EN):
 | Settings tile | Ustawienia · Język, pauza, konto | Settings · Language, pause, account |
 | Change character | Zmień postać | Change character |
 | Pending acceptance | Przysięga czeka na potwierdzenie | An Oath awaits confirmation |
-| Paused | Postać w pauzie | Character paused |
+| Paused | Postać w pauzie (superseded on 2026-10-02 by the pause mark "W pauzie", see [clarity](clarity.md)) | Character paused (superseded by "Paused") |
 
 ## Current Oaths
 
