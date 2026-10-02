@@ -582,3 +582,59 @@ Open native gates:
 | Android | Not run. Insets, the panel strips and the sheets are unverified there |
 | Real device and Release build | Not run |
 | Owner acceptance | The delegated decisions in clarity.md, the new PL and EN copy, the step badge art and the room after the tutorial (no visible control except the door) await the owner |
+
+## Engagement acceptance (MVP-22 slice E)
+
+Slice E follows [engagement](../product/engagement.md). E1, the word budget, landed in MVP-22-E1.1 to E1.5 and the review fixes E1.R, from ab6fa18 to 5010d79. E2 to E6 are not implemented. This section records what ran and what is still open.
+
+The ratchet runs inside the mobile jest suite. To run only the counter and the screen ratchet, use `npx -y -p node@24.21.0 -- npx jest src/ui/wordBudget` from `apps/mobile`. A failing ratchet prints the measured count and the counted words, so a new ceiling is read from the failure, never computed by hand.
+
+| Item | Status | Result |
+| --- | --- | --- |
+| Word counter and `Text` budget mark (E1.1) | Ran in jest | `visibleWords` counts drawn words with a Latin letter. Times, numbers and symbols do not count. Text marked `icon`, `error`, `declaration` or `rules` is exempt, and an `icon` label above three words fails |
+| Ratchet introduced (E1.2) | Ran in jest | `wordBudget.baseline.json` holds one ceiling per screen state and language, 51 states. A rise fails and names the words. A fall fails until the ceiling is lowered in the same change. A ceiling above 25 names its step, E2 to E6 |
+| Screens cut (E1.3, E1.4, E1.R, E1.5) | Ran in jest | All 18 E1 states are at 25 or less in PL and EN, see the counts below. Moved text sits behind a fold that a test opens. Required errors stay and are exempt |
+| Mobile jest and typecheck | Ran | On 5010d79, Node 24.21.0: 115 suites and 2015 tests passed, 0 console warnings or errors, typecheck exit 0 |
+| Copy review | Skipped | `review_copy.py` skipped in E1.3, E1.4 and E1.5 because `TYPESAFE_API_KEY` was not set |
+| Independent review | Ran in part | Review findings on E1.1 to E1.4 were fixed in E1.R (d4a897b). E1.5 has no review yet |
+| Native check | Ran in part | Main agent, iPhone 18 Pro, PL, standard text. One defect on the Oath form, see below. The other E1 screens are pending |
+
+Measured E1 ceilings from `apps/mobile/src/ui/wordBudget.baseline.json` on 5010d79:
+
+| Screen state | PL | EN |
+| --- | --- | --- |
+| menu | 23 | 24 |
+| settings | 24 | 25 |
+| settings.paused | 24 | 25 |
+| pauseReview.pause | 22 | 23 |
+| pauseReview.resume | 23 | 24 |
+| signIn | 15 | 16 |
+| onboarding.basics | 23 | 24 |
+| onboarding.companion | 18 | 23 |
+| onboarding.notifications | 22 | 22 |
+| onboarding.reviewOn | 25 | 24 |
+| onboarding.reviewOff | 20 | 19 |
+| characterCreation | 24 | 24 |
+| characterCreation.another | 25 | 25 |
+| characterCreation.pending | 23 | 23 |
+| changeCharacter | 23 | 21 |
+| oathForm | 19 | 22 |
+| oathForm.scheduled | 19 | 22 |
+| history | 18 | 22 |
+
+States above 25 keep their target step: review and review.firstGuide (E3), the confirmation and eleven detail states (E5), four proof states (E6) and the simple tutorial screen (E2).
+
+Native observations on the iPhone 18 Pro:
+
+| Observed | When | Result |
+| --- | --- | --- |
+| Oath form date and time rows, PL, standard text | Native check 2026-10-02, after d4a897b | The date drew "Termin" above a calendar while the time drew only a clock, so the rows had different heights and read as unrelated. 5010d79 gives both rows one shape, pictogram, caption and chevron, with a chosen value under the small caption. A failing test came first. Not observed again yet |
+
+Open E1 gates:
+
+| Gate | Reason |
+| --- | --- |
+| E1 screens, PL and EN | Main menu, Settings, pause review, character creation and switch, sign-in, every onboarding step, the Oath form empty, scheduled and filled, the confirmation and History need a native look for no lost fact and no empty band where text was. Pending, main agent |
+| Oath form row height | The shared row height of 75 pt is computed from the line heights in jest, not measured on the device |
+| VoiceOver | The spoken names that open with the drawn caption are tested in jest only |
+| Owner review | The `icon` reading for one-word field captions (engagement.md D-E4), the deleted instruction sentences of E1.3 and E1.4, the English spoken time names "Time, start" and "Time, deadline", and the delegated decisions of slice E |

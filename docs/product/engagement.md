@@ -1,6 +1,6 @@
 # Engagement: less reading, more tending
 
-Status: specification, 2026-10-02, for the epic MVP-22 (follow-up slice E). The owner chose to implement the ranked opportunities of the engagement research from the fastest to the longest (owner decision, 2026-10-02 evening). The owner did not answer the open design questions, so the choices marked **delegated decision 2026-10-02, owner review pending** were made for the owner and stay open to review. Nothing here is implemented yet. The task plan lives in the ignored `.local/epics/MVP-22.engagement.md`.
+Status: specification, 2026-10-02, for the epic MVP-22 (follow-up slice E). The owner chose to implement the ranked opportunities of the engagement research from the fastest to the longest (owner decision, 2026-10-02 evening). The owner did not answer the open design questions, so the choices marked **delegated decision 2026-10-02, owner review pending** were made for the owner and stay open to review. E1 is implemented locally in MVP-22-E1.1 to E1.5 (ab6fa18 to 5010d79), with its native check and owner review pending, see [Engagement acceptance](../engineering/testing.md#engagement-acceptance-mvp-22-slice-e). E2 to E6 are not implemented. The task plan lives in the ignored `.local/epics/MVP-22.engagement.md`.
 
 ## Purpose
 
@@ -88,6 +88,7 @@ The owner's "too much text" becomes a number that jest checks. It adds to the 12
 - **Not counted:** accessibility labels and hints, which are not drawn.
 - **Exempt, marked in code:**
   - `icon`: a pictogram label of one to three words drawn beside its pictogram (clarity rule 4). The helper fails a test if an `icon` text has more than three words.
+  - A one-word field caption drawn beside its calendar or clock pictogram is an `icon` label. The Oath form's date and time rows use it (local clarification, MVP-22-E1.5, 2026-10-02).
   - `error`: a required error or refusal sentence (clarity decision 3).
   - `declaration`: the stored declaration as the label of the hold control (D-E1) or of the proof confirmation.
   - `rules`: stored rule text when a test opens the fold on purpose.
@@ -104,7 +105,7 @@ The owner's "too much text" becomes a number that jest checks. It adds to the 12
 
 ### Screen states and the step that brings each to 25
 
-E1.2 replaces this provisional table with measured baselines. A step may reach 25 earlier.
+The measured ceilings live in `apps/mobile/src/ui/wordBudget.baseline.json` since MVP-22-E1.2, each with the step that brings it to 25. This table keeps the original plan. A step may reach 25 earlier.
 
 | Screen state | Brought to 25 by |
 | --- | --- |
