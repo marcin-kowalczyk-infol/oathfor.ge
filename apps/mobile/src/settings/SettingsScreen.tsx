@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../ui/Text';
 import { ART_STYLES, type ArtStyle } from '../art/registry';
 import { useTranslation } from '../localization/LocalizationProvider';

@@ -182,6 +182,8 @@ describe('the menu plate', () => {
     expect(style).toMatchObject({ minHeight: 44, minWidth: 44 });
     const corner = StyleSheet.flatten(screen.getByTestId('room-menu-corner').props.style);
     expect(corner).toMatchObject({ position: 'absolute', top: 0, left: 0 });
+    // A provider reports the full screen insets. The corner keeps the top and left ones only, as the old React Native SafeAreaView did.
+    expect(screen.getByTestId('room-menu-corner').props.edges).toEqual({ top: 'additive', left: 'additive', bottom: 'off', right: 'off' });
   });
   test('it pulls the camera out like the door and opens the menu within 700 ms', async () => {
     const onExit = jest.fn();

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { bindShortWords } from '../localization/typography';
 import type { GuideStorage } from '../forge/guideStorage';
-import { Animated, AppState, Image, Pressable, RefreshControl, SafeAreaView, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated, AppState, Image, Pressable, RefreshControl, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';

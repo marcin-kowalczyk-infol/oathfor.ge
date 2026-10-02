@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { FlatList, Modal, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { Action } from '../ui/Action';
@@ -104,7 +105,8 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
       {part === 'zone' && <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{value.zone}</Text>}
     </Pressable>)}
     <Modal visible={open !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(null)}>
-      <SafeAreaView style={styles.modal} accessibilityViewIsModal>
+      {/* A Modal is a separate native window, so it gets its own safe area provider. */}
+      <SafeAreaProvider><SafeAreaView style={styles.modal} accessibilityViewIsModal>
         <View testID="sheet-header" style={styles.header}><View style={styles.flex}>{title(open ? label(open) : '')}</View>{icon('×', t('timePicker.close'), () => setOpen(null))}</View>
         {open === 'date' && first && <ScrollView testID="date-sheet" contentContainerStyle={[styles.content, largeText && styles.wideContent]}>
           <View testID="month-nav" style={styles.row}>
@@ -137,7 +139,7 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
           <Text style={styles.caption}>{t('timePicker.seconds')}</Text>
           {past ? <Action label={t('timePicker.done')} disabled unavailableReason={t('timePicker.pastTime')} onPress={() => {}} /> : <Action label={t('timePicker.done')} onPress={() => change('time', `${hour}:${minute}:00`)} />}</View></>}
         {open === 'zone' && <View style={styles.flex}><View style={styles.content}><Text style={styles.caption}>{t('timePicker.zoneHelp')}</Text><TextInput accessibilityLabel={t('timePicker.searchZone')} placeholder={t('timePicker.searchZone')} placeholderTextColor={tokens.color.secondary} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} style={styles.search} /></View><FlatList keyboardShouldPersistTaps="handled" data={zones} keyExtractor={zone => zone} contentContainerStyle={styles.content} ListEmptyComponent={<Text style={styles.value}>{t('timePicker.noZones')}</Text>} renderItem={({ item }) => <Pressable accessibilityRole="radio" accessibilityLabel={`${zoneName(item)} · ${item}`} accessibilityState={{ selected: value.zone === item }} onPress={() => change('zone', item)} style={[styles.field, largeText && styles.wideField, item === value.zone && styles.selected]}><Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.value}>{zoneName(item)}</Text><Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{item}</Text></Pressable>} /></View>}
-      </SafeAreaView>
+      </SafeAreaView></SafeAreaProvider>
     </Modal>
   </View>;
 }

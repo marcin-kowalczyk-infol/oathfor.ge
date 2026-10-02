@@ -1,4 +1,5 @@
-import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../ui/Text';
 import { tutorialChapters, tutorialLineKeys, tutorialTitleKey } from '../forge/tutorialChapters';
 import { useTranslation } from '../localization/LocalizationProvider';

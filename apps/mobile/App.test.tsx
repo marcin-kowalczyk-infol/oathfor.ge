@@ -6,8 +6,11 @@ import { LocalizationProvider, useTranslation } from './src/localization/Localiz
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'de-DE' }] }));
 
 const mockAuthProps: Record<string, unknown>[] = [];
+const mockAuthInsets: unknown[] = [];
 jest.mock('./src/auth/AuthScreen', () => ({ AuthScreen: (props: Record<string, unknown>) => {
   mockAuthProps.push(props);
+  const { useContext } = require('react');
+  mockAuthInsets.push(useContext(require('react-native-safe-area-context').SafeAreaInsetsContext));
   const { Text } = require('react-native');
   const { useTranslation } = require('./src/localization/LocalizationProvider');
   return <Text>{useTranslation().t('auth.signInTitle')}</Text>;
@@ -114,4 +117,12 @@ test('product entry wires the character client and secure creation storage like 
   expect(props.creationStorage).toBe(secureCreationStorage);
   expect(props.characterApi).toEqual(expect.objectContaining({ list: expect.any(Function), create: expect.any(Function), activate: expect.any(Function) }));
   expect(props.oathApi).toBeDefined();
+});
+
+// Screens use the SafeAreaView of react-native-safe-area-context, which reads its insets from the nearest provider.
+test('product entry gives every screen a safe area provider', async () => {
+  process.env.EXPO_PUBLIC_DIAGNOSTIC_MODE = 'false';
+  jest.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}));
+  await render(<App />);
+  expect(mockAuthInsets[mockAuthInsets.length - 1]).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
 });

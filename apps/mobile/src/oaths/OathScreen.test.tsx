@@ -25,8 +25,10 @@ function fixture() {
   return { preview: { id, snapshot }, characterId, serverTime: '2026-10-24T00:00:00Z' };
 }
 const controllers: OathController[] = [];
-beforeEach(() => jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-24T12:00:00Z')));
-afterEach(() => { controllers.splice(0).forEach(controller => controller.dispose()); jest.restoreAllMocks(); });
+// Fake timers: with the device clock frozen on a whole minute, the countdown re-renders after 1 ms.
+// On real timers that render landed between two acts at random and React warned about it.
+beforeEach(() => { jest.useFakeTimers(); jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-24T12:00:00Z')); });
+afterEach(() => { controllers.splice(0).forEach(controller => controller.dispose()); jest.restoreAllMocks(); jest.useRealTimers(); });
 function setup() {
   const envelope = fixture();
   const session = { subscribe: () => () => {}, getToken: () => token, getState: () => ({ kind: 'authenticated', account: { id: accountId, onboardingStatus: 'complete' } }), reauthenticate: jest.fn() } as unknown as SessionController;
@@ -309,7 +311,7 @@ test.each([[180], [300]])('while the guide is open the review scrolls %i points 
 // the first guide line, and the cards Żaromir named sat far below the one-column grid top, hidden while he spoke about them.
 describe('the rules guide at the largest text size', () => {
   const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
-  afterEach(() => Dimensions.set(initial));
+  afterEach(() => act(() => { Dimensions.set(initial); }));
   const phone = (fontScale: number) => ({ width: 402, height: 874, scale: 3, fontScale });
   const next = async () => { await fireEvent.press(screen.getByRole('button', { name: 'Dalej' })); };
   test.each([[3.12, 344], [1, 280]])('at text scale %d the panel may grow to %i points', async (fontScale, height) => {
@@ -347,7 +349,7 @@ describe('the rules guide at the largest text size', () => {
 // screen edge while its label wrapped to three lines, and long words broke mid-word in the text under the cards.
 describe('the review at the largest text size', () => {
   const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
-  afterEach(() => Dimensions.set(initial));
+  afterEach(() => act(() => { Dimensions.set(initial); }));
   const phone = (width: number) => ({ width, height: 874, scale: 3, fontScale: 3.571 });
   const flat = (node: unknown) => StyleSheet.flatten((node as { props: { style?: StyleProp<ViewStyle & TextStyle> } }).props.style) ?? {};
   test.each([402, 375])('at %s points the Żaromir button stays inside the column and its label wraps within it', async width => {
@@ -535,7 +537,7 @@ test('a replayed acceptance that returns a withdrawn Oath shows no Żaromir gree
 // "Bieganie", "Trening siłowy" and "W przyszłym terminie" broke mid-word. In the simple layout the label gets its own full-width line.
 describe('creation choices at the largest text size', () => {
   const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
-  afterEach(() => Dimensions.set(initial));
+  afterEach(() => act(() => { Dimensions.set(initial); }));
   const phone = (width: number, fontScale: number) => ({ width, height: 874, scale: 3, fontScale });
   type Node = { type: unknown; parent: Node | null; props: { style?: unknown } };
   const hostParent = (node: Node) => { let parent = node.parent; while (parent && typeof parent.type !== 'string') parent = parent.parent; return parent!; };
@@ -604,7 +606,7 @@ describe('creation choices at the largest text size', () => {
 // the form names what is missing in one short line, the minute note lives only in the time sheet, and each state has one filled button.
 describe('form and review lines', () => {
   const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
-  afterEach(() => Dimensions.set(initial));
+  afterEach(() => act(() => { Dimensions.set(initial); }));
   const filled = () => screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0);
   const copy = {
     pl: { intro: 'Wybierz trening i termin ukończenia.', required: 'Wybierz trening i termin, aby zobaczyć zasady.', review: 'Przeczytaj zasady i złóż Przysięgę.', seconds: 'Czas wybierasz z dokładnością do minuty (sekundy: 00).',
@@ -709,7 +711,7 @@ describe('header text never sits on the hearth art', () => {
   // under the band's fade. They stand in the band after the error line, in the room and the simple layout.
   describe('the pending line and its action stand on the band', () => {
     const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
-    afterEach(() => Dimensions.set(initial));
+    afterEach(() => act(() => { Dimensions.set(initial); }));
     const pendingLine = 'Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.';
     const errorLine = 'Nie udało się potwierdzić tego kroku. Spróbuj ponownie.';
     test.each([[1, false], [2, true]])('pl at text scale %d with plain back %s', async (fontScale, backPlain) => {

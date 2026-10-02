@@ -171,7 +171,8 @@ test.each(['current', 'cinematic'] as const)('the Tutorial tile frames Żaromir 
   // The room tile and the menu backdrop draw the style's room.
   expect(screen.getByTestId('menu-forge-room', hidden).props.source).toBe(art.room.image);
   expect(screen.getByTestId('menu-backdrop-room', hidden).props.source).toBe(art.room.image);
-  Dimensions.set({ window: phone(2), screen: phone(2) });
+  // The menu is still mounted, so the resize re-renders it and belongs in act.
+  await act(() => { Dimensions.set({ window: phone(2), screen: phone(2) }); });
   await setup({}, 'en', style);
   // Stacked, the figure keeps its inset from the right edge of the full-width tile.
   await act(async () => { fireEvent(screen.getByTestId('menu-tutorial'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 350, height: 120 } } }); });

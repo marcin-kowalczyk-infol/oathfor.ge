@@ -3,6 +3,7 @@ import { Dimensions } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import DemoApp from './DemoApp';
 import messages from '../src/localization/locales/pl/messages.json';
+import { expectConsole } from '../jest/consoleGuard';
 
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'pl' }], getCalendars: () => [{ timeZone: 'Europe/Warsaw' }] }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
@@ -14,6 +15,10 @@ const forge = { name: `${messages.menu.forge}, ${messages.menu.forgeDetail}` };
 // Effects may re-run without unmounting (Fast Refresh, StrictMode). The kept runtime must still answer.
 test('re-running demo effects keeps character creation, the menu, the room guide and the Oath list working', async () => {
   Dimensions.set({ window: phone, screen: phone });
+  // Allowed on purpose, test-only. The Oath list's native-driven scroll event makes React Native's Animated call
+  // findNodeHandle on its view. The jest preset's View is a class component, so under StrictMode React reports it.
+  // On a device View is a host component and nothing is reported. Removing the native module breaks Animated in jest.
+  expectConsole('error', /^findNodeHandle is deprecated in StrictMode\. findNodeHandle was passed an instance of View/);
   await render(<StrictMode><DemoApp /></StrictMode>);
   expect(await screen.findByRole('header', { name: messages.character.title })).toBeOnTheScreen();
   await fireEvent.changeText(screen.getByLabelText(messages.character.name), 'Mira');

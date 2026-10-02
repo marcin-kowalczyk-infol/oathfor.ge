@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Action } from './src/ui/Action';
 import { AuthScreen } from './src/auth/AuthScreen';
 import { getSessionRuntime } from './src/auth/runtime';
@@ -50,9 +51,10 @@ const styles = StyleSheet.create({
 export default function App() {
   if (__DEV__ && process.env.EXPO_PUBLIC_DIAGNOSTIC_MODE === 'true') {
     const override = process.env.EXPO_PUBLIC_DIAGNOSTIC_LOCALE;
-    return <LocalizationProvider initialLocale={override === 'pl' || override === 'en' ? override : undefined}>
+    return <SafeAreaProvider><LocalizationProvider initialLocale={override === 'pl' || override === 'en' ? override : undefined}>
       <DiagnosticScreen />
-    </LocalizationProvider>;
+    </LocalizationProvider></SafeAreaProvider>;
   }
-  return <LocalizationProvider><AuthScreen {...getSessionRuntime()} /></LocalizationProvider>;
+  // Screens use the SafeAreaView of react-native-safe-area-context, which takes its insets from this provider.
+  return <SafeAreaProvider><LocalizationProvider><AuthScreen {...getSessionRuntime()} /></LocalizationProvider></SafeAreaProvider>;
 }

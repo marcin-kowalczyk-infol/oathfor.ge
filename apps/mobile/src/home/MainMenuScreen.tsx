@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Easing, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, View, useWindowDimensions, type ImageSourcePropType } from 'react-native';
+import { Animated, Easing, Image, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type ImageSourcePropType } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../ui/Text';
 import type { Character } from '../api/characters';
 import { useArt } from '../art/ArtProvider';

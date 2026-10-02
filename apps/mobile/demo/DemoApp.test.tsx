@@ -9,8 +9,10 @@ jest.mock('./runtime', () => {
   const actual = jest.requireActual('./runtime');
   return { ...actual, createDummy: (...args: Parameters<typeof actual.createDummy>) => { const dummy = actual.createDummy(...args); mockDummies.push(dummy); return dummy; } };
 });
+const mockProductInsets: unknown[] = [];
 jest.mock('../src/auth/AuthScreen', () => ({ AuthScreen: ({ guideStorage, profileApi }: any) => {
   const React = require('react'); const { TextInput, Text } = require('react-native');
+  mockProductInsets.push(React.useContext(require('react-native-safe-area-context').SafeAreaInsetsContext));
   const [draft, setDraft] = React.useState('');
   const [locale, setLocale] = React.useState('');
   React.useEffect(() => { void profileApi.get('A'.repeat(43)).then((result: any) => setLocale(result.value.profile.locale)); }, [profileApi]);
@@ -24,6 +26,14 @@ test('the app owns the room, so the demo shows no room of its own and passes a g
   await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
   expect(screen.getByText(pl.empty)).toBeOnTheScreen();
   expect(screen.queryByText(/prototyp/)).toBeNull();
+});
+
+// The badge bar takes the top inset only. The product below it reads its insets from its own provider,
+// which on a device starts under the bar, so its screens get no second top inset.
+test('the badge bar keeps the top inset and the product has its own safe area provider', async () => {
+  await render(<DemoApp />);
+  expect(screen.getByTestId('demo-badge-bar').props.edges).toEqual({ top: 'additive', left: 'additive', right: 'additive', bottom: 'off' });
+  expect(mockProductInsets[mockProductInsets.length - 1]).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
 });
 
 test('restarting the interface remounts the app', async () => {
