@@ -8,7 +8,6 @@ import { useSceneEntrance } from '../ui/useSceneEntrance';
 import { GameChoice } from '../ui/GameChoice';
 import { tokens } from '../ui/tokens';
 import { SceneSurface } from '../ui/SceneSurface';
-import { CompanionBubble } from '../ui/CompanionBubble';
 import { SceneDoor } from '../ui/SceneDoor';
 import { BackLink } from '../ui/BackLink';
 import { ActivityOffering } from './ActivityOffering';
@@ -191,7 +190,8 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         {stamped.has(oath.id) && !pending && <Action label={t('oath.newOath')} variant="secondary" onPress={() => { if (controller.resetCreation()) { const next = emptyDraft(timezone); setDraft(next); onDraftChange?.(null); setMode('form'); setSubmitted(false); } }} />}
       </>}
       {review && <>
-        <CompanionBubble message={t('oath.reviewIntro')} />
+        {/* MVP-22-A6: one plain "what next" line. D and S stay on their cards and in Żaromir's guide (clarity.md rules 1 and 14). */}
+        <Text testID="oath-line" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t('oath.reviewIntro')}</Text>
         {rulesGuideStorage && guideSeen !== null && !guideShown && <Pressable accessibilityRole="button" accessibilityLabel={t('oath.guide.replay')} onPress={() => setGuideLine(0)} style={({ pressed }) => [styles.replay, pressed && styles.pressed]}>
           <View style={styles.replayBust}><Image source={zharomir} resizeMode="cover" style={styles.replayImage} /></View>
           <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.replayText}>{t('oath.guide.replay')}</Text>
@@ -208,7 +208,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         </>}
       </>}
       {ready && !pending && !review && !detail && <>
-        <CompanionBubble message={t('oath.intro')} />
+        <Text testID="oath-line" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t('oath.intro')}</Text>
         <View style={styles.workbench}>
           <Text accessibilityRole="header" style={styles.label}>{t('oath.activity')}</Text>
           <View style={styles.offerings}>

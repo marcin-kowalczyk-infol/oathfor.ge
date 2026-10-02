@@ -87,7 +87,6 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
       <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.value}>{part === 'date' ? value.date ? dateName(value.date) : t('timePicker.chooseDate') : part === 'time' ? value.time.slice(0, 5) || t('timePicker.chooseTime') : zoneName(value.zone)}</Text>
       {part === 'zone' && <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{value.zone}</Text>}
     </Pressable>)}
-    <Text style={styles.caption}>{t('timePicker.seconds')}</Text>
     <Modal visible={open !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(null)}>
       <SafeAreaView style={styles.modal} accessibilityViewIsModal>
         <View style={styles.header}>{title(open ? label(open) : '')}<Action label={t('timePicker.close')} variant="secondary" onPress={() => setOpen(null)} /></View>
@@ -108,7 +107,10 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
             const gone = isToday && (part === 'hour' ? number < nowHour : hour < nowHour || (hour === nowHour && number <= nowMinute));
             return <Pressable key={number} accessibilityRole="radio" accessibilityLabel={`${t(`timePicker.${part}`)} ${number}`} accessibilityState={{ selected, disabled: gone }} disabled={gone} onPress={() => part === 'hour' ? setHour(number) : setMinute(number)} style={[styles.number, styles.cell, selected && styles.selected, gone && styles.gone]}><Text style={[styles.value, gone && styles.goneText]}>{number}</Text></Pressable>;
           })}</View></View>)}
-        </ScrollView><View style={styles.footer}>{past ? <Action label={t('timePicker.done')} disabled unavailableReason={t('timePicker.pastTime')} onPress={() => {}} /> : <Action label={t('timePicker.done')} onPress={() => change('time', `${hour}:${minute}:00`)} />}</View></>}
+        </ScrollView><View style={styles.footer}>
+          {/* MVP-22-A6: the minute note belongs to choosing a time, so it sits only in this sheet's footer. */}
+          <Text style={styles.caption}>{t('timePicker.seconds')}</Text>
+          {past ? <Action label={t('timePicker.done')} disabled unavailableReason={t('timePicker.pastTime')} onPress={() => {}} /> : <Action label={t('timePicker.done')} onPress={() => change('time', `${hour}:${minute}:00`)} />}</View></>}
         {open === 'zone' && <View style={styles.flex}><View style={styles.content}><Text style={styles.caption}>{t('timePicker.zoneHelp')}</Text><TextInput accessibilityLabel={t('timePicker.searchZone')} placeholder={t('timePicker.searchZone')} placeholderTextColor={tokens.color.secondary} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} style={styles.search} /></View><FlatList keyboardShouldPersistTaps="handled" data={zones} keyExtractor={zone => zone} contentContainerStyle={styles.content} ListEmptyComponent={<Text style={styles.value}>{t('timePicker.noZones')}</Text>} renderItem={({ item }) => <Pressable accessibilityRole="radio" accessibilityLabel={`${zoneName(item)} · ${item}`} accessibilityState={{ selected: value.zone === item }} onPress={() => change('zone', item)} style={[styles.field, largeText && styles.wideField, item === value.zone && styles.selected]}><Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.value}>{zoneName(item)}</Text><Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{item}</Text></Pressable>} /></View>}
       </SafeAreaView>
     </Modal>
@@ -122,5 +124,5 @@ const styles = StyleSheet.create({
   wideDay: { width: '100%', minHeight: 52 },
   day: { width: '14.2857%', minHeight: 52 }, weekday: { minHeight: 0, color: tokens.color.secondary, fontSize: 13, lineHeight: 18, textAlign: 'center' }, number: { minWidth: 52, minHeight: 52, flexGrow: 1, margin: 3 }, cell: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12 }, selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
   today: { borderWidth: 2, borderColor: '#b58a52' }, gone: { opacity: 0.35 }, goneText: { color: tokens.color.secondary },
-  pressed: { opacity: 0.75 }, clock: { color: tokens.color.primary, fontSize: 36, fontWeight: '700' }, footer: { padding: 16 }, search: { color: tokens.color.text, backgroundColor: tokens.color.surface, borderRadius: 18, padding: 14, fontSize: 17, minHeight: 48 },
+  pressed: { opacity: 0.75 }, clock: { color: tokens.color.primary, fontSize: 36, fontWeight: '700' }, footer: { padding: 16, gap: 12 }, search: { color: tokens.color.text, backgroundColor: tokens.color.surface, borderRadius: 18, padding: 14, fontSize: 17, minHeight: 48 },
 });

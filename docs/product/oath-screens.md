@@ -43,9 +43,11 @@ The date sheet of `WallTimePicker` gets three changes. "Today" means the current
 
 The server keeps rejecting past times (`activation_elapsed`, `deadline_not_after_activation`). The client check is a convenience, not the rule.
 
+Superseded on 2026-10-02: the note "Czas wybierasz z dokładnością do minuty (sekundy: 00)." / "Times are selected to the minute (seconds: 00)." shows only in the time sheet's footer, not under the fields. The form opens with one plain line, PL "Wybierz trening i termin ukończenia." EN "Choose a workout and its deadline.", instead of Żaromir's bubble. See [clarity](clarity.md).
+
 ### 2. Rules before the Oath (item 2)
 
-The review screen after "Zobacz zasady" keeps its order of promise, rules, consent and the "Złóż Przysięgę" action, but the rules become cards.
+The review screen after "Zobacz zasady" keeps its order of promise, rules, consent and the "Złóż Przysięgę" action, but the rules become cards. Superseded on 2026-10-02: the review opens with one plain line, PL "Przeczytaj zasady i złóż Przysięgę." EN "Read the rules, then make the Oath.", instead of Żaromir's bubble. The deadline and the cutoff stay on their cards and in Żaromir's guide. See [clarity](clarity.md).
 
 Rule cards, each with an icon from `graphics/mvp-21/incoming/oath-rule-icons-v01.png`, a short title and the value from the preview snapshot:
 

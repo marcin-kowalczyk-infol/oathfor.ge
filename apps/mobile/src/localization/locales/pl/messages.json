@@ -135,7 +135,7 @@
   },
   "oath": {
     "title": "Próba Iskry",
-    "intro": "Wybierz trening i termin jego ukończenia. Przed złożeniem Przysięgi przeczytasz pełne zasady.",
+    "intro": "Wybierz trening i termin ukończenia.",
     "activity": "Trening",
     "activities": {
       "running": "Bieganie",
@@ -159,8 +159,8 @@
     "edit": "Zmień wybory",
     "loading": "Wczytywanie Przysięgi…",
     "retry": "Spróbuj ponownie",
-    "formRequired": "Wybierz trening, prawidłowe daty i godziny oraz strefy czasowe, aby zobaczyć zasady.",
-    "reviewIntro": "Przeczytaj zasady przed złożeniem Przysięgi. Termin ukończenia i termin przyjęcia dowodu są osobne.",
+    "formRequired": "Wybierz trening i termin, aby zobaczyć zasady.",
+    "reviewIntro": "Przeczytaj zasady i złóż Przysięgę.",
     "consent": "Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady.",
     "pending": "Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.",
     "recover": "Sprawdź potwierdzenie",

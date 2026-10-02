@@ -100,6 +100,8 @@ const sliceA = [
   'onboarding.companionIntroduction',
   // A5. The tutorial chapter lines are rules, not "what next" lines, so only the two-sentence guard holds them.
   'room.descriptions.seals', 'room.guide.seals', 'room.guide.hearth', 'room.tutorial.heardMark',
+  // A6.
+  'oath.intro', 'oath.reviewIntro', 'oath.formRequired',
 ];
 test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages', key => {
   const [line, english] = [at(pl, key), at(en, key)];

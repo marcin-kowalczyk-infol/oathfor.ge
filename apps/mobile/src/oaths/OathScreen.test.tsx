@@ -580,3 +580,41 @@ describe('creation choices at the largest text size', () => {
     expect(StyleSheet.flatten(hostParent(bench).props.style as StyleProp<ViewStyle>).paddingHorizontal).toBeUndefined();
   });
 });
+
+// MVP-22-A6 (clarity.md rules 1, 3 and 14): the form and the review open with one plain line, never Żaromir's bubble,
+// the form names what is missing in one short line, the minute note lives only in the time sheet, and each state has one filled button.
+describe('form and review lines', () => {
+  const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
+  afterEach(() => Dimensions.set(initial));
+  const filled = () => screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0);
+  const copy = {
+    pl: { intro: 'Wybierz trening i termin ukończenia.', required: 'Wybierz trening i termin, aby zobaczyć zasady.', review: 'Przeczytaj zasady i złóż Przysięgę.', seconds: 'Czas wybierasz z dokładnością do minuty (sekundy: 00).',
+      date: ['Data ukończenia', '25 października 2026'], time: ['Godzina ukończenia', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' }], view: 'Zobacz zasady', confirm: 'Złóż Przysięgę' },
+    en: { intro: 'Choose a workout and its deadline.', required: 'Choose a workout and deadline to see the rules.', review: 'Read the rules, then make the Oath.', seconds: 'Times are selected to the minute (seconds: 00).',
+      date: ['Completion date', 'October 25, 2026'], time: ['Completion time', { hour: 'Hour', minute: 'Minute', done: 'Use this time' }], view: 'View rules', confirm: 'Commit to the Oath' },
+  } as const;
+  test.each(['pl', 'en'] as const)('%s at text scale 2 keeps one plain line and one filled button on the form and the review', async locale => {
+    const words = copy[locale];
+    const phone = { width: 402, height: 874, scale: 3, fontScale: 2 };
+    Dimensions.set({ window: phone, screen: phone });
+    const f = setup(); f.controller.start();
+    await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    expect(await screen.findByText(words.intro)).toBeOnTheScreen();
+    expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
+    expect(screen.getByText(words.required)).toBeOnTheScreen();
+    expect(screen.queryByText(words.seconds)).toBeNull();
+    expect(filled()).toHaveLength(1);
+    await selectDate(words.date[0], words.date[1]);
+    await fireEvent.press(screen.getByRole('button', { name: words.time[0] }));
+    expect(screen.getByText(words.seconds)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('radio', { name: `${words.time[1].hour} 02` }));
+    await fireEvent.press(screen.getByRole('radio', { name: `${words.time[1].minute} 30` }));
+    await fireEvent.press(screen.getByRole('button', { name: words.time[1].done }));
+    expect(screen.queryByText(words.seconds)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: words.view }));
+    expect(await screen.findByText(words.review)).toBeOnTheScreen();
+    expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
+    expect(filled()).toHaveLength(1);
+    expect(within(screen.getByRole('button', { name: words.confirm })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
+  });
+});
