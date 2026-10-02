@@ -145,6 +145,8 @@ export const currentArt: ArtSet = {
     sealStamp: oathSheet(require('../../assets/oaths/seal-stamp-v01.png'), 4, 2),
     sealSparks: oathSheet(require('../../assets/oaths/seal-sparks-v01.png'), 4, 2),
     stepBadges: oathSheet(require('../../assets/oaths/step-badges-v01.png'), 4, 1),
+    // DUMMY until MVP-22-E3.5: the candidate hold seal art awaits owner acceptance, ui/HoldSeal draws the wax in code.
+    holdSeal: null,
   },
   // The owner's six starters, each drawn thin and heavy (docs/art/player-preset-assets.md).
   presets: {

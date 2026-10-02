@@ -75,6 +75,12 @@ describe('art registry', () => {
     expect([currentArt.oaths.stepBadges.cols, currentArt.oaths.stepBadges.rows, currentArt.oaths.stepBadges.aspect]).toEqual([4, 1, 1]);
   });
 
+  // MVP-22-E3.1: the hold seal is a DUMMY in both styles until the E3.5 hookup sets its sheet on purpose.
+  test('no style has hold seal art yet, so the control draws its wax in code', () => {
+    expect(currentArt.oaths.holdSeal).toBeNull();
+    expect(resolveArt('cinematic').oaths.holdSeal).toBeNull();
+  });
+
   test('each style places the hearth flame on its own close-up', () => {
     expect(currentArt.stationFire).toEqual({ x: 0.5, y: 0.345, width: 0.24 });
     const fire = resolveArt('cinematic').stationFire;

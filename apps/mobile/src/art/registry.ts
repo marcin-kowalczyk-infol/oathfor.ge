@@ -67,8 +67,12 @@ export type ArtSet = {
   effects: Record<'hearthLoop' | 'hearthBurst' | 'doorMist' | 'candle' | 'wisp' | 'sealStar' | 'sealTree' | 'sealWolf' | 'bookSigns', Sheet>;
   panel: Record<'corner' | 'edgeH' | 'edgeV' | 'fill' | 'plate' | 'rune', number>;
   talk: Record<'oaths' | 'chronicle', number>;
-  /** stepBadges: one row of four cells, interrupted, needsMore, review, waiting (docs/art/oath-screens-assets.md). */
-  oaths: { hourglass: Sheet; hourglassStill: number; ruleIcons: Sheet; sealStamp: Sheet; sealSparks: Sheet; stepBadges: Sheet };
+  /**
+   * stepBadges: one row of four cells, interrupted, needsMore, review, waiting (docs/art/oath-screens-assets.md).
+   * holdSeal: one row of four cells, idle, pressed, full, sealed (MVP-22-E3.4). DUMMY: null in every style until the E3.5
+   * hookup, so ui/HoldSeal draws its wax in code.
+   */
+  oaths: { hourglass: Sheet; hourglassStill: number; ruleIcons: Sheet; sealStamp: Sheet; sealSparks: Sheet; stepBadges: Sheet; holdSeal: Sheet | null };
   presets: Record<string, Record<CharacterBuild, PresetArt>>;
   /** Player sprite sheets by `${presetId}.${build}`. */
   playerMotion: Record<string, FigureSheets>;

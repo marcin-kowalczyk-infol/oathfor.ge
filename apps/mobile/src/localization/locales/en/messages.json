@@ -160,6 +160,8 @@
     "zoneHint": "For example Europe/Warsaw. Your chosen timezone stays with this Oath.",
     "viewRules": "View rules",
     "confirm": "Commit to the Oath",
+    "holdHint": "Hold to commit to the Oath",
+    "holdTapHint": "Double-tap to commit to the Oath",
     "edit": "Change choices",
     "loading": "Loading your Oath…",
     "retry": "Try again",

@@ -164,6 +164,8 @@
     "zoneHint": "Na przykład Europe/Warsaw. Wybrana strefa pozostanie przypisana do tej Przysięgi.",
     "viewRules": "Zobacz zasady",
     "confirm": "Złóż Przysięgę",
+    "holdHint": "Przytrzymaj, by złożyć Przysięgę",
+    "holdTapHint": "Stuknij dwukrotnie, by złożyć Przysięgę",
     "edit": "Zmień wybory",
     "loading": "Wczytywanie Przysięgi…",
     "retry": "Spróbuj ponownie",
