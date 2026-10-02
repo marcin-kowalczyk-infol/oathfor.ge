@@ -568,6 +568,8 @@ Open native gates:
 | Simple layout and Reduce Motion | Proof steps open, fold behaviour and the static equivalents are covered by jest only |
 | VoiceOver | Deferred. Labels, headings and announcements are set and tested, the rotor and the B2 sheet hints are unverified |
 | Dialogue panel seam | The B2 fix of the hairline at the lower corners is a hypothesis from screenshots |
+| Character intro at largest text | "imię i" ends a line, short-word binding is missing on the character screens (found after B2c) |
+| B2c changes | Pending band, error position, sheet arrow contrast and chip wrapping are covered by jest only |
 | Main menu header under the demo bar | Found at the T09 checkpoint, not addressed |
 | iPhone SE 3 | Pending by owner instruction |
 | Real device and Release build | Not run |
