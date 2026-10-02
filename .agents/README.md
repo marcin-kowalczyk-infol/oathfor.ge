@@ -51,6 +51,9 @@ Epic execution: Codex `$implement-epic MVP-02`; Claude Code `/implement-epic MVP
 | [referee-reviewer](subagents/referee-reviewer.md) | Evidence policy and AI evaluation review |
 | [quality-reviewer](subagents/quality-reviewer.md) | Independent correctness/security/regression review |
 | [art-director](subagents/art-director.md) | Identity consistency and asset readiness |
+| [ux-designer](subagents/ux-designer.md) | Screen clarity: state, next step, one action, details on demand |
+| [behavioural-reviewer](subagents/behavioural-reviewer.md) | Motivation, urging and companion tone without shame |
+| [content-writer](subagents/content-writer.md) | Polish and English copy within caps, glossary and voice |
 
 Example: “Delegate review of the proof flow to referee-reviewer, using .agents/subagents/referee-reviewer.md.”
 
