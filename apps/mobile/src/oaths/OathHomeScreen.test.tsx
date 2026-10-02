@@ -32,6 +32,14 @@ function setup(items = [oath()]) {
 }
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 const page = (items: Oath[], nextCursor: string | null = null, paused = false, total = items.length + (nextCursor ? 1 : 0)) => ({ kind: 'success' as const, value: { items, nextCursor, total, serverTime, paused, characterId } });
+// Each test starts from Jest's default window (simple layout), so a room-layout test never leaks its size into the next one.
+const initialWindow = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
+beforeEach(() => Dimensions.set(initialWindow));
+/** Polish P8: in room layout, with every Oath on the seal wall, the full list is folded. Opens it once the list has loaded. */
+async function unfold() {
+  const fold = await screen.findByRole('button', { name: /^(All your Oaths|Wszystkie Twoje Przysięgi)$/ });
+  if (!fold.props.accessibilityState?.expanded) await fireEvent.press(fold);
+}
 const pauseSummary = (revision = 'a'.repeat(64), paused = false) => ({ paused, revision, withdraw: paused ? [] : [id], preserve: [], serverTime, characterId });
 test('Today retains overdue review-pending Oaths and opens their authoritative stored detail', async () => {
   const f = setup(); await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
@@ -289,6 +297,7 @@ test('a hearth request shows only the hearth while Today loads, never the hidden
 });
 
 test('room return preserves pending acceptance without resetting it', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
   const f = setup([]); const onReturn = jest.fn();
   f.change({ kind: 'ready', busy: false, pending: { version: 2, accountId: id, characterId, previewId: id, requestId: id }, preview: null, oath: null, needsReview: false });
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn }} /></LocalizationProvider>);
@@ -396,6 +405,7 @@ test('without Forge navigation the header offers no way back', async () => {
   Dimensions.set({ window: phone(1), screen: phone(1) });
   const f = setup();
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await unfold();
   await screen.findByRole('button', { name: /Open Oath: Running/ });
   expect(screen.queryByRole('button', { name: 'Return to the Forge' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Back to menu' })).toBeNull();
@@ -405,12 +415,14 @@ test('a new reload value reloads the visible list and leaves an open detail alon
   const f = setup();
   const view = (reload: number) => <LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" reload={reload} /></LocalizationProvider>;
   const rendered = await render(view(0));
+  await unfold();
   await screen.findByRole('button', { name: /Open Oath: Running/ });
   expect(f.controller.list).toHaveBeenCalledTimes(1);
   await rendered.rerender(view(1));
   await act(async () => {});
   expect(f.controller.list).toHaveBeenCalledTimes(2);
   expect(jest.mocked(f.controller.list).mock.calls[1][0]).toEqual({ view: 'today' });
+  await unfold();
   await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
   await screen.findByLabelText('Status: Under review');
   await rendered.rerender(view(2));
@@ -462,10 +474,12 @@ test('a countdown reaching zero on Today shows time is up and asks the server on
   jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-10-25T00:29:30Z'));
   try {
     const active = oath({ state: 'active', reason: null, review: null });
+    Dimensions.set({ window: phone(1), screen: phone(1) });
     const f = setup([active]);
     f.controller.clock.observe('2026-10-25T00:29:30Z');
     await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
     await act(async () => { await Promise.resolve(); });
+    await unfold();
     expect((await screen.findAllByText('< 1 min')).length).toBe(2);
     const calls = jest.mocked(f.controller.list).mock.calls.length;
     await act(async () => { jest.advanceTimersByTime(31000); });
@@ -478,6 +492,7 @@ test('a countdown reaching zero on Today shows time is up and asks the server on
 });
 
 test('the featured Forge seals carry the same countdown', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
   const f = setup([oath()]); f.controller.clock.observe(serverTime);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
   const seals = await screen.findAllByTestId('forge-seal');
@@ -850,6 +865,7 @@ test('the room detail drops the screen title and tabs, its door returns to Today
   const f = setup(); const onReturn = jest.fn();
   const hidden = { includeHiddenElements: true };
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn }} /></LocalizationProvider>);
+  await unfold();
   await fireEvent.press((await screen.findAllByRole('button', { name: /Open Oath: Running/ }))[0]);
   await screen.findByTestId('detail-status');
   expect(screen.queryByRole('header', { name: 'Oath details' })).toBeNull();
@@ -873,6 +889,7 @@ test('the room list keeps its title and tabs above the lowered artwork without a
   Dimensions.set({ window: phone(1), screen: phone(1) });
   const f = setup();
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
+  await unfold();
   await screen.findAllByRole('button', { name: /Open Oath: Running/ });
   const header = screen.getByTestId('screen-header');
   expect(within(header).getByRole('header', { name: 'Your Oaths' })).toBeOnTheScreen();
@@ -969,6 +986,7 @@ test.each([
   Dimensions.set({ window: phone(1), screen: phone(1) });
   const f = setup([activeThursday()]); f.controller.clock.observe(serverTime);
   await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} proof={proofController().controller} timezone="UTC" /></LocalizationProvider>);
+  await unfold();
   await fireEvent.press(await screen.findByRole('button', { name: /^(Open Oath|Otwórz Przysięgę): / }));
   expect(await screen.findByLabelText(track)).toBeOnTheScreen();
   expect(within(screen.getByTestId('detail-status')).getByText(line)).toBeOnTheScreen();
@@ -1150,6 +1168,7 @@ test('a Today row shows four pips with the short state label, the short deadline
   const scheduled = oath({ state: 'scheduled', activatedAt: null, reason: null, review: null, id: '20000000-0000-4000-8000-000000000002' });
   const f = setup([activeThursday(), scheduled]); f.controller.clock.observe(serverTime);
   await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+  await unfold();
   const rows = await screen.findAllByRole('button', { name: /Otwórz Przysięgę/ });
   expect(within(rows[0]).getByLabelText('Etap 2 z 4, Trening, Aktywna')).toBeOnTheScreen();
   expect(within(rows[0]).getAllByTestId(/^step-pip-/, { includeHiddenElements: true })).toHaveLength(4);
@@ -1215,6 +1234,7 @@ test('the solid header fades into the artwork instead of ending on a hard edge',
   const f = setup([activeThursday()]);
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
   expect(screen.queryByTestId('header-fade', { includeHiddenElements: true })).toBeNull();
+  await unfold();
   await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
   await screen.findByTestId('detail-status');
   const header = screen.getByTestId('screen-header');
@@ -1362,4 +1382,113 @@ test('the list Retry steps back to an outline while a row offers "Wyślij ponown
     expect(filled()).toHaveLength(1);
     expect(within(screen.getByRole('button', { name: 'Wyślij ponownie' })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
   } finally { subscription.mockImplementation(original); }
+});
+
+// MVP-22-A8 (clarity.md rules 3 and 14): list facts are plain lines, never Żaromir's bubble, "Wczytaj więcej" is outlined,
+// and the pause line carries the pause mark. History keeps its own line in Żaromir's bubble.
+describe('list lines', () => {
+  const avatar = () => screen.queryByTestId('companion-avatar', { includeHiddenElements: true });
+  test.each(['pl', 'en'] as const)('%s at text scale 2: paused list with more pages shows the marked plain line and no filled button', async locale => {
+    Dimensions.set({ window: phone(2), screen: phone(2) });
+    const f = setup(); jest.mocked(f.controller.list).mockResolvedValue(page([oath()], 'cursor1', true));
+    await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    const note = await screen.findByTestId('pause-note');
+    expect(within(note).getByTestId('pause-mark')).toHaveProp('accessibilityLabel', locale === 'pl' ? 'W pauzie' : 'Paused');
+    expect(within(note).getByText(locale === 'pl' ? 'Pauza jest włączona. Przysięgi czekające na wynik trwają dalej, wycofane nie wrócą.' : 'Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: locale === 'pl' ? 'Wczytaj więcej' : 'Load more' })).toBeOnTheScreen();
+    expect(filled()).toHaveLength(0);
+    expect(avatar()).toBeNull();
+  });
+  test.each(['pl', 'en'] as const)('%s at text scale 2: a failed list shows a plain alert line and one filled Retry', async locale => {
+    Dimensions.set({ window: phone(2), screen: phone(2) });
+    const f = setup(); jest.mocked(f.controller.list).mockResolvedValue({ kind: 'unavailable', retry: 'request' } as never);
+    await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    const line = await screen.findByTestId('list-error');
+    expect(line).toHaveTextContent(locale === 'pl' ? 'Nie udało się wczytać Przysiąg. Spróbuj ponownie.' : 'We could not load your Oaths. Try again.');
+    expect(line).toHaveProp('accessibilityRole', 'alert');
+    expect(avatar()).toBeNull();
+    expect(filled()).toHaveLength(1);
+  });
+  test.each(['pl', 'en'] as const)('%s at text scale 2: an unresolved acceptance is a plain line with one filled check', async locale => {
+    Dimensions.set({ window: phone(2), screen: phone(2) });
+    const f = setup([]); f.change({ kind: 'ready', busy: false, pending: { version: 2, accountId: id, characterId, previewId: id, requestId: id }, preview: null, oath: null, needsReview: false });
+    await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    expect(await screen.findByTestId('pending-line')).toHaveTextContent(locale === 'pl' ? 'Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.' : 'Your confirmation may already have arrived. Check the same Oath before starting another.');
+    expect(screen.queryByText(locale === 'pl' ? 'Brak bieżących Przysiąg. Wybierz trening, gdy zechcesz zacząć.' : 'No current Oaths. Choose a workout when you are ready.')).toBeOnTheScreen();
+    // The only bubble left is Żaromir's empty-Today line.
+    expect(screen.getAllByTestId('companion-avatar', { includeHiddenElements: true })).toHaveLength(1);
+    expect(filled()).toHaveLength(1);
+  });
+  test('the busy notice is a plain line', async () => {
+    const f = setup([]);
+    f.change({ kind: 'ready', busy: true, pending: null, preview: null, oath: null, needsReview: false });
+    jest.mocked(f.controller.resetCreation).mockReturnValue(false);
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
+    expect(await screen.findByTestId('busy-line')).toHaveTextContent('The Forge is still finishing your last step. Return to the hearth in a moment.');
+  });
+  test('History keeps its line in Żaromir\'s bubble', async () => {
+    const f = setup(); await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await screen.findByText('Under review');
+    await fireEvent.press(screen.getByRole('button', { name: 'History' }));
+    expect(within(await screen.findByTestId('history-header')).getByTestId('companion-avatar', { includeHiddenElements: true })).toBeTruthy();
+  });
+});
+
+// Polish P8 (main-agent decision under the owner's delegation, 2026-10-02): when the seal wall already shows every Oath of Today,
+// the full list folds behind "Wszystkie Twoje Przysięgi", so each Oath shows once. It stays open in simple layout, past three Oaths,
+// with more pages, and while a row carries an upload line, because that row holds "Wyślij ponownie".
+describe('Today full list fold', () => {
+  const three = () => [1, 2, 3].map(n => oath({ id: `20000000-0000-4000-8000-00000000005${n}` }));
+  const rows = () => screen.queryAllByRole('button', { name: /Open Oath:/ });
+  test('folds when the wall shows every Oath, and opens in place', async () => {
+    Dimensions.set({ window: phone(1), screen: phone(1) });
+    const f = setup(three());
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    expect(await screen.findAllByRole('button', { name: /Oath seal:/ })).toHaveLength(3);
+    const fold = screen.getByRole('button', { name: 'All your Oaths' });
+    expect(fold).toHaveProp('accessibilityState', { expanded: false });
+    expect(rows()).toHaveLength(0);
+    await fireEvent.press(fold);
+    expect(rows()).toHaveLength(3);
+  });
+  test.each([
+    ['four Oaths', () => [...three(), oath({ id: '20000000-0000-4000-8000-000000000054' })], null, 1],
+    ['more pages', three, 'cursor1', 1],
+    ['simple layout', three, null, 2],
+  ] as const)('stays open with %s', async (_name, items, cursor, scale) => {
+    Dimensions.set({ window: phone(scale), screen: phone(scale) });
+    const list = items(); const f = setup(list); jest.mocked(f.controller.list).mockResolvedValue(page(list, cursor));
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    expect(await screen.findByRole('header', { name: 'All your Oaths' })).toBeOnTheScreen();
+    expect(rows()).toHaveLength(list.length);
+  });
+  test('stays open while a row offers "Send again"', async () => {
+    Dimensions.set({ window: phone(1), screen: phone(1) });
+    const active = oath({ state: 'active', reason: null, review: null });
+    const f = setup([active]); const proof = proofController();
+    proof.change({ kind: 'ready', busy: false, pending: record(), oath: null });
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    expect(await screen.findByRole('button', { name: 'Send again' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'All your Oaths' })).toBeNull();
+  });
+  test('a detail opened from an open fold returns to the open fold', async () => {
+    Dimensions.set({ window: phone(1), screen: phone(1) });
+    const items = three(); const f = setup(items);
+    jest.mocked(f.controller.detail).mockImplementation(async selectedId => ({ kind: 'success', value: { oath: items.find(item => item.id === selectedId)!, serverTime } }));
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await fireEvent.press(await screen.findByRole('button', { name: 'All your Oaths' }));
+    await fireEvent.press(rows()[2]);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Today' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'All your Oaths' })).toHaveProp('accessibilityState', { expanded: true }));
+    expect(rows()).toHaveLength(3);
+  });
+  test('a detail opened from a seal returns to the closed fold', async () => {
+    Dimensions.set({ window: phone(1), screen: phone(1) });
+    const items = three(); const f = setup(items);
+    jest.mocked(f.controller.detail).mockImplementation(async selectedId => ({ kind: 'success', value: { oath: items.find(item => item.id === selectedId)!, serverTime } }));
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await fireEvent.press((await screen.findAllByRole('button', { name: /Oath seal:/ }))[0]);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Today' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'All your Oaths' })).toHaveProp('accessibilityState', { expanded: false }));
+  });
 });

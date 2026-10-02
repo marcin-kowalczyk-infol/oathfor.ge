@@ -107,7 +107,7 @@ The featured seals of `ForgeHub` and the section headers stay, with the same cou
 Seal wall polish (native check on iPhone 18 Pro, 2026-09-28):
 - Each seal shows a short one-line state, for example "Rozpatrywana" / "Under review". The seal button still speaks the full state.
 - The seal chip stacks its label over one unbroken value and fills the column. All three chips sit on one line at the bottom of the row.
-- "Wszystkie Twoje Przysięgi" / "All your Oaths" opens the list with a rule and a display heading. The date and zone line is smaller and repeats under every state section, so each group keeps its zone label.
+- "Wszystkie Twoje Przysięgi" / "All your Oaths" opens the list with a rule and a display heading. The date and zone line is smaller and repeats under every state section, so each group keeps its zone label. Superseded on 2026-10-02: when the seal wall already shows every Oath of Today (room layout, at most three, no further page, no upload line on a row), the list folds behind a link with the same label, so each Oath shows once. In the simple layout the list stays open. A detail opened from the open list returns to it open. See [clarity](clarity.md) decision 9.
 
 Lists keep themselves current (owner decision, 2026-09-29). There is no "Odśwież" / "Refresh" button. Today and History ask the server again when the app returns to the foreground, when the device gets its network back and when a countdown reaches zero, and a pull-down gesture refreshes them as in other iOS apps. The shown list stays until the answer replaces it. An open detail or creation is left alone.
 

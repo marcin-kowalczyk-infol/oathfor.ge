@@ -37,6 +37,7 @@ import { StepBadge, StepTrack } from '../ui/StepTrack';
 import { NextCard } from '../ui/NextCard';
 import { ZaromirLine } from '../ui/ZaromirLine';
 import { Disclosure } from '../ui/Disclosure';
+import { PauseMark } from '../ui/PauseMark';
 import { zaromirSeed } from '../companion/zaromirLine';
 type ViewName = 'today' | 'history';
 // Without a proof controller nothing is waiting on the device.
@@ -69,6 +70,9 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const offset = useRef(0);
   // Where a row opened the detail: that list and its scroll. Only a row sets it, so creation, a receipt or the proof screen return to the top (MVP-22-T12b).
   const leftAt = useRef<{ view: ViewName; y: number } | null>(null);
+  // Polish P8: whether Today's folded full list is open now, and whether it was open when a row or seal opened the detail.
+  const foldOpen = useRef(false);
+  const foldOpenAtLeave = useRef(false);
   const scrollKey = `${route}-${view}`;
   // One stable object per return, so later renders of the same list never scroll it again.
   const [restore, setRestore] = useState<{ key: string; at: { x: number; y: number } } | null>(null);
@@ -202,6 +206,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const shownDetail = route === 'detail' ? detail : null;
   usePathMoments(shownDetail, controller.clock, oathId => { void refreshDetail(oathId); });
   function openFromList(id: string) {
+    foldOpenAtLeave.current = wallShowsAll && foldOpen.current;
     void openDetail(id, view, offset.current);
   }
   /** Back from the detail: the list it came from with its rows kept, refreshed quietly. Another list loads afresh. Only a row's own list gets its scroll back. */
@@ -384,7 +389,41 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const interruptedIds = new Set([...rowPaths].flatMap(([oathId, path]) => path.badge === 'interrupted' ? [oathId] : []));
   // A row offering "Wyślij ponownie" holds the screen's only filled button, so the list's own actions step back to outline (clarity.md rule 3).
   const resendShown = !!proof && route === 'list' && view === 'today' && !!list?.items.some(item => deviceProof(item, proofState, subject) === 'waiting');
+  // A failed list makes Retry the one filled action, so "Złóż Przysięgę" steps back too (MVP-22-A8).
   const listAction = resendShown ? 'secondary' : 'primary';
+  // Polish P8 (main-agent decision, 2026-10-02): when the seal wall shows every Oath of Today, the full list folds behind its own
+  // heading, so each Oath shows once. Not in simple layout (no wall), past three Oaths or more pages, nor while a row carries an
+  // upload line, because that row holds the screen's only filled "Wyślij ponownie" (clarity.md decision 9).
+  const wallShowsAll = route === 'list' && view === 'today' && interactiveForge && !!list && list.items.length > 0 && list.items.length <= 3
+    && list.total <= 3 && !list.nextCursor && uploads.every(line => !line);
+  // The rows of the shown list, once, so the fold below can hold them.
+  const entries = route === 'list' && list && <View testID="oath-entries">{list.items.map((item, index) => {
+    const previous = list.items[index - 1];
+    const newCategory = view === 'today' && (index === 0 || category(item) !== category(previous));
+    const newGroup = view === 'today' && (newCategory || group(item) !== group(previous));
+    const spaced = index > 0 && (view !== 'today' || newGroup || !!uploads[index - 1]);
+    return <View key={item.id} testID={`oath-entry-${item.id}`} style={[styles.entry, index > 0 && { marginTop: spaced ? tokens.space.section : tokens.space.item }]}>
+      {newCategory && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
+      {newGroup && <Text accessibilityRole="header" style={styles.group}>{group(item)}</Text>}
+      <Pressable accessibilityRole="button" accessibilityLabel={summary(item)} accessibilityValue={{ text: interruptedIds.has(item.id) ? `${t(`oath.states.${item.state}`)}, ${t('path.badge.interrupted')}` : t(`oath.states.${item.state}`) }} onPress={() => openFromList(item.id)}
+        style={({ pressed }) => [styles.journalEntry, !interactiveForge && styles.stackedEntry, pressed && styles.pressedEntry]}>
+        <View style={styles.emblems}>
+          <ActivityEmblem activity={item.snapshot.activity} size={76} />
+          <View style={styles.stateBadge}><StateSeal state={item.state} size={36} /></View>
+          {interruptedIds.has(item.id) && <StepBadge badge="interrupted" size={32} testID="row-badge-interrupted" style={styles.interruptedBadge} />}
+        </View>
+        <View style={styles.entryCopy}>
+          <Text style={styles.activity}>{item.snapshot.copy[locale].activity}</Text>
+          {/* Today rows: four pips with the short state label, no full track (clarity.md decision 9). */}
+          {view === 'today' && rowPaths.has(item.id) && <StepTrack variant="compact" path={rowPaths.get(item.id)!} state={item.state} />}
+          {/* History rows show the result seal, the short visible state and when it closed, in the Oath's own zone (decision 10). */}
+          <Text style={styles.deadline}>{view === 'history' ? `${t(`forge.sealState.${item.state}`)} · ${compactStoredTime(item.terminalAt ? wallTimeIn(item.terminalAt, item.snapshot.deadline.timezone) : item.snapshot.deadline.local, locale)}` : shortStoredTime(item.snapshot.deadline.local, locale, false)}</Text>
+          {view === 'today' && <CountdownChip oath={item} clock={controller.clock} onElapsed={elapsed} />}
+        </View>
+      </Pressable>
+      {uploads[index]}
+    </View>;
+  })}</View>;
   // Without the lowered close-up behind it, or wherever the artwork starts under it, the header stands on a solid band so its text never sits on the art.
   const solidHeader = !interactiveForge || route === 'detail';
   return <SceneSurface place={place} drop={interactiveForge && !waiting ? route === 'detail' ? DETAIL_DROP : LIST_DROP : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}>{waiting ? <SafeAreaView testID="hearth-waiting" style={styles.safeArea}><View style={styles.content}>
@@ -421,17 +460,18 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     </>}
     {available && <>
       {/* A fact, so a plain card line. Żaromir stays silent while paused (clarity.md decisions 5 and 14). */}
-      {route === 'list' && list?.paused && <View testID="pause-note" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{t('oathHome.paused')}</Text></View>}
-      {route === 'list' && busyNotice && <View accessibilityLiveRegion="polite"><CompanionBubble message={t('forge.busy')} /></View>}
+      {/* MVP-22-A8: the pause line carries the shared pause mark. The busy, pending and error lines are plain too (decision 14). */}
+      {route === 'list' && list?.paused && <View testID="pause-note" accessibilityLiveRegion="polite" style={[styles.note, styles.noteStack]}><PauseMark state="paused" /><Text style={styles.noteText}>{t('oathHome.paused')}</Text></View>}
+      {route === 'list' && busyNotice && <View testID="busy-line" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{t('forge.busy')}</Text></View>}
       {/* The lowered chronicle close-up shows its book in this band, so no text crosses it. */}
       {route === 'list' && view === 'history' && interactiveForge && <View testID="chronicle-band" style={styles.chronicleBand} />}
       {route === 'list' && view === 'today' && <>
         <ForgeHub items={list?.items ?? []} clock={controller.clock} onElapsed={elapsed} onOpen={openFromList} interrupted={interruptedIds} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy} />
       </>}
       {route === 'list' && (account.pending ? <>
-        <CompanionBubble message={t('oath.pending')} />
+        <View testID="pending-line" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{t('oath.pending')}</Text></View>
         <Action label={t('oath.recover')} variant={listAction} busy={account.busy} onPress={() => create(true)} />
-      </> : !list?.paused && (view !== 'today' || !interactiveForge) && <Action label={t('oathHome.create')} variant={listAction} busy={account.busy} onPress={() => create()} />)}
+      </> : !list?.paused && (view !== 'today' || !interactiveForge) && <Action label={t('oathHome.create')} variant={failed ? 'secondary' : listAction} busy={account.busy} onPress={() => create()} />)}
       {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
       {route === 'list' && view === 'history' && list && <View testID="history-header" style={styles.historyHeader}>
         <View accessible accessibilityLabel={`${list.total} ${t('room.talk.chronicle', { count: list.total })}`} style={styles.historyCount}>
@@ -442,39 +482,16 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         <CompanionBubble message={t(list.total > 0 ? 'oathHome.historyLine' : 'oathHome.historyEmpty')} />
       </View>}
       {route === 'list' && <>
-        {view === 'today' && !!list?.items.length && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.section}>{t('forge.all')}</Text>}
+        {view === 'today' && !!list?.items.length && !wallShowsAll && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.section}>{t('forge.all')}</Text>}
         {/* Cards of one heading stand close together. A new heading or an upload line under the previous card opens a section's space. */}
-        {list && !!list.items.length && <View testID="oath-entries">{list.items.map((item, index) => {
-          const previous = list.items[index - 1];
-          const newCategory = view === 'today' && (index === 0 || category(item) !== category(previous));
-          const newGroup = view === 'today' && (newCategory || group(item) !== group(previous));
-          const spaced = index > 0 && (view !== 'today' || newGroup || !!uploads[index - 1]);
-          return <View key={item.id} testID={`oath-entry-${item.id}`} style={[styles.entry, index > 0 && { marginTop: spaced ? tokens.space.section : tokens.space.item }]}>
-            {newCategory && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
-            {newGroup && <Text accessibilityRole="header" style={styles.group}>{group(item)}</Text>}
-            <Pressable accessibilityRole="button" accessibilityLabel={summary(item)} accessibilityValue={{ text: interruptedIds.has(item.id) ? `${t(`oath.states.${item.state}`)}, ${t('path.badge.interrupted')}` : t(`oath.states.${item.state}`) }} onPress={() => openFromList(item.id)}
-              style={({ pressed }) => [styles.journalEntry, !interactiveForge && styles.stackedEntry, pressed && styles.pressedEntry]}>
-              <View style={styles.emblems}>
-                <ActivityEmblem activity={item.snapshot.activity} size={76} />
-                <View style={styles.stateBadge}><StateSeal state={item.state} size={36} /></View>
-                {interruptedIds.has(item.id) && <StepBadge badge="interrupted" size={32} testID="row-badge-interrupted" style={styles.interruptedBadge} />}
-              </View>
-              <View style={styles.entryCopy}>
-                <Text style={styles.activity}>{item.snapshot.copy[locale].activity}</Text>
-                {/* Today rows: four pips with the short state label, no full track (clarity.md decision 9). */}
-                {view === 'today' && rowPaths.has(item.id) && <StepTrack variant="compact" path={rowPaths.get(item.id)!} state={item.state} />}
-                {/* History rows show the result seal, the short visible state and when it closed, in the Oath's own zone (decision 10). */}
-                <Text style={styles.deadline}>{view === 'history' ? `${t(`forge.sealState.${item.state}`)} · ${compactStoredTime(item.terminalAt ? wallTimeIn(item.terminalAt, item.snapshot.deadline.timezone) : item.snapshot.deadline.local, locale)}` : shortStoredTime(item.snapshot.deadline.local, locale, false)}</Text>
-                {view === 'today' && <CountdownChip oath={item} clock={controller.clock} onElapsed={elapsed} />}
-              </View>
-            </Pressable>
-            {uploads[index]}
-          </View>;
-        })}</View>}
+        {list && !!list.items.length && (wallShowsAll
+          ? <View style={styles.fold}><Disclosure testID="all-oaths" label={t('forge.all')} defaultOpen={!!restoredAt && foldOpenAtLeave.current} onToggle={open => { foldOpen.current = open; }}>{entries}</Disclosure></View>
+          : entries)}
         {/* Żaromir does not suggest a workout while paused (clarity.md rule 8). The pause note above says what holds. */}
         {!loading && !failed && list?.items.length === 0 && view === 'today' && !list.paused && <CompanionBubble message={t('oathHome.emptyToday')} />}
-        {failed && <><View accessibilityLiveRegion="polite"><CompanionBubble message={t('oathHome.loadError')} /></View><Action label={t('oath.retry')} variant={listAction} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
-        {list?.nextCursor && !failed && <Action label={t('oathHome.more')} variant={listAction} busy={loading} onPress={() => { void loadList(view, true); }} />}
+        {failed && <><View testID="list-error" accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{t('oathHome.loadError')}</Text></View><Action label={t('oath.retry')} variant={listAction} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
+        {/* "Wczytaj więcej" is never the screen's main action, so it keeps the outline style (MVP-22-A8). */}
+        {list?.nextCursor && !failed && <Action label={t('oathHome.more')} variant="secondary" busy={loading} onPress={() => { void loadList(view, true); }} />}
       </>}
       {route === 'detail' && <>
         {failed && <><CompanionBubble message={t('oathHome.detailError')} /><Action label={t('oath.retry')} onPress={() => { void openDetail(detailId.current, detailFrom, leftAt.current?.view === detailFrom ? leftAt.current.y : undefined); }} /></>}
@@ -540,6 +557,8 @@ const styles = StyleSheet.create({
   interruptedBadge: { position: 'absolute', left: -6, top: -6 },
   note: { padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#5b4630', backgroundColor: 'rgba(28, 22, 16, 0.94)' },
   noteText: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
+  noteStack: { gap: 10 },
+  fold: { paddingTop: 20, borderTopWidth: 1, borderTopColor: 'rgba(141, 105, 65, 0.55)' },
   // About 24 pt from the band's own colour to clear, hanging under it.
   headerFade: { position: 'absolute', left: 0, right: 0, top: '100%', height: 24 },
   fadeStrip: { flex: 1, backgroundColor: tokens.color.canvas },
