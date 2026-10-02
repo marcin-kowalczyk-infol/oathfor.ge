@@ -512,7 +512,7 @@ Defect found by (b) and fixed: a body above `post_max_size` returned 200 `text/h
 | Previews | Rotated JPEG shown upright. PNG screenshot legible |
 | Receipt | Detail shows "Ocena trwa" / "Assessment pending", the `oath.proofPending` copy and "Czas odebrania: 1 paź 2026, 16:27 · Warszawa" / "Receipt time: Oct 1, 2026 at 16:27 · Warsaw". The time is the DUMMY server clock fixed at scenario load |
 | Today | The `proof_pending` Oath under "Sprawy w toku" / "Cases in progress" with "Ocena trwa" / "Assessment pending". An interrupted copy shows under the active row with Send again (EN), which turned it into Assessment pending |
-| "Lose next proof reply" | Proof screen shows unavailable. Back on the Oath only the receipt shows, the replay runs quietly, with no interrupted line or delete |
+| "Simulate: the reply to the next proof gets lost in transit" | Proof screen shows unavailable. Back on the Oath only the receipt shows, the replay runs quietly, with no interrupted line or delete |
 | Built app | `pl.lproj/InfoPlist.strings` holds the Polish camera and photo library descriptions. English base strings in `Info.plist`. ATS allows local networking from the Expo template, no config change |
 
 Visual defects found in (d) were fixed and rechecked on the 18 Pro: proof screen after a cold relaunch with equal button heights when an English label wraps, section headings on plaques over the seal art, 12 pt between Today cards in one section.
@@ -566,6 +566,7 @@ Native observations on the iPhone 18 Pro, all in Polish. Screenshots are local e
 | English screens | Afternoon pass 2026-10-02, standard text | Menu, room guide 1 to 4, hearth, Oath form, rules with the guide, confirmation, detail and proof screen. Two copy questions went to the owner: a line in the room ends with "I", and the declaration from the rules file says "evidence" |
 | Confirmed Oath with a kept device record (G30, G32) | Afternoon pass 2026-10-02, standard text | The demo control from 90c5eaf reaches the state. PL and EN show one line on the band, the outline check and one filled "View the Oath". One press on the check clears the band |
 | Dialogue panel side strips | Afternoon pass 2026-10-02, standard text | A 1 px line crossed both side strips where they meet the lower corners when the panel height ended in half a pixel (G34). Fixed in 36a3deb. A pixel scan of the same line and of a 625 frame recording of a line change shows no line. The braid tile joins every 142 px match, so no art correction is needed |
+| First room entry, proof return, demo controls | Evening pass 2026-10-02, standard text | A 33 ms frame capture from a cold launch shows the first panel with frame, plate and Żaromir in its first visible frame (G35). After a proof is sent the detail shows from its top with the whole header (G36). The demo controls read in plain PL and EN, an armed failure shows right under its button, and no Polish line ends with a single letter (D7, D7b) |
 
 Open native gates:
 
@@ -573,7 +574,6 @@ Open native gates:
 | --- | --- |
 | Separator wrap | The dot that moves to the next line (498972f) is covered by jest only |
 | G31 retry | The retry that keeps the screen in place is covered by jest only |
-| G36 detail after proof | The detail now scrolls to its top after the receipt or the way back from the proof screen. Jest covers the command, the 18 Pro recheck is pending |
 | Panel art on first entry | After a cold launch the first room entry shows the dialogue text without the panel frame, plate and Żaromir for a moment, while the art loads over Metro. The demo is development only, so a Release build of it cannot run. The owner decides whether to preload the panel art |
 | Largest text | Post-MVP by owner decision. English room dialogue, detail, confirmation and proof screen were not seen at the largest text |
 | Simple layout and Reduce Motion | Proof steps open, fold behaviour and the static equivalents are covered by jest only |
