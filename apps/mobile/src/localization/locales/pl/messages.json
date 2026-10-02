@@ -289,10 +289,9 @@
     },
     "fullRules": "Pełne zasady",
     "guide": {
-      "1": "Zanim złożysz Przysięgę, poznaj jej zasady. Każda karta to jedna z nich.",
-      "2": "Klepsydra to termin. Do niego wykonujesz zadanie.",
-      "3": "Świeca to ostatni moment na dowód, kwadrans po terminie.",
-      "4": "Kowadło z kłódką mówi, że po złożeniu nic tu się nie zmieni.",
+      "1": "Skończ trening, zanim przesypie się piasek.",
+      "2": "Po terminie masz kwadrans na dowód.",
+      "3": "Po pieczęci nic się nie zmieni.",
       "replay": "Zapytaj Żaromira"
     },
     "made": "Przysięga złożona",

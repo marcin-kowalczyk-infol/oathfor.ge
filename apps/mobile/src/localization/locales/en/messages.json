@@ -281,10 +281,9 @@
     },
     "fullRules": "Full rules",
     "guide": {
-      "1": "Before you make the Oath, get to know its rules. Each card shows one.",
-      "2": "The hourglass is the deadline. Finish the task by then.",
-      "3": "The candle is your last chance for proof, 15 minutes after the deadline.",
-      "4": "The anvil with the lock means none of this changes once the Oath is made.",
+      "1": "Finish your workout by then.",
+      "2": "Proof gets 15 extra minutes.",
+      "3": "Once sealed, nothing here changes.",
       "replay": "Ask Zharomir"
     },
     "made": "Oath made",

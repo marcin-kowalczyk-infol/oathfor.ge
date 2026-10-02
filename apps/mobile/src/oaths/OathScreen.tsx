@@ -37,8 +37,9 @@ import { useMotionAllowed } from '../ui/useMotion';
 import type { OathController } from './controller';
 import { WallTimePicker, type TimeDraft } from './WallTimePicker';
 import { useArt } from '../art/ArtProvider';
-// Żaromir's four lines on the first review (docs/product/oath-screens.md section 2) and the pictogram each one lights.
-const GUIDE_CARDS: (PictogramId | null)[] = [null, 'deadline', 'cutoff', 'fixed'];
+// Żaromir's barks on the first review, one per large pictogram, which lights and plays its gesture (engagement.md E3, MVP-22-E3.3).
+const GUIDE_CARDS: PictogramId[] = ['deadline', 'cutoff', 'fixed'];
+const LAST_GUIDE_LINE = GUIDE_CARDS.length - 1;
 // The named pictogram stops a little below the top edge, so its gold border stays in view.
 const GUIDE_MARGIN = 12;
 // Oaths whose seal was stamped in this app run. A remount or a replayed confirmation shows the sealed scroll without stamping again.
@@ -122,10 +123,10 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
     if (guideSeen === false && accountId) { setGuideSeen(true); void rulesGuideStorage?.markSeen(accountId); }
   }
   const guideShown = reviewing && guideLine !== null;
-  // Each step brings the card Żaromir names into view above the panel. His opening line shows the grid top.
+  // Each step brings the pictogram Żaromir names into view above the panel.
   const guideCard = guideShown ? GUIDE_CARDS[guideLine!] : null;
   // The last step closes the guide, so it offers a finishing word instead of "Next" (native check, 2026-09-30).
-  const guideStep = t(guideLine === GUIDE_CARDS.length - 1 ? 'room.tutorial.finish' : 'room.tutorial.next');
+  const guideStep = t(guideLine === LAST_GUIDE_LINE ? 'room.tutorial.finish' : 'room.tutorial.next');
   const guideTop = guideShown ? Math.max(0, guideTops.block + guideTops.grid + (guideCard ? guideTops.cards[guideCard] ?? 0 : 0) - GUIDE_MARGIN) : null;
   useEffect(() => { if (guideTop !== null) scrollView.current?.scrollTo({ y: guideTop, animated: motion }); }, [guideTop, guideLine, motion]);
   // Native check, 2026-09-30: at the largest text size the 280 pt panel cut the fourth line of the first Polish guide line.
@@ -254,7 +255,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
           <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.replayText}>{t('oath.guide.replay')}</Text>
         </Pressable>}
         <View testID="oath-rules-block" onLayout={event => { const y = event.nativeEvent.layout.y; setGuideTops(tops => tops.block === y ? tops : { ...tops, block: y }); }}>
-          <ReviewRules snapshot={ready.preview!.snapshot} highlight={guideCard} onRowLayout={y => setGuideTops(tops => tops.grid === y ? tops : { ...tops, grid: y })}
+          <ReviewRules snapshot={ready.preview!.snapshot} highlight={guideCard} gesture={motion} onRowLayout={y => setGuideTops(tops => tops.grid === y ? tops : { ...tops, grid: y })}
             onPictogramLayout={(id, y) => setGuideTops(tops => tops.cards[id] === y ? tops : { ...tops, cards: { ...tops.cards, [id]: y } })} />
         </View>
         {/* MVP-22-E3.2 (D-E1, D-E5): the hold seal is the one filled control. Its label is the stored declaration, its drawn hint
@@ -290,9 +291,9 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
       </>}
     </Animated.ScrollView>
     {guideShown && <DialoguePanel frame={guideFrame}
-      speaker="guide" lineId={`rules-${guideLine}`} text={bindShortWords(t(`oath.guide.${guideLine! + 1}`), i18n.language)} playerName="" portrait={null} allowed={motion} more={guideLine! < 3}
-      continueLabel={guideStep} onContinue={() => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide()}
-      controls={{ step: { count: `${guideLine! + 1} / ${GUIDE_CARDS.length}`, label: guideStep, text: true, onPress: () => guideLine! < 3 ? setGuideLine(guideLine! + 1) : closeGuide() } }}
+      speaker="guide" lineId={`rules-${guideLine}`} text={bindShortWords(t(`oath.guide.${guideLine! + 1}`), i18n.language)} playerName="" portrait={null} allowed={motion} more={guideLine! < LAST_GUIDE_LINE}
+      continueLabel={guideStep} onContinue={() => guideLine! < LAST_GUIDE_LINE ? setGuideLine(guideLine! + 1) : closeGuide()}
+      controls={{ step: { count: `${guideLine! + 1} / ${GUIDE_CARDS.length}`, label: guideStep, text: true, onPress: () => guideLine! < LAST_GUIDE_LINE ? setGuideLine(guideLine! + 1) : closeGuide() } }}
       dismissLabel={t('room.guide.skip')} onDismiss={closeGuide} onHeight={setPanelHeight} />}
   </SafeAreaView></SceneSurface>;
 }

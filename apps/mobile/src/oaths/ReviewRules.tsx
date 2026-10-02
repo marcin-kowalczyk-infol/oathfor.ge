@@ -1,4 +1,5 @@
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { Animated, Easing, StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { Snapshot } from '../api/oathSchema';
 import { useArt } from '../art/ArtProvider';
 import { SpriteFrame } from '../forge/Sprite';
@@ -26,7 +27,7 @@ const SMALL = 48;
  * Every label has one to three words beside its pictogram and is exempt from the word budget as `icon`. Every pictogram
  * speaks the full facts of the card it replaces. The other cards and the stored rules sit in ReviewFold.
  */
-export function ReviewRules({ snapshot, highlight = null, onRowLayout, onPictogramLayout }: { snapshot: Snapshot; highlight?: PictogramId | null; /** Top of the large pictogram row inside this view. */ onRowLayout?(y: number): void; /** Top of each large pictogram inside its row. */ onPictogramLayout?(id: PictogramId, y: number): void }) {
+export function ReviewRules({ snapshot, highlight = null, gesture = false, onRowLayout, onPictogramLayout }: { snapshot: Snapshot; highlight?: PictogramId | null; /** The lit pictogram plays its gesture. False under Reduce Motion and in the simple layout, which keep the highlight only. */ gesture?: boolean; /** Top of the large pictogram row inside this view. */ onRowLayout?(y: number): void; /** Top of each large pictogram inside its row. */ onPictogramLayout?(id: PictogramId, y: number): void }) {
   const { t, i18n } = useTranslation();
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const { width, fontScale } = useWindowDimensions();
@@ -39,7 +40,7 @@ export function ReviewRules({ snapshot, highlight = null, onRowLayout, onPictogr
       <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.activity}>{bindShortWords(activity, locale)}</Text>
     </View>
     <View testID="review-pictograms" onLayout={event => onRowLayout?.(event.nativeEvent.layout.y)} style={[styles.large, room ? styles.row : styles.column]}>
-      {large.map(item => <PictogramView key={item.id} item={item} size={LARGE} room={room} highlighted={item.id === highlight}
+      {large.map(item => <PictogramView key={item.id} item={item} size={LARGE} room={room} highlighted={item.id === highlight} gesture={gesture && item.id === highlight}
         onLayout={onPictogramLayout && (y => onPictogramLayout(item.id, y))} />)}
     </View>
     <View testID="review-small" style={[styles.small, room ? styles.row : styles.column]}>
@@ -48,7 +49,7 @@ export function ReviewRules({ snapshot, highlight = null, onRowLayout, onPictogr
   </View>;
 }
 
-function PictogramView({ item, size, room, highlighted = false, onLayout }: { item: Pictogram; size: number; room: boolean; highlighted?: boolean; onLayout?(y: number): void }) {
+function PictogramView({ item, size, room, highlighted = false, gesture = false, onLayout }: { item: Pictogram; size: number; room: boolean; highlighted?: boolean; gesture?: boolean; onLayout?(y: number): void }) {
   const art = useArt().oaths;
   const { i18n } = useTranslation();
   const large = size === LARGE;
@@ -57,13 +58,36 @@ function PictogramView({ item, size, room, highlighted = false, onLayout }: { it
   return <View testID={`pictogram-${item.id}`} accessible accessibilityLabel={item.spoken}
     onLayout={onLayout && (event => onLayout(event.nativeEvent.layout.y))}
     style={[styles.pictogram, stacked ? styles.stacked : styles.beside, room && styles.share, highlighted && styles.highlight]}>
-    <SpriteFrame testID={`pictogram-art-${item.id}`} sheet={art.ruleIcons} index={ruleIcon[item.icon]} width={size} />
+    {gesture
+      ? <Gesture id={item.id}><SpriteFrame testID={`pictogram-art-${item.id}`} sheet={art.ruleIcons} index={ruleIcon[item.icon]} width={size} /></Gesture>
+      : <SpriteFrame testID={`pictogram-art-${item.id}`} sheet={art.ruleIcons} index={ruleIcon[item.icon]} width={size} />}
     <View style={[styles.words, stacked && styles.centred]}>
       <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, stacked && styles.centredText]}>{bindShortWords(item.label, i18n.language)}</Text>
       {item.values.map((value, index) => <Text key={value} maxFontSizeMultiplier={tokens.maxScale.inset}
         style={[index === 0 ? styles.value : styles.detail, !large && styles.smallValue, stacked && styles.centredText]}>{value}</Text>)}
     </View>
   </View>;
+}
+
+// One gesture cycle. The sand runs as the hourglass turns, the candle flickers, the lock clicks shut (engagement.md E3).
+const GESTURE_MS = 1200;
+/**
+ * The code-drawn gesture of a lit pictogram while Żaromir names it. DUMMY until MVP-22-E3.5 hooks the gesture frames.
+ * Small motion only, and it runs only while motion is allowed.
+ */
+function Gesture({ id, children }: { id: PictogramId; children: ReactNode }) {
+  const phase = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.timing(phase, { toValue: 1, duration: GESTURE_MS, easing: Easing.inOut(Easing.quad), useNativeDriver: true }));
+    loop.start();
+    return () => { loop.stop(); phase.setValue(0); };
+  }, [phase]);
+  const motion = id === 'deadline'
+    ? { transform: [{ rotate: phase.interpolate({ inputRange: [0, 0.5, 1], outputRange: ['0deg', '180deg', '180deg'] }) }] }
+    : id === 'cutoff'
+      ? { opacity: phase.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [1, 0.75, 1, 0.85, 1] }) }
+      : { transform: [{ translateY: phase.interpolate({ inputRange: [0, 0.3, 0.4, 1], outputRange: [0, -4, 0, 0] }) }] };
+  return <Animated.View testID={`pictogram-gesture-${id}`} style={motion}>{children}</Animated.View>;
 }
 
 /** "Pełne zasady": the start, proof, review and pause cards with the complete stored rules, unchanged (owner decision Q1). */

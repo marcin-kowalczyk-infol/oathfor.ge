@@ -1,6 +1,6 @@
 import { Profiler } from 'react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { AccessibilityInfo, Dimensions, ScrollView, StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, AppState, Dimensions, ScrollView, StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
 import { OathScreen } from './OathScreen';
@@ -10,6 +10,8 @@ import type { SessionController } from '../auth/session';
 import type { OathClient } from '../api/oaths';
 import type { PendingStorage } from './pendingStorage';
 import { tokens } from '../ui/tokens';
+import en from '../localization/locales/en/messages.json';
+import pl from '../localization/locales/pl/messages.json';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 jest.mock('./SealStamp', () => { const actual = jest.requireActual('./SealStamp'); return { ...actual, SealStamp: jest.fn(actual.SealStamp) }; });
@@ -331,33 +333,75 @@ async function openReview(f: ReturnType<typeof setup>, storage: ReturnType<typeo
   await fireEvent.press(screen.getByRole('button', { name: locale === 'pl' ? 'Zobacz zasady' : 'View rules' }));
   await screen.findByTestId('review-pictograms');
 }
-test('the first review lets Żaromir explain the cards once, lighting each card he names', async () => {
+// MVP-22-E3.3 (engagement.md E3): one bark per large pictogram while it plays its gesture. The panel, skip, replay and the
+// "seen" flag stay (owner decision Q4).
+/**
+ * Motion follows the system preference, needs the app in the foreground and the room layout of a phone at standard text
+ * (the test default is font scale 2). Everything returns to its default afterwards.
+ */
+function motionPreference(reduced: boolean) {
+  const state = Object.getOwnPropertyDescriptor(AppState, 'currentState');
+  const sizes = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
+  const phone = { width: 402, height: 874, scale: 3, fontScale: 1 };
+  Dimensions.set({ window: phone, screen: phone });
+  jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(reduced);
+  Object.defineProperty(AppState, 'currentState', { value: 'active', configurable: true });
+  return () => {
+    Dimensions.set(sizes);
+    if (state) Object.defineProperty(AppState, 'currentState', state);
+    // The preset's function is already a jest.fn, so restoreAllMocks keeps a value set here.
+    jest.mocked(AccessibilityInfo.isReduceMotionEnabled).mockImplementation(() => Promise.resolve(false));
+  };
+}
+let restoreMotion: (() => void) | null = null;
+afterEach(() => { restoreMotion?.(); restoreMotion = null; });
+test('the first review lets Żaromir name each pictogram once, lighting it and playing its gesture', async () => {
+  restoreMotion = motionPreference(false);
   const f = setup(); const storage = rulesGuide(false);
   await openReview(f, storage);
   expect(storage.read).toHaveBeenCalledWith(accountId);
   expect(await screen.findByTestId('dialogue-panel')).toBeOnTheScreen();
   const line = () => screen.getByTestId('dialogue-text').props.accessibilityLabel as string;
-  expect(line()).toContain('Zanim złożysz Przysięgę, poznaj jej zasady.');
+  const lit = (id: string) => expect(screen.getByTestId(`pictogram-${id}`)).toHaveStyle({ borderColor: '#e0a84f' });
+  const gestures = () => screen.queryAllByTestId(/^pictogram-gesture-/, { includeHiddenElements: true }).map(node => node.props.testID);
   const next = async () => { await fireEvent.press(screen.getByRole('button', { name: 'Dalej' })); };
+  expect(line()).toBe('Żaromir: Skończ trening, zanim przesypie się piasek.');
+  lit('deadline'); expect(gestures()).toEqual(['pictogram-gesture-deadline']);
+  expect(screen.getByText('1 / 3')).toBeOnTheScreen();
   await next();
-  expect(line()).toContain('Klepsydra to termin.');
-  expect(screen.getByTestId('pictogram-deadline')).toHaveStyle({ borderColor: '#e0a84f' });
-  await next();
-  expect(line()).toContain('Świeca to ostatni moment na dowód');
-  expect(screen.getByTestId('pictogram-cutoff')).toHaveStyle({ borderColor: '#e0a84f' });
+  expect(line()).toBe('Żaromir: Po terminie masz kwadrans na dowód.');
+  lit('cutoff'); expect(gestures()).toEqual(['pictogram-gesture-cutoff']);
   expect(screen.getByTestId('pictogram-deadline')).not.toHaveStyle({ borderColor: '#e0a84f' });
   await next();
-  // MVP-22 G31: the drawn line keeps the no-break space, the spoken label stays plain (clarity.md, MVP-22-G24).
-  expect(line()).toContain('Kowadło z kłódką');
+  // MVP-22 G31: the spoken label stays plain, the drawn line keeps its no-break spaces (clarity.md, MVP-22-G24).
+  expect(line()).toBe('Żaromir: Po pieczęci nic się nie zmieni.');
   expect(line()).not.toMatch(/[\u00a0\u2060]/);
-  expect(screen.getByTestId('dialogue-text')).toHaveTextContent(/Kowadło z\u00a0kłódką/, { normalizer: (text: string) => text });
-  expect(screen.getByTestId('pictogram-fixed')).toHaveStyle({ borderColor: '#e0a84f' });
+  lit('fixed'); expect(gestures()).toEqual(['pictogram-gesture-fixed']);
   expect(storage.markSeen).not.toHaveBeenCalled();
-  // Native check, 2026-09-30: the last step still offered "Dalej" although it closes the guide.
+  // Native check, 2026-09-30: the last step offers a finishing word, because it closes the guide.
   expect(screen.queryByRole('button', { name: 'Dalej' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Zakończ' }));
   expect(screen.queryByTestId('dialogue-panel')).toBeNull();
+  expect(gestures()).toEqual([]);
   expect(storage.markSeen).toHaveBeenCalledTimes(1);
+});
+test('with Reduce Motion the guide lights each pictogram without a gesture', async () => {
+  restoreMotion = motionPreference(true);
+  await openReview(setup(), rulesGuide(false), 'en');
+  await screen.findByTestId('dialogue-panel');
+  expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toBe('Zharomir: Finish your workout by then.');
+  expect(screen.getByTestId('pictogram-deadline')).toHaveStyle({ borderColor: '#e0a84f' });
+  expect(screen.queryAllByTestId(/^pictogram-gesture-/, { includeHiddenElements: true })).toEqual([]);
+  await fireEvent.press(screen.getByRole('button', { name: 'Next' }));
+  expect(screen.getByTestId('pictogram-cutoff')).toHaveStyle({ borderColor: '#e0a84f' });
+  expect(screen.queryAllByTestId(/^pictogram-gesture-/, { includeHiddenElements: true })).toEqual([]);
+});
+// The barks stay short: at most 8 Polish words each (engagement.md E3 and E5), one per large pictogram.
+test('each guide bark has at most 8 Polish words and both catalogs have one per large pictogram', () => {
+  const guide = (messages: { oath: { guide: Record<string, string> } }) => Object.entries(messages.oath.guide).filter(([key]) => key !== 'replay');
+  expect(guide(pl).map(([key]) => key)).toEqual(['1', '2', '3']);
+  expect(guide(en).map(([key]) => key)).toEqual(['1', '2', '3']);
+  for (const [, bark] of guide(pl)) expect(bark.trim().split(/\s+/).length).toBeLessThanOrEqual(8);
 });
 test('skipping marks the explanation seen, and the Żaromir button replays it without writing again', async () => {
   const f = setup(); const storage = rulesGuide(false);
@@ -367,7 +411,7 @@ test('skipping marks the explanation seen, and the Żaromir button replays it wi
   expect(screen.queryByTestId('dialogue-panel')).toBeNull();
   expect(storage.markSeen).toHaveBeenCalledWith(accountId);
   await fireEvent.press(screen.getByRole('button', { name: 'Ask Zharomir' }));
-  expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toContain('Before you make the Oath, get to know its rules.');
+  expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toBe('Zharomir: Finish your workout by then.');
   await fireEvent.press(screen.getByRole('button', { name: 'Skip introduction' }));
   expect(storage.markSeen).toHaveBeenCalledTimes(1);
 });
@@ -421,8 +465,6 @@ describe('the rules guide at the largest text size', () => {
     await act(async () => { show(false); });
     await screen.findByTestId('dialogue-panel');
     const last = () => scrollTo.mock.calls.at(-1)?.[0] as { y: number; animated?: boolean } | undefined;
-    expect(last()).toEqual(expect.objectContaining({ y: 400 + 900 - 12 }));
-    await next();
     expect(last()).toEqual(expect.objectContaining({ y: 400 + 900 + 320 - 12 }));
     await next();
     expect(last()).toEqual(expect.objectContaining({ y: 400 + 900 + 640 - 12 }));
