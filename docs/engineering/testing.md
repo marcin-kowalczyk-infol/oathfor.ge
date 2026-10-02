@@ -573,6 +573,7 @@ Open native gates:
 | --- | --- |
 | Separator wrap | The dot that moves to the next line (498972f) is covered by jest only |
 | G31 retry | The retry that keeps the screen in place is covered by jest only |
+| G36 detail after proof | The detail now scrolls to its top after the receipt or the way back from the proof screen. Jest covers the command, the 18 Pro recheck is pending |
 | Panel art on first entry | After a cold launch the first room entry shows the dialogue text without the panel frame, plate and Żaromir for a moment, while the art loads over Metro. The demo is development only, so a Release build of it cannot run. The owner decides whether to preload the panel art |
 | Largest text | Post-MVP by owner decision. English room dialogue, detail, confirmation and proof screen were not seen at the largest text |
 | Simple layout and Reduce Motion | Proof steps open, fold behaviour and the static equivalents are covered by jest only |

@@ -89,6 +89,14 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     // Leaving the restored list ends its restore, so a later visit through a tab starts at the top.
     if (restore && !restoredAt) setRestore(null);
   }, [route, view, scroll]);
+  // MVP-22 G36: on device the detail remounted after the proof screen kept a stale offset, its header under the top bar.
+  // A return from the proof screen places it at its top. A change on the same detail keeps its place (G31).
+  const scrollView = useRef<{ scrollTo(options: { y: number; animated?: boolean }): void } | null>(null);
+  const lastRoute = useRef(route);
+  useEffect(() => {
+    if (lastRoute.current === 'proof' && route === 'detail') scrollView.current?.scrollTo({ y: 0, animated: false });
+    lastRoute.current = route;
+  }, [route]);
   const [list, setList] = useState<OathListEnvelope | null>(null);
   // How many rows the first page of the shown list held, so a merge on return knows which kept rows were page 1.
   const firstPage = useRef(0);
@@ -444,7 +452,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />
       : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />}</View>}
     <SlowNotice text={prose(t('oathHome.loading'))} />
-  </View></SafeAreaView> : <SafeAreaView style={styles.safeArea}><Animated.ScrollView testID="oath-list-scroll" style={entrance} key={scrollKey} contentOffset={restoredAt} contentContainerStyle={styles.content}
+  </View></SafeAreaView> : <SafeAreaView style={styles.safeArea}><Animated.ScrollView testID="oath-list-scroll" ref={scrollView as never} style={entrance} key={scrollKey} contentOffset={restoredAt} contentContainerStyle={styles.content}
     refreshControl={available && route === 'list' ? <RefreshControl refreshing={pulling} onRefresh={() => pull()} tintColor={tokens.color.primary} /> : undefined} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true, listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => { offset.current = event.nativeEvent.contentOffset.y; } })}>
     {/* The detail shows no screen title and no tabs, so its line and action stay above the fold (docs/product/clarity.md rule 1, MVP-22-T09c). */}
     {/* Its back control returns to the list it came from under that tab's name (MVP-22-T09e). The list's own goes to the room or the menu. */}

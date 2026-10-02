@@ -1,5 +1,5 @@
 import { Profiler } from 'react';
-import { AccessibilityInfo, AppState, Dimensions, StyleSheet } from 'react-native';
+import { AccessibilityInfo, AppState, Dimensions, ScrollView, StyleSheet } from 'react-native';
 import { createServerClock } from './serverClock';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import catalog from '../../../api/resources/oath/workout_oath_v1.json';
@@ -666,6 +666,27 @@ test('an active detail opens the proof screen, and the server receipt returns to
   expect(await screen.findByLabelText('Status: Assessment pending')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Submit proof' })).toBeNull();
 });
+// MVP-22 G36: the detail remounts after the proof screen. On device it showed a stale offset, so the header sat under the
+// top bar. A return from the proof screen places the detail at its top, by the receipt or by the way back.
+test('the receipt and the way back from the proof screen show the detail from its top', async () => {
+  const active = oath({ state: 'active', reason: null, review: null });
+  const f = setup([active]); const proof = proofController();
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Submit proof' }));
+  // The test renderer's scroll view already carries a mock, so earlier calls are cleared.
+  const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo'); scrollTo.mockClear();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Back to the Oath' }));
+  expect(await screen.findByLabelText('Status: Active')).toBeOnTheScreen();
+  expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: false });
+  await fireEvent.press(screen.getByRole('button', { name: 'Submit proof' }));
+  scrollTo.mockClear();
+  const received = oath({ state: 'proof_pending', reason: null, review: null, proof: { submissionId: '40000000-0000-4000-8000-000000000001', mode: 'photo', revision: 1, receivedAt: '2026-10-24T18:14:00Z', assessment: 'queued' } });
+  await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: received }));
+  expect(await screen.findByLabelText('Status: Assessment pending')).toBeOnTheScreen();
+  expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: false });
+  scrollTo.mockRestore();
+});
 test('back from the proof screen reloads the same detail', async () => {
   const active = oath({ state: 'active', reason: null, review: null });
   const f = setup([active]); const proof = proofController();
@@ -771,10 +792,14 @@ test('a pending local record shows the interrupted upload on its detail, and onl
   expect(screen.queryByRole('button', { name: 'Send again' })).toBeNull();
   expect(screen.getByLabelText('Status: Active')).toBeOnTheScreen();
   expect(screen.queryByText(/^Evidence received/)).toBeNull();
+  // MVP-22 G36: a resend on the same detail keeps its place, as a retry does (G31). Only a return from the proof screen goes to the top.
+  const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo'); scrollTo.mockClear();
   await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: oath({ state: 'proof_pending', reason: null, review: null, proof: receipt }) }));
   expect(await screen.findByLabelText('Status: Assessment pending')).toBeOnTheScreen();
   expect(screen.getByText('Proof received. The result will appear here.')).toBeOnTheScreen();
   expect(screen.queryByText(interrupted)).toBeNull();
+  expect(scrollTo).not.toHaveBeenCalled();
+  scrollTo.mockRestore();
 });
 test('a lost reply leaves a received Oath with its record, which is replayed once quietly and never shown as interrupted', async () => {
   const f = setup([oath({ state: 'proof_pending', reason: null, review: null, proof: receipt })]); const proof = proofController();
