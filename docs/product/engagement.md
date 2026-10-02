@@ -214,7 +214,7 @@ Unlit places use a code-drawn dark overlay over the room cut, marked DUMMY in th
 
 From the top:
 
-1. The promise in one line, unchanged in content.
+1. The promise, unchanged in content. Since the D-E1 correction of 2026-10-02 it is drawn once, as the hold label in item 4, not as a separate line.
 2. **Three large pictograms**, about 96 pt, each with a one-to-three word label and one value:
    - Hourglass, "Termin" / "Deadline", the hour of D with the short day.
    - Candle, "Ostatni moment" / "Last chance", "+15 min".
