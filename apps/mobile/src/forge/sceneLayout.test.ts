@@ -1,4 +1,5 @@
-import { ARTWORK, aside, bodyBox, depth, PEDESTAL_WAYPOINT, places, playerStart, route, scenePlaces, SEALS_FRONT_Y, tutor, unlitShades, walkDirection, walkDuration, type Spot } from './sceneLayout';
+import { ARTWORK, aside, bodyBox, depth, PEDESTAL_WAYPOINT, places, playerStart, route, scenePlaces, SEALS_FRONT_Y, tutor, UNLIT_SHADE_STOPS, unlitShades, walkDirection, walkDuration, type Spot } from './sceneLayout';
+import { currentArt } from '../art/current';
 
 // MVP-22-E2.2 follow-up, native check on iPhone 18 Pro: the shade sat on the anchor only, so the chronicle lectern looked lit.
 // Each shade now covers its whole station, measured in artwork pixels on both rooms (v03 and cinematic v02 share the layout).
@@ -21,6 +22,40 @@ describe('unlit shades', () => {
   test('the seal shade stops short of the hearth, so the one lit place keeps its light', () => {
     const seals = unlitShades.seals;
     expect(seals.x + seals.width / 2).toBeLessThan(places.hearth.anchor.x - 0.05);
+  });
+
+  // MVP-22-E2 r2, native check on iPhone 18 Pro: the box shade showed hard straight edges, so it is now a feathered ellipse inside its box.
+  // Strength at a spot, as the centred closest-side ellipse draws it: the stops run from the box centre to its sides, nothing outside.
+  const strength = (place: keyof typeof unlitShades, spot: Spot) => {
+    const box = unlitShades[place];
+    const reach = Math.hypot((spot.x - box.x) / (box.width / 2), (spot.y - box.y) / (box.height / 2));
+    const after = UNLIT_SHADE_STOPS.findIndex(([at]) => at >= reach);
+    if (after === -1) return UNLIT_SHADE_STOPS[UNLIT_SHADE_STOPS.length - 1][1];
+    if (after === 0) return UNLIT_SHADE_STOPS[0][1];
+    const [from, low] = UNLIT_SHADE_STOPS[after - 1];
+    const [to, high] = UNLIT_SHADE_STOPS[after];
+    return low + (high - low) * (reach - from) / (to - from);
+  };
+
+  test('the shade fades to nothing at its edge, so no straight side is ever drawn', () => {
+    expect(UNLIT_SHADE_STOPS[0][0]).toBe(0);
+    expect(UNLIT_SHADE_STOPS[UNLIT_SHADE_STOPS.length - 1]).toEqual([1, 0]);
+    for (let index = 1; index < UNLIT_SHADE_STOPS.length; index += 1) {
+      expect(UNLIT_SHADE_STOPS[index][0]).toBeGreaterThan(UNLIT_SHADE_STOPS[index - 1][0]);
+      expect(UNLIT_SHADE_STOPS[index][1]).toBeLessThanOrEqual(UNLIT_SHADE_STOPS[index - 1][1]);
+    }
+    expect(UNLIT_SHADE_STOPS[0][1]).toBeGreaterThanOrEqual(0.75);
+  });
+
+  test('the floor centre, the walk spots and the hearth stay unshaded', () => {
+    const clear = [aside, tutor, playerStart, places.hearth.anchor, places.seals.player, places.chronicle.player, ...scenePlaces.map(place => places[place].guide)];
+    for (const place of ['seals', 'chronicle'] as const) for (const spot of clear) expect([place, spot, strength(place, spot)]).toEqual([place, spot, 0]);
+  });
+
+  test('the drum centres sit in the full shade, so the tinted seal cut matches the room under it', () => {
+    for (const seal of Object.values(currentArt.room.seals!)) {
+      expect(strength('seals', { x: seal.centre[0] / ARTWORK.width, y: seal.centre[1] / ARTWORK.height })).toBeCloseTo(UNLIT_SHADE_STOPS[0][1], 1);
+    }
   });
 });
 

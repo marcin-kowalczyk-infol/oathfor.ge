@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Animated, Dimensions, Easing, StyleSheet } from 'react-native';
 import { ForgeRoom, UNLIT_FADE_MS } from './ForgeRoom';
-import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, PEDESTAL_WAYPOINT, places, playerStart, tutor, unlitShades, walkDirection, walkDuration } from './sceneLayout';
+import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, PEDESTAL_WAYPOINT, places, playerStart, tutor, UNLIT_SHADE_COLOR, unlitShades, walkDirection, walkDuration } from './sceneLayout';
 import { ArtProvider, ArtSetProvider, resolveArt } from '../art/ArtProvider';
 import { currentArt } from '../art/current';
 import { presetArt } from '../characters/presetArt';
@@ -1172,13 +1172,45 @@ describe('skill gate', () => {
   });
 
   // engagement.md E2 "Fallback": unlit places are dimmed by a code-drawn shade, DUMMY until unlit place art exists.
-  test('unlit places are dimmed by a shade, lit ones are not, and the seal cut repeats it', async () => {
+  test('unlit places are dimmed by a shade, lit ones are not, and the seal cut is tinted to match', async () => {
     await render(room({ progress: nothing }));
     expect(screen.getByTestId('unlit-shade-seals', hidden)).toBeTruthy();
     expect(screen.getByTestId('unlit-shade-chronicle', hidden)).toBeTruthy();
     expect(screen.queryByTestId('unlit-shade-hearth', hidden)).toBeNull();
-    expect(screen.getAllByTestId(/^unlit-shade-seals-front-/, hidden)).toHaveLength(2);
     expect(screen.getByTestId('unlit-shade-seals', hidden).props.pointerEvents).toBe('none');
+    // MVP-22-E2 r2: a box over the cut darkened the head of a figure behind the drums. Only the drum pixels are darkened now.
+    for (const id of ['player', 'guide']) {
+      const copy = screen.getByTestId(`unlit-shade-seals-front-${id}`, hidden);
+      expect(copy.props.source).toEqual(screen.getByTestId(`seals-cut-${id}`, hidden).props.source);
+      const style = StyleSheet.flatten(copy.props.style) as { tintColor?: string; experimental_backgroundImage?: string };
+      expect(style.tintColor).toBe(`rgb(${UNLIT_SHADE_COLOR})`);
+      expect(style.experimental_backgroundImage).toBeUndefined();
+    }
+  });
+
+  // MVP-22-E2 r2, native check on iPhone 18 Pro: the saturation blend drew an opaque grey box and the dark layer showed straight edges.
+  test('the shade is one feathered dark gradient with a clear edge and no blend', async () => {
+    await render(room({ progress: nothing }));
+    expect(screen.queryByTestId('unlit-shade-grey', hidden)).toBeNull();
+    for (const place of ['seals', 'chronicle'] as const) {
+      const style = StyleSheet.flatten(screen.getByTestId(`unlit-shade-${place}`, hidden).props.style) as { mixBlendMode?: string; experimental_backgroundImage: string };
+      expect(style.mixBlendMode).toBeUndefined();
+      const gradient = String(style.experimental_backgroundImage);
+      expect(gradient.startsWith('radial-gradient(ellipse closest-side at center,')).toBe(true);
+      const stops = [...gradient.matchAll(/rgba\(([\d,\s]+),\s*([\d.]+)\)\s*([\d.]+)%/g)];
+      expect(new Set(stops.map(stop => stop[1].replace(/\s/g, '')))).toEqual(new Set([UNLIT_SHADE_COLOR]));
+      expect(stops.at(-1)!.slice(2)).toEqual(['0', '100']);
+      expect(Math.max(...stops.map(stop => Number(stop[2])))).toBeGreaterThanOrEqual(0.75);
+    }
+  });
+
+  test('the shade lies in the scenery under the figures and the touch areas', async () => {
+    await render(room({ progress: nothing }));
+    for (const place of ['seals', 'chronicle'] as const) {
+      expect(StyleSheet.flatten(screen.getByTestId(`unlit-shade-${place}`, hidden).props.style).zIndex).toBeUndefined();
+      expect(drawOrder([`unlit-shade-${place}`, 'room-player', 'room-guide'])[0]).toBe(`unlit-shade-${place}`);
+    }
+    expect(StyleSheet.flatten(screen.getByTestId('room-player', hidden).props.style).zIndex).toBe(3);
   });
 
   // E2.2 follow-up, native check on iPhone 18 Pro: the shade was too weak, the chronicle looked lit and the hearth did not stand out.
@@ -1191,16 +1223,6 @@ describe('skill gate', () => {
     expect(style.height).toBeCloseTo(box.height * scene.height);
     expect(style.left).toBeCloseTo(scene.left + (box.x - box.width / 2) * scene.width);
     expect(style.top).toBeCloseTo(scene.top + (box.y - box.height / 2) * scene.height);
-  });
-
-  test('the shade both darkens and drains the colour of an unlit place', async () => {
-    await render(room({ progress: nothing }));
-    const layers = within(screen.getByTestId('unlit-shade-chronicle', hidden));
-    const grey = StyleSheet.flatten(layers.getByTestId('unlit-shade-grey', hidden).props.style) as { mixBlendMode?: string };
-    expect(grey.mixBlendMode).toBe('saturation');
-    const dark = String((StyleSheet.flatten(layers.getByTestId('unlit-shade-dark', hidden).props.style) as { experimental_backgroundImage: string }).experimental_backgroundImage);
-    const alphas = [...dark.matchAll(/rgba\([^)]*,\s*([\d.]+)\)/g)].map(match => Number(match[1]));
-    expect(Math.max(...alphas)).toBeGreaterThanOrEqual(0.8);
   });
 
   test('with only the hearth lit, it glows brighter than a hearth among lit places and breathes', async () => {
@@ -1224,7 +1246,8 @@ describe('skill gate', () => {
 
   test('with reduced motion the shade is there at once, with motion it fades in', async () => {
     const view = await render(room({ progress: nothing }));
-    expect(StyleSheet.flatten(within(screen.getByTestId('unlit-shade-seals', hidden)).getByTestId('unlit-shade-dark', hidden).props.style).opacity).toBe(1);
+    expect(StyleSheet.flatten(screen.getByTestId('unlit-shade-seals', hidden).props.style).opacity).toBe(1);
+    expect(StyleSheet.flatten(screen.getByTestId('unlit-shade-seals-front-player', hidden).props.style).opacity).toBe(0);
     await view.unmount();
     motion.mockReturnValue(true);
     const fades: number[] = [];

@@ -29,11 +29,17 @@ export const tutor: Spot = { x: 0.5, y: 0.66 };
  * The DUMMY shade over an unlit station (engagement.md E2 "Fallback"), centre and size as fractions of the artwork.
  * Native check on iPhone 18 Pro (E2.2 follow-up): a shade on the anchor alone left the chronicle lectern looking lit.
  * Each box spans its whole station with a margin, because the shade fades toward its corners. The seal box ends before the hearth.
+ * MVP-22-E2 r2, native check on iPhone 18 Pro: the box showed straight edges. The shade is now an ellipse inscribed in its box.
+ * The seal ellipse is centred on the drums, so they lie in the full shade. The lectern ellipse ends before Żaromir's spot beside it.
  */
 export const unlitShades: Record<'seals' | 'chronicle', Spot & { width: number; height: number }> = {
-  seals: { x: 0.205, y: 0.546, width: 0.46, height: 0.15 },
-  chronicle: { x: 0.83, y: 0.546, width: 0.3, height: 0.165 },
+  seals: { x: 0.197, y: 0.527, width: 0.47, height: 0.186 },
+  chronicle: { x: 0.874, y: 0.538, width: 0.406, height: 0.169 },
 };
+/** The DUMMY shade colour as r,g,b: a cool near black, so the painting under it turns darker and greyer without a blend mode. */
+export const UNLIT_SHADE_COLOR = '10,12,16';
+/** Shade strength from the ellipse centre (0) to its edge (1). It holds over the station and falls to nothing at the edge. */
+export const UNLIT_SHADE_STOPS: readonly (readonly [at: number, alpha: number])[] = [[0, 0.8], [0.5, 0.8], [0.75, 0.45], [1, 0]];
 
 /** Below this depth the feet are in front of the seal drums, so the cut no longer covers the figure. */
 export const SEALS_FRONT_Y = 957 / 1774;

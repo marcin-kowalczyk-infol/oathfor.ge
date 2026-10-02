@@ -144,7 +144,7 @@ Implemented locally on 2026-10-02 in MVP-22-E2.1 to E2.4, with a follow-up after
 
 - `apps/mobile/src/forge/placeLit.ts` decides which place glows. Unknown counts light every place.
 - The first entry is one bark beside the lit hearth. An unlit place walks the player there, plays its bark and offers no action. Its VoiceOver label ends with "jeszcze nieaktywne" / "not active yet".
-- Unlit places carry a DUMMY code-drawn shade over the whole station. A grey saturation blend drains the colour and a dark layer dims it. While another place is unlit the hearth glows brighter and breathes with the room's glow. Reduce Motion keeps that glow still. The shade boxes are `unlitShades` in `apps/mobile/src/forge/sceneLayout.ts`.
+- Unlit places carry a DUMMY code-drawn shade over the whole station. One translucent dark ellipse per station darkens and greys it with no blend mode and fades to nothing before its box edge. While another place is unlit the hearth glows brighter and breathes with the room's glow. Reduce Motion keeps that glow still. The shade boxes, colour and stops are `unlitShades`, `UNLIT_SHADE_COLOR` and `UNLIT_SHADE_STOPS` in `apps/mobile/src/forge/sceneLayout.ts`.
 - Each tutorial chapter in the room opens on one bark with "Więcej" / "More" and "Inne miejsce" / "Another place", or "Zakończ" / "Finish" on the fourth place. A bark alone counts the chapter as heard. The simple tutorial screen is unchanged.
 - The first proof screen per account on this device shows Żaromir's teaching bark. Its flag uses the device guide storage under the name `proof-guide`.
 

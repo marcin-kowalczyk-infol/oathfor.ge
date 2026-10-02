@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, Pressable, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, Easing, Image, Pressable, StyleSheet, useWindowDimensions, View, type ImageSourcePropType, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMotionAllowed } from '../ui/useMotion';
 import { StationEffect } from './StationEffect';
@@ -18,7 +18,7 @@ import { CandleFlames } from './CandleFlames';
 import { SpriteLoop } from './Sprite';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { bindShortWords } from '../localization/typography';
-import { ARTWORK, aside, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, SEALS_FRONT_Y, tutor, unlitShades, type ScenePlace, type Spot } from './sceneLayout';
+import { ARTWORK, aside, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, SEALS_FRONT_Y, tutor, UNLIT_SHADE_COLOR, UNLIT_SHADE_STOPS, unlitShades, type ScenePlace, type Spot } from './sceneLayout';
 import { PlayerFigure } from './PlayerFigure';
 import type { Character } from '../api/characters';
 import { useWalker } from './useWalker';
@@ -253,12 +253,15 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     : beacon && id === 'hearth' ? [0.6, 1] : guidePlace === id || tour?.place === id ? [0.45, 0.75] : player.target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
   const glowBreath = (id: ForgeStation) => beacon && id === 'hearth' ? { transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1.1, 1.3] }) }] } : null;
   const seals = stations.find(station => station.id === 'seals')!;
-  // DUMMY until unlit place art exists (engagement.md E2 "Fallback"): a dark, colourless shade over the whole station, sized with the room.
+  // DUMMY until unlit place art exists (engagement.md E2 "Fallback"): a feathered dark shade over the whole station, sized with the room.
   const shadeBox = (place: keyof typeof unlitShades) => {
     const box = unlitShades[place];
     const corner = point(box.x - box.width / 2, box.y - box.height / 2);
     return { ...corner, width: box.width * sceneWidth, height: box.height * sceneHeight };
   };
+  // The seal cut in room points: the cut itself and its tinted copy over unlit seals.
+  const sealsCutBox = sealsFront && { ...point(sealsFront.box[0] / ARTWORK.width, sealsFront.box[1] / ARTWORK.height),
+    width: sealsFront.box[2] / ARTWORK.width * sceneWidth, height: sealsFront.box[3] / ARTWORK.height * sceneHeight };
   // The panel and the ring sit relative to the camera zoom, so scene points are projected through it.
   const zoom = zoomed ? 1.08 : 1;
   // A scene point as the room camera shows it, so the flight zooms around the object where the player sees it.
@@ -371,11 +374,12 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
       </Animated.View>
       {sealsFront && <>
       <Animated.Image testID={`seals-cut-${id}`} source={sealsFront.source} resizeMode="stretch" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
-        style={[styles.front, { ...point(sealsFront.box[0] / ARTWORK.width, sealsFront.box[1] / ARTWORK.height), width: sealsFront.box[2] / ARTWORK.width * sceneWidth, height: sealsFront.box[3] / ARTWORK.height * sceneHeight, opacity: sealsCover(walker.position) }]} />
+        style={[styles.front, sealsCutBox, { opacity: sealsCover(walker.position) }]} />
       {/* Native check: the cut hid the seal glow, so the seals darkened as he stepped behind them. The glow is repeated over the cut. */}
       <Animated.Image source={haze} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.objectGlow, styles.front, { ...point(seals.x, seals.y), opacity: Animated.multiply(stationGlow('seals'), sealsCover(walker.position)) }]} />
-      {/* The cut redraws the drums, so unlit seals repeat their shade over it. */}
-      {unlit('seals') && <UnlitShade testID={`unlit-shade-seals-front-${id}`} allowed={allowed} style={[styles.front, shadeBox('seals')]} cover={sealsCover(walker.position)} grey={false} />}
+      {/* The cut redraws the drums, so unlit seals darken it too. A tinted copy of the cut darkens the drums only, never the figure behind them. */}
+      {unlit('seals') && <UnlitCut testID={`unlit-shade-seals-front-${id}`} allowed={allowed} source={sealsFront.source} cover={sealsCover(walker.position)}
+        style={[styles.front, sealsCutBox]} />}
       </>}
     </Fragment>)}
     {!tour && !guidePlace && !guide.walking && (guide.arrived ?? 'aside') === 'aside' && <Pressable accessibilityRole="button" accessibilityLabel={t('room.talk.label')}
@@ -404,12 +408,8 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   </View>;
 }
 
-/**
- * The code-drawn dimming over an unlit place, DUMMY until unlit place art exists (engagement.md E2 "Fallback").
- * A grey saturation blend drains the colour and a dark layer dims it, both fading toward the box corners (E2.2 follow-up).
- * With motion it fades in, so a place that goes dark when the counts arrive does not snap. Reduce Motion shows it at once.
- */
-function UnlitShade({ testID, allowed, style, cover, grey = true }: { testID: string; allowed: boolean; style: StyleProp<ViewStyle>; cover?: Animated.AnimatedInterpolation<number>; grey?: boolean }) {
+/** The unlit shade's fade in. With motion a place that goes dark when the counts arrive does not snap. Reduce Motion shows it at once. */
+function useUnlitFade(allowed: boolean) {
   const fade = useRef(new Animated.Value(allowed ? 0 : 1)).current;
   useEffect(() => {
     if (!allowed) { fade.setValue(1); return; }
@@ -417,13 +417,24 @@ function UnlitShade({ testID, allowed, style, cover, grey = true }: { testID: st
     show.start();
     return () => show.stop();
   }, [allowed, fade]);
-  // The box itself has no opacity, so it is no separate group and the grey layer blends with the room under it.
-  // The grey layer does not fade: a group fading in would isolate the blend. Only the dark layer fades.
-  // The copy over the seal cut sits in its own zIndex group, so there it only darkens (grey false).
-  return <View testID={testID} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.unlitBox, style]}>
-    {grey && <Animated.View testID="unlit-shade-grey" style={[StyleSheet.absoluteFill, styles.unlitGrey, cover && { opacity: cover }]} />}
-    <Animated.View testID="unlit-shade-dark" style={[StyleSheet.absoluteFill, styles.unlitDark, { opacity: cover ? Animated.multiply(fade, cover) : fade }]} />
-  </View>;
+  return fade;
+}
+
+/**
+ * The code-drawn dimming over an unlit place, DUMMY until unlit place art exists (engagement.md E2 "Fallback").
+ * MVP-22-E2 r2, native check on iPhone 18 Pro: a saturation blend drew an opaque grey box and the dark layer showed straight edges.
+ * One translucent dark ellipse now darkens and greys the painting and fades to nothing before the box edge.
+ */
+function UnlitShade({ testID, allowed, style }: { testID: string; allowed: boolean; style: StyleProp<ViewStyle> }) {
+  const fade = useUnlitFade(allowed);
+  return <Animated.View testID={testID} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.unlitShade, style, { opacity: fade }]} />;
+}
+
+/** The seal cut tinted with the shade colour at full shade strength, shown only while a figure stands behind the drums. */
+function UnlitCut({ testID, allowed, source, cover, style }: { testID: string; allowed: boolean; source: ImageSourcePropType; cover: Animated.AnimatedInterpolation<number>; style: StyleProp<ImageStyle> }) {
+  const fade = useUnlitFade(allowed);
+  return <Animated.Image testID={testID} source={source} resizeMode="stretch" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+    style={[style, styles.unlitCut, { opacity: Animated.multiply(Animated.multiply(fade, cover), UNLIT_SHADE_STOPS[0][1]) }]} />;
 }
 
 const styles = StyleSheet.create({
@@ -434,11 +445,9 @@ const styles = StyleSheet.create({
   // Figures and seal cuts share one layer above the touch areas, so their tree order is the drawing order.
   figure: { position: 'absolute', width: FIGURE_WIDTH, height: FIGURE_HEIGHT, zIndex: 3 },
   front: { position: 'absolute', zIndex: 3, pointerEvents: 'none' },
-  // E2.2 follow-up, native check on iPhone 18 Pro: the former 0.58 shade left unlit places only slightly darker.
-  // The farthest-corner ellipse keeps most of the box at full strength and fades only toward the corners.
-  unlitBox: { position: 'absolute' },
-  unlitGrey: { mixBlendMode: 'saturation', experimental_backgroundImage: 'radial-gradient(ellipse farthest-corner at center, rgba(128,128,128,0.92) 0%, rgba(128,128,128,0.85) 60%, rgba(128,128,128,0) 100%)' },
-  unlitDark: { experimental_backgroundImage: 'radial-gradient(ellipse farthest-corner at center, rgba(6,8,12,0.84) 0%, rgba(6,8,12,0.76) 60%, rgba(6,8,12,0.4) 85%, rgba(6,8,12,0) 100%)' },
+  // MVP-22-E2 r2: a farthest-corner ellipse kept strength at the box sides, so the sides showed. Closest-side ends at them, as figureShadow does.
+  unlitShade: { position: 'absolute', experimental_backgroundImage: `radial-gradient(ellipse closest-side at center, ${UNLIT_SHADE_STOPS.map(([at, alpha]) => `rgba(${UNLIT_SHADE_COLOR},${alpha}) ${at * 100}%`).join(', ')})` },
+  unlitCut: { tintColor: `rgb(${UNLIT_SHADE_COLOR})` },
   figureShadow: { position: 'absolute', width: 76, height: 18, top: FIGURE_HEIGHT * FIGURE_FOOT - 10, left: FIGURE_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
   talkTarget: { position: 'absolute', zIndex: 3 },
   shield: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 10 },
