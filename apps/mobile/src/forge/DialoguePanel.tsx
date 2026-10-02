@@ -3,6 +3,7 @@ import { Animated, Image, PixelRatio, Pressable, ScrollView, StyleSheet, useWind
 import { Text } from '../ui/Text';
 import { tokens } from '../ui/tokens';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { plainText } from '../localization/typography';
 import { useArt } from '../art/ArtProvider';
 import type { Speaker } from './conversation';
 
@@ -115,7 +116,8 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
         : portrait ? <Image testID="bust-player-image" source={portrait} resizeMode="cover" style={styles.portrait} /> : <View style={styles.noPortrait} />}
     </Animated.View>;
   };
-  const body = <Text testID="dialogue-text" accessibilityLabel={`${name}: ${text}`} maxFontSizeMultiplier={2} style={styles.text}>
+  // Callers pass drawn prose with its bindings. The spoken label keeps the plain form (MVP-22-G24, G31).
+  const body = <Text testID="dialogue-text" accessibilityLabel={`${name}: ${plainText(text)}`} maxFontSizeMultiplier={2} style={styles.text}>
     {graphemes.slice(0, count).join('')}
     {/* The untyped rest keeps its place, so the panel never grows while typing. */}
     <Text style={styles.untyped}>{graphemes.slice(count).join('')}</Text>

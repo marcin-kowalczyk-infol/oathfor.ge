@@ -308,15 +308,20 @@ function StepHead({ number, title }: { number: number; title: string }) {
     <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{title}</Text>
   </View>;
 }
-/** A finished step in one line, "✓ Zdjęcie kontekstu · Zmień". It wraps and is never cut with an ellipsis. */
+/**
+ * A finished step in one line, "✓ Zdjęcie kontekstu · Zmień". It wraps and is never cut with an ellipsis.
+ * The dot and "Zmień" form one item, so a wrap moves the dot down with "Zmień" and no line ends on it (MVP-22-G24b, G31).
+ */
 function Summary({ choice, change, step, disabled, onChange }: { choice: string; change: string; step: string; disabled: boolean; onChange(): void }) {
   return <View style={styles.summary}>
     <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.summaryText}>{`✓ ${choice}`}</Text>
-    <Text accessible={false} style={styles.summaryDot}>·</Text>
-    <Pressable accessibilityRole="button" accessibilityLabel={`${change}: ${step}`} accessibilityState={{ disabled }} disabled={disabled} onPress={onChange}
-      hitSlop={8} style={({ pressed }) => [styles.change, pressed && styles.pressed]}>
-      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.changeText}>{change}</Text>
-    </Pressable>
+    <View testID="summary-change" style={styles.summaryChange}>
+      <Text accessible={false} style={styles.summaryDot}>·</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${change}: ${step}`} accessibilityState={{ disabled }} disabled={disabled} onPress={onChange}
+        hitSlop={8} style={({ pressed }) => [styles.change, pressed && styles.pressed]}>
+        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.changeText}>{change}</Text>
+      </Pressable>
+    </View>
   </View>;
 }
 const panel = { borderRadius: 16, backgroundColor: 'rgba(28, 22, 16, 0.94)', borderWidth: 1, borderColor: '#5b4630' } as const;
@@ -349,6 +354,7 @@ const styles = StyleSheet.create({
   stepNumberText: { color: tokens.color.primary, fontSize: 15, fontWeight: '700' },
   summary: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8 },
   summaryText: { flexShrink: 1, color: tokens.color.text, fontSize: tokens.body, lineHeight: 24, fontWeight: '600' },
+  summaryChange: { flexDirection: 'row', alignItems: 'center', columnGap: 8 },
   summaryDot: { color: tokens.color.secondary, fontSize: tokens.body },
   change: { minHeight: 44, justifyContent: 'center' },
   changeText: { color: tokens.color.primary, fontSize: tokens.body, lineHeight: 24, fontWeight: '600', textDecorationLine: 'underline' },

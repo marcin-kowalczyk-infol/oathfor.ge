@@ -255,7 +255,10 @@ test('the first review lets Żaromir explain the cards once, lighting each card 
   expect(screen.getByTestId('rule-card-cutoff')).toHaveStyle({ borderColor: '#e0a84f' });
   expect(screen.getByTestId('rule-card-deadline')).not.toHaveStyle({ borderColor: '#e0a84f' });
   await next();
-  expect(line()).toContain('Kowadło z\u00a0kłódką');
+  // MVP-22 G31: the drawn line keeps the no-break space, the spoken label stays plain (clarity.md, MVP-22-G24).
+  expect(line()).toContain('Kowadło z kłódką');
+  expect(line()).not.toMatch(/[\u00a0\u2060]/);
+  expect(screen.getByTestId('dialogue-text')).toHaveTextContent(/Kowadło z\u00a0kłódką/, { normalizer: (text: string) => text });
   expect(screen.getByTestId('rule-card-fixed')).toHaveStyle({ borderColor: '#e0a84f' });
   expect(storage.markSeen).not.toHaveBeenCalled();
   // Native check, 2026-09-30: the last step still offered "Dalej" although it closes the guide.
@@ -804,15 +807,22 @@ describe('drawn prose binding', () => {
 
 // MVP-22 G30, quality review: the server confirmed the Oath, but clearing the device record failed. The controller keeps both the
 // confirmed Oath and the pending record, so the detail and the pending band render together. One filled action stays (clarity.md rule 3).
-test.each(['pl', 'en'] as const)('%s a confirmed Oath whose record could not be cleared keeps one filled action and the retry', async locale => {
-  const words = locale === 'pl'
-    ? { view: 'Zobacz zasady', confirm: 'Złóż Przysięgę', recover: 'Sprawdź potwierdzenie', made: 'Przysięga złożona', viewOath: 'Zobacz Przysięgę', another: 'Złóż kolejną Przysięgę',
-      date: ['Data ukończenia', '25 października 2026'], completion: 'Godzina ukończenia', time: { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' } }
-    : { view: 'View rules', confirm: 'Commit to the Oath', recover: 'Check confirmation', made: 'Oath made', viewOath: 'View the Oath', another: 'Create another Oath',
-      date: ['Completion date', 'October 25, 2026'], completion: 'Completion time', time: { hour: 'Hour', minute: 'Minute', done: 'Use this time' } };
-  const oathId = '20000000-0000-4000-8000-0000000000c1';
-  const diamond = (button: ReturnType<typeof screen.getByRole>) => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0;
-  const filled = () => screen.queryAllByRole('button').filter(diamond);
+const g30Words = {
+  pl: { view: 'Zobacz zasady', confirm: 'Złóż Przysięgę', recover: 'Sprawdź potwierdzenie', made: 'Przysięga złożona', viewOath: 'Zobacz Przysięgę', another: 'Złóż kolejną Przysięgę',
+    date: ['Data ukończenia', '25 października 2026'], completion: 'Godzina ukończenia', time: { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' },
+    storage: 'Nie udało się bezpiecznie zapisać lub odczytać potwierdzenia. Spróbuj ponownie przed kontynuowaniem.', generic: 'Nie udało się potwierdzić tego kroku. Spróbuj ponownie.',
+    pending: 'Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.' },
+  en: { view: 'View rules', confirm: 'Commit to the Oath', recover: 'Check confirmation', made: 'Oath made', viewOath: 'View the Oath', another: 'Create another Oath',
+    date: ['Completion date', 'October 25, 2026'], completion: 'Completion time', time: { hour: 'Hour', minute: 'Minute', done: 'Use this time' },
+    storage: 'We could not securely save or read your confirmation. Try again before continuing.', generic: 'We could not confirm this step. Try again.',
+    pending: 'Your confirmation may already have arrived. Check the same Oath before starting another.' },
+} as const;
+const g30OathId = '20000000-0000-4000-8000-0000000000c1';
+const diamond = (button: ReturnType<typeof screen.getByRole>) => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0;
+const filled = () => screen.queryAllByRole('button').filter(diamond);
+/** Makes an Oath whose first reply is lost and whose check is confirmed while the device record cannot be cleared. */
+async function confirmedWithKeptRecord(locale: 'pl' | 'en') {
+  const words = g30Words[locale];
   const f = setup(); f.controller.start();
   await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
   await selectDate(words.date[0], words.date[1]);
@@ -821,21 +831,76 @@ test.each(['pl', 'en'] as const)('%s a confirmed Oath whose record could not be 
   // The first reply is lost, so the band offers the check.
   await fireEvent.press(await screen.findByRole('button', { name: words.confirm }));
   await screen.findByRole('button', { name: words.recover });
-  jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(oathId, f.envelope.preview.snapshot));
+  jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(g30OathId, f.envelope.preview.snapshot));
   jest.mocked(f.storage.write).mockResolvedValueOnce({ kind: 'unavailable' });
   await fireEvent.press(screen.getByRole('button', { name: words.recover }));
   expect(await screen.findByRole('header', { name: words.made })).toBeOnTheScreen();
-  expect(f.controller.getState()).toMatchObject({ kind: 'ready', pending: { requestId: id }, oath: { id: oathId }, error: { kind: 'storage' } });
+  expect(f.controller.getState()).toMatchObject({ kind: 'ready', pending: { requestId: id }, oath: { id: g30OathId }, error: { kind: 'storage' } });
+  return { f, words };
+}
+test.each(['pl', 'en'] as const)('%s a confirmed Oath whose record could not be cleared keeps one filled action and the retry', async locale => {
+  const { f, words } = await confirmedWithKeptRecord(locale);
   expect(filled()).toHaveLength(1);
   expect(diamond(screen.getByRole('button', { name: words.viewOath }))).toBe(true);
   // The retry stays as an outline action, so "try again" in the storage line has a control. No second Oath starts meanwhile.
   expect(diamond(screen.getByRole('button', { name: words.recover }))).toBe(false);
   expect(screen.queryByRole('button', { name: words.another })).toBeNull();
   // The retry replays the same identity and, with storage back, clears the record. The detail stays with its one filled action.
-  jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(oathId, f.envelope.preview.snapshot));
+  jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(g30OathId, f.envelope.preview.snapshot));
   await fireEvent.press(screen.getByRole('button', { name: words.recover }));
   expect(jest.mocked(f.api.confirm).mock.calls.at(-1)![1]).toEqual({ previewId: id, requestId: id, accepted: true });
   expect(screen.queryByRole('button', { name: words.recover })).toBeNull();
   expect(screen.getByRole('header', { name: words.made })).toBeOnTheScreen();
   expect(filled()).toHaveLength(1);
+});
+// MVP-22 G31: a retry while storage is still out keeps the band, the storage line and the same identity.
+test.each(['pl', 'en'] as const)('%s a retry while storage is still unavailable keeps the band and the same identity', async locale => {
+  const { f, words } = await confirmedWithKeptRecord(locale);
+  jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(g30OathId, f.envelope.preview.snapshot));
+  jest.mocked(f.storage.write).mockResolvedValueOnce({ kind: 'unavailable' });
+  await fireEvent.press(screen.getByRole('button', { name: words.recover }));
+  await screen.findByRole('button', { name: words.recover, disabled: false });
+  const calls = jest.mocked(f.api.confirm).mock.calls;
+  expect(calls).toHaveLength(3);
+  expect(calls[1][1]).toEqual({ previewId: id, requestId: id, accepted: true });
+  expect(calls[2][1]).toEqual({ previewId: id, requestId: id, accepted: true });
+  expect(f.controller.getState()).toMatchObject({ kind: 'ready', busy: false, pending: { requestId: id }, oath: { id: g30OathId }, error: { kind: 'storage' } });
+  expect(screen.getByText(words.storage)).toBeOnTheScreen();
+  expect(screen.getByText(words.pending)).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: words.made })).toBeOnTheScreen();
+  expect(diamond(screen.getByRole('button', { name: words.recover }))).toBe(false);
+  expect(filled()).toHaveLength(1);
+});
+// MVP-22 G31: the check can lose its reply again while the stamped detail shows. The band says so with the generic line and keeps the outline retry.
+test.each(['pl', 'en'] as const)('%s a lost retry reply on the stamped detail shows the generic line and one filled action', async locale => {
+  const { f, words } = await confirmedWithKeptRecord(locale);
+  // The default reply of the confirm mock is unavailable.
+  await fireEvent.press(screen.getByRole('button', { name: words.recover }));
+  expect(await screen.findByText(words.generic)).toBeOnTheScreen();
+  expect(f.controller.getState()).toMatchObject({ kind: 'ready', busy: false, pending: { requestId: id }, oath: { id: g30OathId }, error: { kind: 'unavailable' } });
+  expect(screen.queryByText(words.storage)).toBeNull();
+  expect(screen.getByText(words.pending)).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: words.made })).toBeOnTheScreen();
+  expect(diamond(screen.getByRole('button', { name: words.recover }))).toBe(false);
+  expect(filled()).toHaveLength(1);
+  expect(diamond(screen.getByRole('button', { name: words.viewOath }))).toBe(true);
+});
+// MVP-22 G31: a retry on the same screen must not remount the scroll view. A remount replays the entrance, resets the scroll
+// and loses the VoiceOver focus on the pressed control. A new error still brings the band with its line to the top.
+test('a retry on the stamped detail keeps the same scroll view and its place', async () => {
+  const { f, words } = await confirmedWithKeptRecord('en');
+  const before = screen.getByTestId('oath-scroll');
+  // The test renderer's scroll view already carries a mock, so earlier calls are cleared.
+  const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo'); scrollTo.mockClear();
+  jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(g30OathId, f.envelope.preview.snapshot));
+  jest.mocked(f.storage.write).mockResolvedValueOnce({ kind: 'unavailable' });
+  await fireEvent.press(screen.getByRole('button', { name: words.recover }));
+  await screen.findByText(words.storage);
+  expect(screen.getByTestId('oath-scroll') === before).toBe(true);
+  expect(scrollTo).not.toHaveBeenCalled();
+  // A different error is new feedback, so the band comes back to the top without a remount.
+  await fireEvent.press(screen.getByRole('button', { name: words.recover }));
+  await screen.findByText(words.generic);
+  expect(screen.getByTestId('oath-scroll') === before).toBe(true);
+  expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ y: 0 }));
 });

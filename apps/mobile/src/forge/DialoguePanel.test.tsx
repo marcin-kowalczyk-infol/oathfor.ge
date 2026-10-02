@@ -127,6 +127,17 @@ test('VoiceOver reads the speaker and the whole line from the first frame, busts
   expect(screen.getByTestId('bust-guide', hidden)).toBeTruthy();
 });
 
+// MVP-22 G31: callers pass drawn prose with no-break spaces and word joiners (MVP-22-G24b). Spoken labels keep the plain form.
+test('VoiceOver hears the line with plain spaces while the drawn line keeps its bindings', async () => {
+  const bound = 'Kowadło z\u00a0kłódką ·\u00a0Europe/\u2060Warsaw';
+  await render(panel({ text: bound }, 'pl'));
+  await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
+  expect(shownText()).toBe(bound);
+  const label = screen.getByTestId('dialogue-text').props.accessibilityLabel as string;
+  expect(label).toBe('Żaromir: Kowadło z kłódką · Europe/Warsaw');
+  expect(label).not.toMatch(/[\u00a0\u2060]/);
+});
+
 test('the bottom edge is fixed and a taller text grows the panel up to its limit', async () => {
   await render(panel({ text: 'A long line. '.repeat(30) }));
   const box = style('dialogue-panel');

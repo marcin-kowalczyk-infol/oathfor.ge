@@ -459,6 +459,29 @@ test('a chosen type and a chosen image fold to one-line summaries that "Zmień" 
   } finally { restore(); }
 });
 
+// MVP-22 G31: in drawn text a middle-dot separator never ends a line (clarity.md, MVP-22-G24b). The summary row wraps at large
+// text, so the dot and "Zmień" form one unbreakable item and a wrap moves the dot down with "Zmień".
+test('a summary keeps its dot with "Zmień", so a wrap never ends a line on the dot', async () => {
+  size(402, 1);
+  const restore = foreground(); motion();
+  try {
+    await show('pl');
+    await act(async () => { await Promise.resolve(); });
+    await fireEvent.press(screen.getByRole('radio', { name: /Zdjęcie kontekstu/ }));
+    const change = screen.getByRole('button', { name: 'Zmień: Rodzaj dowodu' });
+    const tail = screen.getByTestId('summary-change');
+    expect(within(tail).getByText('·')).toBeOnTheScreen();
+    expect(within(tail).getByRole('button', { name: 'Zmień: Rodzaj dowodu' })).toBe(change);
+    expect(within(tail).queryByText('✓ Zdjęcie kontekstu')).toBeNull();
+    const tailStyle = StyleSheet.flatten(tail.props.style) as Record<string, unknown>;
+    expect(tailStyle.flexDirection).toBe('row');
+    expect(tailStyle.flexWrap ?? 'nowrap').toBe('nowrap');
+    // The row around it still wraps, and "Zmień" keeps its 44 pt touch.
+    expect((StyleSheet.flatten(tail.parent!.props.style) as Record<string, unknown>).flexWrap).toBe('wrap');
+    expect((StyleSheet.flatten(change.props.style) as Record<string, unknown>).minHeight).toBe(44);
+  } finally { restore(); }
+});
+
 test.each([['simple layout', 340], ['Reduce Motion', 402]] as const)('in the %s every step stays open after a choice', async (_, width) => {
   size(width, 1);
   // Both cases run in the foreground. The simple layout allows motion, Reduce Motion is on (the default of this file).

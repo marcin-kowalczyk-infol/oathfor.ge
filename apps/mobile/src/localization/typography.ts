@@ -44,3 +44,13 @@ export function keepSlashJoined(text: string): string {
   return text.replace(slashBetweenLetters, `$1/${WORD_JOINER}`);
 }
 const WORD_JOINER = '\u2060';
+
+const drawnBinding = /[\u00a0\u2060]/g;
+
+/**
+ * Turns drawn bindings back to plain text for a spoken label. A no-break space becomes a space and a word joiner goes away.
+ * Callers pass drawn prose, the label keeps the plain form (MVP-22-G24, G31).
+ */
+export function plainText(text: string): string {
+  return text.replace(drawnBinding, character => character === '\u00a0' ? ' ' : '');
+}

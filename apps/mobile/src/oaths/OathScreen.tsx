@@ -78,10 +78,16 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const titled = !review && !detail;
   // MVP-22-B2c: a pending acceptance has no confirm button, so the band does not ask to make the Oath.
   const intro = review && !pending ? 'oath.reviewIntro' : forming ? 'oath.intro' : null;
-  const scene = `${detail ? 'detail' : pending ? 'pending' : review ? 'review' : 'form'}-${error?.kind ?? ''}-${error && 'code' in error ? error.code : ''}`;
+  // A screen change remounts the scroll view, so it opens at its heading with a short entrance. MVP-22 G31: an error on the
+  // same screen does not remount it, because a retry would replay the entrance and lose the VoiceOver focus on the pressed control.
+  const scene = detail ? 'detail' : pending ? 'pending' : review ? 'review' : 'form';
   const entrance = useSceneEntrance(scene);
   const scroll = useRef(new Animated.Value(0)).current;
   useEffect(() => { scroll.setValue(0); }, [scene, scroll]);
+  // The busy publish of a retry clears the error for a moment. The notice holds the last error through it, so only a new error counts.
+  const errorKey = error ? `${error.kind}-${'code' in error ? error.code : ''}` : '';
+  const [notice, setNotice] = useState(errorKey);
+  if (errorKey !== notice && (errorKey !== '' || !busy)) setNotice(errorKey);
   const window = useWindowDimensions();
   const [, setSealed] = useState<string | null>(null);
   // The stamp and the sealed scroll share one size, so the scroll does not jump when the press ends (native check, 2026-09-30).
@@ -95,6 +101,9 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const [guideSeen, setGuideSeen] = useState<boolean | null>(null);
   const [guideLine, setGuideLine] = useState<number | null>(null);
   const scrollView = useRef<{ scrollTo(options: { y: number; animated?: boolean }): void } | null>(null);
+  // A new error brings the band with its line back to the top, as a screen change does (native check, 2026-09-25), without a remount.
+  // A cleared error leaves the page where it is.
+  useEffect(() => { if (notice) { scrollView.current?.scrollTo({ y: 0, animated: false }); scroll.setValue(0); } }, [notice, scroll]);
   // Native check, 2026-09-30: in one column the named cards sit far below the grid top. The measured places are state,
   // so a card measured after its step began still moves the page.
   const [guideTops, setGuideTops] = useState<{ block: number; grid: number; cards: Partial<Record<RuleCardId, number>> }>({ block: 0, grid: 0, cards: {} });

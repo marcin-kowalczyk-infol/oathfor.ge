@@ -1,4 +1,4 @@
-import { bindSeparators, bindShortWords, keepSlashJoined } from './typography';
+import { bindSeparators, bindShortWords, keepSlashJoined, plainText } from './typography';
 
 test('Polish single-letter words stay with the next word', () => {
   expect(bindShortWords('nie zegar w telefonie. Gdy minie termin z zasad, i w domu', 'pl'))
@@ -57,4 +57,9 @@ test('a middle-dot separator never ends a line, the space after it is a no-break
 test('bound prose applies the separator rule in Polish and English, with single-letter words bound only in Polish', () => {
   expect(bindShortWords('Bieganie · pt 2 paź 06:29 · Warszawa i w domu', 'pl')).toBe('Bieganie ·\u00a0pt 2 paź 06:29 ·\u00a0Warszawa i\u00a0w\u00a0domu');
   expect(bindShortWords('Running · a walk · Warsaw', 'en')).toBe('Running ·\u00a0a walk ·\u00a0Warsaw');
+});
+
+test('a spoken label turns drawn bindings back to plain text', () => {
+  expect(plainText(keepSlashJoined(bindShortWords('Kowadło z kłódką · 15 XP · Europe/Warsaw', 'pl')))).toBe('Kowadło z kłódką · 15 XP · Europe/Warsaw');
+  expect(plainText('plain text')).toBe('plain text');
 });
