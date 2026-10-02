@@ -129,8 +129,9 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     const result = await controller.list({ view: nextView, ...(cursor ? { cursor } : {}) });
     if (!current(epoch)) return;
     if (!quiet) setLoading(false);
-    // A kept cursor the server no longer accepts gives way to a full first page, never to an error the player cannot fix.
-    if (append && cursor && cursor === keptCursor.current && (result.kind === 'invalid_request' || (result.kind === 'oath_error' && result.code === 'invalid_request'))) {
+    // A cursor the server no longer accepts gives way to a full first page, never to an error the player cannot fix.
+    // Any refused page counts, not only one kept from a detail return, so Retry never resends a dead cursor (MVP-22-A8b).
+    if (append && cursor && (result.kind === 'invalid_request' || (result.kind === 'oath_error' && result.code === 'invalid_request'))) {
       keptCursor.current = null;
       return loadList(nextView);
     }

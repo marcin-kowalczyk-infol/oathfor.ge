@@ -1492,3 +1492,25 @@ describe('Today full list fold', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'All your Oaths' })).toHaveProp('accessibilityState', { expanded: false }));
   });
 });
+
+// MVP-22-A8b (review finding): any "Load more" the server refuses as invalid_request loads the first page again,
+// not only a cursor kept from a detail return, so Retry can never resend a dead cursor.
+test.each([
+  ['an invalid request', { kind: 'invalid_request' }],
+  ['an invalid_request Oath error', { kind: 'oath_error', code: 'invalid_request' }],
+] as const)('a plain Load more refused with %s loads the first page again', async (_name, refusal) => {
+  const first = oath({ state: 'withdrawn', reason: 'character_paused', terminalAt: serverTime, review: null });
+  const f = setup([]);
+  jest.mocked(f.controller.list).mockResolvedValueOnce(page([])).mockResolvedValueOnce(page([first], 'cursor1'))
+    .mockResolvedValueOnce(refusal as never).mockResolvedValueOnce(page([first]));
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await screen.findByText('No current Oaths. Choose a workout when you are ready.');
+  await fireEvent.press(screen.getByRole('button', { name: 'History' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Load more' }));
+  expect(jest.mocked(f.controller.list).mock.calls[2][0]).toEqual({ view: 'history', cursor: 'cursor1' });
+  await waitFor(() => expect(f.controller.list).toHaveBeenCalledTimes(4));
+  expect(jest.mocked(f.controller.list).mock.calls[3][0]).toEqual({ view: 'history' });
+  expect(await screen.findAllByTestId('state-seal-withdrawn', { includeHiddenElements: true })).toHaveLength(1);
+  expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
+});
