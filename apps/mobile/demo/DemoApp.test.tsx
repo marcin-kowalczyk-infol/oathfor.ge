@@ -140,6 +140,22 @@ test('a scenario reset clears every armed line', async () => {
   expect(screen.queryByText(pl.proofArmed)).toBeNull();
 });
 
+// Defect MVP-22-D7b: the expire label ended a line with "o". The drawn controls follow the app's Polish typesetting (MVP-22-G24),
+// so no drawn line ends with a single-letter word, while the spoken labels keep the plain form.
+const drawn = (node: { props: { children?: unknown } }) => ([] as unknown[]).concat(node.props.children).join('');
+test('the Polish controls keep single-letter words with the next word and speak plain labels', async () => {
+  await render(<DemoApp />);
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  await fireEvent.press(screen.getByRole('button', { name: pl.lose }));
+  await fireEvent.press(screen.getByRole('switch', { name: pl.wireCheck }));
+  const expire = screen.getByRole('button', { name: pl.expire });
+  expect(expire.props.accessibilityLabel).toBe(pl.expire);
+  expect(within(expire).getByText(/prosi o ponowne/, { normalizer: text => text })).toBeOnTheScreen();
+  expect(within(screen.getByTestId('demo-control-lose')).getByRole('alert').props.accessibilityLabel).toBe(pl.armed);
+  for (const node of screen.getAllByText(/\S/, { normalizer: text => text })) expect(drawn(node)).not.toMatch(/(^|[\s(„"«])[aiouwz] /i);
+  for (const node of screen.getAllByRole('button')) expect(node.props.accessibilityLabel ?? '').not.toMatch(/ /);
+});
+
 test('the offline control switches to the reconnect label and back', async () => {
   await render(<DemoApp />);
   await fireEvent.press(screen.getByRole('button', { name: pl.badge }));

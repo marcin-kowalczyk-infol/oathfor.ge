@@ -4,6 +4,7 @@ import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-nati
 import { Text } from '../src/ui/Text';
 import { AuthScreen } from '../src/auth/AuthScreen';
 import { LocalizationProvider } from '../src/localization/LocalizationProvider';
+import { bindShortWords } from '../src/localization/typography';
 import type { Locale } from '../src/localization/locale';
 import { createDummy } from './runtime';
 import { WIRE_CHECK_BASE_URL } from './wireCheck';
@@ -31,6 +32,8 @@ export default function DemoApp() {
   const [controls, setControls] = useState(false);
   const [, repaint] = useState(0);
   const copy = locale === 'pl' ? pl : en;
+  // Drawn control text follows the app's typesetting (MVP-22-G24), spoken labels keep the plain copy.
+  const drawn = (text: string) => bindShortWords(text, locale);
   const restart = () => setMount(value => value + 1);
   function reset(complete: boolean, populated = complete) {
     const next = createDummy(locale, complete, populated);
@@ -59,38 +62,38 @@ export default function DemoApp() {
     { key: 'add', label: copy.add, onPress: () => { dummy.add(); repaint(value => value + 1); setControls(false); } },
     { key: 'addNeedsMore', label: copy.addNeedsMore, onPress: () => { dummy.addNeedsMore(); repaint(value => value + 1); setControls(false); } },
   ];
-  const header = (text: string) => <Text accessibilityRole="header" style={styles.section}>{text}</Text>;
+  const header = (text: string) => <Text accessibilityRole="header" accessibilityLabel={text} style={styles.section}>{drawn(text)}</Text>;
   const list = (controls: Control[]) => controls.map(({ key, label, onPress, armed }) => <View key={key} testID={`demo-control-${key}`} style={styles.group}>
-    <Pressable accessibilityRole="button" style={[styles.button, armed ? styles.armed : null]} onPress={onPress}><Text style={styles.text}>{label}</Text></Pressable>
-    {armed ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.armedText}>{armed}</Text> : null}
+    <Pressable accessibilityRole="button" accessibilityLabel={label} style={[styles.button, armed ? styles.armed : null]} onPress={onPress}><Text style={styles.text}>{drawn(label)}</Text></Pressable>
+    {armed ? <Text accessibilityRole="alert" accessibilityLabel={armed} accessibilityLiveRegion="polite" style={styles.armedText}>{drawn(armed)}</Text> : null}
   </View>);
   // The bar keeps the top inset. The product gets its own provider, which on a device starts under the bar,
   // so the product screens get no second top inset. A Modal needs its own provider too.
   // Initial metrics let the first frame render before the native insets arrive.
   return <SafeAreaProvider initialMetrics={initialWindowMetrics}><View style={styles.root}>
-    <SafeAreaView testID="demo-badge-bar" edges={['top', 'left', 'right']}><Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={styles.badge}><Text key={fontScale} maxFontSizeMultiplier={1.4} style={styles.badgeText}>{copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable></SafeAreaView>
+    <SafeAreaView testID="demo-badge-bar" edges={['top', 'left', 'right']}><Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={styles.badge}><Text key={fontScale} maxFontSizeMultiplier={1.4} style={styles.badgeText}>{drawn(`${copy.badge}${dummy.state.offline ? ' · OFFLINE' : ''}`)}</Text></Pressable></SafeAreaView>
     <SafeAreaProvider style={styles.product}><Run key={mount} dummy={dummy} locale={locale} /></SafeAreaProvider>
     <Modal visible={controls} animationType="none" onRequestClose={() => setControls(false)}>
       <SafeAreaProvider><SafeAreaView style={styles.root}><ScrollView contentContainerStyle={styles.controls}>
-        <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>
-        <Text style={styles.text}>{copy.notice}</Text>
+        <Text accessibilityRole="header" accessibilityLabel={copy.title} style={styles.title}>{drawn(copy.title)}</Text>
+        <Text style={styles.text}>{drawn(copy.notice)}</Text>
         {header(copy.sectionScenarios)}
-        <Text style={styles.hint}>{copy.resetHint}</Text>
+        <Text style={styles.hint}>{drawn(copy.resetHint)}</Text>
         {list(scenarios)}
         {header(copy.sectionLanguage)}
         <View style={styles.languages}>{(['pl', 'en'] as const).map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: locale === value }} accessibilityLabel={value === 'pl' ? 'Polski' : 'English'} onPress={() => language(value)} style={[styles.button, locale === value ? styles.armed : null]}><Text style={styles.text}>{value.toUpperCase()}</Text></Pressable>)}</View>
         {header(copy.sectionFailures)}
         {list(failures)}
         {header(copy.sectionAdd)}
-        <Text style={styles.hint}>{copy.addHint}</Text>
+        <Text style={styles.hint}>{drawn(copy.addHint)}</Text>
         {list(additions)}
         {header(copy.sectionTools)}
         {list([{ key: 'restart', label: copy.restart, onPress: () => { restart(); setControls(false); } }])}
         <Pressable accessibilityRole="switch" accessibilityState={{ checked: dummy.state.wireCheck }} accessibilityLabel={copy.wireCheck} style={styles.button} onPress={() => { dummy.state.wireCheck = !dummy.state.wireCheck; repaint(value => value + 1); }}>
-          <Text style={styles.text}>{copy.wireCheck} · {dummy.state.wireCheck ? copy.wireCheckOn : copy.wireCheckOff}</Text>
+          <Text style={styles.text}>{drawn(`${copy.wireCheck} · ${dummy.state.wireCheck ? copy.wireCheckOn : copy.wireCheckOff}`)}</Text>
         </Pressable>
-        {dummy.state.wireCheck && <Text style={styles.text}>{copy.wireCheckNotice} {WIRE_CHECK_BASE_URL}</Text>}
-        <Pressable accessibilityRole="button" style={styles.button} onPress={() => setControls(false)}><Text style={styles.text}>{copy.close}</Text></Pressable>
+        {dummy.state.wireCheck && <Text style={styles.text}>{drawn(`${copy.wireCheckNotice} ${WIRE_CHECK_BASE_URL}`)}</Text>}
+        <Pressable accessibilityRole="button" style={styles.button} accessibilityLabel={copy.close} onPress={() => setControls(false)}><Text style={styles.text}>{drawn(copy.close)}</Text></Pressable>
       </ScrollView></SafeAreaView></SafeAreaProvider>
     </Modal>
   </View></SafeAreaProvider>;
