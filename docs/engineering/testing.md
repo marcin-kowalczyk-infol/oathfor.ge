@@ -535,14 +535,14 @@ Visual defects found in (d) were fixed and rechecked on the 18 Pro: proof screen
 
 ## Clarity acceptance (MVP-22), 2026-10-02
 
-The implementation landed in T00 to T12c, A0 to A8c and B1 to B2b, from 34573fe to 60def81. The rules are in [clarity](../product/clarity.md). The local plan and task records name every commit. This section records what ran and what is still open.
+The implementation landed in T00 to T12c, A0 to A8c and B1 to B2c, from 34573fe to 12aaa8f. The rules are in [clarity](../product/clarity.md). The local plan and task records name every commit. This section records what ran and what is still open.
 
 | Layer | Status | Result |
 | --- | --- | --- |
-| Mobile jest and typecheck | Ran | Last run on 60def81, Node 24.21.0: 106 suites and 1743 tests passed, typecheck exit 0 |
+| Mobile jest and typecheck | Ran | Last run on 12aaa8f (B2c), Node 24.21.0: 106 suites and 1750 tests passed, typecheck exit 0 |
 | Catalog guards | Ran | `clarityCopy.test.ts` checks "what next" lines at 12 Polish words and 70 characters, Żaromir lines at two sentences, pool sizes and the catalog-wide two-sentence cap. `review_copy.py` ran after each copy change, the last flags were resolved |
 | Screen tests | Ran | Every touched screen state asserts at most one filled action and renders in PL and EN at text scale 2 |
-| Independent reviews | Ran per batch | T01 to T03, T02b with T04, T05 to T08b, T09 with T09b, T09c to T09e, T10 to T12b, A0 to A4, A5 to A8b, B1 with A8c. Findings were fixed in T02b, T08b, T09b, T09d, T12b, T12c, A4b, A8c and B2b. B2 had an advisor check only. No independent review is recorded for B2b and the B2 follow-up |
+| Independent reviews | Ran per batch | T01 to T03, T02b with T04, T05 to T08b, T09 with T09b, T09c to T09e, T10 to T12b, A0 to A4, A5 to A8b, B1 with A8c, B2 with B2b. Findings were fixed in T02b, T08b, T09b, T09d, T12b, T12c, A4b, A8c, B2b and B2c |
 | Native checks | Ran in part | iPhone 18 Pro simulator, demo build after a cold relaunch, Polish only, default and largest standard text. Each check found defects that later tasks fixed with a failing test first |
 | English native pass | Not run | English is covered by jest at text scale 2 only |
 
@@ -550,6 +550,7 @@ Native observations on the iPhone 18 Pro, all in Polish. Screenshots are local e
 
 | Observed | When | Result |
 | --- | --- | --- |
+| Onboarding basics, Żaromir step, notifications step, main menu, room seals dialogue, Today with the seal wall and the folded full list, Oath form header and fields | After 60def81 | Serif titles and warm fields in onboarding, the timezone example unbroken, figure then bubble then Dalej, two lines and one fold on the notifications step, the cream continue arrow without the stray line, each Oath once on Today with the full list folded, solid header band and warm fields on the form |
 | Active detail, default and largest text | After T09 | The action fell below the fold. T09c removed the title and tabs and shortened the art band |
 | Active detail, default text | After 60def81 | Emblem, four-step track, card with "Aktywna", one line, the chip and the single filled "Prześlij dowód" fit without scrolling |
 | Active detail, largest text | After 60def81 | Vertical track and the card line fit. The chip and the action need one scroll. Decision 11 promises the fit at default size only |
@@ -562,8 +563,7 @@ Open native gates:
 
 | Gate | Reason |
 | --- | --- |
-| Recheck after the fixes | The T09c to T12c, A1 to A8c and B1 to B2b records each list items marked "native check". Only the active detail was observed again after them |
-| Today fold "Wszystkie Twoje Przysięgi" | Added in A8, not observed natively |
+| Recheck after the fixes | The T09c to T12c, A1 to A8c and B1 to B2c records each list items marked "native check". After 60def81 the screens in the row above were observed again. Proof screen, confirmation, sheets, review with the guide, History, Settings and pause review were not |
 | English on device | No English native pass in this epic |
 | Simple layout and Reduce Motion | Proof steps open, fold behaviour and the static equivalents are covered by jest only |
 | VoiceOver | Deferred. Labels, headings and announcements are set and tested, the rotor and the B2 sheet hints are unverified |
