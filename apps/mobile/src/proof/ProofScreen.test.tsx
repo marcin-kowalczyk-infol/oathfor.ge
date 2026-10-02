@@ -596,3 +596,31 @@ test('the path timer stops when the proof screen unmounts', async () => {
     expect(timeouts.mock.calls.slice(before).filter(([, delay]) => typeof delay === 'number' && delay > 1000)).toEqual([]);
   } finally { timeouts.mockRestore(); clears.mockRestore(); jest.useRealTimers(); }
 });
+
+// MVP-22-G24b: drawn Polish prose keeps a single-letter word with the next word. Stored text is bound only at render.
+describe('drawn prose binding', () => {
+  const raw = { normalizer: (text: string) => text };
+  test('Polish lines, folds, the stored declaration and the stored rule bind single-letter words', async () => {
+    const value = oath(); const stored = JSON.parse(JSON.stringify(value));
+    await show('pl', value);
+    expect(screen.getByText('Prywatne fragmenty zasłoń w Zdjęciach, zanim wybierzesz obraz.', raw)).toBeOnTheScreen();
+    expect(screen.getByText('Potwierdzam ukończenie treningu wskazanego w tej Przysiędze. Przesłany dowód dotyczy tego treningu.', raw)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'O ocenie dowodu' }));
+    expect(screen.getByText(/^Wybierz rodzaj dowodu, dodaj jeden obraz i potwierdź ukończenie treningu\./, raw)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Jak ukryć szczegóły' }));
+    expect(screen.getByText(/^W tej aplikacji nie da się przyciąć obrazu\./, raw)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Zasady dowodu' }));
+    expect(screen.getByText(/^Zdjęcie musi przedstawiać rozpoznawalne miejsce lub sprzęt pasujący do wybranego treningu/, raw).props.children).toContain('na zegarku lub w aplikacji');
+    expect(value).toEqual(stored);
+  });
+  test('a Polish card line binds single-letter words', async () => {
+    await show('pl', oath(), fakeController({ kind: 'storage_unavailable' }));
+    expect(screen.getByText('Nie udało się bezpiecznie odczytać zapisanego dowodu. Uruchom aplikację ponownie i\u00a0spróbuj jeszcze raz.', raw)).toBeOnTheScreen();
+  });
+  test('English keeps single-letter words unbound', async () => {
+    await show('en');
+    expect(screen.getByText('I confirm that I completed the workout named in this Oath. The evidence I submit relates to that workout.', raw)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'About the assessment' }));
+    expect(screen.getByText('An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.', raw)).toBeOnTheScreen();
+  });
+});

@@ -758,3 +758,46 @@ describe('header text never sits on the hearth art', () => {
     expect(lines.indexOf('Workout')).toBe(lines.length - 1);
   });
 });
+
+// MVP-22-G24b: drawn Polish prose keeps a single-letter word with the next word, and a middle-dot separator never ends a line.
+describe('drawn prose binding', () => {
+  const raw = { normalizer: (text: string) => text };
+  const pl = { date: 'Data ukończenia', day: '25 października 2026', time: 'Godzina ukończenia', words: { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' } };
+  async function reviewInPolish() {
+    await selectDate(pl.date, pl.day); await selectTime(pl.time, '02', '30', pl.words);
+    await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
+  }
+  test('Polish form, review and consent lines bind single-letter words', async () => {
+    const f = setup(); f.controller.start();
+    await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    expect(await screen.findByText('Wybierz trening i termin ukończenia.', raw)).toBeOnTheScreen();
+    await reviewInPolish();
+    expect(await screen.findByText('Przeczytaj zasady i złóż Przysięgę.', raw)).toBeOnTheScreen();
+    expect(screen.getByText('Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady.', raw)).toBeOnTheScreen();
+  });
+  test('the Polish review-again line binds single-letter words', async () => {
+    const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code: 'preview_superseded' });
+    f.controller.start(); await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await reviewInPolish();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Złóż Przysięgę' }));
+    expect(await screen.findByText('Ponownie wybierz i sprawdź terminy przed złożeniem Przysięgi.', raw)).toBeOnTheScreen();
+  });
+  test('English keeps single-letter words unbound, and the made line moves each separator to the next segment', async () => {
+    const f = setup(); f.controller.start();
+    jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed('20000000-0000-4000-8000-0000000000b4', f.envelope.preview.snapshot));
+    await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
+    expect(await screen.findByText('Choose a workout and its deadline.', raw)).toBeOnTheScreen();
+    await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+    expect(await screen.findByRole('header', { name: 'Oath made' })).toBeOnTheScreen();
+    expect(screen.getByText(/^Active · deadline Sun, Oct 25, 02:30 \(UTC\+02:00\) · Warsaw$/, raw)).toBeOnTheScreen();
+  });
+  test('the Polish made line keeps each dot with the segment after it', async () => {
+    const f = setup(); f.controller.start();
+    jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed('20000000-0000-4000-8000-0000000000b5', f.envelope.preview.snapshot));
+    await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
+    await reviewInPolish();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Złóż Przysięgę' }));
+    expect(await screen.findByText(/^Aktywna · termin [^ ]+ · Warszawa$/, raw)).toBeOnTheScreen();
+  });
+});

@@ -54,6 +54,24 @@ test.each([
   expect(drawn(/(Zadanie Powrotu|Recovery Quest)/)).toContain(consequence);
 });
 
+// MVP-22-G24b, native check at 200 %: the review promise wrapped "2026 o 18:00 ·" | "UTC+2.". The stored promise is bound only where it is
+// drawn, so the dot starts the next line with the offset, and Polish single-letter words stay with the next word.
+test('the Polish promise and declaration bind at render without changing the stored snapshot', async () => {
+  const value = snapshot();
+  const stored = JSON.parse(JSON.stringify(value));
+  const raw = { normalizer: (text: string) => text };
+  await render(<LocalizationProvider initialLocale="pl"><OathRuleCards snapshot={value} /></LocalizationProvider>);
+  expect(screen.getByText(/^Ukończę trening: Bieganie, do 2 października 2026 o 18:00 · UTC\+2\. .* zgodnie z zasadami dowodu tej Przysięgi\.$/, raw)).toBeOnTheScreen();
+  expect(screen.getByText('Potwierdzam ukończenie treningu wskazanego w tej Przysiędze. Przesłany dowód dotyczy tego treningu.', raw)).toBeOnTheScreen();
+  expect(value).toEqual(stored);
+});
+
+test('the English promise keeps single-letter words unbound and the dot with the offset', async () => {
+  const raw = { normalizer: (text: string) => text };
+  await render(<LocalizationProvider initialLocale="en"><OathRuleCards snapshot={snapshot()} /></LocalizationProvider>);
+  expect(screen.getByText(/^I will complete my workout: Running, by October 2, 2026 at 18:00 · UTC\+2\. .* submit a photo /, raw)).toBeOnTheScreen();
+});
+
 test('a highlighted card is marked for the explanation', async () => {
   await render(<LocalizationProvider initialLocale="pl"><OathRuleCards snapshot={snapshot()} highlight="cutoff" /></LocalizationProvider>);
   expect(screen.getByTestId('rule-card-cutoff')).toHaveStyle({ borderColor: '#e0a84f' });

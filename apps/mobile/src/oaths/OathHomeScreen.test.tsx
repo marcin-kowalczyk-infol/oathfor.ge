@@ -1618,3 +1618,44 @@ test('Retry after a failed Load more asks for the same next page', async () => {
   await waitFor(() => expect(f.controller.list).toHaveBeenCalledTimes(3));
   expect(jest.mocked(f.controller.list).mock.calls[2][0]).toEqual({ view: 'today', cursor: 'cursor1' });
 });
+
+// MVP-22-G24b: drawn Polish prose keeps a single-letter word with the next word, and a middle-dot separator never ends a line.
+describe('drawn prose binding', () => {
+  const raw = { normalizer: (text: string) => text };
+  test.each([
+    ['pl', '25 października 2026 · Warszawa'],
+    ['en', 'October 25, 2026 · Warsaw'],
+  ] as const)('the %s Today group header keeps the dot with the zone', async (locale, header) => {
+    const f = setup([oath({ state: 'active', reason: null, review: null })]);
+    await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await screen.findAllByRole('button', { name: /^(Open Oath|Otwórz Przysięgę): / });
+    expect(screen.getAllByText(header, raw).length).toBeGreaterThan(0);
+  });
+  test('a Polish History row keeps the dot with the closing time', async () => {
+    const fulfilled = oath({ state: 'fulfilled', reason: null, review: null, terminalAt: '2026-10-25T21:30:00Z' });
+    const f = setup([]); jest.mocked(f.controller.list).mockResolvedValueOnce(page([])).mockResolvedValueOnce(page([fulfilled]));
+    await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Historia' }));
+    const row = await screen.findByRole('button', { name: /Otwórz Przysięgę/ });
+    expect(within(row).getByText(/^Spełniona · 25/, raw)).toBeOnTheScreen();
+  });
+  test('the Polish detail binds single-letter words in its facts', async () => {
+    const f = setup([oath()]);
+    await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+    await fireEvent.press(await screen.findByRole('button', { name: /^Otwórz Przysięgę: / }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Pełny opis' }));
+    expect(screen.getByText('Usługa mogła być wtedy niedostępna. Dlatego ta Przysięga jest pod rozwagą, a nie niewykonana.', raw)).toBeOnTheScreen();
+  });
+  test('the Polish receipt time keeps the dot with the zone', async () => {
+    const f = setup([oath({ state: 'proof_pending', reason: null, review: null, proof: receipt })]);
+    await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+    await fireEvent.press(await screen.findByRole('button', { name: /^Otwórz Przysięgę: / }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Pełny opis' }));
+    expect(screen.getByText(/^Czas odebrania: .+ · Warszawa$/, raw)).toBeOnTheScreen();
+  });
+  test('English keeps single-letter words unbound in the pause note', async () => {
+    const f = setup([]); jest.mocked(f.controller.list).mockResolvedValue(page([], null, true));
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" /></LocalizationProvider>);
+    expect(await screen.findByText('Pause is on. Oaths awaiting a result continue, withdrawn ones do not return.', raw)).toBeOnTheScreen();
+  });
+});

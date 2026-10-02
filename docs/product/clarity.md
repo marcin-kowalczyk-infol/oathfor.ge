@@ -65,7 +65,7 @@ The character's pause state as a shape with a visible label: a filled seal "W gr
 
 ### Żaromir's line
 
-A small bust and a bubble with one line from a pool for the situation. Polish lines in his bubbles and on the "now and next" card keep single-letter words with the next word, so no line ends with one (MVP-22-B1). Drawn Polish prose on the character screens, Settings, sign-in, the menu tiles and the stored rules does the same, and so do disabled-button reasons, folds, choices and the pause mark. Spoken labels and hints keep plain spaces (MVP-22-G24). In both languages a number keeps its unit on the same line, such as "15 XP" or "3 dni", also on the rule cards (MVP-22-B2). No line while the character is paused. In review only one neutral sentence. The line never hides a required fact.
+A small bust and a bubble with one line from a pool for the situation. Polish lines in his bubbles and on the "now and next" card keep single-letter words with the next word, so no line ends with one (MVP-22-B1). Drawn Polish prose on the character screens, Settings, sign-in, the menu tiles and the stored rules does the same, and so do disabled-button reasons, folds, choices and the pause mark. Spoken labels and hints keep plain spaces (MVP-22-G24). In drawn text a middle-dot separator never ends a line, the space after the dot is a no-break space, so a wrap moves the dot to the next line with its segment, such as "15:32" | "· Warszawa" (local decision, MVP-22-G24b). In both languages a number keeps its unit on the same line, such as "15 XP" or "3 dni", also on the rule cards (MVP-22-B2). No line while the character is paused. In review only one neutral sentence. The line never hides a required fact.
 
 ## Oath path decisions
 

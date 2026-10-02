@@ -29,6 +29,7 @@ export function OathRuleCards({ snapshot, highlight = null, head = 'full', fold 
   const { width, fontScale } = useWindowDimensions();
   const columns = layoutMode(width, fontScale) === 'room' ? 2 : 1;
   const copy = snapshot.copy[locale];
+  // Stored text is bound only where it is drawn, the snapshot never changes. Spoken labels keep the plain form (MVP-22-G24b).
   const text = (value: string) => bindShortWords(value, locale);
   return <View style={styles.rules}>
     <View style={styles.head}>
@@ -38,12 +39,12 @@ export function OathRuleCards({ snapshot, highlight = null, head = 'full', fold 
       </>}
       {/* Native check, 2026-09-30: uncapped at the largest size the 68 pt promise broke "października" mid-word under the 56 pt title.
           The display cap keeps it at 38 pt, where the word takes about 251 of the 343 pt column. */}
-      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.promise}>{promiseText(snapshot, locale)}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.promise}>{text(promiseText(snapshot, locale))}</Text>
     </View>
     <View style={styles.declaration}>
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t('oath.rules.declaration')}</Text>
       {/* Native check, 2026-09-30: text inside the declaration, the cards and the fold is inset, so it takes the inset cap. */}
-      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{copy.declaration}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(copy.declaration)}</Text>
     </View>
     <View testID="rule-cards" onLayout={event => onCardsLayout?.(event.nativeEvent.layout.y)} style={[styles.grid, columns === 2 ? styles.pairs : styles.stack]}>
       {/* Native check, 2026-09-30: in one column the cards Żaromir names sit far below the grid top, so each card reports its own place. */}

@@ -7,11 +7,11 @@ const numberUnit = new RegExp(`(^|[^\\p{L}\\p{N}_])(\\d+(?:[.,]\\d+)?) +(${units
 
 /**
  * Polish typesetting keeps a single-letter word (a, i, o, u, w, z) with the word after it, so no line ends with one.
- * In every language a number keeps its unit (15 XP, 3 dni, 15 minutes) on the same line (MVP-22-B2).
- * Other languages keep their single-letter words unbound.
+ * In every language a number keeps its unit (15 XP, 3 dni, 15 minutes) on the same line (MVP-22-B2),
+ * and a middle-dot separator never ends a line (MVP-22-G24b). Other languages keep their single-letter words unbound.
  */
 export function bindShortWords(text: string, language: string): string {
-  const counted = text.replace(numberUnit, '$1$2\u00a0$3');
+  const counted = bindSeparators(text).replace(numberUnit, '$1$2\u00a0$3');
   if (!language.startsWith('pl')) return counted;
   // Neighbouring short words share a space, so a second pass binds the one the first match consumed.
   let bound = counted;
@@ -20,6 +20,17 @@ export function bindShortWords(text: string, language: string): string {
     bound = bound.replace(shortWord, '$1$2\u00a0');
   }
   return bound;
+}
+
+const separator = / · /g;
+
+/**
+ * A middle-dot separator between segments ("15:32 · Warszawa") never ends a line. The space before the dot stays breakable
+ * and the space after it becomes a no-break space, so a wrap moves the dot to the next line with its segment.
+ * Every language, drawn text only. Spoken labels and hints keep the plain form (local decision, MVP-22-G24b).
+ */
+export function bindSeparators(text: string): string {
+  return text.replace(separator, ' ·\u00a0');
 }
 
 const slashBetweenLetters = /(\p{L})\/(?=\p{L})/gu;

@@ -272,5 +272,20 @@ test('a Polish row binds a single-letter word in the activity name', async () =>
   jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
   await show(f, 'pl');
   expect(await screen.findByRole('button', { name: 'Potwierdź pauzę' })).toBeOnTheScreen();
-  expect(screen.getByText(/^Spacer z\u00a0psem · /, { normalizer: text => text })).toBeOnTheScreen();
+  expect(screen.getByText(/^Spacer z\u00a0psem ·\u00a0/, { normalizer: text => text })).toBeOnTheScreen();
+});
+// MVP-22-G24b, native check at the largest text: "Running · Fri, Oct 2, 15:32 ·" | "Warsaw" left the dot at a line end.
+// The space after each dot is a no-break space, so a wrap moves the dot with the next segment. English keeps "a walk" unbound.
+test.each([
+  ['en', 'Take a walk', /^Take a walk · [^ ]+ · Warsaw$/, 'Confirm pause'],
+  ['pl', 'Spacer w parku', /^Spacer w parku · [^ ]+ · Warszawa$/, 'Potwierdź pauzę'],
+] as const)('%s rows keep each separator with the segment after it', async (locale, activity, row, confirm) => {
+  const f = setup();
+  const walk = oath();
+  walk.snapshot.copy[locale].activity = activity;
+  jest.mocked(f.controller.detail).mockResolvedValue({ kind: 'success', value: { oath: walk, serverTime } });
+  jest.mocked(f.controller.getPause).mockResolvedValue({ kind: 'success', value: pauseSummary() });
+  await show(f, locale);
+  expect(await screen.findByRole('button', { name: confirm })).toBeOnTheScreen();
+  expect(screen.getByText(row, { normalizer: text => text })).toBeOnTheScreen();
 });

@@ -80,6 +80,7 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
   const [reopened, setReopened] = useState<'type' | 'image' | null>(null);
   const state = useSyncExternalStore(controller.subscribe, controller.getState);
   const copy = oath.snapshot.copy[locale];
+  // Drawn prose and stored text are bound only where they are drawn (MVP-22-G24b). Spoken labels and hints keep the plain form.
   const text = (value: string) => bindShortWords(value, locale);
   const [mode, setMode] = useState<ProofMode | null>(null);
   const [image, setImage] = useState<{ uri: string; width: number; height: number } | null>(null);
@@ -158,7 +159,7 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
     const shown = notices[source];
     if (!shown) return null;
     return <View testID={`proof-notice-${source}`} accessibilityLiveRegion="polite" style={styles.notice}>
-      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noticeText}>{t(shown.kind === 'denied' ? (source === 'camera' ? 'proof.cameraDenied' : 'proof.libraryUnavailable') : `proof.${source}Unavailable`)}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noticeText}>{text(t(shown.kind === 'denied' ? (source === 'camera' ? 'proof.cameraDenied' : 'proof.libraryUnavailable') : `proof.${source}Unavailable`))}</Text>
       {shown.kind === 'denied' && !shown.canAskAgain
         && <Action label={t('proof.openSettings')} variant="secondary" onPress={() => { void Linking.openSettings().catch(() => {}); }} />}
     </View>;
@@ -178,13 +179,13 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
   </>;
   /** A fact is a card line, never a bubble (decision 14). At most one filled action follows it. */
   const card = (testID: string | undefined, line: string, actions?: ReactNode) => <View testID={testID} style={styles.card}>
-    <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardLine}>{line}</Text>
+    <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardLine}>{text(line)}</Text>
     {actions}
   </View>;
   let body: ReactNode;
   if (oath.state !== 'active') body = card(undefined, t('proof.notActive'));
   else if (state.kind === 'storage_unavailable') body = card(undefined, t('proof.storageUnavailable'));
-  else if (!ready) body = <Text accessibilityLiveRegion="polite" style={styles.body}>{t('proof.loading')}</Text>;
+  else if (!ready) body = <Text accessibilityLiveRegion="polite" style={styles.body}>{text(t('proof.loading'))}</Text>;
   else if (ready.pending && ready.pending.oathId !== oath.id) {
     // One unresolved proof per character blocks a new one. Its own Oath may no longer offer a proof screen, so sending it again
     // is offered here too. A replay is idempotent and its answers stay off this form. Only its own Oath offers delete.
@@ -243,15 +244,15 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
         <Disclosure label={t('proof.rulesLink')}><View style={styles.note}>
           {routes.map(route => <View key={route.mode} style={styles.ruleGroup}>
             <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noteHeading}>{t(`proof.routes.${route.mode}.title`)}</Text>
-            <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.rule}>{copy.sections[route.rule]}</Text>
+            <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.rule}>{text(copy.sections[route.rule])}</Text>
           </View>)}
         </View></Disclosure>
       </View>
       <View style={styles.section}>
         <StepHead number={2} title={t('proof.steps.image')} />
         {imageFolded ? <Summary choice={t('proof.preview')} change={t('proof.change')} step={t('proof.steps.image')} disabled={busy} onChange={() => setReopened('image')} /> : <>
-        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.privacyLine')}</Text>
-        <Disclosure label={t('proof.cropMore')}><View style={styles.note}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.crop')}</Text></View></Disclosure>
+        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(t('proof.privacyLine'))}</Text>
+        <Disclosure label={t('proof.cropMore')}><View style={styles.note}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(t('proof.crop'))}</Text></View></Disclosure>
         {/* Side by side, both buttons take the taller one's height. Notices name their source, so they go under the pair. */}
         <View testID="proof-sources" style={[styles.sources, simple ? styles.stacked : styles.paired]}>
           {(['camera', 'library'] as const).map(source => <View key={source} style={simple ? styles.full : styles.half}>
@@ -264,7 +265,7 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
         </View>
         {!simple && notice('camera')}
         {!simple && notice('library')}
-        {capturing && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('proof.preparing')}</Text>}
+        {capturing && <Text accessibilityLiveRegion="polite" style={styles.body}>{text(t('proof.preparing'))}</Text>}
         {imageFailed && card(undefined, t('proof.imageFailed'))}
         </>}
         {image && <Image testID="proof-preview" accessibilityLabel={t('proof.preview')} accessibilityRole="image" accessible source={{ uri: image.uri }} resizeMode="contain"
@@ -274,19 +275,19 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
       <StepHead number={3} title={t('proof.steps.confirm')} />
       <View style={styles.declaration}>
         {/* The stored declaration once, then a short answer. The checkbox speaks the declaration it accepts (MVP-22-T12c). */}
-        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{copy.declaration}</Text>
+        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(copy.declaration)}</Text>
         <Pressable accessibilityRole="checkbox" accessibilityLabel={`${t('proof.confirm')}. ${copy.declaration}`} accessibilityState={{ checked: declared, disabled: busy }} disabled={busy}
           onPress={() => setDeclared(value => !value)} style={({ pressed }) => [styles.check, pressed && styles.pressed]}>
           <View style={[styles.box, declared && styles.boxOn]}>{declared && <Text allowFontScaling={false} style={styles.tick}>✓</Text>}</View>
           <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.checkLabel}>{t('proof.confirm')}</Text>
         </Pressable>
       </View>
-      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.aiLine')}</Text>
+      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(t('proof.aiLine'))}</Text>
       {/* The full introduction opens with the assessment note, so the top of the screen carries no second link (MVP-22-T12c). */}
       <Disclosure label={t('proof.aiMore')}><View style={styles.note}>
-        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.introFull')}</Text>
+        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(t('proof.introFull'))}</Text>
         <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noteHeading}>{t('proof.caveatHeading')}</Text>
-        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('proof.caveat')}</Text>
+        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(t('proof.caveat'))}</Text>
       </View></Disclosure>
       {(busy || error) && card(undefined, busy ? t('proof.sending') : errorMessage(error!, t))}
       {missing

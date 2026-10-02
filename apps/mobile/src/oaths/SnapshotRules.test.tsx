@@ -35,12 +35,13 @@ test.each(['pl', 'en'] as const)('%s renders every stored rule section and subst
 });
 
 // MVP-22-G24: drawn Polish rules keep a single-letter word with the next word. Binding happens at render, the stored snapshot stays as it is.
+// MVP-22-G24b: the dot before the offset starts the next line with it, so "02:30 ·" never ends a line.
 test('Polish rules bind single-letter words at render without changing the stored snapshot', async () => {
   const value = snapshot();
   const stored = JSON.parse(JSON.stringify(value));
   const raw = { normalizer: (text: string) => text };
   await render(<LocalizationProvider initialLocale="pl"><SnapshotRules snapshot={value} /></LocalizationProvider>);
-  expect(screen.getByText(/^Ukończę trening: Bieganie, do 25 października 2026 o 02:30 · UTC\+2\. .*zdjęcie lub zrzut ekranu zgodnie z zasadami/, raw)).toBeOnTheScreen();
+  expect(screen.getByText(/^Ukończę trening: Bieganie, do 25 października 2026 o 02:30 ·\u00a0UTC\+2\. .*zdjęcie lub zrzut ekranu zgodnie z zasadami/, raw)).toBeOnTheScreen();
   expect(screen.getByText(/^Przy składaniu dowodu wybierzesz zdjęcie kontekstu albo zapis aktywności i potwierdzisz/, raw)).toBeOnTheScreen();
   expect(screen.getByText('Rozpoczęcie i zobowiązanie', raw)).toBeOnTheScreen();
   expect(screen.getByText('Teraz, w chwili potwierdzenia na serwerze', raw)).toBeOnTheScreen();
@@ -51,7 +52,7 @@ test('English rules keep ordinary spaces around single-letter words', async () =
   const raw = { normalizer: (text: string) => text };
   await render(<LocalizationProvider initialLocale="en"><SnapshotRules snapshot={snapshot()} /></LocalizationProvider>);
   expect(screen.getByText('Now, at server confirmation', raw)).toBeOnTheScreen();
-  expect(screen.getByText(/^I will complete my workout: Running, by October 25, 2026 at 02:30 · UTC\+2\. I will confirm completion and submit a photo/, raw)).toBeOnTheScreen();
+  expect(screen.getByText(/^I will complete my workout: Running, by October 25, 2026 at 02:30 ·\u00a0UTC\+2\. I will confirm completion and submit a photo/, raw)).toBeOnTheScreen();
 });
 
 test('shows the second repeated occurrence distinctly and keeps scheduled activation in its own zone', async () => {

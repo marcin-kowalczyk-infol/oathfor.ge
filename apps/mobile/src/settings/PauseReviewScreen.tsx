@@ -80,6 +80,7 @@ export function PauseReviewScreen({ controller, character, onBack, onChanged }: 
     : pauseChanged === 'oaths' ? 'oathHome.pauseChanged' : null;
   const line = notice ?? (pause ? (pause.summary.paused ? 'oathHome.paused' : 'oathHome.pauseIntro') : null);
   // The short path time with the zone label. The offset appears only in the repeated hour (MVP-22-B1, G10).
+  // Drawn only, so each separator keeps a no-break space after it and never ends a line (MVP-22-G24b).
   function summary(item: Oath) {
     const { deadline } = item.snapshot;
     return bindShortWords(t('oathHome.summary', { activity: item.snapshot.copy[locale].activity, deadline: `${pathTimeText(deadline, locale)} · ${zoneLabel(deadline.timezone, t)}` }), locale);
@@ -102,11 +103,11 @@ export function PauseReviewScreen({ controller, character, onBack, onChanged }: 
           {(pause || failed || pauseFailed) && <PauseMark state={pause ? (pause.summary.paused ? 'paused' : 'active') : 'unknown'} />}
         </View>
         {!available && <>
-          <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
+          <Text accessibilityLiveRegion="polite" style={styles.body}>{bindShortWords(t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading'), locale)}</Text>
           {account.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
         </>}
         {available && <>
-          {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
+          {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{bindShortWords(t('oathHome.loading'), locale)}</Text>}
           {line && <Text testID="pause-line" maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole={notice ? 'alert' : undefined} accessibilityLiveRegion="polite"
             style={notice ? styles.notice : styles.body}>{bindShortWords(t(line), locale)}</Text>}
           {(failed || pauseFailed) && <Action label={t('oathHome.reviewPause')} onPress={() => { void showPause(); }} />}

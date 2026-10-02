@@ -1,4 +1,4 @@
-import { bindShortWords, keepSlashJoined } from './typography';
+import { bindSeparators, bindShortWords, keepSlashJoined } from './typography';
 
 test('Polish single-letter words stay with the next word', () => {
   expect(bindShortWords('nie zegar w telefonie. Gdy minie termin z zasad, i w domu', 'pl'))
@@ -36,4 +36,16 @@ test('a number before another word, or a unit inside a longer word, keeps its sp
   expect(bindShortWords('pt 2 paź 18:00', 'pl')).toBe('pt 2 paź 18:00');
   expect(bindShortWords('3 dniach i 5 hours', 'en')).toBe('3 dniach i 5 hours');
   expect(bindShortWords('starter_02 history', 'en')).toBe('starter_02 history');
+});
+
+// MVP-22-G24b: at the largest text "15:32 ·" | "Warszawa" left a separator at a line end. The dot now starts the next line with its segment.
+test('a middle-dot separator never ends a line, the space after it is a no-break space in every language', () => {
+  expect(bindSeparators('Aktywna · termin pt 2 paź 15:32 · Warszawa')).toBe('Aktywna ·\u00a0termin pt 2 paź 15:32 ·\u00a0Warszawa');
+  expect(bindSeparators('Running · Fri, Oct 2, 15:32 · Warsaw')).toBe('Running ·\u00a0Fri, Oct 2, 15:32 ·\u00a0Warsaw');
+  expect(bindSeparators('A·B and a lone · at the end ·')).toBe('A·B and a lone ·\u00a0at the end ·');
+});
+
+test('bound prose applies the separator rule in Polish and English, with single-letter words bound only in Polish', () => {
+  expect(bindShortWords('Bieganie · pt 2 paź 06:29 · Warszawa i w domu', 'pl')).toBe('Bieganie ·\u00a0pt 2 paź 06:29 ·\u00a0Warszawa i\u00a0w\u00a0domu');
+  expect(bindShortWords('Running · a walk · Warsaw', 'en')).toBe('Running ·\u00a0a walk ·\u00a0Warsaw');
 });

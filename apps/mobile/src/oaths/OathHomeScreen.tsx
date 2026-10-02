@@ -53,6 +53,9 @@ export type ForgeNavigation = { request: { id: number; target: 'create' | ViewNa
 export function OathHomeScreen({ controller, timezone, forgeNavigation, reload = 0, rulesGuideStorage, network, proof }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; reload?: number; rulesGuideStorage?: GuideStorage; network?: NetworkEvents; proof?: ProofController }) {
   const art = useArt(); const chronicleIcon = art.talk.chronicle;
   const { t, i18n } = useTranslation(); const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
+  // Drawn prose keeps Polish single-letter words with the next word and never ends a line on a separator (MVP-22-G24b).
+  // Spoken labels, hints, button titles and the row comparisons keep the plain form.
+  const prose = (value: string) => bindShortWords(value, locale);
   const { width, fontScale } = useWindowDimensions();
   const interactiveForge = layoutMode(width, fontScale) === 'room';
   // The room is the way back in room layout. Without the room the header returns to the menu.
@@ -268,7 +271,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     const error = deviceProofError(oath, proofState, subject);
     const message = status === 'sending' || status === 'deleting' ? t(status === 'deleting' ? 'proof.deleting' : 'proof.sending') : error ? errorMessage(error, t) : t('path.next.interrupted');
     return <View testID="upload-interrupted" style={styles.upload}>
-      <View accessibilityLiveRegion="polite"><Text style={styles.uploadText}>{message}</Text></View>
+      <View accessibilityLiveRegion="polite"><Text style={styles.uploadText}>{prose(message)}</Text></View>
       {status === 'waiting' && <Action label={t('proof.retry')} onPress={() => resume(oathId)} />}
     </View>;
   }
@@ -305,8 +308,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     // The interrupted copy's explanation. An error after a press is the line itself.
     const device = status === 'waiting' ? t('oathHome.uploadInterrupted') : null;
     const details = facts.length || device ? <View style={styles.facts}>
-      {facts.map(fact => <Text key={fact.text} style={fact.time ? styles.statusTime : styles.statusReason}>{fact.text}</Text>)}
-      {device && <Text testID="upload-interrupted" style={styles.statusReason}>{device}</Text>}
+      {facts.map(fact => <Text key={fact.text} style={fact.time ? styles.statusTime : styles.statusReason}>{prose(fact.text)}</Text>)}
+      {device && <Text testID="upload-interrupted" style={styles.statusReason}>{prose(device)}</Text>}
     </View> : undefined;
     // The only filled action. A copy waiting on the device is resent, never replaced by a new one.
     const action = !proof ? undefined : path.action === 'submitProof' ? { label: t('proof.submit'), onPress: () => { setSubject(null); setRoute('proof'); } }
@@ -410,7 +413,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     const spaced = index > 0 && (view !== 'today' || newGroup || !!uploads[index - 1]);
     return <View key={item.id} testID={`oath-entry-${item.id}`} style={[styles.entry, index > 0 && { marginTop: spaced ? tokens.space.section : tokens.space.item }]}>
       {newCategory && <Text accessibilityRole="header" style={styles.label}>{t(`oathHome.${category(item)}`)}</Text>}
-      {newGroup && <Text accessibilityRole="header" style={styles.group}>{group(item)}</Text>}
+      {newGroup && <Text accessibilityRole="header" style={styles.group}>{prose(group(item))}</Text>}
       <Pressable accessibilityRole="button" accessibilityLabel={summary(item)} accessibilityValue={{ text: interruptedIds.has(item.id) ? `${t(`oath.states.${item.state}`)}, ${t('path.badge.interrupted')}` : t(`oath.states.${item.state}`) }} onPress={() => openFromList(item.id)}
         style={({ pressed }) => [styles.journalEntry, !interactiveForge && styles.stackedEntry, pressed && styles.pressedEntry]}>
         <View style={styles.emblems}>
@@ -423,7 +426,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
           {/* Today rows: four pips with the short state label, no full track (clarity.md decision 9). */}
           {view === 'today' && rowPaths.has(item.id) && <StepTrack variant="compact" path={rowPaths.get(item.id)!} state={item.state} />}
           {/* History rows show the result seal, the short visible state and when it closed, in the Oath's own zone (decision 10). */}
-          <Text style={styles.deadline}>{view === 'history' ? `${t(`forge.sealState.${item.state}`)} · ${compactStoredTime(item.terminalAt ? wallTimeIn(item.terminalAt, item.snapshot.deadline.timezone) : item.snapshot.deadline.local, locale)}` : shortStoredTime(item.snapshot.deadline.local, locale, false)}</Text>
+          <Text style={styles.deadline}>{view === 'history' ? prose(`${t(`forge.sealState.${item.state}`)} · ${compactStoredTime(item.terminalAt ? wallTimeIn(item.terminalAt, item.snapshot.deadline.timezone) : item.snapshot.deadline.local, locale)}`) : shortStoredTime(item.snapshot.deadline.local, locale, false)}</Text>
           {view === 'today' && <CountdownChip oath={item} clock={controller.clock} onElapsed={elapsed} />}
         </View>
       </Pressable>
@@ -439,7 +442,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       {interactiveForge
       ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />
       : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />}</View>}
-    <SlowNotice text={t('oathHome.loading')} />
+    <SlowNotice text={prose(t('oathHome.loading'))} />
   </View></SafeAreaView> : <SafeAreaView style={styles.safeArea}><Animated.ScrollView testID="oath-list-scroll" style={entrance} key={scrollKey} contentOffset={restoredAt} contentContainerStyle={styles.content}
     refreshControl={available && route === 'list' ? <RefreshControl refreshing={pulling} onRefresh={() => pull()} tintColor={tokens.color.primary} /> : undefined} scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true, listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => { offset.current = event.nativeEvent.contentOffset.y; } })}>
     {/* The detail shows no screen title and no tabs, so its line and action stay above the fold (docs/product/clarity.md rule 1, MVP-22-T09c). */}
@@ -462,30 +465,30 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       </Pressable>)}</View>}
     </View>
     {!available && <>
-      <Text accessibilityLiveRegion="polite" style={styles.body}>{t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading')}</Text>
+      <Text accessibilityLiveRegion="polite" style={styles.body}>{prose(t(account.kind === 'storage_unavailable' ? 'oath.storageError' : 'oathHome.loading'))}</Text>
       {account.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
     </>}
     {available && <>
       {/* A fact, so a plain card line. Żaromir stays silent while paused (clarity.md decisions 5 and 14). */}
       {/* MVP-22-A8: the pause line carries the shared pause mark. The busy, pending and error lines are plain too (decision 14). */}
-      {route === 'list' && list?.paused && <View testID="pause-note" accessibilityLiveRegion="polite" style={[styles.note, styles.noteStack]}><PauseMark state="paused" /><Text style={styles.noteText}>{t('oathHome.paused')}</Text></View>}
-      {route === 'list' && busyNotice && <View testID="busy-line" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{t('forge.busy')}</Text></View>}
+      {route === 'list' && list?.paused && <View testID="pause-note" accessibilityLiveRegion="polite" style={[styles.note, styles.noteStack]}><PauseMark state="paused" /><Text style={styles.noteText}>{prose(t('oathHome.paused'))}</Text></View>}
+      {route === 'list' && busyNotice && <View testID="busy-line" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{prose(t('forge.busy'))}</Text></View>}
       {/* The lowered chronicle close-up shows its book in this band, so no text crosses it. */}
       {route === 'list' && view === 'history' && interactiveForge && <View testID="chronicle-band" style={styles.chronicleBand} />}
       {route === 'list' && view === 'today' && <>
         <ForgeHub items={list?.items ?? []} clock={controller.clock} onElapsed={elapsed} onOpen={openFromList} interrupted={interruptedIds} onCreate={account.pending || list?.paused ? undefined : () => create()} createDisabled={account.busy} />
       </>}
       {route === 'list' && (account.pending ? <>
-        <View testID="pending-line" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{t('oath.pending')}</Text></View>
+        <View testID="pending-line" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{prose(t('oath.pending'))}</Text></View>
         {/* While the list failed, its Retry is the one filled action (MVP-22-A8c). */}
         <Action label={t('oath.recover')} variant={failed ? 'secondary' : listAction} busy={account.busy} onPress={() => create(true)} />
       </> : !list?.paused && (view !== 'today' || !interactiveForge) && <Action label={t('oathHome.create')} variant={failed ? 'secondary' : listAction} busy={account.busy} onPress={() => create()} />)}
-      {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
+      {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{prose(t('oathHome.loading'))}</Text>}
       {route === 'list' && view === 'history' && list && <View testID="history-header" style={styles.historyHeader}>
         <View accessible accessibilityLabel={`${list.total} ${t('room.talk.chronicle', { count: list.total })}`} style={styles.historyCount}>
           <Image source={chronicleIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.historyIcon} />
           <Text style={styles.historyTotal}>{list.total}</Text>
-          <Text style={styles.historyLabel}>{bindShortWords(t('room.talk.chronicle', { count: list.total }), locale)}</Text>
+          <Text style={styles.historyLabel}>{prose(t('room.talk.chronicle', { count: list.total }))}</Text>
         </View>
         {/* The compact line of the Oath path, so History and the detail speak alike (MVP-22-B2). */}
         <ZaromirLine message={t(list.total > 0 ? 'oathHome.historyLine' : 'oathHome.historyEmpty')} />
@@ -499,7 +502,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         {/* Żaromir does not suggest a workout while paused (clarity.md rule 8). The pause note above says what holds. */}
         {/* An acceptance that may have arrived is not an empty Today (MVP-22-A8c). */}
         {!loading && !failed && list?.items.length === 0 && view === 'today' && !list.paused && !account.pending && <CompanionBubble message={t('oathHome.emptyToday')} />}
-        {failed && <><View testID="list-error" accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{t('oathHome.loadError')}</Text></View><Action label={t('oath.retry')} variant={listAction} onPress={() => { void loadList(view, failedAppend.current && !!list?.nextCursor); }} /></>}
+        {failed && <><View testID="list-error" accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{prose(t('oathHome.loadError'))}</Text></View><Action label={t('oath.retry')} variant={listAction} onPress={() => { void loadList(view, failedAppend.current && !!list?.nextCursor); }} /></>}
         {/* "Wczytaj więcej" is never the screen's main action, so it keeps the outline style (MVP-22-A8). */}
         {list?.nextCursor && !failed && <Action label={t('oathHome.more')} variant="secondary" busy={loading} onPress={() => { void loadList(view, true); }} />}
       </>}

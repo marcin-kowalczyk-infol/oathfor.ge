@@ -125,6 +125,9 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const [panelHeight, setPanelHeight] = useState<number | null>(null);
   const guideInset = guideShown ? (panelHeight ?? guideFrame.maxHeight) + guideFrame.bottom + PANEL_RISE : null;
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
+  // Drawn prose keeps Polish single-letter words with the next word and never ends a line on a separator (MVP-22-G24b).
+  // Spoken labels, hints and button titles keep the plain form.
+  const prose = (value: string) => bindShortWords(value, locale);
   // VoiceOver hears once that the Oath was made and how long is left, when the stamp settles.
   function announceMade(made: NonNullable<typeof oath>) {
     const target = countdownTarget(made); const now = controller.clock.now();
@@ -143,7 +146,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
       <WallTimePicker field={field} value={draft} disabled={busy} now={() => controller.clock.now() ?? Date.now()} onChange={value => { if (!busy) { setDraft(value); setSubmitted(false); } }} />
       {occurrence && <View style={styles.group}>
         {/* Native check, 2026-09-30: inside the 350 / 323 pt bench the uncapped "dwukrotnie." and "wystąpienie" take about 367 pt. */}
-        <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t('oath.offsetChoice', { field: t(`oath.${field}Time`) })}</Text>
+        <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(t('oath.offsetChoice', { field: t(`oath.${field}Time`) }))}</Text>
         {occurrence.validOffsets?.map(offset => <Pressable key={offset} accessibilityRole="radio"
           accessibilityLabel={t('oath.occurrence', { offset })} accessibilityState={{ selected: draft.offset === offset, disabled: busy }} disabled={busy}
           style={[styles.choice, draft.offset === offset && styles.selected]} onPress={() => { if (!busy) setDraft({ ...draft, offset }); }}>
@@ -170,19 +173,19 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         {onBack && (backPlain ? <BackLink label={backLabel ?? t('oathHome.today')} onPress={onBack} /> : <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />)}
         {titled && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
         {/* MVP-22-A6: one plain "what next" line. D and S stay on their cards and in Żaromir's guide (clarity.md rules 1 and 14). */}
-        {intro && <Text testID="oath-line" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t(intro)}</Text>}
+        {intro && <Text testID="oath-line" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(t(intro))}</Text>}
         {/* MVP-22-B2c: the error and review-again lines stand above the workout header, so the header stays with its offerings. */}
-        {ready && errorText && <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{errorText}</Text>}
-        {ready?.needsReview && <Text style={styles.body}>{t('oath.reviewAgain')}</Text>}
+        {ready && errorText && <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(errorText)}</Text>}
+        {ready?.needsReview && <Text style={styles.body}>{prose(t('oath.reviewAgain'))}</Text>}
         {/* MVP-22-G27: the pending line and its action stand on the band after the error line, never on the hearth fire. */}
         {pending && <>
-          <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t('oath.pending')}</Text>
+          <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(t('oath.pending'))}</Text>
           <Action label={t('oath.recover')} busy={busy} onPress={() => { void controller.recover(); }} />
         </>}
         {forming && <Text accessibilityRole="header" style={styles.label}>{t('oath.activity')}</Text>}
       </View>}
       {!ready && <>
-        <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading')}</Text>
+        <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading'))}</Text>
         {state.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
       </>}
       {detail && <>
@@ -196,7 +199,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
           <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.made')}</Text>
           <View style={styles.track}><StepTrack path={oathPath(oath, 'none', null, controller.clock.now())} state={oath.state} activityEmblem={oath.snapshot.activity} /></View>
           <CountdownChip oath={oath} clock={controller.clock} size="large" />
-          <Text style={[styles.body, styles.centred]}>{t('oath.madeLine', { state: t(`oath.states.${oath.state}`), time: pathTimeText(oath.snapshot.deadline, locale), zone: zoneLabel(oath.snapshot.deadline.timezone, t) })}</Text>
+          <Text style={[styles.body, styles.centred]}>{prose(t('oath.madeLine', { state: t(`oath.states.${oath.state}`), time: pathTimeText(oath.snapshot.deadline, locale), zone: zoneLabel(oath.snapshot.deadline.timezone, t) }))}</Text>
           </>}
         </View>
         {stamped.has(oath.id) && (() => {
@@ -218,7 +221,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
             onCardLayout={(id, y) => setGuideTops(tops => tops.cards[id] === y ? tops : { ...tops, cards: { ...tops.cards, [id]: y } })} />
         </View>
         {!pending && <>
-          <View style={styles.consent}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{t('oath.consent')}</Text></View>
+          <View style={styles.consent}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{prose(t('oath.consent'))}</Text></View>
           <Action label={t('oath.confirm')} busy={busy} onPress={() => { void controller.confirm(); }} />
           <Action label={t('oath.edit')} busy={busy} variant="secondary" onPress={() => { setMode('form'); setSubmitted(false); }} />
         </>}
