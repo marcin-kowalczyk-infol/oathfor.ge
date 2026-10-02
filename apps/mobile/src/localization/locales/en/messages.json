@@ -162,15 +162,15 @@
     "confirm": "Commit to the Oath",
     "holdHint": "Hold to commit to the Oath",
     "holdTapHint": "Double-tap to commit to the Oath",
-    "edit": "Change choices",
+    "edit": "Change",
     "loading": "Loading your Oath…",
     "retry": "Try again",
     "formRequired": "Deadline needed.",
     "formRequiredStart": "Start needed.",
     "formRequiredTime": "Time needed.",
     "formRequiredStartTime": "Start time needed.",
-    "reviewIntro": "Read the rules, then make the Oath.",
-    "consent": "By choosing “Commit to the Oath”, I accept the rules on the cards and the full rules.",
+    "consent": "Hold to accept every rule",
+    "consentTap": "Double-tap to accept every rule",
     "pending": "Your confirmation may already have arrived. Check this Oath before you start another.",
     "pendingConfirmed": "Your Oath is already made. Check confirmation to finish saving on this device.",
     "recover": "Check confirmation",
@@ -285,12 +285,22 @@
       "2": "The hourglass is the deadline. Finish the task by then.",
       "3": "The candle is your last chance for proof, 15 minutes after the deadline.",
       "4": "The anvil with the lock means none of this changes once the Oath is made.",
-      "replay": "Hear Zharomir explain the rules"
+      "replay": "Ask Zharomir"
     },
     "made": "Oath made",
     "madeLine": "{{state}} · deadline {{time}} · {{zone}}",
     "viewOath": "View the Oath",
-    "proofPending": "Proof received and being assessed. The time it arrived stays on record, however long the assessment takes."
+    "proofPending": "Proof received and being assessed. The time it arrived stays on record, however long the assessment takes.",
+    "pictograms": {
+      "deadline": "Deadline",
+      "cutoff": "Last chance",
+      "cutoffValue": "+{{count}} min",
+      "fixed": "Rules fixed",
+      "reward": "Reward",
+      "rewardValue": "{{photo}}–{{record}} XP",
+      "consequence": "If missed",
+      "consequenceValue": "XP kept"
+    }
   },
   "oathHome": {
     "today": "Today",

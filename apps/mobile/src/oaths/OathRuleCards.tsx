@@ -26,8 +26,6 @@ export function OathRuleCards({ snapshot, highlight = null, head = 'full', fold 
   const oathArt = useArt().oaths;
   const { t, i18n } = useTranslation();
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
-  const { width, fontScale } = useWindowDimensions();
-  const columns = layoutMode(width, fontScale) === 'room' ? 2 : 1;
   const copy = snapshot.copy[locale];
   // Stored text is bound only where it is drawn, the snapshot never changes. Spoken labels keep the plain form (MVP-22-G24b).
   const text = (value: string) => bindShortWords(value, locale);
@@ -47,22 +45,32 @@ export function OathRuleCards({ snapshot, highlight = null, head = 'full', fold 
       {/* Counted (MVP-22-E1.R): D-E4 exempts the declaration only as the hold label, which arrives with E3. */}
       <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(copy.declaration)}</Text>
     </View>
-    <View testID="rule-cards" onLayout={event => onCardsLayout?.(event.nativeEvent.layout.y)} style={[styles.grid, columns === 2 ? styles.pairs : styles.stack]}>
-      {/* Native check, 2026-09-30: in one column the cards Żaromir names sit far below the grid top, so each card reports its own place. */}
-      {ruleCards(snapshot, t, locale).map(card => <View key={card.id} testID={`rule-card-${card.id}`} accessible accessibilityLabel={`${card.title}. ${spoken(card)}`}
-        onLayout={onCardLayout && (event => onCardLayout(card.id, event.nativeEvent.layout.y))}
-        style={[styles.card, columns === 2 ? styles.half : styles.full, card.id === highlight && styles.highlight]}>
-        <SpriteFrame sheet={oathArt.ruleIcons} index={ruleIcon[card.icon]} width={40} />
-        <View style={styles.cardText}>
-          <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardTitle}>{text(card.title)}</Text>
-          {card.time && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardTime}>{card.time}</Text>}
-          {card.lines.map(line => <Text key={line} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardLine}>{text(line)}</Text>)}
-        </View>
-      </View>)}
-    </View>
+    <RuleCardGrid cards={ruleCards(snapshot, t, locale)} highlight={highlight} onCardsLayout={onCardsLayout} onCardLayout={onCardLayout} />
     {fold ? <Disclosure label={t('oath.fullRules')} icon={<SpriteFrame sheet={oathArt.ruleIcons} index={ruleIcon.fullRules} width={36} />}>
       <SnapshotRules snapshot={snapshot} />
     </Disclosure> : <SnapshotRules snapshot={snapshot} />}
+  </View>;
+}
+/** The short rule cards in two columns, or one in the simple layout. The review's fold shows its four cards with it too. */
+export function RuleCardGrid({ cards, highlight = null, onCardsLayout, onCardLayout }: { cards: RuleCard[]; highlight?: RuleCardId | null; onCardsLayout?(y: number): void; onCardLayout?(id: RuleCardId, y: number): void }) {
+  const oathArt = useArt().oaths;
+  const { i18n } = useTranslation();
+  const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
+  const { width, fontScale } = useWindowDimensions();
+  const columns = layoutMode(width, fontScale) === 'room' ? 2 : 1;
+  const text = (value: string) => bindShortWords(value, locale);
+  return <View testID="rule-cards" onLayout={event => onCardsLayout?.(event.nativeEvent.layout.y)} style={[styles.grid, columns === 2 ? styles.pairs : styles.stack]}>
+    {/* Native check, 2026-09-30: in one column the cards Żaromir names sit far below the grid top, so each card reports its own place. */}
+    {cards.map(card => <View key={card.id} testID={`rule-card-${card.id}`} accessible accessibilityLabel={`${card.title}. ${spoken(card)}`}
+      onLayout={onCardLayout && (event => onCardLayout(card.id, event.nativeEvent.layout.y))}
+      style={[styles.card, columns === 2 ? styles.half : styles.full, card.id === highlight && styles.highlight]}>
+      <SpriteFrame sheet={oathArt.ruleIcons} index={ruleIcon[card.icon]} width={40} />
+      <View style={styles.cardText}>
+        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardTitle}>{text(card.title)}</Text>
+        {card.time && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardTime}>{card.time}</Text>}
+        {card.lines.map(line => <Text key={line} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.cardLine}>{text(line)}</Text>)}
+      </View>
+    </View>)}
   </View>;
 }
 const styles = StyleSheet.create({

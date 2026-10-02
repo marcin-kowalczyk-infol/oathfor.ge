@@ -129,7 +129,7 @@ async function oathScreen(locale: Locale, draft: OathCreationDraft | null, seen 
 async function review(locale: Locale, seen: boolean) {
   await oathScreen(locale, filledDraft, seen);
   await fireEvent.press(screen.getByRole('button', { name: copyOf(locale).oath.viewRules }));
-  await screen.findByRole('button', { name: copyOf(locale).oath.confirm });
+  await screen.findByTestId('hold-seal');
 }
 
 async function proof(locale: Locale, serverTime: string, state?: ProofControllerState, guide?: { storage: GuideStorage; accountId: string }) {
@@ -205,7 +205,8 @@ const states: Record<string, (locale: Locale) => Promise<unknown>> = {
   'review.firstGuide': locale => review(locale, false),
   'confirmation': async locale => {
     await review(locale, true);
-    await fireEvent.press(screen.getByRole('button', { name: copyOf(locale).oath.confirm }));
+    // The VoiceOver activation of the hold seal (MVP-22-E3.2). The hold itself is tested in HoldSeal and OathScreen tests.
+    await fireEvent(screen.getByTestId('hold-seal'), 'accessibilityAction', { nativeEvent: { actionName: 'activate' } });
     await screen.findByText(copyOf(locale).oath.made);
   },
   'today': locale => home(locale, [oath()]),

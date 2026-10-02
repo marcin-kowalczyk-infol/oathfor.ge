@@ -109,8 +109,8 @@ const sliceA = [
   'onboarding.companionIntroduction',
   // A5. The tutorial chapter lines are rules, not "what next" lines, so only the two-sentence guard holds them.
   'room.descriptions.seals', 'room.tutorial.heardMark',
-  // A6.
-  'oath.reviewIntro', 'oath.formRequired', 'oath.formRequiredStart',
+  // A6. E3.2: the review's line is the hold seal's drawn consent.
+  'oath.consent', 'oath.consentTap', 'oath.formRequired', 'oath.formRequiredStart',
   // E1r2: a chosen date without its time names the time.
   'oath.formRequiredTime', 'oath.formRequiredStartTime',
 ];

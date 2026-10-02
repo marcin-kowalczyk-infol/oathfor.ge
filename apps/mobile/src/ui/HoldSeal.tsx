@@ -166,8 +166,9 @@ export function HoldSeal({ declaration, onSeal, actionLabel, hint, tapHint, busy
           <View style={[styles.well, phase !== 'idle' && styles.pressed, phase === 'full' && styles.full]} />
         </View>}
     </View>
-    <Text budget="declaration" style={[styles.declaration, unavailable && styles.muted]}>{bindShortWords(declaration, i18n.language)}</Text>
-    <Text style={styles.hint}>{bindShortWords(unavailable && reason ? reason : drawnHint, i18n.language)}</Text>
+    {/* Inset caps as the consent and cards around it on the review, so long Polish words stay whole at the largest size. */}
+    <Text budget="declaration" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.declaration, unavailable && styles.muted]}>{bindShortWords(declaration, i18n.language)}</Text>
+    <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.hint}>{bindShortWords(unavailable && reason ? reason : drawnHint, i18n.language)}</Text>
   </View>;
 }
 

@@ -45,8 +45,7 @@ test('chosen running deadline previews all rules before explicit acceptance can 
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   expect(f.api.preview).toHaveBeenCalledWith(token, { activity: 'running', activation: { mode: 'now' }, deadline: { local: '2026-10-25T02:30:00', timezone: 'Europe/Warsaw' } }, expect.any(AbortSignal));
   expect(await screen.findByText(f.envelope.preview.snapshot.copy.en.declaration)).toBeOnTheScreen();
-  expect(screen.getAllByTestId(/^rule-card-/).map(card => card.props.testID)).toEqual(['start', 'deadline', 'cutoff', 'proof', 'review', 'reward', 'consequence', 'fixed', 'pause'].map(id => `rule-card-${id}`));
-  expect(screen.getByText('By choosing “Commit to the Oath”, I accept the rules on the cards and the full rules.')).toBeOnTheScreen();
+  expect(screen.getByText('Hold to accept every rule')).toBeOnTheScreen();
   expect(screen.queryByText(f.envelope.preview.snapshot.copy.en.sections.appeal)).toBeNull();
   const fold = screen.getByRole('button', { name: 'Full rules' });
   expect(fold).toHaveProp('accessibilityState', expect.objectContaining({ expanded: false }));
@@ -54,8 +53,91 @@ test('chosen running deadline previews all rules before explicit acceptance can 
   for (const text of Object.values(f.envelope.preview.snapshot.copy.en.sections) as string[]) expect(screen.getByText(text)).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Full rules' })).toHaveProp('accessibilityState', expect.objectContaining({ expanded: true }));
   expect(f.api.confirm).not.toHaveBeenCalled(); expect(f.storage.write).not.toHaveBeenCalled();
-  await fireEvent.press(screen.getByRole('button', { name: 'Commit to the Oath' }));
+  await seal();
   expect(f.api.confirm).toHaveBeenCalledWith(token, { previewId: id, requestId: id, accepted: true }, expect.any(AbortSignal));
+});
+/** The hold control of the review, found by its spoken action after the declaration (engagement.md E3, D-E1). */
+const holdSeal = (name: RegExp = /(Commit to the Oath|Złóż Przysięgę)$/) => screen.findByRole('button', { name });
+/** Seals through the activate action, the VoiceOver double tap. The hold itself is tested in the review block below. */
+async function seal(name?: RegExp) {
+  await fireEvent(await holdSeal(name), 'accessibilityAction', { nativeEvent: { actionName: 'activate' } });
+}
+// MVP-22-E3.2 (engagement.md E3, D-E1, D-E5, D-E6): the review is three large pictograms, two small ones, the hold seal
+// with the stored declaration as its label and "Pełne zasady" over the other four cards and the stored rules.
+describe('the review as pictograms', () => {
+  async function reviewIn(locale: 'pl' | 'en', f = setup()) {
+    f.controller.start();
+    await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    if (locale === 'en') await fillDeadline();
+    else {
+      await selectDate('Termin, data ukończenia', '25 października 2026');
+      await selectTime('Godzina ukończenia', '02', '30', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' });
+    }
+    await fireEvent.press(screen.getByRole('button', { name: locale === 'pl' ? 'Zobacz zasady' : 'View rules' }));
+    await screen.findByTestId('review-pictograms');
+    return f;
+  }
+  const drawn = (testID: string) => within(screen.getByTestId(testID)).getAllByText(/./, { includeHiddenElements: true }).map(node => node.props.children).join(' | ');
+  const words = {
+    en: { deadline: 'Deadline | 02:30 | Sun, Oct 25', cutoff: 'Last chance | +15 min', fixed: 'Rules fixed', reward: 'Reward | 40–50 XP', consequence: 'If missed | XP kept',
+      spoken: { deadline: 'Deadline, 02:30, Sun, Oct 25, Warsaw', cutoff: 'Last chance, 02:45, 15 minutes after the deadline', fixed: 'Rules fixed. Once made, the rules do not change.',
+        reward: 'Reward. 40 XP for a photo, 50 XP for an activity record', consequence: 'If missed. You keep the XP you earned. You can take a Recovery Quest for 15 XP.' } },
+    pl: { deadline: 'Termin | 02:30 | niedz 25 paź', cutoff: 'Ostatni moment | +15 min', fixed: 'Zasady stałe', reward: 'Nagroda | 40–50 XP', consequence: 'Jeśli nie zdążysz | XP zostaje',
+      spoken: { deadline: 'Termin, 02:30, niedz 25 paź, Warszawa', cutoff: 'Ostatni moment, 02:45, 15 minut po terminie', fixed: 'Zasady stałe. Po złożeniu zasady się nie zmienią.',
+        reward: 'Nagroda. 40 XP za zdjęcie, 50 XP za zapis aktywności', consequence: 'Jeśli nie zdążysz. Nie tracisz zdobytego XP. Możesz podjąć Zadanie Powrotu za 15 XP.' } },
+  };
+  test.each(['en', 'pl'] as const)('%s shows three large pictograms and two small ones with snapshot values and spoken labels', async locale => {
+    await reviewIn(locale);
+    const copy = words[locale];
+    for (const pictogram of ['deadline', 'cutoff', 'fixed', 'reward', 'consequence'] as const) {
+      expect(drawn(`pictogram-${pictogram}`).replace(/[\u00a0\u2060]/g, ' ')).toBe(copy[pictogram]);
+      expect(screen.getByTestId(`pictogram-${pictogram}`)).toHaveProp('accessibilityLabel', copy.spoken[pictogram]);
+    }
+    expect(within(screen.getByTestId('review-pictograms')).getAllByTestId(/^pictogram-/).map(node => node.props.testID)).toEqual(['pictogram-deadline', 'pictogram-cutoff', 'pictogram-fixed']);
+    expect(within(screen.getByTestId('review-small')).getAllByTestId(/^pictogram-/).map(node => node.props.testID)).toEqual(['pictogram-reward', 'pictogram-consequence']);
+    // Large pictograms are about 96 pt and small ones about 48 pt (DUMMY: the rule icons scaled up until MVP-22-E3.5).
+    expect(screen.getByTestId('pictogram-art-deadline', { includeHiddenElements: true })).toHaveStyle({ width: 96 });
+    expect(screen.getByTestId('pictogram-art-reward', { includeHiddenElements: true })).toHaveStyle({ width: 48 });
+  });
+  test('the closed fold hides the start, proof, review and pause cards and the stored rules, opened it shows them unchanged', async () => {
+    const f = await reviewIn('en');
+    const copy = f.envelope.preview.snapshot.copy.en;
+    expect(screen.queryAllByTestId(/^rule-card-/)).toEqual([]);
+    expect(screen.queryByText(copy.promise.slice(0, 20), { exact: false })).toBeNull();
+    expect(screen.queryByText(copy.sections.rewards)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Full rules' }));
+    expect(screen.getAllByTestId(/^rule-card-/).map(card => card.props.testID)).toEqual(['start', 'proof', 'review', 'pause'].map(id => `rule-card-${id}`));
+    for (const text of Object.values(copy.sections) as string[]) expect(screen.getByText(text)).toBeOnTheScreen();
+  });
+  test('the stored declaration is the drawn hold label, the consent is its hint, and the hold is the only filled control', async () => {
+    const f = await reviewIn('pl');
+    const declaration = f.envelope.preview.snapshot.copy.pl.declaration;
+    const control = await holdSeal();
+    expect(control).toHaveProp('accessibilityLabel', `${declaration} Złóż Przysięgę`);
+    expect(control).toHaveProp('accessibilityHint', 'Stuknij dwukrotnie, by przyjąć wszystkie zasady');
+    expect(within(control).getByText('Przytrzymaj, by przyjąć wszystkie zasady')).toBeOnTheScreen();
+    expect(screen.queryByText('Przeczytaj zasady i złóż Przysięgę.')).toBeNull();
+    expect(screen.queryAllByText('◆', { includeHiddenElements: true })).toEqual([]);
+    const change = screen.getByRole('button', { name: 'Zmień' });
+    expect(within(change).queryByText('›', { includeHiddenElements: true })).toBeNull();
+    await fireEvent.press(change);
+    expect(await screen.findByRole('button', { name: 'Zobacz zasady' })).toBeOnTheScreen();
+  });
+  test('an early release does not commit, a full hold commits once', async () => {
+    const f = await reviewIn('en');
+    const control = await holdSeal();
+    await fireEvent(control, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 240 } } });
+    const touch = { nativeEvent: { pageX: 150, pageY: 120, locationX: 150, locationY: 120, timestamp: 0, touches: [], changedTouches: [] } };
+    await fireEvent(control, 'responderGrant', touch);
+    await act(async () => { jest.advanceTimersByTime(600); });
+    await fireEvent(control, 'responderRelease', touch);
+    expect(f.api.confirm).not.toHaveBeenCalled();
+    await fireEvent(control, 'responderGrant', touch);
+    await act(async () => { jest.advanceTimersByTime(1000); });
+    expect(f.api.confirm).not.toHaveBeenCalled();
+    await fireEvent(control, 'responderRelease', touch);
+    expect(f.api.confirm).toHaveBeenCalledTimes(1);
+  });
 });
 async function fillDeadline() {
   await selectDate('Deadline, completion date', 'October 25, 2026');
@@ -71,8 +153,8 @@ test('repeated local time requires an explicit server choice and editing invalid
   await fireEvent.press(screen.getByRole('radio', { name: 'UTC +01:00' }));
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
   expect(jest.mocked(f.api.preview).mock.calls[1][1].deadline.offset).toBe('+01:00');
-  await fireEvent.press(await screen.findByRole('button', { name: 'Change choices' }));
-  expect(screen.queryByRole('button', { name: 'Commit to the Oath' })).toBeNull();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Change' }));
+  expect(screen.queryByTestId('hold-seal')).toBeNull();
   expect(screen.getByText('October 25, 2026')).toBeOnTheScreen();
   expect(screen.getByText('02:30')).toBeOnTheScreen();
   await selectTime('Time, deadline', '03', '30');
@@ -90,7 +172,7 @@ test('gap error keeps the chosen date and timezone and lets the player correct t
   expect(screen.getByText('March 29, 2026')).toBeOnTheScreen(); expect(screen.getByText('02:30')).toBeOnTheScreen();
   await selectTime('Time, deadline', '03', '30');
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  expect(await screen.findByRole('button', { name: 'Commit to the Oath' })).toBeOnTheScreen();
+  expect(await holdSeal()).toBeOnTheScreen();
 });
 test('scheduled start and deadline retain independently chosen zones, with all activity choices', async () => {
   const f = setup(); f.controller.start(); await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
@@ -112,25 +194,25 @@ test('a paused character explains the refusal', async () => {
   const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code: 'character_paused' });
   f.controller.start(); await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+  await seal();
   expect(await screen.findByText('This character is paused. Resume play before creating a new Oath.')).toBeOnTheScreen();
 });
 test.each(['preview_superseded', 'activation_elapsed'] as const)('%s removes confirmation until a new review', async code => {
   const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code });
   f.controller.start(); await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+  await seal();
   expect(await screen.findByText('Choose and review the times again before committing.')).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Commit to the Oath' })).toBeNull();
+  expect(screen.queryByTestId('hold-seal')).toBeNull();
   expect(screen.getByRole('button', { name: 'View rules' })).toBeOnTheScreen();
   expect(f.api.confirm).toHaveBeenCalledTimes(1);
 });
 test('ambiguous confirmation exposes only same-identity retry and renders authoritative result', async () => {
   const f = setup(); f.controller.start(); await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+  await seal();
   expect(await screen.findByRole('button', { name: 'Check confirmation' })).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Commit to the Oath' })).toBeNull(); expect(screen.queryByLabelText('Time, deadline')).toBeNull();
+  expect(screen.queryByTestId('hold-seal')).toBeNull(); expect(screen.queryByLabelText('Time, deadline')).toBeNull();
   const snapshot = { ...f.envelope.preview.snapshot, activation: { mode: 'now', time: { local: '2026-10-24T02:00:00', timezone: 'Europe/Warsaw', offset: '+02:00', explicitOffset: false, utc: '2026-10-24T00:00:00Z' } } };
   jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'success', value: { oath: { id, characterId, snapshot, state: 'active', createdAt: '2026-10-24T00:00:00Z', activatedAt: '2026-10-24T00:00:00Z', terminalAt: null, reason: null, review: null, proof: null }, serverTime: '2026-10-24T00:00:00Z' } });
   await fireEvent.press(screen.getByRole('button', { name: 'Check confirmation' }));
@@ -211,12 +293,12 @@ test('confirmed creation clears the parent draft and explicit new Oath starts em
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onDraftChange={onDraftChange} /></LocalizationProvider>);
   await fillDeadline();
   await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+  await seal();
   expect(await screen.findByText(/^Active · deadline /)).toBeOnTheScreen();
   expect(onDraftChange).toHaveBeenLastCalledWith(null);
   await fireEvent.press(screen.getByRole('button', { name: 'Create another Oath' }));
   expect(screen.getByRole('button', { name: 'Deadline, completion date' }).props.accessibilityValue).toEqual({ text: 'Choose a date' });
-  expect(screen.queryByRole('button', { name: 'Commit to the Oath' })).toBeNull();
+  expect(screen.queryByTestId('hold-seal')).toBeNull();
 });
 
 test('a profile timezone missing from device data does not prevent choosing a date', async () => {
@@ -247,7 +329,7 @@ async function openReview(f: ReturnType<typeof setup>, storage: ReturnType<typeo
   await selectDate(locale === 'pl' ? 'Termin, data ukończenia' : 'Deadline, completion date', locale === 'pl' ? '25 października 2026' : 'October 25, 2026');
   await selectTime(locale === 'pl' ? 'Godzina ukończenia' : 'Time, deadline', '02', '30', locale === 'pl' ? { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' } : undefined);
   await fireEvent.press(screen.getByRole('button', { name: locale === 'pl' ? 'Zobacz zasady' : 'View rules' }));
-  await screen.findByTestId('rule-cards');
+  await screen.findByTestId('review-pictograms');
 }
 test('the first review lets Żaromir explain the cards once, lighting each card he names', async () => {
   const f = setup(); const storage = rulesGuide(false);
@@ -259,17 +341,17 @@ test('the first review lets Żaromir explain the cards once, lighting each card 
   const next = async () => { await fireEvent.press(screen.getByRole('button', { name: 'Dalej' })); };
   await next();
   expect(line()).toContain('Klepsydra to termin.');
-  expect(screen.getByTestId('rule-card-deadline')).toHaveStyle({ borderColor: '#e0a84f' });
+  expect(screen.getByTestId('pictogram-deadline')).toHaveStyle({ borderColor: '#e0a84f' });
   await next();
   expect(line()).toContain('Świeca to ostatni moment na dowód');
-  expect(screen.getByTestId('rule-card-cutoff')).toHaveStyle({ borderColor: '#e0a84f' });
-  expect(screen.getByTestId('rule-card-deadline')).not.toHaveStyle({ borderColor: '#e0a84f' });
+  expect(screen.getByTestId('pictogram-cutoff')).toHaveStyle({ borderColor: '#e0a84f' });
+  expect(screen.getByTestId('pictogram-deadline')).not.toHaveStyle({ borderColor: '#e0a84f' });
   await next();
   // MVP-22 G31: the drawn line keeps the no-break space, the spoken label stays plain (clarity.md, MVP-22-G24).
   expect(line()).toContain('Kowadło z kłódką');
   expect(line()).not.toMatch(/[\u00a0\u2060]/);
   expect(screen.getByTestId('dialogue-text')).toHaveTextContent(/Kowadło z\u00a0kłódką/, { normalizer: (text: string) => text });
-  expect(screen.getByTestId('rule-card-fixed')).toHaveStyle({ borderColor: '#e0a84f' });
+  expect(screen.getByTestId('pictogram-fixed')).toHaveStyle({ borderColor: '#e0a84f' });
   expect(storage.markSeen).not.toHaveBeenCalled();
   // Native check, 2026-09-30: the last step still offered "Dalej" although it closes the guide.
   expect(screen.queryByRole('button', { name: 'Dalej' })).toBeNull();
@@ -284,7 +366,7 @@ test('skipping marks the explanation seen, and the Żaromir button replays it wi
   await fireEvent.press(screen.getByRole('button', { name: 'Skip introduction' }));
   expect(screen.queryByTestId('dialogue-panel')).toBeNull();
   expect(storage.markSeen).toHaveBeenCalledWith(accountId);
-  await fireEvent.press(screen.getByRole('button', { name: 'Hear Zharomir explain the rules' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Ask Zharomir' }));
   expect(screen.getByTestId('dialogue-text').props.accessibilityLabel).toContain('Before you make the Oath, get to know its rules.');
   await fireEvent.press(screen.getByRole('button', { name: 'Skip introduction' }));
   expect(storage.markSeen).toHaveBeenCalledTimes(1);
@@ -292,12 +374,12 @@ test('skipping marks the explanation seen, and the Żaromir button replays it wi
 test('a seen flag shows no explanation but offers the replay', async () => {
   await openReview(setup(), rulesGuide(true), 'en');
   expect(screen.queryByTestId('dialogue-panel')).toBeNull();
-  expect(screen.getByRole('button', { name: 'Hear Zharomir explain the rules' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Ask Zharomir' })).toBeOnTheScreen();
 });
 test('a flag still being read shows nothing', async () => {
   await openReview(setup(), rulesGuide(new Promise<boolean>(() => {})), 'en');
   expect(screen.queryByTestId('dialogue-panel')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Hear Zharomir explain the rules' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Ask Zharomir' })).toBeNull();
 });
 
 // MVP-22-B2 (G21): the open guide covered the bottom cards ("M… z podjąć"). While it is open the review gains a bottom inset
@@ -334,8 +416,8 @@ describe('the rules guide at the largest text size', () => {
     let show!: (seen: boolean) => void;
     await openReview(setup(), rulesGuide(new Promise<boolean>(resolve => { show = resolve; })));
     const layout = (testId: string, y: number) => fireEvent(screen.getByTestId(testId), 'layout', { nativeEvent: { layout: { x: 0, y, width: 370, height: 300 } } });
-    await layout('oath-rules-block', 400); await layout('rule-cards', 900);
-    await layout('rule-card-deadline', 320); await layout('rule-card-cutoff', 640); await layout('rule-card-fixed', 2240);
+    await layout('oath-rules-block', 400); await layout('review-pictograms', 900);
+    await layout('pictogram-deadline', 320); await layout('pictogram-cutoff', 640); await layout('pictogram-fixed', 2240);
     await act(async () => { show(false); });
     await screen.findByTestId('dialogue-panel');
     const last = () => scrollTo.mock.calls.at(-1)?.[0] as { y: number; animated?: boolean } | undefined;
@@ -347,7 +429,7 @@ describe('the rules guide at the largest text size', () => {
     await next();
     expect(last()).toEqual(expect.objectContaining({ y: 400 + 900 + 2240 - 12 }));
     // A card measured again while Żaromir names it, for example after the text above it wrapped, is followed.
-    await layout('rule-card-fixed', 2300);
+    await layout('pictogram-fixed', 2300);
     expect(last()).toEqual(expect.objectContaining({ y: 400 + 900 + 2300 - 12 }));
     if (fontScale > 1.3) expect(last()?.animated).toBe(false);
   });
@@ -363,9 +445,9 @@ describe('the review at the largest text size', () => {
   test.each([402, 375])('at %s points the Żaromir button stays inside the column and its label wraps within it', async width => {
     Dimensions.set({ window: phone(width), screen: phone(width) });
     await openReview(setup(), rulesGuide(true));
-    const button = screen.getByRole('button', { name: 'Żaromir objaśnia zasady' });
+    const button = screen.getByRole('button', { name: 'Zapytaj Żaromira' });
     expect(flat(button).maxWidth).toBe('100%');
-    const label = within(button).getByText('Żaromir objaśnia zasady');
+    const label = within(button).getByText('Zapytaj Żaromira');
     expect(flat(label).flexShrink).toBe(1);
     expect(label).toHaveProp('maxFontSizeMultiplier', 2.5);
     expect(label).toHaveProp('accessible', false);
@@ -374,15 +456,15 @@ describe('the review at the largest text size', () => {
     Dimensions.set({ window: phone(width), screen: phone(width) });
     const f = setup();
     await openReview(f, rulesGuide(true));
-    expect(screen.getByText('Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady.')).toHaveProp('maxFontSizeMultiplier', 2.5);
-    await fireEvent.press(screen.getByRole('button', { name: 'Złóż Przysięgę' }));
+    expect(screen.getByText('Przytrzymaj, by przyjąć wszystkie zasady')).toHaveProp('maxFontSizeMultiplier', 2.5);
+    await seal();
     expect(await screen.findByText(/Twoje potwierdzenie mogło już dotrzeć/)).toHaveProp('maxFontSizeMultiplier', 2);
   });
   test.each([402, 375])('at %s points an error line keeps whole words while the review-again line stays uncapped', async width => {
     Dimensions.set({ window: phone(width), screen: phone(width) });
     const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code: 'preview_superseded' });
     await openReview(f, rulesGuide(true));
-    await fireEvent.press(screen.getByRole('button', { name: 'Złóż Przysięgę' }));
+    await seal();
     expect(await screen.findByText(/potwierdzeniem\./)).toHaveProp('maxFontSizeMultiplier', 2);
     expect(screen.getByText('Ponownie wybierz i sprawdź terminy przed złożeniem Przysięgi.')).not.toHaveProp('maxFontSizeMultiplier');
   });
@@ -390,7 +472,7 @@ describe('the review at the largest text size', () => {
     Dimensions.set({ window: phone(375), screen: phone(375) });
     const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed('20000000-0000-4000-8000-0000000000c1', f.envelope.preview.snapshot));
     await openReview(f, rulesGuide(true));
-    await fireEvent.press(screen.getByRole('button', { name: 'Złóż Przysięgę' }));
+    await seal();
     expect(await screen.findByText(/^Aktywna · termin /)).not.toHaveProp('maxFontSizeMultiplier');
   });
   test('in the bench the repeated-hour question keeps whole words and the occurrence choices stay uncapped', async () => {
@@ -411,7 +493,7 @@ test('the seal is stamped only after the server confirms, once, also after a los
   const oathId = '20000000-0000-4000-8000-0000000000a1';
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+  await seal();
   expect(await screen.findByRole('button', { name: 'Check confirmation' })).toBeOnTheScreen();
   expect(screen.queryByTestId('seal-stamp', { includeHiddenElements: true })).toBeNull();
   let answer!: (value: Awaited<ReturnType<OathClient['confirm']>>) => void;
@@ -434,10 +516,10 @@ test('acceptance goes from the rules straight to the seal without a frame of the
     <LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>
   </Profiler>);
   await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  const commit = await screen.findByRole('button', { name: 'Commit to the Oath' });
+  const commit = await holdSeal();
   jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(oathId, f.envelope.preview.snapshot));
   recording = true;
-  await fireEvent.press(commit);
+  await fireEvent(commit, 'accessibilityAction', { nativeEvent: { actionName: 'activate' } });
   await screen.findByTestId('seal-stamp', { includeHiddenElements: true });
   recording = false;
   expect(frames.length).toBeGreaterThan(0);
@@ -458,7 +540,7 @@ test('a remount showing the same confirmed Oath does not stamp again', async () 
   jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(oathId, f.envelope.preview.snapshot));
   const view = await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+  await seal();
   expect(await screen.findByTestId('seal-sealed', { includeHiddenElements: true })).toBeOnTheScreen();
   await view.unmount();
   jest.mocked(SealStamp).mockClear();
@@ -473,7 +555,7 @@ test('a definitive rejection stamps nothing', async () => {
   jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code: 'preview_superseded' });
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+  await seal();
   expect(await screen.findByText('Choose and review the times again before committing.')).toBeOnTheScreen();
   expect(screen.queryByTestId('seal-stamp', { includeHiddenElements: true })).toBeNull();
 });
@@ -486,7 +568,7 @@ test('after the seal a short card shows the countdown, the deadline and the next
   const onBack = jest.fn(); const onViewOath = jest.fn();
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onBack={onBack} backLabel="Return to the Forge" onViewOath={onViewOath} /></LocalizationProvider>);
   await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+  await seal();
   expect(await screen.findByRole('header', { name: 'Oath made' })).toBeOnTheScreen();
   expect(screen.getByTestId('countdown-chip')).toHaveProp('accessibilityLabel', 'Until the deadline 1 day');
   // MVP-22-T12 (clarity.md decision 13): the track with the Oath step done, one merged line, Żaromir and one filled action.
@@ -517,7 +599,7 @@ test('Polish card and a scheduled Oath counting down to its start', async () => 
   await selectDate('Termin, data ukończenia', '25 października 2026');
   await selectTime('Godzina ukończenia', '02', '30', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' });
   await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Złóż Przysięgę' }));
+  await seal();
   expect(await screen.findByRole('header', { name: 'Przysięga złożona' })).toBeOnTheScreen();
   expect(screen.getByTestId('countdown-chip')).toHaveProp('accessibilityLabel', 'Start za 20 godzin');
   expect(screen.getByRole('button', { name: 'Zobacz Przysięgę' })).toBeOnTheScreen();
@@ -534,7 +616,7 @@ test('a replayed acceptance that returns a withdrawn Oath shows no Żaromir gree
   jest.mocked(f.api.confirm).mockResolvedValueOnce(value);
   await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
   await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+  await seal();
   expect(await screen.findByRole('header', { name: 'Oath made' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'View the Oath' })).toBeOnTheScreen();
   expect(screen.queryByLabelText(/^Zharomir: /)).toBeNull();
@@ -617,12 +699,13 @@ describe('form and review lines', () => {
   afterEach(() => act(() => { Dimensions.set(initial); }));
   const filled = () => screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0);
   const copy = {
-    pl: { required: 'Potrzebny termin.', review: 'Przeczytaj zasady i złóż Przysięgę.', seconds: 'Czas wybierasz z dokładnością do minuty (sekundy: 00).',
+    pl: { required: 'Potrzebny termin.', review: 'Przytrzymaj, by przyjąć wszystkie zasady', seconds: 'Czas wybierasz z dokładnością do minuty (sekundy: 00).',
       date: ['Termin, data ukończenia', '25 października 2026'], time: ['Godzina ukończenia', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' }], view: 'Zobacz zasady', confirm: 'Złóż Przysięgę' },
-    en: { required: 'Deadline needed.', review: 'Read the rules, then make the Oath.', seconds: 'Times are set to the minute, with seconds at 00.',
+    en: { required: 'Deadline needed.', review: 'Hold to accept every rule', seconds: 'Times are set to the minute, with seconds at 00.',
       date: ['Deadline, completion date', 'October 25, 2026'], time: ['Time, deadline', { hour: 'Hour', minute: 'Minute', done: 'Use this time' }], view: 'View rules', confirm: 'Commit to the Oath' },
   } as const;
-  test.each(['pl', 'en'] as const)('%s at text scale 2 keeps one plain line and one filled button on the form and the review', async locale => {
+  // MVP-22-E3.2: the review has no line above the pictograms. The hold seal's drawn consent is its next step and the seal its one filled control.
+  test.each(['pl', 'en'] as const)('%s at text scale 2 keeps one plain line and one filled control on the form and the review', async locale => {
     const words = copy[locale];
     const phone = { width: 402, height: 874, scale: 3, fontScale: 2 };
     Dimensions.set({ window: phone, screen: phone });
@@ -643,9 +726,10 @@ describe('form and review lines', () => {
     expect(screen.queryByText(words.seconds)).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: words.view }));
     expect(await screen.findByText(words.review)).toBeOnTheScreen();
+    expect(screen.queryByTestId('oath-line')).toBeNull();
     expect(screen.queryByTestId('companion-avatar', { includeHiddenElements: true })).toBeNull();
-    expect(filled()).toHaveLength(1);
-    expect(within(screen.getByRole('button', { name: words.confirm })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
+    expect(filled()).toEqual([]);
+    expect(within(await holdSeal(new RegExp(`${words.confirm}$`))).getByText(words.review)).toBeOnTheScreen();
   });
   // MVP-22-A8c: a scheduled start is one more field, so the missing line names it. A start "now" needs none.
   // MVP-22-E1.R: the line names only the first missing choice. The start comes first, and once it is set the deadline follows.
@@ -709,21 +793,22 @@ describe('header text never sits on the hearth art', () => {
     expect(within(header).queryByRole('radio', { name: 'Bieganie' })).toBeNull();
     expect(StyleSheet.flatten(screen.getByTestId('time-bench').props.style)).toMatchObject({ backgroundColor: tokens.warm.panel });
   });
-  test('the review header holds the way back and its line', async () => {
+  // MVP-22-E3.2: the review band holds only the way back. The next step is the hold seal's drawn consent.
+  test('the review header holds the way back and no line', async () => {
     const f = setup(); f.controller.start();
     await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onBack={jest.fn()} backLabel="Return to the Forge" /></LocalizationProvider>);
     await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-    await screen.findByTestId('rule-cards');
+    await screen.findByTestId('review-pictograms');
     const header = band();
     expect(within(header).getByRole('button', { name: 'Return to the Forge' })).toBeOnTheScreen();
-    expect(within(header).getByTestId('oath-line')).toBeOnTheScreen();
+    expect(within(header).queryByTestId('oath-line')).toBeNull();
   });
   test('the confirmation keeps its way back on the band', async () => {
     const f = setup(); f.controller.start();
     jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed('20000000-0000-4000-8000-0000000000d1', f.envelope.preview.snapshot));
     await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onBack={jest.fn()} backLabel="Return to the Forge" onViewOath={jest.fn()} /></LocalizationProvider>);
     await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-    await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+    await seal();
     await screen.findByRole('header', { name: 'Oath made' });
     const header = band();
     expect(within(header).getByRole('button', { name: 'Return to the Forge' })).toBeOnTheScreen();
@@ -734,7 +819,7 @@ describe('header text never sits on the hearth art', () => {
     const f = setup(); f.controller.start();
     await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
     await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-    await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+    await seal();
     expect(await screen.findByText(/Your confirmation may already have arrived/)).toBeOnTheScreen();
     expect(screen.queryByTestId('oath-line')).toBeNull();
     expect(screen.queryByText('Read the rules, then make the Oath.')).toBeNull();
@@ -755,7 +840,7 @@ describe('header text never sits on the hearth art', () => {
       await selectDate('Termin, data ukończenia', '25 października 2026');
       await selectTime('Godzina ukończenia', '02', '30', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' });
       await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
-      await fireEvent.press(await screen.findByRole('button', { name: 'Złóż Przysięgę' }));
+      await seal();
       await screen.findByText(pendingLine);
       const header = band();
       expect(within(header).getByRole('button', { name: 'Wróć do Kuźni' })).toBeOnTheScreen();
@@ -785,7 +870,7 @@ describe('header text never sits on the hearth art', () => {
     const f = setup(); f.controller.start(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code: 'preview_superseded' });
     await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onBack={jest.fn()} backLabel="Return to the Forge" /></LocalizationProvider>);
     await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-    await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+    await seal();
     await screen.findByText('Choose and review the times again before committing.');
     const lines = within(band()).getAllByText(/./).map(node => String(node.props.children));
     const error = 'The rules changed before you confirmed. Review the new preview before accepting.';
@@ -805,7 +890,7 @@ describe('drawn prose binding', () => {
     await selectDate(pl.date, pl.day); await selectTime(pl.time, '02', '30', pl.words);
     await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
   }
-  test('Polish form, review and consent lines bind single-letter words', async () => {
+  test('Polish form lines and the drawn declaration bind single-letter words', async () => {
     const f = setup(); f.controller.start();
     await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
     // MVP-22-E1.4: the form's one line is the missing line. MVP-22-E1.R: with a scheduled start it names the first missing choice,
@@ -815,14 +900,14 @@ describe('drawn prose binding', () => {
     expect(screen.getByText('Potrzebny start.', raw)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('radio', { name: 'Teraz' }));
     await reviewInPolish();
-    expect(await screen.findByText('Przeczytaj zasady i złóż Przysięgę.', raw)).toBeOnTheScreen();
-    expect(screen.getByText('Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady.', raw)).toBeOnTheScreen();
+    expect(await screen.findByText(/wskazanego w\u00a0tej Przysiędze/, raw)).toBeOnTheScreen();
+    expect(await holdSeal()).toHaveProp('accessibilityLabel', expect.stringContaining('wskazanego w tej Przysiędze'));
   });
   test('the Polish review-again line binds single-letter words', async () => {
     const f = setup(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code: 'preview_superseded' });
     f.controller.start(); await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
     await reviewInPolish();
-    await fireEvent.press(await screen.findByRole('button', { name: 'Złóż Przysięgę' }));
+    await seal();
     expect(await screen.findByText('Ponownie wybierz i sprawdź terminy przed złożeniem Przysięgi.', raw)).toBeOnTheScreen();
   });
   test('English keeps single-letter words unbound, and the made line moves each separator to the next segment', async () => {
@@ -831,7 +916,7 @@ describe('drawn prose binding', () => {
     await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
     expect(await screen.findByText('Deadline needed.', raw)).toBeOnTheScreen();
     await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
-    await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+    await seal();
     expect(await screen.findByRole('header', { name: 'Oath made' })).toBeOnTheScreen();
     expect(screen.getByText(/^Active · deadline Sun, Oct 25, 02:30 \(UTC\+02:00\) · Warsaw$/, raw)).toBeOnTheScreen();
   });
@@ -840,7 +925,7 @@ describe('drawn prose binding', () => {
     jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed('20000000-0000-4000-8000-0000000000b5', f.envelope.preview.snapshot));
     await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
     await reviewInPolish();
-    await fireEvent.press(await screen.findByRole('button', { name: 'Złóż Przysięgę' }));
+    await seal();
     expect(await screen.findByText(/^Aktywna · termin [^ ]+ · Warszawa$/, raw)).toBeOnTheScreen();
   });
 });
@@ -871,7 +956,7 @@ async function confirmedWithKeptRecord(locale: 'pl' | 'en') {
   await selectTime(words.completion, '02', '30', words.time);
   await fireEvent.press(screen.getByRole('button', { name: words.view }));
   // The first reply is lost, so the band offers the check.
-  await fireEvent.press(await screen.findByRole('button', { name: words.confirm }));
+  await seal();
   await screen.findByRole('button', { name: words.recover });
   jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(g30OathId, f.envelope.preview.snapshot));
   jest.mocked(f.storage.write).mockResolvedValueOnce({ kind: 'unavailable' });

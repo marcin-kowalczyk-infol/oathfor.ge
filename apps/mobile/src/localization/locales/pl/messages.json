@@ -166,15 +166,15 @@
     "confirm": "Złóż Przysięgę",
     "holdHint": "Przytrzymaj, by złożyć Przysięgę",
     "holdTapHint": "Stuknij dwukrotnie, by złożyć Przysięgę",
-    "edit": "Zmień wybory",
+    "edit": "Zmień",
     "loading": "Wczytywanie Przysięgi…",
     "retry": "Spróbuj ponownie",
     "formRequired": "Potrzebny termin.",
     "formRequiredStart": "Potrzebny start.",
     "formRequiredTime": "Potrzebna godzina.",
     "formRequiredStartTime": "Potrzebna godzina startu.",
-    "reviewIntro": "Przeczytaj zasady i złóż Przysięgę.",
-    "consent": "Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady.",
+    "consent": "Przytrzymaj, by przyjąć wszystkie zasady",
+    "consentTap": "Stuknij dwukrotnie, by przyjąć wszystkie zasady",
     "pending": "Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.",
     "pendingConfirmed": "Przysięga już złożona. Sprawdź potwierdzenie, by dokończyć zapis na urządzeniu.",
     "recover": "Sprawdź potwierdzenie",
@@ -293,12 +293,22 @@
       "2": "Klepsydra to termin. Do niego wykonujesz zadanie.",
       "3": "Świeca to ostatni moment na dowód, kwadrans po terminie.",
       "4": "Kowadło z kłódką mówi, że po złożeniu nic tu się nie zmieni.",
-      "replay": "Żaromir objaśnia zasady"
+      "replay": "Zapytaj Żaromira"
     },
     "made": "Przysięga złożona",
     "madeLine": "{{state}} · termin {{time}} · {{zone}}",
     "viewOath": "Zobacz Przysięgę",
-    "proofPending": "Dowód odebrany, ocena trwa. Czas odebrania zostaje zapisany, nawet gdy ocena się przeciąga."
+    "proofPending": "Dowód odebrany, ocena trwa. Czas odebrania zostaje zapisany, nawet gdy ocena się przeciąga.",
+    "pictograms": {
+      "deadline": "Termin",
+      "cutoff": "Ostatni moment",
+      "cutoffValue": "+{{count}} min",
+      "fixed": "Zasady stałe",
+      "reward": "Nagroda",
+      "rewardValue": "{{photo}}–{{record}} XP",
+      "consequence": "Jeśli nie zdążysz",
+      "consequenceValue": "XP zostaje"
+    }
   },
   "oathHome": {
     "today": "Dzisiaj",

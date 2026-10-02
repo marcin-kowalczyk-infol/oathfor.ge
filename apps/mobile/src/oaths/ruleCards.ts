@@ -39,3 +39,36 @@ export function ruleCards(snapshot: Snapshot, t: Translate, locale: Locale): Rul
     card('pause', 'pause', [t('oath.cards.pause.line')]),
   ];
 }
+
+/**
+ * The review's groups (docs/product/engagement.md E3, D-E6): three large pictograms, reward and consequence as two small
+ * ones (owner decision Q2 kept), and the other four cards under "Pełne zasady" with the stored rules.
+ */
+export const REVIEW_GROUPS = {
+  large: ['deadline', 'cutoff', 'fixed'],
+  small: ['reward', 'consequence'],
+  folded: ['start', 'proof', 'review', 'pause'],
+} as const satisfies Record<'large' | 'small' | 'folded', readonly RuleCardId[]>;
+export type PictogramId = typeof REVIEW_GROUPS.large[number] | typeof REVIEW_GROUPS.small[number];
+/** label: one to three words beside the pictogram (clarity rule 4). values: short drawn snapshot values. spoken: the card's full facts. */
+export type Pictogram = { id: PictogramId; icon: RuleIconId; label: string; values: string[]; spoken: string };
+
+/** The review pictograms. Drawn values are short, the spoken label keeps every fact of the card it replaces. */
+export function reviewPictograms(snapshot: Snapshot, t: Translate, locale: Locale): { large: Pictogram[]; small: Pictogram[] } {
+  const cards = new Map(ruleCards(snapshot, t, locale).map(card => [card.id, card]));
+  const deadline = cards.get('deadline')!, cutoff = cards.get('cutoff')!;
+  const label = (id: PictogramId) => t(`oath.pictograms.${id}`);
+  const lines = (id: RuleCardId) => cards.get(id)!.lines.join(' ');
+  const item = (id: PictogramId, values: string[], spoken: string): Pictogram => ({ id, icon: id, label: label(id), values, spoken });
+  return {
+    large: [
+      item('deadline', [deadline.time!, deadline.lines[0]], [label('deadline'), deadline.time, ...deadline.lines].join(', ')),
+      item('cutoff', [t('oath.pictograms.cutoffValue', { count: snapshot.review.receiptGraceSeconds / 60 })], [label('cutoff'), cutoff.time, ...cutoff.lines].join(', ')),
+      item('fixed', [], `${label('fixed')}. ${lines('fixed')}`),
+    ],
+    small: [
+      item('reward', [t('oath.pictograms.rewardValue', { photo: snapshot.rewards.photoTotal, record: snapshot.rewards.recordTotal })], `${label('reward')}. ${lines('reward')}`),
+      item('consequence', [t('oath.pictograms.consequenceValue')], `${label('consequence')}. ${lines('consequence')}`),
+    ],
+  };
+}

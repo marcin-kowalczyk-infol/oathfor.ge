@@ -26,8 +26,9 @@ import { zoneLabel } from './zoneLabel';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { resolveLocale } from '../localization/locale';
 import { SnapshotRules } from './SnapshotRules';
-import { OathRuleCards } from './OathRuleCards';
-import type { RuleCardId } from './ruleCards';
+import { ReviewFold, ReviewRules } from './ReviewRules';
+import type { PictogramId } from './ruleCards';
+import { HoldSeal } from '../ui/HoldSeal';
 import { DialoguePanel, PANEL_RISE } from '../forge/DialoguePanel';
 import type { GuideStorage } from '../forge/guideStorage';
 import { bindShortWords } from '../localization/typography';
@@ -36,9 +37,9 @@ import { useMotionAllowed } from '../ui/useMotion';
 import type { OathController } from './controller';
 import { WallTimePicker, type TimeDraft } from './WallTimePicker';
 import { useArt } from '../art/ArtProvider';
-// Żaromir's four lines on the first review (docs/product/oath-screens.md section 2) and the card each one lights.
-const GUIDE_CARDS: (RuleCardId | null)[] = [null, 'deadline', 'cutoff', 'fixed'];
-// The named card stops a little below the top edge, so its gold border stays in view.
+// Żaromir's four lines on the first review (docs/product/oath-screens.md section 2) and the pictogram each one lights.
+const GUIDE_CARDS: (PictogramId | null)[] = [null, 'deadline', 'cutoff', 'fixed'];
+// The named pictogram stops a little below the top edge, so its gold border stays in view.
 const GUIDE_MARGIN = 12;
 // Oaths whose seal was stamped in this app run. A remount or a replayed confirmation shows the sealed scroll without stamping again.
 const stamped = new Set<string>();
@@ -78,9 +79,8 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const review = !detail && ready?.preview && (mode === 'review' || !!pending);
   const forming = !!ready && !pending && !review && !detail;
   const titled = !review && !detail;
-  // MVP-22-B2c: a pending acceptance has no confirm button, so the band does not ask to make the Oath.
   // The form has no intro line since MVP-22-E1.4: its disabled "Zobacz zasady" names what is missing (word budget).
-  const intro = review && !pending ? 'oath.reviewIntro' : null;
+  // The review has none since MVP-22-E3.2: the hold seal's drawn consent names the next step (engagement.md E3).
   // A screen change remounts the scroll view, so it opens at its heading with a short entrance. MVP-22 G31: an error on the
   // same screen does not remount it, because a retry would replay the entrance and lose the VoiceOver focus on the pressed control.
   const scene = detail ? 'detail' : pending ? 'pending' : review ? 'review' : 'form';
@@ -109,7 +109,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   useEffect(() => { if (notice) { scrollView.current?.scrollTo({ y: 0, animated: false }); scroll.setValue(0); } }, [notice, scroll]);
   // Native check, 2026-09-30: in one column the named cards sit far below the grid top. The measured places are state,
   // so a card measured after its step began still moves the page.
-  const [guideTops, setGuideTops] = useState<{ block: number; grid: number; cards: Partial<Record<RuleCardId, number>> }>({ block: 0, grid: 0, cards: {} });
+  const [guideTops, setGuideTops] = useState<{ block: number; grid: number; cards: Partial<Record<PictogramId, number>> }>({ block: 0, grid: 0, cards: {} });
   useEffect(() => {
     if (!reviewing || !rulesGuideStorage || !accountId || guideSeen !== null) return;
     let live = true;
@@ -204,12 +204,10 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
     <Animated.ScrollView testID="oath-scroll" ref={scrollView as never} style={entrance} key={scene} contentContainerStyle={[styles.content, guideInset !== null && { paddingBottom: guideInset }]} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
       {/* MVP-22-B2 (G16): the hearth close-up starts at the top, so the way back, the title, the line and the workout label
           stand on a solid band that fades into the art, as on the detail. Cards and offerings carry their own fills below it. */}
-      {(onBack || titled || intro || (ready && bandError) || ready?.needsReview || pending) && <View testID="screen-header" style={styles.band}>
+      {(onBack || titled || (ready && bandError) || ready?.needsReview || pending) && <View testID="screen-header" style={styles.band}>
         <FadeStrips testID="header-fade" stripTestID="header-fade-strip" style={styles.bandFade} />
         {onBack && (backPlain ? <BackLink label={backLabel ?? t('oathHome.today')} onPress={onBack} /> : <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />)}
         {titled && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
-        {/* MVP-22-A6: one plain "what next" line. D and S stay on their cards and in Żaromir's guide (clarity.md rules 1 and 14). */}
-        {intro && <Text testID="oath-line" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(t(intro))}</Text>}
         {/* MVP-22-B2c: the error and review-again lines stand above the workout header, so the header stays with its offerings. */}
         {ready && bandError && <Text budget="error" accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(bandError)}</Text>}
         {ready?.needsReview && <Text style={styles.body}>{prose(t('oath.reviewAgain'))}</Text>}
@@ -256,14 +254,18 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
           <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.replayText}>{t('oath.guide.replay')}</Text>
         </Pressable>}
         <View testID="oath-rules-block" onLayout={event => { const y = event.nativeEvent.layout.y; setGuideTops(tops => tops.block === y ? tops : { ...tops, block: y }); }}>
-          <OathRuleCards snapshot={ready.preview!.snapshot} highlight={guideCard} onCardsLayout={y => setGuideTops(tops => tops.grid === y ? tops : { ...tops, grid: y })}
-            onCardLayout={(id, y) => setGuideTops(tops => tops.cards[id] === y ? tops : { ...tops, cards: { ...tops.cards, [id]: y } })} />
+          <ReviewRules snapshot={ready.preview!.snapshot} highlight={guideCard} onRowLayout={y => setGuideTops(tops => tops.grid === y ? tops : { ...tops, grid: y })}
+            onPictogramLayout={(id, y) => setGuideTops(tops => tops.cards[id] === y ? tops : { ...tops, cards: { ...tops.cards, [id]: y } })} />
         </View>
-        {!pending && <>
-          <View style={styles.consent}><Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{prose(t('oath.consent'))}</Text></View>
-          <Action label={t('oath.confirm')} busy={busy} onPress={() => { void controller.confirm(); }} />
-          <Action label={t('oath.edit')} busy={busy} variant="secondary" onPress={() => { setMode('form'); setSubmitted(false); }} />
-        </>}
+        {/* MVP-22-E3.2 (D-E1, D-E5): the hold seal is the one filled control. Its label is the stored declaration, its drawn hint
+            is the consent. A full hold calls the idempotent confirm, and the stamping still waits for the server. */}
+        {!pending && <HoldSeal declaration={ready.preview!.snapshot.copy[locale].declaration} busy={busy} hint={t('oath.consent')} tapHint={t('oath.consentTap')}
+          onSeal={() => { void controller.confirm(); }} />}
+        <ReviewFold snapshot={ready.preview!.snapshot} />
+        {!pending && <Pressable accessibilityRole="button" accessibilityLabel={t('oath.edit')} accessibilityState={{ disabled: busy }} disabled={busy}
+          onPress={() => { setMode('form'); setSubmitted(false); }} style={({ pressed }) => [styles.textAction, pressed && styles.pressed]}>
+          <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.textActionLabel, busy && styles.muted]}>{t('oath.edit')}</Text>
+        </Pressable>}
       </>}
       {forming && <>
         <View style={styles.workbench}>
@@ -305,7 +307,6 @@ const styles = StyleSheet.create({
   bandFade: { position: 'absolute', left: 0, right: 0, top: '100%', height: 24 }, wideBench: { paddingHorizontal: 10 },
   confirmed: { gap: 14, alignItems: 'center', paddingVertical: 24 },
   track: { alignSelf: 'stretch' }, centred: { textAlign: 'center' },
-  consent: { padding: 20, borderLeftWidth: 3, borderLeftColor: tokens.color.primary, backgroundColor: 'rgba(32, 25, 19, 0.94)', borderRadius: 12 },
   group: { gap: tokens.space.item },
   title: { color: tokens.color.text, fontFamily: tokens.font.display, fontSize: tokens.title, lineHeight: tokens.title * 1.3, fontWeight: '400' },
   label: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5, fontWeight: '600' },
@@ -319,4 +320,8 @@ const styles = StyleSheet.create({
   replayImage: { width: 44, height: 44 },
   replayText: { flexShrink: 1, color: tokens.color.text, fontSize: 15, fontWeight: '600' },
   pressed: { opacity: 0.75 },
+  // "Zmień" in the text style, so the hold seal stays the only filled control (clarity.md rule 3).
+  textAction: { alignSelf: 'center', minHeight: 44, minWidth: 44, paddingHorizontal: 16, justifyContent: 'center' },
+  textActionLabel: { color: tokens.color.primary, fontSize: tokens.body, lineHeight: tokens.body * 1.4, fontWeight: '600', textAlign: 'center' },
+  muted: { color: tokens.color.secondary },
 });

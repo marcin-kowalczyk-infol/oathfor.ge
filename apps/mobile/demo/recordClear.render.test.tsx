@@ -37,7 +37,8 @@ test('the lost record clear control shows the confirmed Oath with its kept recor
   await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
   dummy.state.loseNextRecordClear = true;
   const oathsBefore = dummy.state.oaths.length;
-  await fireEvent.press(await screen.findByRole('button', { name: 'Złóż Przysięgę' }));
+  // The VoiceOver activation of the hold seal (MVP-22-E3.2).
+  await fireEvent(await screen.findByRole('button', { name: /Złóż Przysięgę$/ }), 'accessibilityAction', { nativeEvent: { actionName: 'activate' } });
   // The server holds the Oath, the device keeps its record, and the flag is spent on the one clear the confirm makes.
   expect(await screen.findByRole('header', { name: 'Przysięga złożona' })).toBeOnTheScreen();
   expect(dummy.state.oaths).toHaveLength(oathsBefore + 1);
