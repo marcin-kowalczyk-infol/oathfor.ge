@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '../ui/Text';
+import { tokens } from '../ui/tokens';
 
 /** Light belongs to the scene; the stationary touch area never scales with it. */
 export function SceneHotspot({ label, hint, selected, onPress, anchor, door = false, cue = true, allowed, glow, heard }: {
@@ -37,7 +38,7 @@ export function SceneHotspot({ label, hint, selected, onPress, anchor, door = fa
       <Animated.View style={[styles.touchRing, { left: touch.x - 22, top: touch.y - 22, borderColor: color, shadowColor: color,
         opacity: ripple.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.95, 0.75, 0] }),
         transform: [{ scale: ripple.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1.8] }) }] }]} />
-      {heard && <View testID={heard.testID} style={styles.heardSlot}><View style={styles.heard}>
+      {heard && <View testID={heard.testID} style={styles.heardSlot}><View testID={`${heard.testID}-plate`} style={styles.heard}>
         <Text numberOfLines={1} maxFontSizeMultiplier={HEARD_SCALE} style={styles.heardMark}>✓ {heard.label}</Text>
       </View></View>}
     </View>}
@@ -47,11 +48,13 @@ export function SceneHotspot({ label, hint, selected, onPress, anchor, door = fa
 // The room exists only up to text scale 1.3 (layoutMode), so the plate grows no further and never reaches a neighbouring place.
 const HEARD_SCALE = 1.3;
 const styles = StyleSheet.create({
-  // Native check: a bare check mark faded into the hearth glow. MVP-22-A5: the gold plate also names the state, "✓ Wysłuchane" / "✓ Heard".
+  // Native check: a bare check mark faded into the hearth glow. MVP-22-A5: the plate also names the state, "✓ Wysłuchane" / "✓ Heard".
+  // MVP-22-B2 (G12): a cream pill read as a system badge, so it is a game plate like the speaker's, dark bronze with gold text and border.
+  // The opaque fill and a dark shadow keep it readable on the glow.
   heardSlot: { position: 'absolute', top: -12, left: -30, right: -30, alignItems: 'center' },
-  heard: { paddingHorizontal: 7, paddingVertical: 1, borderRadius: 9, backgroundColor: '#f0c987', borderWidth: 1, borderColor: '#5d3616',
-    shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
-  heardMark: { color: '#3a2412', fontSize: 11, lineHeight: 15, fontWeight: '800' },
+  heard: { paddingHorizontal: 8, paddingVertical: 1, borderRadius: 4, backgroundColor: tokens.warm.raised, borderWidth: 1, borderColor: tokens.warm.role,
+    shadowColor: '#000', shadowOpacity: 0.8, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
+  heardMark: { color: tokens.warm.bright, fontFamily: tokens.font.display, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   station: { position: 'absolute', width: 76, height: 72, marginLeft: -38, marginTop: -36, borderRadius: 30, zIndex: 2 },
   cueLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   cueMote: { position: 'absolute', width: 5, height: 5, top: 4, alignSelf: 'center', shadowOpacity: 1, shadowRadius: 7, shadowOffset: { width: 0, height: 0 } },

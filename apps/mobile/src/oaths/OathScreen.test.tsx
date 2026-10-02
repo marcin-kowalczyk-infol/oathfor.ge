@@ -9,6 +9,7 @@ import { createOathController, type OathController } from './controller';
 import type { SessionController } from '../auth/session';
 import type { OathClient } from '../api/oaths';
 import type { PendingStorage } from './pendingStorage';
+import { tokens } from '../ui/tokens';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 jest.mock('./SealStamp', () => { const actual = jest.requireActual('./SealStamp'); return { ...actual, SealStamp: jest.fn(actual.SealStamp) }; });
@@ -643,5 +644,50 @@ describe('form and review lines', () => {
     await fireEvent.press(screen.getByRole('radio', { name: later }));
     expect(screen.getByText(required)).toBeOnTheScreen();
     expect(screen.queryByText(copy[locale].required)).toBeNull();
+  });
+});
+
+// MVP-22-B2 (G16), native check: the creation header ("Wróć do Kuźni", "Próba Iskry", the intro line) and the confirmation's way back
+// sat on the hearth art. Like the detail and the proof screen, header text stands on a solid band that fades into the art.
+describe('header text never sits on the hearth art', () => {
+  const band = () => {
+    const header = screen.getByTestId('screen-header');
+    expect(StyleSheet.flatten(header.props.style)).toMatchObject({ backgroundColor: tokens.color.canvas, zIndex: 1, marginHorizontal: -16, marginTop: -16, paddingHorizontal: 16, paddingTop: 16 });
+    const fade = within(header).getByTestId('header-fade', { includeHiddenElements: true });
+    expect(StyleSheet.flatten(fade.props.style)).toMatchObject({ position: 'absolute', top: '100%', height: 24 });
+    expect(within(fade).getAllByTestId('header-fade-strip', { includeHiddenElements: true }).length).toBeGreaterThanOrEqual(6);
+    return header;
+  };
+  test('the form header holds the way back, the title, the intro line and the workout label, and the time bench is warm', async () => {
+    const f = setup(); f.controller.start();
+    await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" onBack={jest.fn()} backLabel="Wróć do Kuźni" /></LocalizationProvider>);
+    await screen.findByTestId('oath-line');
+    const header = band();
+    expect(within(header).getByRole('button', { name: 'Wróć do Kuźni' })).toBeOnTheScreen();
+    expect(within(header).getByRole('header', { name: 'Próba Iskry' })).toBeOnTheScreen();
+    expect(within(header).getByTestId('oath-line')).toHaveTextContent('Wybierz trening i termin ukończenia.');
+    // The offerings keep their full width below the band, each on its own dark tile.
+    expect(within(header).getByRole('header', { name: 'Trening' })).toBeOnTheScreen();
+    expect(within(header).queryByRole('radio', { name: 'Bieganie' })).toBeNull();
+    expect(StyleSheet.flatten(screen.getByTestId('time-bench').props.style)).toMatchObject({ backgroundColor: tokens.warm.panel });
+  });
+  test('the review header holds the way back and its line', async () => {
+    const f = setup(); f.controller.start();
+    await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onBack={jest.fn()} backLabel="Return to the Forge" /></LocalizationProvider>);
+    await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
+    await screen.findByTestId('rule-cards');
+    const header = band();
+    expect(within(header).getByRole('button', { name: 'Return to the Forge' })).toBeOnTheScreen();
+    expect(within(header).getByTestId('oath-line')).toBeOnTheScreen();
+  });
+  test('the confirmation keeps its way back on the band', async () => {
+    const f = setup(); f.controller.start();
+    jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed('20000000-0000-4000-8000-0000000000d1', f.envelope.preview.snapshot));
+    await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onBack={jest.fn()} backLabel="Return to the Forge" onViewOath={jest.fn()} /></LocalizationProvider>);
+    await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+    await screen.findByRole('header', { name: 'Oath made' });
+    const header = band();
+    expect(within(header).getByRole('button', { name: 'Return to the Forge' })).toBeOnTheScreen();
   });
 });

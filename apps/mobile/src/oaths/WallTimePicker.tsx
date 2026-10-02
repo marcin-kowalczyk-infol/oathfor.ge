@@ -134,7 +134,7 @@ export function WallTimePicker({ field, value, disabled, now, onChange }: { fiel
   </View>;
 }
 const styles = StyleSheet.create({
-  group: { gap: 12 }, field: { padding: 16, gap: 4, minHeight: 64, backgroundColor: tokens.color.surface, borderRadius: 20, borderBottomWidth: 3, borderBottomColor: '#101416' }, wideField: { paddingHorizontal: tokens.space.small },
+  group: { gap: 12 }, field: { padding: 16, gap: 4, minHeight: 64, backgroundColor: tokens.color.surface, borderRadius: 20, borderBottomWidth: 3, borderBottomColor: tokens.warm.edge }, wideField: { paddingHorizontal: tokens.space.small },
   caption: { color: tokens.color.secondary, fontSize: 14, lineHeight: 21 }, value: { color: tokens.color.text, fontSize: 17, fontWeight: '600' },
   modal: { flex: 1, backgroundColor: tokens.color.canvas }, header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingLeft: 16, paddingRight: 8 }, title: { color: tokens.color.text, fontSize: 24, fontWeight: '700' },
   month: { flex: 1, flexShrink: 1, textAlign: 'center' },

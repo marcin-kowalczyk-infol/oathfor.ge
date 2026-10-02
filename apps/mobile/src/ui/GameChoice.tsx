@@ -14,7 +14,7 @@ export function GameChoice({ label, symbol, selected, disabled, onPress, stacked
     if (!motion) { scale.setValue(1); return; }
     Animated.spring(scale, { toValue: pressed ? 0.96 : 1, speed: 30, bounciness: 5, useNativeDriver: true }).start();
   }
-  const medallion = <View style={[styles.medallion, selected && styles.lit]} accessible={false}><Text allowFontScaling={false} style={styles.symbol}>{symbol}</Text></View>;
+  const medallion = <View testID="choice-medallion" style={[styles.medallion, selected && styles.lit]} accessible={false}><Text allowFontScaling={false} style={styles.symbol}>{symbol}</Text></View>;
   const mark = <Text allowFontScaling={false} accessible={false} style={[styles.mark, selected && styles.selectedMark]}>{selected ? '◆' : '◇'}</Text>;
   return <Animated.View style={{ transform: [{ scale }] }}><Pressable accessibilityRole="radio" accessibilityLabel={label}
     accessibilityState={{ selected, disabled }} disabled={disabled} onPress={() => { if (!disabled) onPress(); }} onPressIn={() => touch(true)} onPressOut={() => touch(false)}
@@ -25,9 +25,10 @@ export function GameChoice({ label, symbol, selected, disabled, onPress, stacked
   </Pressable></Animated.View>;
 }
 const styles = StyleSheet.create({
-  choice: { minHeight: 72, padding: 12, gap: 14, borderRadius: 22, backgroundColor: '#202629', flexDirection: 'row', alignItems: 'center', borderBottomWidth: 3, borderBottomColor: '#0e1113' },
+  // MVP-22-B2 (G17): an idle choice stands on the warm neutral surface, its medallion on the raised warm fill.
+  choice: { minHeight: 72, padding: 12, gap: 14, borderRadius: 22, backgroundColor: tokens.color.surface, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 3, borderBottomColor: tokens.warm.edge },
   selected: { backgroundColor: '#3c3023', borderBottomColor: '#896037' }, pressed: { backgroundColor: '#4c3a27' },
-  medallion: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#30373b' },
+  medallion: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: tokens.warm.raised },
   lit: { backgroundColor: '#775029' }, symbol: { color: tokens.color.primary, fontSize: 26 },
   label: { color: tokens.color.text, fontSize: 17, lineHeight: 25, fontWeight: '600' }, rowLabel: { flex: 1 },
   stacked: { flexDirection: 'column', alignItems: 'stretch' }, stackedLabel: { alignSelf: 'stretch' },

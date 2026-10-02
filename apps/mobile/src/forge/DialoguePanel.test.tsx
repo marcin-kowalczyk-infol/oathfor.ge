@@ -270,3 +270,33 @@ test.each(['player', 'guide'] as const)('draws the %s bust above the painted fra
   const bust = style(`bust-${speaker}`);
   expect(Number(bust.top) + Number(bust.height)).toBeLessThanOrEqual(Number(style('dialogue-panel').paddingTop));
 });
+
+// MVP-22-B2 (G11), native check on iPhone 18 Pro: the continue mark was a dark bronze chevron cramped under the ×.
+describe('the continue mark', () => {
+  test('takes the × glyph colour and its own 44 pt row under the text', async () => {
+    await render(panel({ allowed: false, more: true }));
+    const cream = (StyleSheet.flatten(screen.getByText('×', hidden).props.style) as { color: string }).color;
+    expect(StyleSheet.flatten(screen.getByTestId('dialogue-rune-image', hidden).props.style)).toMatchObject({ tintColor: cream });
+    const rune = screen.getByRole('button', { name: 'Next' });
+    expect(StyleSheet.flatten(rune.props.style)).toMatchObject({ width: 44, height: 44 });
+    expect(StyleSheet.flatten(rune.props.style)).not.toHaveProperty('position', 'absolute');
+    const row = style('dialogue-rune-row');
+    expect(row).toMatchObject({ height: 44, alignItems: 'flex-end' });
+    expect(row.position).toBeUndefined();
+  });
+
+  test('a line without a following line keeps no empty row', async () => {
+    await render(panel({ allowed: false, more: false }));
+    expect(screen.queryByTestId('dialogue-rune-row', hidden)).toBeNull();
+  });
+});
+
+// MVP-22-B2 (G11): a hairline crossed both side braids where the edge strips met the lower corners at a fractional pixel row.
+// The strips now run 1 pt under each corner, which is drawn over them.
+test('the braid strips run under the corners, so no seam shows where they meet', async () => {
+  await render(panel({ allowed: false }));
+  const corner = Number(style('panel-corner-tl').width);
+  const strip = (id: string) => StyleSheet.flatten(screen.getAllByTestId(id, hidden)[0].parent!.props.style) as Record<string, number>;
+  for (const id of ['panel-edge-left-tile', 'panel-edge-right-tile']) expect(strip(id)).toMatchObject({ top: corner - 1, bottom: corner - 1 });
+  for (const id of ['panel-edge-top-tile', 'panel-edge-bottom-tile']) expect(strip(id)).toMatchObject({ left: corner - 1, right: corner - 1 });
+});

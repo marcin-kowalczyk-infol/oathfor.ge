@@ -36,6 +36,7 @@ import { SpriteFrame } from '../forge/Sprite';
 import { StepBadge, StepTrack } from '../ui/StepTrack';
 import { NextCard } from '../ui/NextCard';
 import { ZaromirLine } from '../ui/ZaromirLine';
+import { FadeStrips } from '../ui/FadeStrips';
 import { Disclosure } from '../ui/Disclosure';
 import { PauseMark } from '../ui/PauseMark';
 import { zaromirSeed } from '../companion/zaromirLine';
@@ -431,7 +432,10 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   // Without the lowered close-up behind it, or wherever the artwork starts under it, the header stands on a solid band so its text never sits on the art.
   const solidHeader = !interactiveForge || route === 'detail';
   return <SceneSurface place={place} drop={interactiveForge && !waiting ? route === 'detail' ? DETAIL_DROP : LIST_DROP : 0} scroll={scroll} approach={approach && approach.place === place && place !== 'hearth' ? approach.id : null}>{waiting ? <SafeAreaView testID="hearth-waiting" style={styles.safeArea}><View style={styles.content}>
-    {forgeNavigation && <View testID="screen-header" style={[styles.header, !interactiveForge && styles.solidHeader]}>{interactiveForge
+    {/* The hearth close-up starts at the top here, so the way back always stands on the band (MVP-22-B2, G16). */}
+    {forgeNavigation && <View testID="screen-header" style={[styles.header, styles.solidHeader]}>
+      <FadeStrips testID="header-fade" stripTestID="header-fade-strip" style={styles.headerFade} />
+      {interactiveForge
       ? <SceneDoor label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />
       : <BackLink label={returnLabel} onPress={() => forgeNavigation.onReturn('hearth')} />}</View>}
     <SlowNotice text={t('oathHome.loading')} />
@@ -442,9 +446,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
     <View testID="screen-header" style={[styles.header, solidHeader && styles.solidHeader]}>
       {/* The band ends in a short fade, so the artwork under it never starts on a hard edge (native check, MVP-22-T09e). */}
       {/* Solid strips that thin out, so the fade does not depend on gradient support (native check, MVP-22-T12c). */}
-      {solidHeader && <View testID="header-fade" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.headerFade}>
-        {FADE_STEPS.map(opacity => <View key={opacity} testID="header-fade-strip" style={[styles.fadeStrip, { opacity }]} />)}
-      </View>}
+      {solidHeader && <FadeStrips testID="header-fade" stripTestID="header-fade-strip" style={styles.headerFade} />}
       {route === 'detail'
         ? interactiveForge ? <SceneDoor label={t(`oathHome.${detailFrom}`)} hint={t('oathHome.backHint')} onPress={returnToList} /> : <BackLink label={t(`oathHome.${detailFrom}`)} hint={t('oathHome.backHint')} onPress={returnToList} />
         : forgeNavigation && (interactiveForge
@@ -522,8 +524,6 @@ function SlowNotice({ text }: { text: string }) {
   return shown ? <Text accessibilityLiveRegion="polite" style={styles.body}>{text}</Text> : null;
 }
 const SLOW_MS = 500;
-/** Eight 3 pt strips under the solid header, from nearly the band's colour to almost clear. */
-const FADE_STEPS = [0.9, 0.76, 0.62, 0.49, 0.37, 0.26, 0.16, 0.07];
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   historyHeader: { gap: 12 },
@@ -568,7 +568,6 @@ const styles = StyleSheet.create({
   fold: { paddingTop: 20, borderTopWidth: 1, borderTopColor: 'rgba(141, 105, 65, 0.55)' },
   // About 24 pt from the band's own colour to clear, hanging under it.
   headerFade: { position: 'absolute', left: 0, right: 0, top: '100%', height: 24 },
-  fadeStrip: { flex: 1, backgroundColor: tokens.color.canvas },
   parchment: { backgroundColor: 'rgba(27, 24, 20, 0.95)', padding: 18, borderTopWidth: 2, borderTopColor: '#9d7b4d', borderBottomWidth: 2, borderBottomColor: '#5d452c', borderRadius: 5 },
   navigation: { flexDirection: 'row', gap: 24, backgroundColor: 'rgba(17, 19, 21, 0.5)', borderRadius: 8 }, stackedNavigation: { flexDirection: 'column', gap: 8 }, stackedTab: { flex: 0, alignItems: 'flex-start' },
   tab: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#5d4e39' },

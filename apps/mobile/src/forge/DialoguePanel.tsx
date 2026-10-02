@@ -150,11 +150,12 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
         </Pressable>
       </View>}
     </View>}
-    {runeButton && <Pressable testID="dialogue-rune" accessibilityRole="button" accessibilityLabel={continueLabel} onPress={press} style={styles.runeTouch}>
+    {/* MVP-22-B2 (G11): the continue mark has its own 44 pt row under the text, clear of the ×, in the ×'s cream. */}
+    {runeButton && <View testID="dialogue-rune-row" style={styles.runeRow}><Pressable testID="dialogue-rune" accessibilityRole="button" accessibilityLabel={continueLabel} onPress={press} style={styles.runeTouch}>
       {showRune && <View testID="dialogue-rune-mark" style={styles.rune}>
         <Animated.View style={[styles.runeCell, { opacity: rune }]}><Image testID="dialogue-rune-image" source={art.rune} resizeMode="stretch" style={styles.runeImage} /></Animated.View>
       </View>}
-    </Pressable>}
+    </Pressable></View>}
     <Pressable accessibilityRole="button" accessibilityLabel={dismissLabel} onPress={onDismiss} style={styles.dismiss}>
       <Text accessible={false} allowFontScaling={false} style={styles.dismissMark}>×</Text>
     </Pressable>
@@ -167,8 +168,8 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
  */
 function PaintedFrame({ width, height }: { width: number; height: number }) {
   const art = useArt().panel;
-  const across = Math.max(0, Math.ceil((width - 2 * CORNER) / TILE_H));
-  const down = Math.max(0, Math.ceil((height - 2 * CORNER) / TILE_V));
+  const across = Math.max(0, Math.ceil((width - 2 * CORNER + 2) / TILE_H));
+  const down = Math.max(0, Math.ceil((height - 2 * CORNER + 2) / TILE_V));
   const tiles = (count: number, id: string, size: { width: number; height: number }, source: number) =>
     Array.from({ length: count }, (_, index) => <Image key={index} testID={id} source={source} resizeMode="stretch" style={size} />);
   const corner = (id: string, place: object, flip: object[]) =>
@@ -190,14 +191,18 @@ function PaintedFrame({ width, height }: { width: number; height: number }) {
 const wood = '#31241d';
 const bronze = '#b58a52';
 const parchment = '#f0dfb9';
+// The cream of the panel's glyphs, the × and the continue mark.
+const glyph = '#c9a77a';
 const styles = StyleSheet.create({
   panel: { position: 'absolute', zIndex: 5, backgroundColor: wood, borderRadius: 6, paddingTop: 36, paddingBottom: 8,
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
   wood: { position: 'absolute', left: 4, top: 4, right: 4, bottom: 4, overflow: 'hidden' },
   woodImage: { width: '100%', height: '100%' },
   corner: { position: 'absolute', width: CORNER, height: CORNER },
-  edgeH: { position: 'absolute', left: CORNER, right: CORNER, height: EDGE, flexDirection: 'row', overflow: 'hidden' },
-  edgeV: { position: 'absolute', top: CORNER, bottom: CORNER, width: EDGE, overflow: 'hidden' },
+  // MVP-22-B2 (G11): a strip that ended exactly where a corner began left a hairline on a fractional pixel row,
+  // because the panel's height follows its text. Each strip runs 1 pt under the corners, which are drawn over it.
+  edgeH: { position: 'absolute', left: CORNER - 1, right: CORNER - 1, height: EDGE, flexDirection: 'row', overflow: 'hidden' },
+  edgeV: { position: 'absolute', top: CORNER - 1, bottom: CORNER - 1, width: EDGE, overflow: 'hidden' },
   bust: { position: 'absolute', top: -BUST_RISE, width: BUST, height: BUST, borderRadius: BUST / 2, overflow: 'hidden', backgroundColor: '#44372c', borderColor: bronze, borderWidth: 2 },
   guideBust: { width: '100%', height: '100%' },
   // Żaromir's bust is painted with a transparent background, so it rises free of a round frame.
@@ -229,11 +234,13 @@ const styles = StyleSheet.create({
   textNext: { height: 44, flexShrink: 1, justifyContent: 'center', paddingHorizontal: 10 },
   nextLabel: { color: '#e7b86e', fontFamily: tokens.font.body, fontSize: 17, fontWeight: '600' },
   pressed: { opacity: 0.6 },
-  runeTouch: { position: 'absolute', right: 8, bottom: 8, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  // The rune is light on black, so it blends like the room's light sheets. Its first cell shows, the opacity pulses.
+  // Inside the painted band like the step row, right-aligned under the ×.
+  runeRow: { flexShrink: 0, height: 44, alignItems: 'flex-end', justifyContent: 'center', paddingHorizontal: 12 },
+  runeTouch: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  // Its first cell shows, the opacity pulses. The tint gives the painted shape the ×'s cream, because the bronze cinematic rune vanished on the wood.
   rune: { width: RUNE, height: RUNE },
   runeCell: { width: RUNE, height: RUNE, overflow: 'hidden' },
-  runeImage: { position: 'absolute', left: 0, top: 0, width: RUNE * 4, height: RUNE * 2 },
+  runeImage: { position: 'absolute', left: 0, top: 0, width: RUNE * 4, height: RUNE * 2, tintColor: glyph },
   dismiss: { position: 'absolute', right: 6, top: 6, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  dismissMark: { color: '#c9a77a', fontSize: 28 },
+  dismissMark: { color: glyph, fontSize: 28 },
 });

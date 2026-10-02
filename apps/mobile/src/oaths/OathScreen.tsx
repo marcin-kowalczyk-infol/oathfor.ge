@@ -9,6 +9,7 @@ import { GameChoice } from '../ui/GameChoice';
 import { tokens } from '../ui/tokens';
 import { SceneSurface } from '../ui/SceneSurface';
 import { SceneDoor } from '../ui/SceneDoor';
+import { FadeStrips } from '../ui/FadeStrips';
 import { BackLink } from '../ui/BackLink';
 import { ActivityOffering } from './ActivityOffering';
 import { SealStamp } from './SealStamp';
@@ -73,6 +74,9 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const choices = submitted && error?.kind === 'time_error' && error.code === 'ambiguous_local_time' ? error : undefined;
   const detail = oath && mode === 'detail';
   const review = !detail && ready?.preview && (mode === 'review' || !!pending);
+  const forming = !!ready && !pending && !review && !detail;
+  const titled = !review && !detail;
+  const intro = review ? 'oath.reviewIntro' : forming ? 'oath.intro' : null;
   const scene = `${detail ? 'detail' : pending ? 'pending' : review ? 'review' : 'form'}-${error?.kind ?? ''}-${error && 'code' in error ? error.code : ''}`;
   const entrance = useSceneEntrance(scene);
   const scroll = useRef(new Animated.Value(0)).current;
@@ -158,8 +162,16 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   }
   return <SceneSurface place="hearth" approach={approach} scroll={scroll}><SafeAreaView style={styles.safeArea}>
     <Animated.ScrollView testID="oath-scroll" ref={scrollView as never} style={entrance} key={scene} contentContainerStyle={[styles.content, guideInset !== null && { paddingBottom: guideInset }]} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
-      {onBack && (backPlain ? <BackLink label={backLabel ?? t('oathHome.today')} onPress={onBack} /> : <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />)}
-      {!review && !detail && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
+      {/* MVP-22-B2 (G16): the hearth close-up starts at the top, so the way back, the title, the line and the workout label
+          stand on a solid band that fades into the art, as on the detail. Cards and offerings carry their own fills below it. */}
+      {(onBack || titled || intro) && <View testID="screen-header" style={styles.band}>
+        <FadeStrips testID="header-fade" stripTestID="header-fade-strip" style={styles.bandFade} />
+        {onBack && (backPlain ? <BackLink label={backLabel ?? t('oathHome.today')} onPress={onBack} /> : <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />)}
+        {titled && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
+        {/* MVP-22-A6: one plain "what next" line. D and S stay on their cards and in Żaromir's guide (clarity.md rules 1 and 14). */}
+        {intro && <Text testID="oath-line" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t(intro)}</Text>}
+        {forming && <Text accessibilityRole="header" style={styles.label}>{t('oath.activity')}</Text>}
+      </View>}
       {!ready && <>
         <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading')}</Text>
         {state.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
@@ -194,8 +206,6 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         {stamped.has(oath.id) && !pending && <Action label={t('oath.newOath')} variant="secondary" onPress={() => { if (controller.resetCreation()) { const next = emptyDraft(timezone); setDraft(next); onDraftChange?.(null); setMode('form'); setSubmitted(false); } }} />}
       </>}
       {review && <>
-        {/* MVP-22-A6: one plain "what next" line. D and S stay on their cards and in Żaromir's guide (clarity.md rules 1 and 14). */}
-        <Text testID="oath-line" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t('oath.reviewIntro')}</Text>
         {rulesGuideStorage && guideSeen !== null && !guideShown && <Pressable accessibilityRole="button" accessibilityLabel={t('oath.guide.replay')} onPress={() => setGuideLine(0)} style={({ pressed }) => [styles.replay, pressed && styles.pressed]}>
           <View style={styles.replayBust}><Image source={zharomir} resizeMode="cover" style={styles.replayImage} /></View>
           <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.replayText}>{t('oath.guide.replay')}</Text>
@@ -210,10 +220,8 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
           <Action label={t('oath.edit')} busy={busy} variant="secondary" onPress={() => { setMode('form'); setSubmitted(false); }} />
         </>}
       </>}
-      {ready && !pending && !review && !detail && <>
-        <Text testID="oath-line" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t('oath.intro')}</Text>
+      {forming && <>
         <View style={styles.workbench}>
-          <Text accessibilityRole="header" style={styles.label}>{t('oath.activity')}</Text>
           <View style={styles.offerings}>
             {(['running', 'strength_training', 'mobility'] as const).map(value => <ActivityOffering key={value} activity={value}
               label={t(`oath.activities.${value}`)} selected={activity === value} disabled={busy} onPress={() => setActivity(value)} />)}
@@ -221,7 +229,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         </View>
         {/* Native check, 2026-09-30: at the largest text size "W przyszłym terminie" broke mid-word between the medallion and the marker.
             The start labels take the full width under them, and the bench gives back some side padding. */}
-        <View style={[styles.timeWorkbench, largeText && styles.wideBench]}>
+        <View testID="time-bench" style={[styles.timeWorkbench, largeText && styles.wideBench]}>
           <Text accessibilityRole="header" style={styles.label}>{t('oath.startChoice')}</Text>
           {[false, true].map(value => <GameChoice key={String(value)} label={t(value ? 'oath.scheduled' : 'oath.now')} symbol={value ? '◷' : 'ϟ'} stacked={largeText}
             selected={scheduled === value} disabled={busy} onPress={() => { setScheduled(value); setSubmitted(false); }} />)}
@@ -244,7 +252,11 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { flexGrow: 1, width: '100%', maxWidth: 680, alignSelf: 'center', padding: tokens.space.card, paddingBottom: 36, gap: tokens.space.section },
   workbench: { gap: 14 }, offerings: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'stretch' },
-  timeWorkbench: { padding: 18, gap: 18, backgroundColor: 'rgba(28, 24, 20, 0.92)', borderRadius: 24 }, wideBench: { paddingHorizontal: 10 },
+  timeWorkbench: { padding: 18, gap: 18, backgroundColor: tokens.warm.panel, borderRadius: 24 },
+  // Full bleed from the top like the detail's band. zIndex: the band and its fade draw above the content after them.
+  band: { marginHorizontal: -tokens.space.card, marginTop: -tokens.space.card, paddingHorizontal: tokens.space.card, paddingTop: tokens.space.card, paddingBottom: tokens.space.small,
+    gap: tokens.space.section, backgroundColor: tokens.color.canvas, zIndex: 1 },
+  bandFade: { position: 'absolute', left: 0, right: 0, top: '100%', height: 24 }, wideBench: { paddingHorizontal: 10 },
   confirmed: { gap: 14, alignItems: 'center', paddingVertical: 24 },
   track: { alignSelf: 'stretch' }, centred: { textAlign: 'center' },
   consent: { padding: 20, borderLeftWidth: 3, borderLeftColor: tokens.color.primary, backgroundColor: 'rgba(32, 25, 19, 0.94)', borderRadius: 12 },
@@ -252,7 +264,7 @@ const styles = StyleSheet.create({
   title: { color: tokens.color.text, fontFamily: tokens.font.display, fontSize: tokens.title, lineHeight: tokens.title * 1.3, fontWeight: '400' },
   label: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5, fontWeight: '600' },
   body: { color: tokens.color.text, fontSize: tokens.body, lineHeight: tokens.body * 1.5 },
-  choice: { minHeight: 64, padding: 18, borderWidth: 1, borderColor: tokens.color.neutral, borderRadius: tokens.radius },
+  choice: { minHeight: 64, padding: 18, borderWidth: 1, borderColor: tokens.warm.field, borderRadius: tokens.radius, backgroundColor: tokens.color.surface },
   selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
   // Native check, 2026-09-30: the pill sized itself to the unshrunk label, 44 + 10 + about 370 + 14 pt, and ran past the screen edge.
   // The column bounds it and the label shrinks and wraps inside.

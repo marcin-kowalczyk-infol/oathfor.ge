@@ -56,7 +56,8 @@ const styles = StyleSheet.create({
   backward: { justifyContent: 'flex-start' },
   pressed: { opacity: 0.8 }, unavailable: { shadowOpacity: 0 },
   // Native check, 2026-09-30: disabled actions only lost their shadow and read as enabled. The reason under them keeps full contrast.
-  unavailablePrimary: { backgroundColor: tokens.color.surface, borderBottomColor: '#101416' }, mutedText: { color: tokens.color.secondary },
+  // MVP-22-B2 (G17): the muted fill is the warm neutral surface, not slate.
+  unavailablePrimary: { backgroundColor: tokens.color.surface, borderBottomColor: tokens.warm.edge }, mutedText: { color: tokens.color.secondary },
   sigil: { color: '#714a25', fontSize: 16 }, arrow: { color: tokens.color.primary, fontSize: 26 },
   label: { fontSize: tokens.body, lineHeight: tokens.body * 1.5, fontWeight: '600', flexShrink: 1 },
   primaryLabel: { color: tokens.color.canvas },

@@ -360,6 +360,18 @@ test('hearth navigation during a busy operation explains that creation must wait
   expect(screen.queryByLabelText('Completion date')).toBeNull();
 });
 
+// MVP-22-B2 (G16): while the hearth request waits, its way back stood on the hearth art at the top of the room layout.
+test('the waiting hearth keeps its way back on a solid band', async () => {
+  Dimensions.set({ window: phone(1), screen: phone(1) });
+  const f = setup(); const never = deferred<Awaited<ReturnType<OathController['list']>>>();
+  jest.mocked(f.controller.list).mockResolvedValueOnce(page([oath()])).mockReturnValueOnce(never.promise);
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="UTC" forgeNavigation={{ request: { id: 1, target: 'create' }, onReturn: jest.fn() }} /></LocalizationProvider>);
+  const header = within(await screen.findByTestId('hearth-waiting')).getByTestId('screen-header');
+  expect(StyleSheet.flatten(header.props.style)).toMatchObject({ backgroundColor: tokens.color.canvas, zIndex: 1 });
+  expect(within(header).getByTestId('header-fade', { includeHiddenElements: true })).toBeTruthy();
+  expect(within(header).getByRole('button', { name: 'Return to the Forge' })).toBeOnTheScreen();
+});
+
 test('a newer room request replaces an unfinished hearth request and its place', async () => {
   const f = setup(); const first = deferred<Awaited<ReturnType<OathController['list']>>>();
   // The mount loads Today first, then the hearth request waits on its own Today load.

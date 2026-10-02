@@ -51,7 +51,7 @@ Until the player art is delivered the player is the static menu figure of the ch
 - A dark carved wood panel with bronze fittings sits at the bottom of the room. A name plate names the speaker.
 - The speaker's bust rises above the frame and is drawn over it, so the frame never hides part of it (owner demo review, 2026-09-28). Żaromir is on the left, the player on the right. A change of speaker slides the old bust out and the new one in, and the plate moves to that side.
 - A soft ring of light under the speaking character in the room shows who speaks. The panel has no tail.
-- Text appears letter by letter. The first touch shows the whole line, the next touch continues. A pulsing rune in the corner shows that more follows.
+- Text appears letter by letter. The first touch shows the whole line, the next touch continues. A pulsing rune shows that more follows. It sits in its own 44 pt row at the bottom right, tinted the cream of the × (MVP-22-B2).
 - The panel keeps today's controls: the place action as a bronze button, the counter such as "2 / 4", "Another place", "Finish" and ×. Superseded on 2026-10-02: the first-visit guide's step control shows its words, "Następne miejsce" / "Next place" and "Zacznij odkrywać" / "Start exploring", instead of an arrow or a check. See [clarity](clarity.md).
 - The bottom edge stays fixed and the panel grows upward, so a button never moves under the finger. At large text the content scrolls inside the panel.
 - VoiceOver reads the speaker and the whole line at once. Busts are decorative. Controls are at least 44 pt.
