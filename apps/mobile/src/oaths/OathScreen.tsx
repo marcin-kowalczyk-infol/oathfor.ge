@@ -76,7 +76,8 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const review = !detail && ready?.preview && (mode === 'review' || !!pending);
   const forming = !!ready && !pending && !review && !detail;
   const titled = !review && !detail;
-  const intro = review ? 'oath.reviewIntro' : forming ? 'oath.intro' : null;
+  // MVP-22-B2c: a pending acceptance has no confirm button, so the band does not ask to make the Oath.
+  const intro = review && !pending ? 'oath.reviewIntro' : forming ? 'oath.intro' : null;
   const scene = `${detail ? 'detail' : pending ? 'pending' : review ? 'review' : 'form'}-${error?.kind ?? ''}-${error && 'code' in error ? error.code : ''}`;
   const entrance = useSceneEntrance(scene);
   const scroll = useRef(new Animated.Value(0)).current;
@@ -164,20 +165,21 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
     <Animated.ScrollView testID="oath-scroll" ref={scrollView as never} style={entrance} key={scene} contentContainerStyle={[styles.content, guideInset !== null && { paddingBottom: guideInset }]} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
       {/* MVP-22-B2 (G16): the hearth close-up starts at the top, so the way back, the title, the line and the workout label
           stand on a solid band that fades into the art, as on the detail. Cards and offerings carry their own fills below it. */}
-      {(onBack || titled || intro) && <View testID="screen-header" style={styles.band}>
+      {(onBack || titled || intro || (ready && errorText) || ready?.needsReview) && <View testID="screen-header" style={styles.band}>
         <FadeStrips testID="header-fade" stripTestID="header-fade-strip" style={styles.bandFade} />
         {onBack && (backPlain ? <BackLink label={backLabel ?? t('oathHome.today')} onPress={onBack} /> : <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />)}
         {titled && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
         {/* MVP-22-A6: one plain "what next" line. D and S stay on their cards and in Żaromir's guide (clarity.md rules 1 and 14). */}
         {intro && <Text testID="oath-line" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t(intro)}</Text>}
+        {/* MVP-22-B2c: the error and review-again lines stand above the workout header, so the header stays with its offerings. */}
+        {ready && errorText && <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{errorText}</Text>}
+        {ready?.needsReview && <Text style={styles.body}>{t('oath.reviewAgain')}</Text>}
         {forming && <Text accessibilityRole="header" style={styles.label}>{t('oath.activity')}</Text>}
       </View>}
       {!ready && <>
         <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading')}</Text>
         {state.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
       </>}
-      {ready && errorText && <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{errorText}</Text>}
-      {ready?.needsReview && <Text style={styles.body}>{t('oath.reviewAgain')}</Text>}
       {pending && <>
         <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t('oath.pending')}</Text>
         <Action label={t('oath.recover')} busy={busy} onPress={() => { void controller.recover(); }} />

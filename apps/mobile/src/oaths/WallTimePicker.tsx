@@ -146,11 +146,12 @@ const styles = StyleSheet.create({
   caption: { color: tokens.color.secondary, fontSize: 14, lineHeight: 21 }, value: { color: tokens.color.text, fontSize: 17, fontWeight: '600' },
   modal: { flex: 1, backgroundColor: tokens.color.canvas }, header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingLeft: 16, paddingRight: 8 }, title: { color: tokens.color.text, fontSize: 24, fontWeight: '700' },
   month: { flex: 1, flexShrink: 1, textAlign: 'center' },
-  icon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, glyph: { color: tokens.color.primary, fontSize: 30, lineHeight: 36 }, goneGlyph: { color: tokens.color.secondary, opacity: 0.35 },
+  icon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, glyph: { color: tokens.color.primary, fontSize: 30, lineHeight: 36 }, // MVP-22-B2c: secondary at 0.6 on the canvas is 3.86:1, at 0.35 it was 2.13:1.
+  goneGlyph: { color: tokens.color.secondary, opacity: 0.6 },
   minuteFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 32 },
   content: { padding: 16, gap: 16 }, wideContent: { paddingHorizontal: tokens.space.small }, row: { flexDirection: 'row', alignItems: 'center', gap: 4 }, flex: { flex: 1 }, grid: { flexDirection: 'row', flexWrap: 'wrap' },
   wideDay: { width: '100%', minHeight: 52 },
   day: { width: '14.2857%', minHeight: 52 }, weekday: { minHeight: 0, color: tokens.color.secondary, fontSize: 13, lineHeight: 18, textAlign: 'center' }, number: { minWidth: 52, minHeight: 52, flexGrow: 1, margin: 3 }, cell: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12 }, selected: { backgroundColor: '#493821', borderColor: tokens.color.primary },
-  today: { borderWidth: 2, borderColor: '#b58a52' }, gone: { opacity: 0.35 }, goneText: { color: tokens.color.secondary },
+  today: { borderWidth: 2, borderColor: '#b58a52' }, gone: { opacity: 0.6 }, goneText: { color: tokens.color.secondary },
   pressed: { opacity: 0.75 }, clock: { color: tokens.color.primary, fontSize: 36, fontWeight: '700' }, footer: { padding: 16, gap: 12 }, search: { color: tokens.color.text, backgroundColor: tokens.color.surface, borderRadius: 18, padding: 14, fontSize: 17, minHeight: 48 },
 });

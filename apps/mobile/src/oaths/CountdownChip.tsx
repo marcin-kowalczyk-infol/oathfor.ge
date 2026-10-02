@@ -7,6 +7,7 @@ import { tokens } from '../ui/tokens';
 import { useMotionAllowed } from '../ui/useMotion';
 import { countdownTarget, formatCountdown } from './countdown';
 import { useArt } from '../art/ArtProvider';
+import { bindShortWords } from '../localization/typography';
 import type { ServerClock } from './serverClock';
 import { useCountdown } from './useCountdown';
 
@@ -14,7 +15,7 @@ import { useCountdown } from './useCountdown';
 /** stacked: the label sits over one unbroken value, for narrow seal columns that must line up side by side. */
 export function CountdownChip({ oath, clock, size = 'small', stacked = false, onElapsed }: { oath: Pick<Oath, 'state' | 'snapshot' | 'review'>; clock: ServerClock; size?: 'small' | 'large'; stacked?: boolean; onElapsed?: () => void }) {
   const oathArt = useArt().oaths;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const motion = useMotionAllowed();
   const { fontScale } = useWindowDimensions();
   const target = countdownTarget(oath);
@@ -43,7 +44,8 @@ export function CountdownChip({ oath, clock, size = 'small', stacked = false, on
     {/* Native check at large text: a wrapped row stretched the chip to full width, while a column hugs its widest line. Every chip stacks, so rows match. */}
     <View testID="countdown-texts" style={[styles.texts, fontScale > 1.3 && styles.textsStacked]}>
       {!text.elapsed && <Text style={[styles.prefix, large && styles.largePrefix]}>{prefix}</Text>}
-      <Text style={[styles.value, large && styles.largeValue, text.elapsed && styles.elapsedText]}>{text.short}</Text>
+      {/* MVP-22-B2c: a narrow chip may wrap between units, never between a number and its unit. */}
+      <Text style={[styles.value, large && styles.largeValue, text.elapsed && styles.elapsedText]}>{bindShortWords(text.short, i18n.language)}</Text>
     </View>
   </View>;
 }

@@ -690,4 +690,31 @@ describe('header text never sits on the hearth art', () => {
     const header = band();
     expect(within(header).getByRole('button', { name: 'Return to the Forge' })).toBeOnTheScreen();
   });
+  // MVP-22-B2c, review finding: while an acceptance is pending, the band still asked to make the Oath with no button to do it.
+  // Without a way back the band then holds only the error line, which must not vanish with the intro.
+  test('while an acceptance is pending the band asks for nothing and keeps the error line', async () => {
+    const f = setup(); f.controller.start();
+    await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+    expect(await screen.findByText(/Your confirmation may already have arrived/)).toBeOnTheScreen();
+    expect(screen.queryByTestId('oath-line')).toBeNull();
+    expect(screen.queryByText('Read the rules, then make the Oath.')).toBeNull();
+    expect(within(band()).getByText('We could not confirm this step. Try again.')).toBeOnTheScreen();
+  });
+  // MVP-22-B2c, review finding: the error and review-again lines stood between the Workout header and its offerings.
+  test('the error and review-again lines sit in the band above the Workout header', async () => {
+    const f = setup(); f.controller.start(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code: 'preview_superseded' });
+    await render(<LocalizationProvider initialLocale="en"><OathScreen {...f} timezone="Europe/Warsaw" onBack={jest.fn()} backLabel="Return to the Forge" /></LocalizationProvider>);
+    await fillDeadline(); await fireEvent.press(screen.getByRole('button', { name: 'View rules' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Commit to the Oath' }));
+    await screen.findByText('Choose and review the times again before committing.');
+    const lines = within(band()).getAllByText(/./).map(node => String(node.props.children));
+    const error = 'The rules have changed before confirmation. Review a new preview before accepting.';
+    const again = 'Choose and review the times again before committing.';
+    expect(lines).toEqual(expect.arrayContaining([error, again, 'Workout']));
+    expect(lines.indexOf(error)).toBeLessThan(lines.indexOf('Workout'));
+    expect(lines.indexOf(again)).toBeLessThan(lines.indexOf('Workout'));
+    expect(lines.indexOf('Workout')).toBe(lines.length - 1);
+  });
 });

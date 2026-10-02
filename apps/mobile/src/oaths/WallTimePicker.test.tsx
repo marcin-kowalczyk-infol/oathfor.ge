@@ -302,3 +302,15 @@ test('scrolling the minutes re-renders the sheet only when the fade appears or g
   expect(renders).toHaveBeenCalled();
   expect(screen.queryByTestId('time-sheet-fade', { includeHiddenElements: true })).toBeNull();
 });
+
+// MVP-22-B2c, review finding: secondary text at opacity 0.35 on the canvas gave 2.13:1. At 0.6 it gives 3.86:1, above the 3:1
+// WCAG 2.2 non-text minimum for a visible disabled cue (https://www.w3.org/TR/WCAG22/#non-text-contrast).
+test('past days, past hours and the past month glyph stay readable at 3:1', async () => {
+  await picker({ date: '2026-09-28' });
+  await fireEvent.press(screen.getByRole('button', { name: 'Completion date' }));
+  expect(day('September 27, 2026')).toHaveStyle({ opacity: 0.6 });
+  expect(screen.getByText('‹')).toHaveStyle({ opacity: 0.6 });
+  await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  expect(screen.getByRole('radio', { name: 'Hour 12' })).toHaveStyle({ opacity: 0.6 });
+});

@@ -134,3 +134,14 @@ test.each([
   expect(screen.getByText('2 d 22 h')).toBeOnTheScreen();
   expect(chip()).toHaveProp('accessibilityLabel', spoken);
 });
+
+// MVP-22-B2c, review finding: a narrow chip broke "2 d 5 h" or "15 min" between a number and its unit.
+test.each([
+  ['en', 'small', '2026-10-01T10:00:30Z', '2 d 22 h'],
+  ['pl', 'large', '2026-10-01T10:00:30Z', '2 d 22 h'],
+  ['en', 'large', '2026-09-28T12:16:00Z', '15 min'],
+  ['pl', 'small', '2026-09-28T12:16:00Z', '15 min'],
+] as const)('the %s %s chip keeps each number with its unit', async (locale, size, closesAt, value) => {
+  await render(<LocalizationProvider initialLocale={locale}><CountdownChip oath={review(closesAt)} clock={clockAtDevice()} size={size} /></LocalizationProvider>);
+  expect(screen.getByText(value.replace(/ /g, ' ')).props.children).toBe(value);
+});
