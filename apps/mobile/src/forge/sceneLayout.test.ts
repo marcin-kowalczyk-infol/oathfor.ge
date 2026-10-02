@@ -1,4 +1,28 @@
-import { aside, bodyBox, depth, PEDESTAL_WAYPOINT, places, playerStart, route, scenePlaces, SEALS_FRONT_Y, tutor, walkDirection, walkDuration, type Spot } from './sceneLayout';
+import { ARTWORK, aside, bodyBox, depth, PEDESTAL_WAYPOINT, places, playerStart, route, scenePlaces, SEALS_FRONT_Y, tutor, unlitShades, walkDirection, walkDuration, type Spot } from './sceneLayout';
+
+// MVP-22-E2.2 follow-up, native check on iPhone 18 Pro: the shade sat on the anchor only, so the chronicle lectern looked lit.
+// Each shade now covers its whole station, measured in artwork pixels on both rooms (v03 and cinematic v02 share the layout).
+describe('unlit shades', () => {
+  const stations = {
+    // The three drums, their pedestals and both candle posts.
+    seals: { left: 10, right: 370, top: 865, bottom: 1070 },
+    // The book, the lectern and its base, without the candle post beside it.
+    chronicle: { left: 630, right: 845, top: 845, bottom: 1090 },
+  };
+  test.each(Object.entries(stations))('the %s shade covers the whole station', (place, station) => {
+    const box = unlitShades[place as keyof typeof unlitShades];
+    const edges = { left: (box.x - box.width / 2) * ARTWORK.width, right: (box.x + box.width / 2) * ARTWORK.width, top: (box.y - box.height / 2) * ARTWORK.height, bottom: (box.y + box.height / 2) * ARTWORK.height };
+    expect(edges.left).toBeLessThanOrEqual(station.left);
+    expect(edges.right).toBeGreaterThanOrEqual(station.right);
+    expect(edges.top).toBeLessThanOrEqual(station.top);
+    expect(edges.bottom).toBeGreaterThanOrEqual(station.bottom);
+  });
+
+  test('the seal shade stops short of the hearth, so the one lit place keeps its light', () => {
+    const seals = unlitShades.seals;
+    expect(seals.x + seals.width / 2).toBeLessThan(places.hearth.anchor.x - 0.05);
+  });
+});
 
 const windows = [{ width: 375, height: 667 }, { width: 440, height: 956 }];
 const overlaps = (a: Spot, b: Spot, window: { width: number; height: number }) => {

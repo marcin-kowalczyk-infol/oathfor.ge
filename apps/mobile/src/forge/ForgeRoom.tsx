@@ -18,7 +18,7 @@ import { CandleFlames } from './CandleFlames';
 import { SpriteLoop } from './Sprite';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { bindShortWords } from '../localization/typography';
-import { ARTWORK, aside, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, SEALS_FRONT_Y, tutor, type ScenePlace, type Spot } from './sceneLayout';
+import { ARTWORK, aside, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, places, playerStart, SEALS_FRONT_Y, tutor, unlitShades, type ScenePlace, type Spot } from './sceneLayout';
 import { PlayerFigure } from './PlayerFigure';
 import type { Character } from '../api/characters';
 import { useWalker } from './useWalker';
@@ -33,8 +33,7 @@ const stations: { id: ForgeStation; x: number; y: number }[] = [
   { id: 'chronicle', ...places.chronicle.anchor },
 ];
 const WISP = 22;
-/** The DUMMY unlit shade as fractions of the scene width, and its fade in with motion. Native check pending. */
-const SHADE = { width: 0.34, height: 0.3 };
+/** The DUMMY unlit shade's fade in with motion. Its boxes are unlitShades in sceneLayout. */
 export const UNLIT_FADE_MS = 400;
 const ORDER_CHECK_MS = 100;
 const PANEL_BOTTOM = 20;
@@ -247,14 +246,18 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     : unlit(place) ? `${t(`room.${place}`)}, ${t(`room.gate.inactive.${place}`)}` : t(`room.${place}`);
   const heardMark = (place: TutorialPlace) => tour?.heard.includes(place) ? { testID: `heard-${place}`, label: t('room.tutorial.heardMark') } : undefined;
   // An unlit place has no glow at all, so it neither pulses nor keeps the still glow of Reduce Motion.
+  // E2.2 follow-up, native check on iPhone 18 Pro: while another place is unlit the hearth is the one place to go, so it glows
+  // brighter and breathes with the room's glow loop. Reduce Motion holds the loop still, so the hearth then keeps a steady glow.
+  const beacon = !tour && stations.some(station => unlit(station.id));
   const stationGlow = (id: ForgeStation) => glow.interpolate({ inputRange: [0, 1], outputRange: unlit(id) ? [0, 0]
-    : guidePlace === id || tour?.place === id ? [0.45, 0.75] : player.target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
+    : beacon && id === 'hearth' ? [0.6, 1] : guidePlace === id || tour?.place === id ? [0.45, 0.75] : player.target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
+  const glowBreath = (id: ForgeStation) => beacon && id === 'hearth' ? { transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1.1, 1.3] }) }] } : null;
   const seals = stations.find(station => station.id === 'seals')!;
-  // DUMMY until unlit place art exists (engagement.md E2 "Fallback"): a soft dark shade over the place, sized with the room.
-  const shadeBox = (spot: Spot) => {
-    const shade = { width: sceneWidth * SHADE.width, height: sceneWidth * SHADE.height };
-    const centre = point(spot.x, spot.y);
-    return { ...shade, left: centre.left - shade.width / 2, top: centre.top - shade.height / 2 };
+  // DUMMY until unlit place art exists (engagement.md E2 "Fallback"): a dark, colourless shade over the whole station, sized with the room.
+  const shadeBox = (place: keyof typeof unlitShades) => {
+    const box = unlitShades[place];
+    const corner = point(box.x - box.width / 2, box.y - box.height / 2);
+    return { ...corner, width: box.width * sceneWidth, height: box.height * sceneHeight };
   };
   // The panel and the ring sit relative to the camera zoom, so scene points are projected through it.
   const zoom = zoomed ? 1.08 : 1;
@@ -339,7 +342,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
       {/* Native check: replaying on the same animated value made a stepped sheet blink on iOS. Each touch mounts a fresh response. */}
       {/* Native check: drawn over the glows, the turning drums lost their glow and brightened when they stopped. The response lies under them. */}
       {effectPlace && <StationEffect key={touchRequest} station={effectPlace} request={touchRequest} allowed={allowed} point={point} sceneWidth={sceneWidth} />}
-      {stations.map(station => <Animated.Image testID={`station-glow-${station.id}`} source={haze} key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: stationGlow(station.id) }]} />)}
+      {stations.map(station => <Animated.Image testID={`station-glow-${station.id}`} source={haze} key={station.id} style={[styles.objectGlow, { ...point(station.x, station.y), opacity: stationGlow(station.id) }, glowBreath(station.id)]} />)}
       <Animated.Image source={haze} style={[styles.doorGlow, { ...point(door.x, door.y), opacity: glow.interpolate({ inputRange: [0, 1], outputRange: tour?.place === 'door' ? [0.45, 0.72] : tour ? [0.30, 0.60] : [0.16, 0.48] }) }]} />
       {stations.filter(station => !unlit(station.id)).map(station => {
         // The ember wisp floats above each lit station's touch area, where its mote used to be.
@@ -350,7 +353,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
             opacity: chosen ? 1 : glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
             transform: [{ translateY: glow.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }} />;
       })}
-      {stations.filter(station => unlit(station.id)).map(station => <UnlitShade key={`shade-${station.id}`} testID={`unlit-shade-${station.id}`} allowed={allowed} style={shadeBox(station)} />)}
+      {stations.filter(station => unlit(station.id)).map(station => <UnlitShade key={`shade-${station.id}`} testID={`unlit-shade-${station.id}`} allowed={allowed} style={shadeBox(station.id as keyof typeof unlitShades)} />)}
     </View>
     <SceneHotspot label={placeLabel('door')} onPress={still(() => tour ? hear('door') : choose('door'))} hint={tour ? undefined : t('room.inspect')} anchor={hotspot(door.x, door.y)} door allowed={allowed} glow={glow} heard={heardMark('door')} selected={tour ? tour.place === 'door' : player.target === 'door'} />
     {stations.map(station => <SceneHotspot key={station.id} cue={false} label={placeLabel(station.id)} hint={tour ? undefined : t('room.inspect')} selected={tour ? tour.place === station.id : player.target === station.id}
@@ -372,7 +375,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
       {/* Native check: the cut hid the seal glow, so the seals darkened as he stepped behind them. The glow is repeated over the cut. */}
       <Animated.Image source={haze} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.objectGlow, styles.front, { ...point(seals.x, seals.y), opacity: Animated.multiply(stationGlow('seals'), sealsCover(walker.position)) }]} />
       {/* The cut redraws the drums, so unlit seals repeat their shade over it. */}
-      {unlit('seals') && <UnlitShade testID={`unlit-shade-seals-front-${id}`} allowed={allowed} style={[styles.front, shadeBox(seals)]} cover={sealsCover(walker.position)} />}
+      {unlit('seals') && <UnlitShade testID={`unlit-shade-seals-front-${id}`} allowed={allowed} style={[styles.front, shadeBox('seals')]} cover={sealsCover(walker.position)} grey={false} />}
       </>}
     </Fragment>)}
     {!tour && !guidePlace && !guide.walking && (guide.arrived ?? 'aside') === 'aside' && <Pressable accessibilityRole="button" accessibilityLabel={t('room.talk.label')}
@@ -403,9 +406,10 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
 
 /**
  * The code-drawn dimming over an unlit place, DUMMY until unlit place art exists (engagement.md E2 "Fallback").
+ * A grey saturation blend drains the colour and a dark layer dims it, both fading toward the box corners (E2.2 follow-up).
  * With motion it fades in, so a place that goes dark when the counts arrive does not snap. Reduce Motion shows it at once.
  */
-function UnlitShade({ testID, allowed, style, cover }: { testID: string; allowed: boolean; style: StyleProp<ViewStyle>; cover?: Animated.AnimatedInterpolation<number> }) {
+function UnlitShade({ testID, allowed, style, cover, grey = true }: { testID: string; allowed: boolean; style: StyleProp<ViewStyle>; cover?: Animated.AnimatedInterpolation<number>; grey?: boolean }) {
   const fade = useRef(new Animated.Value(allowed ? 0 : 1)).current;
   useEffect(() => {
     if (!allowed) { fade.setValue(1); return; }
@@ -413,8 +417,13 @@ function UnlitShade({ testID, allowed, style, cover }: { testID: string; allowed
     show.start();
     return () => show.stop();
   }, [allowed, fade]);
-  return <Animated.View testID={testID} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
-    style={[styles.unlitShade, style, { opacity: cover ? Animated.multiply(fade, cover) : fade }]} />;
+  // The box itself has no opacity, so it is no separate group and the grey layer blends with the room under it.
+  // The grey layer does not fade: a group fading in would isolate the blend. Only the dark layer fades.
+  // The copy over the seal cut sits in its own zIndex group, so there it only darkens (grey false).
+  return <View testID={testID} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.unlitBox, style]}>
+    {grey && <Animated.View testID="unlit-shade-grey" style={[StyleSheet.absoluteFill, styles.unlitGrey, cover && { opacity: cover }]} />}
+    <Animated.View testID="unlit-shade-dark" style={[StyleSheet.absoluteFill, styles.unlitDark, { opacity: cover ? Animated.multiply(fade, cover) : fade }]} />
+  </View>;
 }
 
 const styles = StyleSheet.create({
@@ -425,7 +434,11 @@ const styles = StyleSheet.create({
   // Figures and seal cuts share one layer above the touch areas, so their tree order is the drawing order.
   figure: { position: 'absolute', width: FIGURE_WIDTH, height: FIGURE_HEIGHT, zIndex: 3 },
   front: { position: 'absolute', zIndex: 3, pointerEvents: 'none' },
-  unlitShade: { position: 'absolute', experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(5,7,8,0.58) 0%, rgba(5,7,8,0.4) 55%, rgba(5,7,8,0) 100%)' },
+  // E2.2 follow-up, native check on iPhone 18 Pro: the former 0.58 shade left unlit places only slightly darker.
+  // The farthest-corner ellipse keeps most of the box at full strength and fades only toward the corners.
+  unlitBox: { position: 'absolute' },
+  unlitGrey: { mixBlendMode: 'saturation', experimental_backgroundImage: 'radial-gradient(ellipse farthest-corner at center, rgba(128,128,128,0.92) 0%, rgba(128,128,128,0.85) 60%, rgba(128,128,128,0) 100%)' },
+  unlitDark: { experimental_backgroundImage: 'radial-gradient(ellipse farthest-corner at center, rgba(6,8,12,0.84) 0%, rgba(6,8,12,0.76) 60%, rgba(6,8,12,0.4) 85%, rgba(6,8,12,0) 100%)' },
   figureShadow: { position: 'absolute', width: 76, height: 18, top: FIGURE_HEIGHT * FIGURE_FOOT - 10, left: FIGURE_WIDTH / 2 - 38, experimental_backgroundImage: 'radial-gradient(ellipse closest-side at center, rgba(4,6,6,0.62) 0%, rgba(4,6,6,0.35) 55%, rgba(4,6,6,0) 100%)' },
   talkTarget: { position: 'absolute', zIndex: 3 },
   shield: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 10 },

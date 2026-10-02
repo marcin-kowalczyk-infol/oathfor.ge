@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Animated, Dimensions, Easing, StyleSheet } from 'react-native';
 import { ForgeRoom, UNLIT_FADE_MS } from './ForgeRoom';
-import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, PEDESTAL_WAYPOINT, places, playerStart, tutor, walkDirection, walkDuration } from './sceneLayout';
+import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, PEDESTAL_WAYPOINT, places, playerStart, tutor, unlitShades, walkDirection, walkDuration } from './sceneLayout';
 import { ArtProvider, ArtSetProvider, resolveArt } from '../art/ArtProvider';
 import { currentArt } from '../art/current';
 import { presetArt } from '../characters/presetArt';
@@ -1181,9 +1181,50 @@ describe('skill gate', () => {
     expect(screen.getByTestId('unlit-shade-seals', hidden).props.pointerEvents).toBe('none');
   });
 
+  // E2.2 follow-up, native check on iPhone 18 Pro: the shade was too weak, the chronicle looked lit and the hearth did not stand out.
+  test.each(['seals', 'chronicle'] as const)('the %s shade spans its whole station as the room cover places it', async place => {
+    await render(room({ progress: nothing }));
+    const scene = cover(Dimensions.get('window'));
+    const box = unlitShades[place];
+    const style = StyleSheet.flatten(screen.getByTestId(`unlit-shade-${place}`, hidden).props.style) as { left: number; top: number; width: number; height: number };
+    expect(style.width).toBeCloseTo(box.width * scene.width);
+    expect(style.height).toBeCloseTo(box.height * scene.height);
+    expect(style.left).toBeCloseTo(scene.left + (box.x - box.width / 2) * scene.width);
+    expect(style.top).toBeCloseTo(scene.top + (box.y - box.height / 2) * scene.height);
+  });
+
+  test('the shade both darkens and drains the colour of an unlit place', async () => {
+    await render(room({ progress: nothing }));
+    const layers = within(screen.getByTestId('unlit-shade-chronicle', hidden));
+    const grey = StyleSheet.flatten(layers.getByTestId('unlit-shade-grey', hidden).props.style) as { mixBlendMode?: string };
+    expect(grey.mixBlendMode).toBe('saturation');
+    const dark = String((StyleSheet.flatten(layers.getByTestId('unlit-shade-dark', hidden).props.style) as { experimental_backgroundImage: string }).experimental_backgroundImage);
+    const alphas = [...dark.matchAll(/rgba\([^)]*,\s*([\d.]+)\)/g)].map(match => Number(match[1]));
+    expect(Math.max(...alphas)).toBeGreaterThanOrEqual(0.8);
+  });
+
+  test('with only the hearth lit, it glows brighter than a hearth among lit places and breathes', async () => {
+    const view = await render(room({ progress: known }));
+    const among = glowOf('hearth');
+    expect(screen.getByTestId('station-glow-hearth', hidden).props.style).not.toEqual(expect.arrayContaining([expect.objectContaining({ transform: expect.anything() })]));
+    await view.rerender(room({ progress: nothing }));
+    expect(glowOf('hearth')).toBeGreaterThan(among + 0.3);
+    const hearth = StyleSheet.flatten(screen.getByTestId('station-glow-hearth', hidden).props.style) as { transform: { scale: number }[] };
+    expect(hearth.transform[0].scale).toBeGreaterThan(1);
+  });
+
+  test('the lone hearth breathes with motion and holds still under Reduce Motion', async () => {
+    const loop = jest.spyOn(Animated, 'loop');
+    await render(room({ progress: nothing }));
+    expect(loop).not.toHaveBeenCalled();
+    const still = glowOf('hearth');
+    await act(async () => { jest.advanceTimersByTime(4000); });
+    expect(glowOf('hearth')).toBe(still);
+  });
+
   test('with reduced motion the shade is there at once, with motion it fades in', async () => {
     const view = await render(room({ progress: nothing }));
-    expect(StyleSheet.flatten(screen.getByTestId('unlit-shade-seals', hidden).props.style).opacity).toBe(1);
+    expect(StyleSheet.flatten(within(screen.getByTestId('unlit-shade-seals', hidden)).getByTestId('unlit-shade-dark', hidden).props.style).opacity).toBe(1);
     await view.unmount();
     motion.mockReturnValue(true);
     const fades: number[] = [];

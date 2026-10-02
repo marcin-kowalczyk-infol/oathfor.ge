@@ -25,6 +25,16 @@ export const aside: Spot = { x: 0.66, y: 0.545 };
 /** Żaromir while the player chooses a tutorial chapter, in front of the hearth (MVP-19). */
 export const tutor: Spot = { x: 0.5, y: 0.66 };
 
+/**
+ * The DUMMY shade over an unlit station (engagement.md E2 "Fallback"), centre and size as fractions of the artwork.
+ * Native check on iPhone 18 Pro (E2.2 follow-up): a shade on the anchor alone left the chronicle lectern looking lit.
+ * Each box spans its whole station with a margin, because the shade fades toward its corners. The seal box ends before the hearth.
+ */
+export const unlitShades: Record<'seals' | 'chronicle', Spot & { width: number; height: number }> = {
+  seals: { x: 0.205, y: 0.546, width: 0.46, height: 0.15 },
+  chronicle: { x: 0.83, y: 0.546, width: 0.3, height: 0.165 },
+};
+
 /** Below this depth the feet are in front of the seal drums, so the cut no longer covers the figure. */
 export const SEALS_FRONT_Y = 957 / 1774;
 
