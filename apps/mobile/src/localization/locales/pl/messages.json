@@ -499,7 +499,7 @@
     "inspect": "Odkryj",
     "descriptions": {
       "hearth": "Tutaj nabierają kształtu nowe Przysięgi.",
-      "seals": "Tutaj czekają Twoje zobowiązania.",
+      "seals": "Tutaj czekają Twoje bieżące Przysięgi.",
       "chronicle": "Tutaj zostają ślady Twojej drogi.",
       "door": "Drzwi prowadzą do menu. Kuźnia poczeka na Twój powrót."
     },
@@ -507,8 +507,8 @@
     "dismiss": "Zamknij rozmowę",
     "speaker": "Żaromir",
     "guide": {
-      "hearth": "Jestem Żaromir. Dotknij rozświetlonego paleniska. Tu rodzą się Przysięgi.",
-      "seals": "Te świetliste pieczęcie skrywają Twoje zobowiązania.",
+      "hearth": "Jestem Żaromir. Dotknij paleniska, tu rodzą się Przysięgi.",
+      "seals": "Te świetliste pieczęcie to Twoje bieżące Przysięgi.",
       "chronicle": "W kronice zostają ślady Twojej drogi. Dotknij księgi.",
       "door": "Drzwi w blasku księżyca prowadzą do menu. Zasady Kuźni opowiem w Samouczku.",
       "next": "Następne miejsce",
@@ -530,6 +530,7 @@
       "close": "Zamknij samouczek",
       "hear": "Posłuchaj: {{place}}",
       "heard": "wysłuchane",
+      "heardMark": "Wysłuchane",
       "titles": {
         "hearth": "Palenisko · Składanie Przysięgi",
         "seals": "Pieczęcie · Bieżące Przysięgi",
@@ -545,7 +546,7 @@
       "seals": {
         "1": "Pieczęcie to Twoje bieżące Przysięgi: zaplanowane, trwające i te, które są pod rozwagą.",
         "2": "Każda Przysięga trzyma czas w swojej strefie. Zmiana strefy w telefonie go nie przesunie.",
-        "3": "O stanie decyduje Kuźnia, nie zegar w telefonie. Gdy minie ostatni termin z zasad, Przysięga jest pod rozwagą. To nie jest niewykonanie."
+        "3": "O stanie decyduje Kuźnia, nie zegar w telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, to nie niewykonanie."
       },
       "chronicle": {
         "1": "Kronika przechowuje zakończone Przysięgi razem z ich wynikiem.",
@@ -554,7 +555,7 @@
       "door": {
         "1": "Drzwi prowadzą do menu. Tam zmienisz postać albo stworzysz nową, najwyżej trzy.",
         "2": "Każda postać ma własne Przysięgi, własną kronikę i własną pauzę.",
-        "3": "Pauzę włączysz w Ustawieniach. Wycofuje zaplanowane i trwające Przysięgi tej postaci. Te pod rozwagą czekają dalej.",
+        "3": "Pauzę włączysz w Ustawieniach, wycofa zaplanowane i trwające Przysięgi tej postaci. Te pod rozwagą czekają dalej.",
         "4": "W czasie pauzy nie złożysz nowej Przysięgi. Wznowienie zdejmuje pauzę, ale nie przywraca wycofanych."
       }
     },
@@ -768,7 +769,7 @@
     },
     "cutoff": {
       "0": "Okno na dowód trwa. Prześlij go, jeśli trening skończył się przed terminem.",
-      "1": "Trening skończony w terminie? Okno na dowód jeszcze trwa.",
+      "1": "Jeśli trening skończył się w terminie, dowód jeszcze zdąży.",
       "2": "Świeca jeszcze płonie. Jeśli trening zakończył się w terminie, prześlij dowód teraz."
     },
     "interrupted": {

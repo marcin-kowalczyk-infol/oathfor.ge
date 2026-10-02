@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Animated, Dimensions, Easing, StyleSheet } from 'react-native';
 import { ForgeRoom } from './ForgeRoom';
 import { cover, FIGURE_FOOT, FIGURE_HEIGHT, FIGURE_WIDTH, aside, PEDESTAL_WAYPOINT, places, playerStart, tutor, walkDirection, walkDuration } from './sceneLayout';
@@ -176,7 +176,7 @@ test('guide advances manually without walking or exiting', async () => {
   await render(room({ onExit, showGuide: true, onGuideComplete }));
   expect(screen.getByText('Zharomir')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
-  expect(screen.getByText('These glowing seals hold your commitments.')).toBeOnTheScreen();
+  expect(screen.getByText('These glowing seals are your current Oaths.')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Next place' }));
   expect(screen.getByText('The moonlit door leads to the menu. I explain the Forge rules in the Tutorial.')).toBeOnTheScreen();
@@ -265,6 +265,15 @@ test.each([['pl', pl], ['en', en]] as const)('the %s door leaves the room and na
   for (const station of ['hearth', 'seals', 'chronicle'] as const) expect(screen.getByRole('button', { name: copy.room[station] })).toBeOnTheScreen();
   await leave(copy);
   expect(onExit).toHaveBeenCalledTimes(1);
+});
+
+// MVP-22-A5: the guide step control shows its words, not only an arrow or a check.
+test.each([['en', en], ['pl', pl]] as const)('the %s guide step control shows its text', async (locale, copy) => {
+  await render(room({ showGuide: true }, locale));
+  expect(screen.getByText(copy.room.guide.next)).toBeOnTheScreen();
+  for (let step = 0; step < 3; step++) await fireEvent.press(screen.getByRole('button', { name: copy.room.guide.next }));
+  expect(screen.getByText(copy.room.guide.done)).toBeOnTheScreen();
+  expect(screen.queryByText('✓')).toBeNull();
 });
 
 test('a later guide request starts the guide from the first place', async () => {
@@ -368,7 +377,7 @@ describe('tutorial', () => {
     await press(tut.another);
     expect(screen.getByText(tut.again)).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: hear('hearth', true) })).toBeOnTheScreen();
-    expect(screen.getByTestId('heard-hearth', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByTestId('heard-hearth', { includeHiddenElements: true })).toHaveTextContent(`✓ ${tut.heardMark}`);
     expect(screen.queryByTestId('heard-seals', { includeHiddenElements: true })).toBeNull();
   });
 
@@ -1039,10 +1048,18 @@ describe('talking to Żaromir', () => {
     expect(screen.queryByTestId('talk-counters')).toBeNull();
   });
 
-  test('a paused character hears the pause line first', async () => {
+  test('a paused character hears the pause line first and the counters carry the pause mark', async () => {
     await render(room({ progress: { today: { total: 3, paused: true }, history: { total: 1 }, loading: false } }));
     await talk();
     expect(screen.getByText(en.room.talk.hint.paused)).toBeOnTheScreen();
+    expect(within(screen.getByTestId('talk-counters')).getByTestId('pause-mark')).toHaveProp('accessibilityLabel', en.pauseMark.paused);
+    expect(within(screen.getByTestId('talk-counters')).getByText(en.pauseMark.paused)).toBeOnTheScreen();
+  });
+
+  test('a character in play shows no pause mark in the counters', async () => {
+    await render(room({ progress: { today: { total: 3, paused: false }, history: { total: 1 }, loading: false } }));
+    await talk();
+    expect(screen.queryByTestId('pause-mark')).toBeNull();
   });
 
   // Review finding: a hint fixed at the touch could contradict the refreshed counters. The line follows them.

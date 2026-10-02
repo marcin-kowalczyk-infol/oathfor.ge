@@ -12,7 +12,7 @@ The four-step room guide only names the places. The player also needs the rules 
 - It covers only behavior that works in the app today. Evidence submission, AI assessment, XP, rewards and Recovery get their own chapters when those features exist. The player never reads a promise the app cannot keep.
 - It is a conversation in the room. The player touches a place, the player and Żaromir walk there, the player asks one question and Żaromir explains it in a few lines of the dialogue panel (MVP-20, [Forge scene](forge-scene.md)).
 - The first room entry keeps the short four-step guide. The Tutorial tile in the menu starts the full conversation.
-- In simple layout the same chapters appear as one plain text screen.
+- In simple layout the same chapters appear as one plain text screen. Superseded on 2026-10-02: each chapter folds behind its title, see [clarity](clarity.md).
 
 ## Flow
 
@@ -30,7 +30,7 @@ The four-step room guide only names the places. The player also needs the rules 
 
 **Tutorial mode.** Every place and the door glow as selectable. Touching the door plays its chapter and does not leave the room. The station actions ("Shape an Oath" and the others) do not appear in tutorial mode. After the tutorial ends the room behaves as usual and the door leads to the menu.
 
-**Choice bubble.** When the tutorial starts, Żaromir walks into the room from the entrance to a place in front of the hearth, above the bubble. After a chapter he waits at that chapter's place without its station pose. While the player chooses, he explains and points toward the places. At a told place he first works facing it, then turns and talks to the player (local decision, MVP-18-T12, 2026-09-27). The first choice uses the intro line. A return after a chapter uses the "again" line. Heard places show a small gold check and their accessibility label adds "heard". A heard place can be played again.
+**Choice bubble.** When the tutorial starts, Żaromir walks into the room from the entrance to a place in front of the hearth, above the bubble. After a chapter he waits at that chapter's place without its station pose. While the player chooses, he explains and points toward the places. At a told place he first works facing it, then turns and talks to the player (local decision, MVP-18-T12, 2026-09-27). The first choice uses the intro line. A return after a chapter uses the "again" line. Heard places show a small gold check and their accessibility label adds "heard". Superseded on 2026-10-02: the check is a gold plate with a word, "✓ Wysłuchane" / "✓ Heard", see [clarity](clarity.md). A heard place can be played again.
 
 **Chapter bubble.** It keeps the existing room bubble: speaker name, text, a step counter such as "2 / 4", a next button and ×. The last bubble replaces next with "Another place". When it is the fourth distinct heard chapter, the button is "Finish" and leads to the closing bubble. Touching the place being told keeps the current line. At the door Żaromir stands in the doorway.
 
@@ -38,7 +38,7 @@ The four-step room guide only names the places. The player also needs the rules 
 
 **First visit.** The automatic guide on the first room entry stays four steps. Its last step now points to the Tutorial. A tutorial started before the first room entry takes priority, the guide does not start and the guide counts as seen.
 
-**Simple layout.** The Tutorial tile is visible again in simple layout, full width like Settings. It opens a scrolling screen with Żaromir's portrait, the intro line and the four chapters, each with a heading and its bubbles as paragraphs. A plain "Back to menu" link returns to the menu. The copy is the same as in the room.
+**Simple layout.** The Tutorial tile is visible again in simple layout, full width like Settings. It opens a scrolling screen with Żaromir's portrait, the intro line and the four chapters, each with a heading and its bubbles as paragraphs. Superseded on 2026-10-02: each chapter heading is a link that opens its paragraphs in place, so the screen shows the intro and four titles first, see [clarity](clarity.md). A plain "Back to menu" link returns to the menu. The copy is the same as in the room.
 
 ## Copy
 
@@ -57,6 +57,7 @@ Rules for all lines: Żaromir speaks calmly in the first person and addresses th
 | `room.tutorial.close` | Zamknij samouczek | Close the tutorial |
 | `room.tutorial.hear` | Posłuchaj: {{place}} | Hear about: {{place}} |
 | `room.tutorial.heard` | wysłuchane | heard |
+| `room.tutorial.heardMark` | Wysłuchane | Heard |
 | `room.door` | Drzwi | Door |
 
 ### Chapters
@@ -69,17 +70,19 @@ Rules for all lines: Żaromir speaks calmly in the first person and addresses th
 | `room.tutorial.hearth.3` | Zanim złożysz Przysięgę, zobaczysz wszystkie jej zasady. Tworzy ją dopiero Twoja wyraźna zgoda. | Before you make the Oath, you see all its rules. Only your explicit acceptance creates it. |
 | `room.tutorial.hearth.4` | Złożonych zasad nikt już nie zmieni, także Kuźnia. Inna obietnica to nowa Przysięga. | Once made, its rules never change, not even by the Forge. A different promise is a new Oath. |
 | `room.tutorial.titles.seals` | Pieczęcie · Bieżące Przysięgi | Seals · Current Oaths |
-| `room.tutorial.seals.1` | Pieczęcie to Twoje bieżące Przysięgi: zaplanowane, trwające i te, które czekają na rozpatrzenie. | The seals are your current Oaths: scheduled, active and those awaiting review. |
+| `room.tutorial.seals.1` | Pieczęcie to Twoje bieżące Przysięgi: zaplanowane, trwające i te, które są pod rozwagą. | The seals are your current Oaths: scheduled, active and those awaiting review. |
 | `room.tutorial.seals.2` | Każda Przysięga trzyma czas w swojej strefie. Zmiana strefy w telefonie go nie przesunie. | Each Oath keeps its times in its own timezone. Changing your phone’s timezone does not move them. |
-| `room.tutorial.seals.3` | O stanie decyduje Kuźnia, nie zegar w telefonie. Gdy minie ostatni termin z zasad, Przysięga czeka na rozpatrzenie. To nie jest niewykonanie. | The Forge decides the state, not your phone’s clock. When the last deadline in its rules passes, the Oath awaits review. That is not a miss. |
+| `room.tutorial.seals.3` | O stanie decyduje Kuźnia, nie zegar w telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, to nie niewykonanie. | The Forge decides the state, not your phone’s clock. After the last deadline the Oath is under review, not missed. |
 | `room.tutorial.titles.chronicle` | Kronika · Zakończone Przysięgi | Chronicle · Finished Oaths |
 | `room.tutorial.chronicle.1` | Kronika przechowuje zakończone Przysięgi razem z ich wynikiem. | The chronicle keeps finished Oaths together with their outcome. |
 | `room.tutorial.chronicle.2` | Zapisów w kronice nikt nie przepisuje. Każda Przysięga zachowuje zasady przyjęte przy jej złożeniu. | Nobody rewrites the chronicle. Each Oath keeps the rules accepted when it was made. |
 | `room.tutorial.titles.door` | Drzwi · Postacie i pauza | Door · Characters and pause |
 | `room.tutorial.door.1` | Drzwi prowadzą do menu. Tam zmienisz postać albo stworzysz nową, najwyżej trzy. | The door leads to the menu. There you can switch character or create a new one, up to three. |
 | `room.tutorial.door.2` | Każda postać ma własne Przysięgi, własną kronikę i własną pauzę. | Each character has its own Oaths, chronicle and pause. |
-| `room.tutorial.door.3` | Pauzę włączysz w Ustawieniach. Wycofuje zaplanowane i trwające Przysięgi tej postaci. Te w rozpatrzeniu czekają dalej. | You can pause in Settings. It withdraws this character’s scheduled and active Oaths. Those under review keep waiting. |
+| `room.tutorial.door.3` | Pauzę włączysz w Ustawieniach, wycofa zaplanowane i trwające Przysięgi tej postaci. Te pod rozwagą czekają dalej. | Pause in Settings withdraws this character’s scheduled and active Oaths. Those under review keep waiting. |
 | `room.tutorial.door.4` | W czasie pauzy nie złożysz nowej Przysięgi. Wznowienie zdejmuje pauzę, ale nie przywraca wycofanych. | While paused you cannot make a new Oath. Resuming lifts the pause but does not restore withdrawn Oaths. |
+
+Superseded on 2026-10-02: the review state is named with the set phrase "pod rozwagą", and `seals.3` and `door.3` keep two sentences each. The table above shows the current copy. See [clarity](clarity.md).
 
 Rule sources for the chapters: [creating and tracking Oaths](oaths.md), [first-loop pause rules](first-loop.md#pause-and-alternatives) and [player characters](player-character.md).
 

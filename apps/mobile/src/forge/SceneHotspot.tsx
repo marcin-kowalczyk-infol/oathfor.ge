@@ -5,7 +5,9 @@ import { Text } from '../ui/Text';
 /** Light belongs to the scene; the stationary touch area never scales with it. */
 export function SceneHotspot({ label, hint, selected, onPress, anchor, door = false, cue = true, allowed, glow, heard }: {
   label: string; hint?: string; selected?: boolean; onPress: () => void;
-  anchor: { left: number; top: number }; door?: boolean; allowed: boolean; glow: Animated.Value; heard?: string;
+  anchor: { left: number; top: number }; door?: boolean; allowed: boolean; glow: Animated.Value;
+  /** A heard tutorial place shows a plate with a check and its word. The accessibility label already says it, so the plate is hidden from VoiceOver. */
+  heard?: { testID: string; label: string };
   /** A small mote marks the place. Stations draw their ember wisp in the scenery instead, where it can blend with the room. */
   cue?: boolean;
 }) {
@@ -35,16 +37,21 @@ export function SceneHotspot({ label, hint, selected, onPress, anchor, door = fa
       <Animated.View style={[styles.touchRing, { left: touch.x - 22, top: touch.y - 22, borderColor: color, shadowColor: color,
         opacity: ripple.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.95, 0.75, 0] }),
         transform: [{ scale: ripple.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1.8] }) }] }]} />
-      {heard && <View testID={heard} style={styles.heard}><Text allowFontScaling={false} style={styles.heardMark}>✓</Text></View>}
+      {heard && <View testID={heard.testID} style={styles.heardSlot}><View style={styles.heard}>
+        <Text numberOfLines={1} maxFontSizeMultiplier={HEARD_SCALE} style={styles.heardMark}>✓ {heard.label}</Text>
+      </View></View>}
     </View>}
   </Pressable>;
 }
 
+// The room exists only up to text scale 1.3 (layoutMode), so the plate grows no further and never reaches a neighbouring place.
+const HEARD_SCALE = 1.3;
 const styles = StyleSheet.create({
-  // Native check: a bare check mark faded into the hearth glow, so a heard place gets a gold badge beside its mote.
-  heard: { position: 'absolute', top: -3, left: '50%', marginLeft: 7, width: 17, height: 17, borderRadius: 8.5, backgroundColor: '#f0c987', borderWidth: 1, borderColor: '#5d3616',
-    alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
-  heardMark: { color: '#3a2412', fontSize: 11, lineHeight: 13, fontWeight: '800' },
+  // Native check: a bare check mark faded into the hearth glow. MVP-22-A5: the gold plate also names the state, "✓ Wysłuchane" / "✓ Heard".
+  heardSlot: { position: 'absolute', top: -12, left: -30, right: -30, alignItems: 'center' },
+  heard: { paddingHorizontal: 7, paddingVertical: 1, borderRadius: 9, backgroundColor: '#f0c987', borderWidth: 1, borderColor: '#5d3616',
+    shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
+  heardMark: { color: '#3a2412', fontSize: 11, lineHeight: 15, fontWeight: '800' },
   station: { position: 'absolute', width: 76, height: 72, marginLeft: -38, marginTop: -36, borderRadius: 30, zIndex: 2 },
   cueLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   cueMote: { position: 'absolute', width: 5, height: 5, top: 4, alignSelf: 'center', shadowOpacity: 1, shadowRadius: 7, shadowOffset: { width: 0, height: 0 } },

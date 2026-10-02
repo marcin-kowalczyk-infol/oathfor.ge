@@ -433,7 +433,7 @@ test('the English checkbox reads "Yes, I confirm" with the declaration', async (
 test('between the deadline and the cutoff Żaromir keeps the conditional cutoff line', async () => {
   await show('pl', oath(), fakeController(), clockAt('2026-10-25T00:35:00Z'));
   const line = screen.getByLabelText(/^Żaromir: /).props.accessibilityLabel.replace('Żaromir: ', '');
-  expect(['Okno na dowód trwa. Prześlij go, jeśli trening skończył się przed terminem.', 'Trening skończony w terminie? Okno na dowód jeszcze trwa.',
+  expect(['Okno na dowód trwa. Prześlij go, jeśli trening skończył się przed terminem.', 'Jeśli trening skończył się w terminie, dowód jeszcze zdąży.',
     'Świeca jeszcze płonie. Jeśli trening zakończył się w terminie, prześlij dowód teraz.']).toContain(line);
 });
 

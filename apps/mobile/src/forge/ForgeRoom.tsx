@@ -216,7 +216,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   const placeLabel = (place: TutorialPlace) => tour
     ? `${t('room.tutorial.hear', { place: t(`room.${place}`) })}${tour.heard.includes(place) ? `, ${t('room.tutorial.heard')}` : ''}`
     : t(`room.${place}`);
-  const heardMark = (place: TutorialPlace) => tour?.heard.includes(place) ? `heard-${place}` : undefined;
+  const heardMark = (place: TutorialPlace) => tour?.heard.includes(place) ? { testID: `heard-${place}`, label: t('room.tutorial.heardMark') } : undefined;
   const stationGlow = (id: ForgeStation) => glow.interpolate({ inputRange: [0, 1], outputRange: guidePlace === id || tour?.place === id ? [0.45, 0.75] : player.target === id || tour ? [0.30, 0.60] : [0.16, 0.48] });
   const seals = stations.find(station => station.id === 'seals')!;
   // The panel and the ring sit relative to the camera zoom, so scene points are projected through it.
@@ -252,7 +252,8 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   if (guidePlace) {
     const last = guideStep === 3;
     line = { ...guideScript(guidePlace)[0], id: `guide-${guideStep}`, dismiss: finishGuide, next: last ? undefined : () => setGuideStep(value => value! + 1),
-      controls: { step: { count: `${guideStep! + 1} / 4`, label: t(last ? 'room.guide.done' : 'room.guide.next'), mark: last ? '✓' : '→', onPress: () => last ? finishGuide() : setGuideStep(value => value! + 1) } } };
+      // MVP-22-A5: the step control shows its words ("Następne miejsce", "Zacznij odkrywać"), not a bare arrow or check.
+      controls: { step: { count: `${guideStep! + 1} / 4`, label: t(last ? 'room.guide.done' : 'room.guide.next'), text: true, onPress: () => last ? finishGuide() : setGuideStep(value => value! + 1) } } };
   } else if (tour && (telling || !tour.place)) {
     const script = told ? chapterScript(told, form) : null;
     if (script && opening) line = { ...script[0], id: `tour-${told}-open`, more: true, next: () => setOpening(false), dismiss: endTour };

@@ -14,7 +14,7 @@ export function Disclosure({ label, icon, children, testID }: { label: string; i
       style={({ pressed }) => [styles.toggle, pressed && styles.pressed]}>
       {icon}
       <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.label}>{label}</Text>
-      <Text accessible={false} style={styles.mark}>{open ? '▴' : '▾'}</Text>
+      <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.mark}>{open ? '▴' : '▾'}</Text>
     </Pressable>
     {open && children}
   </View>;

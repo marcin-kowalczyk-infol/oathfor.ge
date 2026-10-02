@@ -66,8 +66,6 @@ const shared = [
   // Kept long, not debt: folded text stays unchanged (rule 2). The detail folds oathHome.uploadInterrupted behind "Pełny opis",
   // A2 folds notifications.future. No slice A task touches the proof errors.
   'notifications.future', 'oathHome.uploadInterrupted', 'proof.errors.unavailable', 'proof.errors.rateLimited', 'proof.errors.sendFailed',
-  // A5.
-  'room.guide.hearth', 'room.tutorial.seals.3', 'room.tutorial.door.3',
 ];
 const longLines: Record<'pl' | 'en', string[]> = { pl: shared, en: shared };
 
@@ -77,10 +75,10 @@ test.each(['pl', 'en'] as const)('%s catalog lines keep at most two sentences, a
 });
 
 // "zobowiązanie" is the legal word for the stored rule sections only. Player lines say Przysięga.
-const obligationExceptions = ['room.descriptions.seals', 'room.guide.seals' /* A5 */];
-test('Polish says "zobowiąz…" only under oath.sections', () => {
-  const found = catalogs.pl.filter(([key, text]) => /zobowiąz/i.test(text) && !key.startsWith('oath.sections.')).map(([key]) => key);
-  expect(found.sort()).toEqual([...obligationExceptions].sort());
+// A5 removed the last exceptions (the seals lines in the room). English follows with "commitment".
+test('Polish says "zobowiąz…" and English "commitment" only under oath.sections', () => {
+  expect(catalogs.pl.filter(([key, text]) => /zobowiąz/i.test(text) && !key.startsWith('oath.sections.')).map(([key]) => key)).toEqual([]);
+  expect(catalogs.en.filter(([key, text]) => /commitment/i.test(text) && !key.startsWith('oath.sections.')).map(([key]) => key)).toEqual([]);
 });
 
 // Slice A "what next" lines (clarity.md rule 1 and decision 3): at most 12 Polish words and two sentences. Required error
@@ -100,6 +98,8 @@ const sliceA = [
   // character.pending and character.rateLimited_* (14 PL words, plan copy) are refusal lines, held by the two-sentence guard.
   // T12c: Żaromir's introduction meets his 12-word cap.
   'onboarding.companionIntroduction',
+  // A5. The tutorial chapter lines are rules, not "what next" lines, so only the two-sentence guard holds them.
+  'room.descriptions.seals', 'room.guide.seals', 'room.guide.hearth', 'room.tutorial.heardMark',
 ];
 test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages', key => {
   const [line, english] = [at(pl, key), at(en, key)];
@@ -129,4 +129,12 @@ test('the character rate limit keeps every Polish plural form with the name and 
 
 test('the Polish permission line names notification permission', () => {
   expect(group(group(pl, 'settings'), 'notifications').permission_unavailable).toMatch(/zgody na powiadomienia/);
+});
+
+// Owner copy fix, 2026-10-02: Żaromir's cutoff pool must not open like the cutoff card line right above it.
+test('no cutoff line of Żaromir opens with the words of the cutoff card line', () => {
+  for (const catalog of [pl, en]) {
+    const card = (group(catalog, 'path', 'next').cutoff as string).split(/\s+/).slice(0, 3).join(' ');
+    for (const line of Object.values(group(catalog, 'zaromir', 'cutoff')) as string[]) expect(line.startsWith(card)).toBe(false);
+  }
 });

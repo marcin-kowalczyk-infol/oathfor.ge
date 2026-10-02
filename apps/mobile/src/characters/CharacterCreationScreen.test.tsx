@@ -220,9 +220,9 @@ test('a rate limit disables Retry until the server wait has elapsed', async () =
   try {
     const f = await setup(ready({ pendingCreation: pending, error: { kind: 'rate_limited', retry: 'request', retryAfterSeconds: 2 } })); await act(async () => {});
     expect(screen.getByRole('button', { name: 'Try again' })).toBeDisabled();
-    expect(screen.getAllByText('The Forge asks for a short break. Zoya waits saved on this device, try again in 2 seconds.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('The Forge asks for a short break. Zoya is saved on this device, try again in 2 seconds.').length).toBeGreaterThan(0);
     await act(async () => { jest.advanceTimersByTime(1000); });
-    expect(screen.getAllByText('The Forge asks for a short break. Zoya waits saved on this device, try again in 1 second.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('The Forge asks for a short break. Zoya is saved on this device, try again in 1 second.').length).toBeGreaterThan(0);
     await act(async () => { jest.advanceTimersByTime(1000); });
     expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled();
     await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));

@@ -384,8 +384,8 @@
     "storageUnavailable": "This device could not read your saved choices. Try again.",
     "pending": "The connection dropped before the Forge answered. {{name}} waits on this device, try again.",
     "finishing": "Finishing {{name}}…",
-    "rateLimited_one": "The Forge asks for a short break. {{name}} waits saved on this device, try again in {{count}} second.",
-    "rateLimited_other": "The Forge asks for a short break. {{name}} waits saved on this device, try again in {{count}} seconds.",
+    "rateLimited_one": "The Forge asks for a short break. {{name}} is saved on this device, try again in {{count}} second.",
+    "rateLimited_other": "The Forge asks for a short break. {{name}} is saved on this device, try again in {{count}} seconds.",
     "error": {
       "invalid_character_name": "The Forge did not accept this name. Choose another one.",
       "invalid_preset": "That look is no longer available. Reload the looks and choose again.",
@@ -487,7 +487,7 @@
     "inspect": "Discover",
     "descriptions": {
       "hearth": "New Oaths take shape here.",
-      "seals": "Your commitments await here.",
+      "seals": "Your current Oaths wait here.",
       "chronicle": "Your journey leaves its mark here.",
       "door": "The door leads to the menu. The Forge will wait for your return."
     },
@@ -495,8 +495,8 @@
     "dismiss": "Close the conversation",
     "speaker": "Zharomir",
     "guide": {
-      "hearth": "I’m Zharomir. Touch the glowing hearth. Oaths take shape here.",
-      "seals": "These glowing seals hold your commitments.",
+      "hearth": "I’m Zharomir. Touch the hearth, Oaths take shape here.",
+      "seals": "These glowing seals are your current Oaths.",
       "chronicle": "The chronicle holds the traces of your journey. Touch the book.",
       "door": "The moonlit door leads to the menu. I explain the Forge rules in the Tutorial.",
       "next": "Next place",
@@ -518,6 +518,7 @@
       "close": "Close the tutorial",
       "hear": "Hear about: {{place}}",
       "heard": "heard",
+      "heardMark": "Heard",
       "titles": {
         "hearth": "Hearth · Making an Oath",
         "seals": "Seals · Current Oaths",
@@ -533,7 +534,7 @@
       "seals": {
         "1": "The seals are your current Oaths: scheduled, active and those awaiting review.",
         "2": "Each Oath keeps its times in its own timezone. Changing your phone’s timezone does not move them.",
-        "3": "The Forge decides the state, not your phone’s clock. When the last deadline in its rules passes, the Oath awaits review. That is not a miss."
+        "3": "The Forge decides the state, not your phone’s clock. After the last deadline the Oath is under review, not missed."
       },
       "chronicle": {
         "1": "The chronicle keeps finished Oaths together with their outcome.",
@@ -542,7 +543,7 @@
       "door": {
         "1": "The door leads to the menu. There you can switch character or create a new one, up to three.",
         "2": "Each character has its own Oaths, chronicle and pause.",
-        "3": "You can pause in Settings. It withdraws this character’s scheduled and active Oaths. Those under review keep waiting.",
+        "3": "Pause in Settings withdraws this character’s scheduled and active Oaths. Those under review keep waiting.",
         "4": "While paused you cannot make a new Oath. Resuming lifts the pause but does not restore withdrawn Oaths."
       }
     },
@@ -742,7 +743,7 @@
     },
     "cutoff": {
       "0": "The proof window is still open. Submit it if the workout ended by the deadline.",
-      "1": "Workout finished by the deadline? The proof window is still open.",
+      "1": "If the workout ended by the deadline, the proof can still make it.",
       "2": "The candle is still burning. If the workout ended by the deadline, submit your proof now."
     },
     "interrupted": {
