@@ -40,6 +40,8 @@ test.each([['pl', pl], ['en', en]] as const)('the %s screen shows the intro and 
   expect(expected.flat().length - expected.length).toBe(13);
   const toggles = screen.getAllByRole('button').filter(button => button.props.accessibilityState?.expanded !== undefined);
   expect(toggles.map(toggle => toggle.props.accessibilityLabel)).toEqual(expected.map(([title]) => title));
+  // MVP-22-A8c: the chapter titles inside the fold toggles stay headings, so the rotor still finds every chapter.
+  expect(screen.getAllByRole('header').map(header => header.props.children)).toEqual([copy.tutorial.title, ...expected.map(([title]) => title)]);
   for (const [, ...lines] of expected) for (const line of lines) expect(screen.queryByText(line)).toBeNull();
   expect(filled()).toHaveLength(0);
   for (const [title, ...lines] of expected) {
@@ -49,7 +51,8 @@ test.each([['pl', pl], ['en', en]] as const)('the %s screen shows the intro and 
     expect(order.every(index => index >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
   }
-  if (locale === 'pl') expect(screen.getByText('O stanie decyduje Kuźnia, nie zegar w telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, to nie niewykonanie.')).toBeOnTheScreen();
+  // The raw string with its no-break spaces, which the default text matcher would fold into plain ones (MVP-22-A8c).
+  if (locale === 'pl') expect(screen.getByText('O\u00a0stanie decyduje Kuźnia, nie zegar w\u00a0telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, to nie niewykonanie.', { normalizer: text => text })).toBeOnTheScreen();
 });
 
 test('back to menu calls onBack once', async () => {
@@ -61,8 +64,9 @@ test('back to menu calls onBack once', async () => {
 test('every text is capped for the largest accessibility size and the content scrolls', async () => {
   await setup('pl');
   for (const title of chapters(pl).map(([title]) => title)) await fireEvent.press(screen.getByRole('button', { name: title }));
-  const header = screen.getByRole('header', { name: pl.tutorial.title });
-  expect(header.props.maxFontSizeMultiplier).toBeLessThanOrEqual(tokens.maxScale.display);
+  const headers = screen.getAllByRole('header');
+  expect(headers).toHaveLength(5);
+  for (const header of headers) expect(header.props.maxFontSizeMultiplier).toBeLessThanOrEqual(tokens.maxScale.display);
   for (const text of screen.getAllByText(/./)) {
     if (text.props.allowFontScaling === false) continue;
     expect(text.props.maxFontSizeMultiplier).toBeLessThanOrEqual(tokens.maxScale.inset);

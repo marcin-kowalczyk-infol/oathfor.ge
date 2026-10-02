@@ -121,6 +121,8 @@ test('unresolved acceptance remains reachable from Today and cannot be reset int
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   expect(await screen.findByRole('button', { name: 'Check confirmation' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Create an Oath' })).toBeNull();
+  // MVP-22-A8c: while an acceptance may have arrived, Today does not claim it is empty.
+  expect(screen.queryByText('No current Oaths. Choose a workout when you are ready.')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Check confirmation' }));
   expect(f.controller.resetCreation).not.toHaveBeenCalled();
   expect(screen.queryByLabelText('Completion date')).toBeNull();
@@ -1414,10 +1416,21 @@ describe('list lines', () => {
     const f = setup([]); f.change({ kind: 'ready', busy: false, pending: { version: 2, accountId: id, characterId, previewId: id, requestId: id }, preview: null, oath: null, needsReview: false });
     await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
     expect(await screen.findByTestId('pending-line')).toHaveTextContent(locale === 'pl' ? 'Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.' : 'Your confirmation may already have arrived. Check the same Oath before starting another.');
-    expect(screen.queryByText(locale === 'pl' ? 'Brak bieżących Przysiąg. Wybierz trening, gdy zechcesz zacząć.' : 'No current Oaths. Choose a workout when you are ready.')).toBeOnTheScreen();
-    // The only bubble left is Żaromir's empty-Today line.
-    expect(screen.getAllByTestId('companion-avatar', { includeHiddenElements: true })).toHaveLength(1);
+    // MVP-22-A8c: the empty-Today line waits until the acceptance is checked, so no bubble is left.
+    expect(screen.queryByText(locale === 'pl' ? 'Brak bieżących Przysiąg. Wybierz trening, gdy zechcesz zacząć.' : 'No current Oaths. Choose a workout when you are ready.')).toBeNull();
+    expect(avatar()).toBeNull();
     expect(filled()).toHaveLength(1);
+  });
+  // MVP-22-A8c: while the list failed, "Spróbuj ponownie" is the one filled action and the check steps back to the outline style.
+  test.each(['pl', 'en'] as const)('%s an unresolved acceptance with a failed list keeps one filled button', async locale => {
+    const f = setup([]); f.change({ kind: 'ready', busy: false, pending: { version: 2, accountId: id, characterId, previewId: id, requestId: id }, preview: null, oath: null, needsReview: false });
+    jest.mocked(f.controller.list).mockResolvedValue({ kind: 'unavailable', retry: 'request' } as never);
+    await render(<LocalizationProvider initialLocale={locale}><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await screen.findByTestId('list-error');
+    expect(filled()).toHaveLength(1);
+    const check = screen.getByRole('button', { name: locale === 'pl' ? 'Sprawdź potwierdzenie' : 'Check confirmation' });
+    expect(within(check).queryByText('◆', { includeHiddenElements: true })).toBeNull();
+    expect(within(screen.getByRole('button', { name: locale === 'pl' ? 'Spróbuj ponownie' : 'Try again' })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
   });
   test('the busy notice is a plain line', async () => {
     const f = setup([]);
@@ -1482,6 +1495,24 @@ describe('Today full list fold', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'All your Oaths' })).toHaveProp('accessibilityState', { expanded: true }));
     expect(rows()).toHaveLength(3);
   });
+  // MVP-22-A8c: the open fold is restored once. A later remount of the same list keeps the player's own choice.
+  test('a fold closed after the return stays closed when the list reloads', async () => {
+    Dimensions.set({ window: phone(1), screen: phone(1) });
+    const items = three(); const f = setup(items);
+    jest.mocked(f.controller.detail).mockImplementation(async selectedId => ({ kind: 'success', value: { oath: items.find(item => item.id === selectedId)!, serverTime } }));
+    const view = (reload: number) => <LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" reload={reload} /></LocalizationProvider>;
+    const screenView = await render(view(0));
+    await fireEvent.press(await screen.findByRole('button', { name: 'All your Oaths' }));
+    await fireEvent.press(rows()[2]);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Today' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'All your Oaths' })).toHaveProp('accessibilityState', { expanded: true }));
+    await fireEvent.press(screen.getByRole('button', { name: 'All your Oaths' }));
+    expect(rows()).toHaveLength(0);
+    await screenView.rerender(view(1));
+    await waitFor(() => expect(f.controller.list).toHaveBeenCalledTimes(3));
+    expect(await screen.findByRole('button', { name: 'All your Oaths' })).toHaveProp('accessibilityState', { expanded: false });
+    expect(rows()).toHaveLength(0);
+  });
   test('a detail opened from a seal returns to the closed fold', async () => {
     Dimensions.set({ window: phone(1), screen: phone(1) });
     const items = three(); const f = setup(items);
@@ -1513,4 +1544,35 @@ test.each([
   expect(await screen.findAllByTestId('state-seal-withdrawn', { includeHiddenElements: true })).toHaveLength(1);
   expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
+});
+
+// MVP-22-A8c (review finding): Retry repeats the request that failed. A failed quiet refresh of page 1 asks for page 1 again,
+// never for the next page of the stale list on screen.
+test('Retry after a failed quiet refresh loads the first page, not the next one', async () => {
+  const listeners: ((state: string) => void)[] = [];
+  const original = jest.mocked(AppState.addEventListener).getMockImplementation();
+  const subscription = jest.spyOn(AppState, 'addEventListener').mockImplementation(((_: string, listener: (state: string) => void) => { listeners.push(listener); return { remove: jest.fn() }; }) as never);
+  try {
+    const first = oath({ state: 'withdrawn', reason: 'character_paused', terminalAt: serverTime, review: null });
+    const f = setup([first]);
+    jest.mocked(f.controller.list).mockResolvedValueOnce(page([first], 'cursor1')).mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' } as never).mockResolvedValueOnce(page([first], 'cursor1'));
+    await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    await screen.findByRole('button', { name: 'Load more' });
+    await act(async () => { listeners.forEach(listener => listener('active')); });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(f.controller.list).toHaveBeenCalledTimes(3));
+    expect(jest.mocked(f.controller.list).mock.calls[2][0]).toEqual({ view: 'today' });
+  } finally { subscription.mockImplementation(original); }
+});
+
+test('Retry after a failed Load more asks for the same next page', async () => {
+  const first = oath({ state: 'withdrawn', reason: 'character_paused', terminalAt: serverTime, review: null });
+  const second = oath({ ...first, id: '20000000-0000-4000-8000-000000000002' });
+  const f = setup([first]);
+  jest.mocked(f.controller.list).mockResolvedValueOnce(page([first], 'cursor1')).mockResolvedValueOnce({ kind: 'unavailable', retry: 'request' } as never).mockResolvedValueOnce(page([second]));
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Load more' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Try again' }));
+  await waitFor(() => expect(f.controller.list).toHaveBeenCalledTimes(3));
+  expect(jest.mocked(f.controller.list).mock.calls[2][0]).toEqual({ view: 'today', cursor: 'cursor1' });
 });

@@ -617,4 +617,16 @@ describe('form and review lines', () => {
     expect(filled()).toHaveLength(1);
     expect(within(screen.getByRole('button', { name: words.confirm })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
   });
+  // MVP-22-A8c: a scheduled start is one more field, so the missing line names it. A start "now" needs none.
+  test.each([
+    ['pl', 'W przyszłym terminie', 'Wybierz trening, start i termin, aby zobaczyć zasady.'],
+    ['en', 'At a future time', 'Choose a workout, start and deadline to see the rules.'],
+  ] as const)('%s a scheduled start names the start in the missing line', async (locale, later, required) => {
+    const f = setup(); f.controller.start();
+    await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    expect(await screen.findByText(copy[locale].required)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('radio', { name: later }));
+    expect(screen.getByText(required)).toBeOnTheScreen();
+    expect(screen.queryByText(copy[locale].required)).toBeNull();
+  });
 });

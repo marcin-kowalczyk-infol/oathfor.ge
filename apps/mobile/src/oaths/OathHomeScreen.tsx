@@ -71,6 +71,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   // Where a row opened the detail: that list and its scroll. Only a row sets it, so creation, a receipt or the proof screen return to the top (MVP-22-T12b).
   const leftAt = useRef<{ view: ViewName; y: number } | null>(null);
   // Polish P8: whether Today's folded full list is open now, and whether it was open when a row or seal opened the detail.
+  // The second is used once: the fold clears it when it mounts, so a later remount keeps the player's own choice (MVP-22-A8c).
   const foldOpen = useRef(false);
   const foldOpenAtLeave = useRef(false);
   const scrollKey = `${route}-${view}`;
@@ -90,6 +91,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const [loading, setLoading] = useState(false);
   const loadingNow = useRef(false); loadingNow.current = loading;
   const [failed, setFailed] = useState(false);
+  // Whether the failed list request asked for a next page. Retry repeats that kind, so a failed refresh of page 1 never appends (MVP-22-A8c).
+  const failedAppend = useRef(false);
   const [detail, setDetail] = useState<Oath | null>(null);
   const detailId = useRef('');
   const generation = useRef(0);
@@ -135,7 +138,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       keptCursor.current = null;
       return loadList(nextView);
     }
-    if (result.kind !== 'success') { setFailed(true); return; }
+    if (result.kind !== 'success') { failedAppend.current = append; setFailed(true); return; }
     // The fresh first page replaces the old first page, so a row it no longer holds is gone. Rows of later pages stay, without
     // any the fresh page now holds, with the cursor past them. When the fresh page says nothing follows, it is the whole list.
     if (kept && result.value.nextCursor !== null && kept.items.length > result.value.items.length) {
@@ -471,7 +474,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
       </>}
       {route === 'list' && (account.pending ? <>
         <View testID="pending-line" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{t('oath.pending')}</Text></View>
-        <Action label={t('oath.recover')} variant={listAction} busy={account.busy} onPress={() => create(true)} />
+        {/* While the list failed, its Retry is the one filled action (MVP-22-A8c). */}
+        <Action label={t('oath.recover')} variant={failed ? 'secondary' : listAction} busy={account.busy} onPress={() => create(true)} />
       </> : !list?.paused && (view !== 'today' || !interactiveForge) && <Action label={t('oathHome.create')} variant={failed ? 'secondary' : listAction} busy={account.busy} onPress={() => create()} />)}
       {loading && <Text accessibilityLiveRegion="polite" style={styles.body}>{t('oathHome.loading')}</Text>}
       {route === 'list' && view === 'history' && list && <View testID="history-header" style={styles.historyHeader}>
@@ -486,11 +490,12 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         {view === 'today' && !!list?.items.length && !wallShowsAll && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.section}>{t('forge.all')}</Text>}
         {/* Cards of one heading stand close together. A new heading or an upload line under the previous card opens a section's space. */}
         {list && !!list.items.length && (wallShowsAll
-          ? <View style={styles.fold}><Disclosure testID="all-oaths" label={t('forge.all')} defaultOpen={!!restoredAt && foldOpenAtLeave.current} onToggle={open => { foldOpen.current = open; }}>{entries}</Disclosure></View>
+          ? <View style={styles.fold}><Disclosure testID="all-oaths" label={t('forge.all')} defaultOpen={!!restoredAt && foldOpenAtLeave.current} onToggle={open => { foldOpen.current = open; foldOpenAtLeave.current = false; }}>{entries}</Disclosure></View>
           : entries)}
         {/* Żaromir does not suggest a workout while paused (clarity.md rule 8). The pause note above says what holds. */}
-        {!loading && !failed && list?.items.length === 0 && view === 'today' && !list.paused && <CompanionBubble message={t('oathHome.emptyToday')} />}
-        {failed && <><View testID="list-error" accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{t('oathHome.loadError')}</Text></View><Action label={t('oath.retry')} variant={listAction} onPress={() => { void loadList(view, !!list?.nextCursor); }} /></>}
+        {/* An acceptance that may have arrived is not an empty Today (MVP-22-A8c). */}
+        {!loading && !failed && list?.items.length === 0 && view === 'today' && !list.paused && !account.pending && <CompanionBubble message={t('oathHome.emptyToday')} />}
+        {failed && <><View testID="list-error" accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{t('oathHome.loadError')}</Text></View><Action label={t('oath.retry')} variant={listAction} onPress={() => { void loadList(view, failedAppend.current && !!list?.nextCursor); }} /></>}
         {/* "Wczytaj więcej" is never the screen's main action, so it keeps the outline style (MVP-22-A8). */}
         {list?.nextCursor && !failed && <Action label={t('oathHome.more')} variant="secondary" busy={loading} onPress={() => { void loadList(view, true); }} />}
       </>}

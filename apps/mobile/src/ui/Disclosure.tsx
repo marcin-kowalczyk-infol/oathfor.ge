@@ -7,8 +7,10 @@ import { tokens } from './tokens';
  * One link that opens moved text in place (docs/product/clarity.md rules 1 and 2). The label names what opens.
  * The content mounts only while open and keeps its own wrapping text.
  */
-export function Disclosure({ label, icon, children, testID, defaultOpen = false, onToggle }: {
+export function Disclosure({ label, icon, children, testID, defaultOpen = false, onToggle, heading = false }: {
   label: string; icon?: ReactNode; children: ReactNode; testID?: string;
+  /** The label is a section heading, as a tutorial chapter title, so it keeps the header role and the display text cap. */
+  heading?: boolean;
   /** Opens on mount, for example when a list returns to the place the player left it. */
   defaultOpen?: boolean;
   /** Reports the state on mount and on every change, so a parent can remember it across a remount. */
@@ -20,7 +22,7 @@ export function Disclosure({ label, icon, children, testID, defaultOpen = false,
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: open }} onPress={() => setOpen(value => !value)}
       style={({ pressed }) => [styles.toggle, pressed && styles.pressed]}>
       {icon}
-      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.label}>{label}</Text>
+      <Text accessibilityRole={heading ? 'header' : undefined} maxFontSizeMultiplier={heading ? tokens.maxScale.display : tokens.maxScale.inset} style={styles.label}>{label}</Text>
       <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.mark}>{open ? '▴' : '▾'}</Text>
     </Pressable>
     {open && children}

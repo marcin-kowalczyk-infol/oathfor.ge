@@ -227,7 +227,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         </View>
         <Action label={t('oath.viewRules')} busy={busy} onPress={() => { void preview(); }}
           {...(!valid || (!!choices && !(choices.field === 'activation' ? activation.offset : deadline.offset))
-            ? { disabled: true, unavailableReason: !valid ? t('oath.formRequired') : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
+            ? { disabled: true, unavailableReason: !valid ? t(scheduled ? 'oath.formRequiredScheduled' : 'oath.formRequired') : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
       </>}
     </Animated.ScrollView>
     {guideShown && <DialoguePanel frame={guideFrame}

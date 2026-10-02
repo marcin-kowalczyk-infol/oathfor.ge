@@ -160,6 +160,7 @@
     "loading": "Wczytywanie Przysięgi…",
     "retry": "Spróbuj ponownie",
     "formRequired": "Wybierz trening i termin, aby zobaczyć zasady.",
+    "formRequiredScheduled": "Wybierz trening, start i termin, aby zobaczyć zasady.",
     "reviewIntro": "Przeczytaj zasady i złóż Przysięgę.",
     "consent": "Wybierając „Złóż Przysięgę”, akceptuję zasady z kart i pełne zasady.",
     "pending": "Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.",
@@ -768,7 +769,7 @@
     },
     "cutoff": {
       "0": "Okno na dowód trwa. Prześlij go, jeśli trening skończył się przed terminem.",
-      "1": "Jeśli trening skończył się w terminie, dowód jeszcze zdąży.",
+      "1": "Jeśli trening skończył się w terminie, dowód może jeszcze zdążyć.",
       "2": "Świeca jeszcze płonie. Jeśli trening zakończył się w terminie, prześlij dowód teraz."
     },
     "interrupted": {

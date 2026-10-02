@@ -70,7 +70,7 @@ Rules for all lines: Żaromir speaks calmly in the first person and addresses th
 | `room.tutorial.hearth.3` | Zanim złożysz Przysięgę, zobaczysz wszystkie jej zasady. Tworzy ją dopiero Twoja wyraźna zgoda. | Before you make the Oath, you see all its rules. Only your explicit acceptance creates it. |
 | `room.tutorial.hearth.4` | Złożonych zasad nikt już nie zmieni, także Kuźnia. Inna obietnica to nowa Przysięga. | Once made, its rules never change, not even by the Forge. A different promise is a new Oath. |
 | `room.tutorial.titles.seals` | Pieczęcie · Bieżące Przysięgi | Seals · Current Oaths |
-| `room.tutorial.seals.1` | Pieczęcie to Twoje bieżące Przysięgi: zaplanowane, trwające i te, które są pod rozwagą. | The seals are your current Oaths: scheduled, active and those awaiting review. |
+| `room.tutorial.seals.1` | Pieczęcie to Twoje bieżące Przysięgi: zaplanowane, trwające i te, które są pod rozwagą. | The seals are your current Oaths: scheduled, active and those under review. |
 | `room.tutorial.seals.2` | Każda Przysięga trzyma czas w swojej strefie. Zmiana strefy w telefonie go nie przesunie. | Each Oath keeps its times in its own timezone. Changing your phone’s timezone does not move them. |
 | `room.tutorial.seals.3` | O stanie decyduje Kuźnia, nie zegar w telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, to nie niewykonanie. | The Forge decides the state, not your phone’s clock. After the last deadline the Oath is under review, not missed. |
 | `room.tutorial.titles.chronicle` | Kronika · Zakończone Przysięgi | Chronicle · Finished Oaths |
@@ -79,10 +79,12 @@ Rules for all lines: Żaromir speaks calmly in the first person and addresses th
 | `room.tutorial.titles.door` | Drzwi · Postacie i pauza | Door · Characters and pause |
 | `room.tutorial.door.1` | Drzwi prowadzą do menu. Tam zmienisz postać albo stworzysz nową, najwyżej trzy. | The door leads to the menu. There you can switch character or create a new one, up to three. |
 | `room.tutorial.door.2` | Każda postać ma własne Przysięgi, własną kronikę i własną pauzę. | Each character has its own Oaths, chronicle and pause. |
-| `room.tutorial.door.3` | Pauzę włączysz w Ustawieniach, wycofa zaplanowane i trwające Przysięgi tej postaci. Te pod rozwagą czekają dalej. | Pause in Settings withdraws this character’s scheduled and active Oaths. Those under review keep waiting. |
+| `room.tutorial.door.3` | Pauzę włączysz w Ustawieniach, wycofa zaplanowane i trwające Przysięgi tej postaci. Te pod rozwagą czekają dalej. | When you turn it on in Settings, pause withdraws this character’s scheduled and active Oaths. Those under review keep waiting. |
 | `room.tutorial.door.4` | W czasie pauzy nie złożysz nowej Przysięgi. Wznowienie zdejmuje pauzę, ale nie przywraca wycofanych. | While paused you cannot make a new Oath. Resuming lifts the pause but does not restore withdrawn Oaths. |
 
 Superseded on 2026-10-02: the review state is named with the set phrase "pod rozwagą", and `seals.3` and `door.3` keep two sentences each. The table above shows the current copy. See [clarity](clarity.md).
+
+Superseded on 2026-10-02 (MVP-22-A8c): the English `seals.1` names the review state "under review", as `seals.3` and `door.3` do, and the English `door.3` says again that the player turns pause on in Settings.
 
 Rule sources for the chapters: [creating and tracking Oaths](oaths.md), [first-loop pause rules](first-loop.md#pause-and-alternatives) and [player characters](player-character.md).
 

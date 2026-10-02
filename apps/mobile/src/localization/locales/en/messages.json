@@ -156,6 +156,7 @@
     "loading": "Loading your Oath…",
     "retry": "Try again",
     "formRequired": "Choose a workout and deadline to see the rules.",
+    "formRequiredScheduled": "Choose a workout, start and deadline to see the rules.",
     "reviewIntro": "Read the rules, then make the Oath.",
     "consent": "By choosing “Commit to the Oath”, I accept the rules on the cards and the full rules.",
     "pending": "Your confirmation may already have arrived. Check the same Oath before starting another.",
@@ -531,7 +532,7 @@
         "4": "Once made, its rules never change, not even by the Forge. A different promise is a new Oath."
       },
       "seals": {
-        "1": "The seals are your current Oaths: scheduled, active and those awaiting review.",
+        "1": "The seals are your current Oaths: scheduled, active and those under review.",
         "2": "Each Oath keeps its times in its own timezone. Changing your phone’s timezone does not move them.",
         "3": "The Forge decides the state, not your phone’s clock. After the last deadline the Oath is under review, not missed."
       },
@@ -542,7 +543,7 @@
       "door": {
         "1": "The door leads to the menu. There you can switch character or create a new one, up to three.",
         "2": "Each character has its own Oaths, chronicle and pause.",
-        "3": "Pause in Settings withdraws this character’s scheduled and active Oaths. Those under review keep waiting.",
+        "3": "When you turn it on in Settings, pause withdraws this character’s scheduled and active Oaths. Those under review keep waiting.",
         "4": "While paused you cannot make a new Oath. Resuming lifts the pause but does not restore withdrawn Oaths."
       }
     },

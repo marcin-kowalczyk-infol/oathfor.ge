@@ -101,7 +101,7 @@ const sliceA = [
   // A5. The tutorial chapter lines are rules, not "what next" lines, so only the two-sentence guard holds them.
   'room.descriptions.seals', 'room.guide.seals', 'room.guide.hearth', 'room.tutorial.heardMark',
   // A6.
-  'oath.intro', 'oath.reviewIntro', 'oath.formRequired',
+  'oath.intro', 'oath.reviewIntro', 'oath.formRequired', 'oath.formRequiredScheduled',
 ];
 test.each(sliceA)('%s fits 12 Polish words and two sentences in both languages', key => {
   const [line, english] = [at(pl, key), at(en, key)];
@@ -153,4 +153,15 @@ test.each(['forgeDetail', 'forgePending', 'tutorialDetail', 'settingsDetail'])('
 test('the menu shows the pause mark, so the old paused line is gone', () => {
   expect(group(pl, 'menu').paused).toBeUndefined();
   expect(group(en, 'menu').paused).toBeUndefined();
+});
+
+// MVP-22-A8c (review of A5 to A8b, main-agent copy decisions).
+test('the A8c copy decisions hold in both languages', () => {
+  expect(at(pl, 'zaromir.cutoff.1')).toBe('Jeśli trening skończył się w terminie, dowód może jeszcze zdążyć.');
+  expect(at(en, 'zaromir.cutoff.1')).toBe('If the workout ended by the deadline, the proof can still make it.');
+  expect(at(pl, 'oath.formRequiredScheduled')).toBe('Wybierz trening, start i termin, aby zobaczyć zasady.');
+  expect(at(en, 'oath.formRequiredScheduled')).toBe('Choose a workout, start and deadline to see the rules.');
+  expect(at(en, 'room.tutorial.seals.1')).toMatch(/under review/);
+  expect(at(en, 'room.tutorial.seals.1')).not.toMatch(/awaiting review/);
+  expect(at(en, 'room.tutorial.door.3')).toMatch(/you turn it on in Settings/);
 });

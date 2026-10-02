@@ -579,9 +579,10 @@ test.each([['before', '2026-10-25T00:40:00Z', 1], ['after', '2026-10-25T00:46:00
 // MVP-22-A8b (review finding): the proof screen's path timer (usePathMoments) stops when the screen unmounts.
 test('the path timer stops when the proof screen unmounts', async () => {
   jest.useFakeTimers(); jest.setSystemTime(Date.parse('2026-10-25T00:29:00Z'));
+  // Restored in finally, so the spies never leak into later tests (MVP-22-A8c).
+  const timeouts = jest.spyOn(globalThis, 'setTimeout'); const clears = jest.spyOn(globalThis, 'clearTimeout');
   try {
     const clock = clockAt('2026-10-25T00:29:00Z');
-    const timeouts = jest.spyOn(globalThis, 'setTimeout'); const clears = jest.spyOn(globalThis, 'clearTimeout');
     await show('pl', oath(), fakeController(), clock);
     // The next moment is just after D, a minute away.
     const armed = timeouts.mock.calls.findIndex(([, delay]) => delay === 60001);
@@ -593,5 +594,5 @@ test('the path timer stops when the proof screen unmounts', async () => {
     const before = timeouts.mock.calls.length;
     await act(async () => { clock.observe('2026-10-25T00:31:00Z'); });
     expect(timeouts.mock.calls.slice(before).filter(([, delay]) => typeof delay === 'number' && delay > 1000)).toEqual([]);
-  } finally { jest.useRealTimers(); }
+  } finally { timeouts.mockRestore(); clears.mockRestore(); jest.useRealTimers(); }
 });

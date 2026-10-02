@@ -26,7 +26,7 @@ export function TutorialScreen({ onBack }: { onBack(): void }) {
         <Text accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('tutorial.title')}</Text>
         <CompanionBubble message={text('room.tutorial.intro')} />
         {tutorialChapters.map(chapter => <View key={chapter.place} style={styles.card}>
-          <Disclosure testID={`tutorial-chapter-${chapter.place}`} label={t(tutorialTitleKey(chapter.place))}>
+          <Disclosure testID={`tutorial-chapter-${chapter.place}`} label={t(tutorialTitleKey(chapter.place))} heading>
             <View style={styles.lines}>{tutorialLineKeys(chapter).map(key => <Text key={key} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.line}>{text(key)}</Text>)}</View>
           </Disclosure>
         </View>)}
