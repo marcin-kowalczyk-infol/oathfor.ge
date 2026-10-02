@@ -43,7 +43,7 @@ function Seal({ item, onOpen, motion, clock, onElapsed, interrupted }: { item: O
         </Animated.View>
         <Text style={[styles.name, pressed && styles.highlight]}>{copy.activity}</Text>
         {/* One short line keeps the three dates and chips level. The button still speaks the full state. */}
-        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.state}>{interrupted ? notReceived : t(`forge.sealState.${item.state}`)}</Text>
+        <Text budget="icon" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.state}>{interrupted ? notReceived : t(`forge.sealState.${item.state}`)}</Text>
         <Text style={styles.deadline}>{deadline}</Text>
         {clock && <View style={styles.chip}><CountdownChip oath={item} clock={clock} stacked onElapsed={onElapsed} /></View>}
       </>}

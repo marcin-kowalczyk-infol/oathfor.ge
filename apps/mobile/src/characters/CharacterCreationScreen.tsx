@@ -213,7 +213,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
       <Text style={styles.hint}>{prose(t('character.titlesHint'))}</Text>
     </View>
 
-    {message && !(limitShown && full) && !waitText && <Message text={prose(t(message.key, message.name === undefined ? {} : { name: message.name }))} />}
+    {message && !(limitShown && full) && !waitText && <Message error={message.key !== 'character.pending'} text={prose(t(message.key, message.name === undefined ? {} : { name: message.name }))} />}
     {pending && state.busy && <Text accessibilityLiveRegion="polite" style={styles.intro}>{prose(t('character.finishing', { name: pending.name }))}</Text>}
     {state.error?.kind === 'character_error' && state.error.code === 'invalid_preset' && !state.busy
       && <Action variant="secondary" label={t('character.reloadLooks')} onPress={onReload} />}
@@ -240,8 +240,9 @@ function Choice({ title, detail, label, selected, disabled, stacked, half = fals
   </Pressable>;
 }
 
-function Message({ text }: { text: string }) {
-  return <View style={styles.message}><Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.messageText}>{text}</Text></View>;
+/** An error or refusal is exempt from the word budget (docs/product/engagement.md E1). The pending note is not. */
+function Message({ text, error = true }: { text: string; error?: boolean }) {
+  return <View style={styles.message}><Text budget={error ? 'error' : undefined} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.messageText}>{text}</Text></View>;
 }
 
 const styles = StyleSheet.create({

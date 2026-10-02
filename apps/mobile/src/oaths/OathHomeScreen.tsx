@@ -511,7 +511,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         {/* Żaromir does not suggest a workout while paused (clarity.md rule 8). The pause note above says what holds. */}
         {/* An acceptance that may have arrived is not an empty Today (MVP-22-A8c). */}
         {!loading && !failed && list?.items.length === 0 && view === 'today' && !list.paused && !account.pending && <CompanionBubble message={t('oathHome.emptyToday')} />}
-        {failed && <><View testID="list-error" accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.note}><Text style={styles.noteText}>{prose(t('oathHome.loadError'))}</Text></View><Action label={t('oath.retry')} variant={listAction} onPress={() => { void loadList(view, failedAppend.current && !!list?.nextCursor); }} /></>}
+        {failed && <><View testID="list-error" accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.note}><Text budget="error" style={styles.noteText}>{prose(t('oathHome.loadError'))}</Text></View><Action label={t('oath.retry')} variant={listAction} onPress={() => { void loadList(view, failedAppend.current && !!list?.nextCursor); }} /></>}
         {/* "Wczytaj więcej" is never the screen's main action, so it keeps the outline style (MVP-22-A8). */}
         {list?.nextCursor && !failed && <Action label={t('oathHome.more')} variant="secondary" busy={loading} onPress={() => { void loadList(view, true); }} />}
       </>}

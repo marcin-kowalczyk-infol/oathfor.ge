@@ -39,7 +39,7 @@ export function SceneHotspot({ label, hint, selected, onPress, anchor, door = fa
         opacity: ripple.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.95, 0.75, 0] }),
         transform: [{ scale: ripple.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1.8] }) }] }]} />
       {heard && <View testID={heard.testID} style={styles.heardSlot}><View testID={`${heard.testID}-plate`} style={styles.heard}>
-        <Text numberOfLines={1} maxFontSizeMultiplier={HEARD_SCALE} style={styles.heardMark}>✓ {heard.label}</Text>
+        <Text budget="icon" numberOfLines={1} maxFontSizeMultiplier={HEARD_SCALE} style={styles.heardMark}>✓ {heard.label}</Text>
       </View></View>}
     </View>}
   </Pressable>;

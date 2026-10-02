@@ -41,3 +41,19 @@ export function visibleWords(root: HostNode): { count: number; words: string[] }
   walk(root);
   return { count: found.length, words: found };
 }
+
+/** The most counted words a screen state may show, per language. A ceiling above the budget names the step that cuts it. */
+export type Ceiling = { pl: number; en: number; target: 'E1' | 'E2' | 'E3' | 'E4' | 'E5' | 'E6' };
+export const WORD_BUDGET = 25;
+
+/**
+ * The ratchet (engagement.md E1). A rise fails and names the words. A fall fails too, so the ceiling is lowered in the same
+ * change (local decision, MVP-22-E1.2). Both messages carry the measured count, so a new ceiling is read from the failure.
+ */
+export function ratchetProblem(name: string, locale: 'pl' | 'en', measured: { count: number; words: string[] }, ceiling: Ceiling | undefined): string | null {
+  const head = `word budget: ${name} ${locale} measured ${measured.count}`;
+  if (!ceiling) return `${head}, no ceiling. Words: ${measured.words.join(' ')}`;
+  if (measured.count > ceiling[locale]) return `${head}, ceiling ${ceiling[locale]}. Words: ${measured.words.join(' ')}`;
+  if (measured.count < ceiling[locale]) return `${head}, ceiling ${ceiling[locale]}. Lower the ceiling to ${measured.count}.`;
+  return null;
+}

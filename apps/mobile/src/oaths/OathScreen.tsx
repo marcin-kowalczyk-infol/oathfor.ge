@@ -192,7 +192,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         {/* MVP-22-A6: one plain "what next" line. D and S stay on their cards and in Żaromir's guide (clarity.md rules 1 and 14). */}
         {intro && <Text testID="oath-line" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(t(intro))}</Text>}
         {/* MVP-22-B2c: the error and review-again lines stand above the workout header, so the header stays with its offerings. */}
-        {ready && bandError && <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(bandError)}</Text>}
+        {ready && bandError && <Text budget="error" accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(bandError)}</Text>}
         {ready?.needsReview && <Text style={styles.body}>{prose(t('oath.reviewAgain'))}</Text>}
         {/* MVP-22-G27: the pending line and its action stand on the band after the error line, never on the hearth fire. */}
         {pending && <>

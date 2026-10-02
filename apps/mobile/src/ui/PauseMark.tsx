@@ -19,7 +19,7 @@ export function PauseMark({ state }: { state: PauseMarkState }) {
       {state === 'paused' && <View testID="pause-mark-bars" style={styles.bars}><View style={styles.bar} /><View style={styles.bar} /></View>}
       {state === 'unknown' && <View testID="pause-mark-ring" style={styles.ring} />}
     </View>
-    <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.label}>{bindShortWords(label, i18n.language)}</Text>
+    <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.label}>{bindShortWords(label, i18n.language)}</Text>
   </View>;
 }
 

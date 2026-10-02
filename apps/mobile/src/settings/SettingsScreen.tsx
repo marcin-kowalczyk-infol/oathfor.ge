@@ -96,7 +96,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
             })}
           </View>
           {localeState.saving && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.note}>{prose('settings.language.saving')}</Text>}
-          {localeState.error && !localeState.saving && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{prose('settings.language.error')}</Text>}
+          {localeState.error && !localeState.saving && <Text budget="error" maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{prose('settings.language.error')}</Text>}
         </View>
 
         {artStyle && <View style={styles.card}>
@@ -130,7 +130,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
           {blocked && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.body}>{prose(mayOpenSettings ? 'settings.notifications.denied' : 'settings.notifications.notAllowed')}</Text>}
           {mayRetry && <Action label={t('settings.notifications.askPermission')} onPress={props.onRetryPermission} busy={busy} variant="secondary" />}
           {mayOpenSettings && <Action label={t('settings.notifications.openSettings')} onPress={props.onOpenSystemSettings} busy={busy} variant="secondary" />}
-          {error && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{prose(`settings.notifications.error_${error}`)}</Text>}
+          {error && <Text budget="error" maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{prose(`settings.notifications.error_${error}`)}</Text>}
         </View>
 
         <View style={styles.card}>

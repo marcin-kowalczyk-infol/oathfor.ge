@@ -160,7 +160,7 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
     const shown = notices[source];
     if (!shown) return null;
     return <View testID={`proof-notice-${source}`} accessibilityLiveRegion="polite" style={styles.notice}>
-      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noticeText}>{text(t(shown.kind === 'denied' ? (source === 'camera' ? 'proof.cameraDenied' : 'proof.libraryUnavailable') : `proof.${source}Unavailable`))}</Text>
+      <Text budget="error" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.noticeText}>{text(t(shown.kind === 'denied' ? (source === 'camera' ? 'proof.cameraDenied' : 'proof.libraryUnavailable') : `proof.${source}Unavailable`))}</Text>
       {shown.kind === 'denied' && !shown.canAskAgain
         && <Action label={t('proof.openSettings')} variant="secondary" onPress={() => { void Linking.openSettings().catch(() => {}); }} />}
     </View>;
@@ -276,7 +276,7 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
       <StepHead number={3} title={t('proof.steps.confirm')} />
       <View style={styles.declaration}>
         {/* The stored declaration once, then a short answer. The checkbox speaks the declaration it accepts (MVP-22-T12c). */}
-        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(copy.declaration)}</Text>
+        <Text budget="declaration" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(copy.declaration)}</Text>
         <Pressable accessibilityRole="checkbox" accessibilityLabel={`${t('proof.confirm')}. ${copy.declaration}`} accessibilityState={{ checked: declared, disabled: busy }} disabled={busy}
           onPress={() => setDeclared(value => !value)} style={({ pressed }) => [styles.check, pressed && styles.pressed]}>
           <View style={[styles.box, declared && styles.boxOn]}>{declared && <Text allowFontScaling={false} style={styles.tick}>✓</Text>}</View>

@@ -94,7 +94,7 @@ export function ChangeCharacterScreen({ state, onChoose, onNew, onBack }: Change
       </Animated.View>
       {pending && <Text style={styles.intro}>{prose(t('character.change.pending', { name: pending.name }))}</Text>}
       {state.busy && <Text accessibilityLiveRegion="polite" style={styles.intro}>{prose(t('character.change.switching'))}</Text>}
-      {message && <View style={styles.message}><Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.messageText}>{prose(t(message))}</Text></View>}
+      {message && <View style={styles.message}><Text budget="error" accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.messageText}>{prose(t(message))}</Text></View>}
     </ScrollView>
   </SafeAreaView>;
 }

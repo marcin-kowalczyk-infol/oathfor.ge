@@ -44,7 +44,7 @@ export function OathRuleCards({ snapshot, highlight = null, head = 'full', fold 
     <View style={styles.declaration}>
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.heading}>{t('oath.rules.declaration')}</Text>
       {/* Native check, 2026-09-30: text inside the declaration, the cards and the fold is inset, so it takes the inset cap. */}
-      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(copy.declaration)}</Text>
+      <Text budget="declaration" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.body}>{text(copy.declaration)}</Text>
     </View>
     <View testID="rule-cards" onLayout={event => onCardsLayout?.(event.nativeEvent.layout.y)} style={[styles.grid, columns === 2 ? styles.pairs : styles.stack]}>
       {/* Native check, 2026-09-30: in one column the cards Żaromir names sit far below the grid top, so each card reports its own place. */}

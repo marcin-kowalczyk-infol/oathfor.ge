@@ -37,7 +37,7 @@ export function NotificationView({ state, preference, onEnable, onSkip, onRetryP
     {(honestyShown || blocks || error) && <View style={styles.group} accessibilityLiveRegion="polite">
       {honestyShown && honesty}
       {blocks && device}
-      {error && <Text accessibilityRole="alert" style={styles.body}>{text(`notifications.error_${error}`)}</Text>}
+      {error && <Text budget="error" accessibilityRole="alert" style={styles.body}>{text(`notifications.error_${error}`)}</Text>}
     </View>}
     <Disclosure label={t('notifications.howItWorks')}>
       <View style={styles.group}>

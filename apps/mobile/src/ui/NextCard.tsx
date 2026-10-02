@@ -34,7 +34,7 @@ export function NextCard({ oath, clock, line, onElapsed, action, secondary, deta
   return <View testID="detail-status" style={styles.panel}>
     <View accessible accessibilityLabel={t('oath.state', { state })} accessibilityLiveRegion="polite" style={styles.state}>
       <StateSeal state={oath.state} size={56} />
-      <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.stateLabel}>{state}</Text>
+      <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.stateLabel}>{state}</Text>
     </View>
     <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.line}>{bindShortWords(line, i18n.language)}</Text>
     {countdownTarget(oath) !== null && <CountdownChip oath={oath} clock={clock} size="large" onElapsed={onElapsed} />}

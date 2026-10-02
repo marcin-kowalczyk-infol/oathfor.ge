@@ -53,7 +53,7 @@ export function StepTrack({ path, state, variant = 'full', activityEmblem }: { p
       <View style={styles.pips}>
         {path.steps.map((status, index) => <View key={index} testID={`step-pip-${index + 1}-${status}`} style={[styles.pip, pipStyles[status]]} />)}
       </View>
-      <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.compactLabel}>{shown}</Text>
+      <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.compactLabel}>{shown}</Text>
     </View>;
   }
 
@@ -77,9 +77,9 @@ export function StepTrack({ path, state, variant = 'full', activityEmblem }: { p
       {index < path.steps.length - 1 && <View testID={`step-segment-${index + 1}`} style={styles.segment} />}
       {node(status, index)}
       <View style={styles.listText}>
-        <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, labelStyles[status]]}>{stepLabel(index)}</Text>
-        {index === current && shownWords && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.words}>{shownWords}</Text>}
-        {status === 'skipped' && <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.words}>{t('path.badge.skipped')}</Text>}
+        <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, labelStyles[status]]}>{stepLabel(index)}</Text>
+        {index === current && shownWords && <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.words}>{shownWords}</Text>}
+        {status === 'skipped' && <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.words}>{t('path.badge.skipped')}</Text>}
       </View>
     </View>)}
   </View>;
@@ -89,8 +89,8 @@ export function StepTrack({ path, state, variant = 'full', activityEmblem }: { p
     {path.steps.map((status, index) => <View key={index} style={styles.column}>
       {node(status, index)}
       {/* One word per step on one line. It shrinks to 0.7 and never breaks inside the word. Larger text uses the vertical list. */}
-      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[styles.label, styles.centred, labelStyles[status]]}>{stepLabel(index)}</Text>
-      {index === current && shownWords && <Text testID="step-words" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.small, styles.centred]}>{shownWords}</Text>}
+      <Text budget="icon" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[styles.label, styles.centred, labelStyles[status]]}>{stepLabel(index)}</Text>
+      {index === current && shownWords && <Text budget="icon" testID="step-words" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.small, styles.centred]}>{shownWords}</Text>}
     </View>)}
   </View>;
 }

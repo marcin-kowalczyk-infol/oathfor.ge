@@ -57,7 +57,7 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
   return <SafeAreaView style={styles.safeArea}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{heading}</Text>
-      {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.notice}>{prose(error)}</Text>
+      {error ? <Text budget="error" accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.notice}>{prose(error)}</Text>
         : description !== '' && <Text style={styles.body} accessibilityLiveRegion="polite">{prose(description)}</Text>}
       {basics && ready && <>
         <View style={styles.group}>
