@@ -34,6 +34,15 @@ export function bindSeparators(text: string): string {
   return text.replace(separator, ' ·\u00a0');
 }
 
+/**
+ * A short value with commas, such as "0 XP, bez straty", breaks only after a comma. The spaces inside each phrase become
+ * no-break spaces, so a wrap keeps whole phrases on their lines (MVP-22-E3r2). A value without a comma keeps its spaces,
+ * so a narrow cell still wraps it between words. Drawn text only, spoken labels keep the plain form.
+ */
+export function breakAfterCommas(text: string): string {
+  return text.includes(', ') ? text.split(', ').map(phrase => phrase.replace(/ /g, '\u00a0')).join(', ') : text;
+}
+
 const slashBetweenLetters = /(\p{L})\/(?=\p{L})/gu;
 
 /**

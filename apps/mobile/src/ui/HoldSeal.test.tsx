@@ -1,9 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo, Animated, AppState } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, StyleSheet, type ViewStyle } from 'react-native';
 import { ArtSetProvider } from '../art/ArtProvider';
 import { currentArt } from '../art/current';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
-import { HoldSeal, HOLD_MS, type HoldSealProps } from './HoldSeal';
+import { HoldSeal, HOLD_LABEL_TOP, HOLD_MS, type HoldSealProps } from './HoldSeal';
 
 // The hold control of the rules review (docs/product/engagement.md E3, D-E1, D-E5).
 const declaration = 'Ćwiczę 20 minut i wyślę zdjęcie.';
@@ -232,4 +232,14 @@ test('a hooked sheet draws its idle, pressed and full cells', async () => {
   expect(screen.getByTestId('hold-seal-art-1', { includeHiddenElements: true })).toBeTruthy();
   await advance(HOLD_MS);
   expect(screen.getByTestId('hold-seal-art-2', { includeHiddenElements: true })).toBeTruthy();
+});
+
+// Native check, 2026-10-02 (MVP-22-E3r2): the rules review ends its view in the gap under the ring, above the drawn label,
+// so it needs the label's top inside the control. The constant follows the control's padding, the seal and the gap.
+test('the label starts below the padding, the seal with its ring and one gap', async () => {
+  await show();
+  const control = StyleSheet.flatten(screen.getByTestId('hold-seal').props.style) as ViewStyle;
+  const seal = StyleSheet.flatten(screen.getByTestId('hold-seal-idle', { includeHiddenElements: true }).props.style) as ViewStyle;
+  expect(HOLD_LABEL_TOP).toBe(Number(control.paddingVertical) + Number(seal.height) + Number(control.gap));
+  expect(HOLD_LABEL_TOP).toBe(140);
 });

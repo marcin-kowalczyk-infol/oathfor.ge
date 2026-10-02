@@ -1,4 +1,4 @@
-import { bindSeparators, bindShortWords, keepSlashJoined, plainText } from './typography';
+import { bindSeparators, bindShortWords, breakAfterCommas, keepSlashJoined, plainText } from './typography';
 
 test('Polish single-letter words stay with the next word', () => {
   expect(bindShortWords('nie zegar w telefonie. Gdy minie termin z zasad, i w domu', 'pl'))
@@ -62,4 +62,13 @@ test('bound prose applies the separator rule in Polish and English, with single-
 test('a spoken label turns drawn bindings back to plain text', () => {
   expect(plainText(keepSlashJoined(bindShortWords('Kowadło z kłódką · 15 XP · Europe/Warsaw', 'pl')))).toBe('Kowadło z kłódką · 15 XP · Europe/Warsaw');
   expect(plainText('plain text')).toBe('plain text');
+});
+
+// Native check, 2026-10-02 (MVP-22-E3r2): "0 XP, bez straty" wrapped as "0 XP, bez / straty" on the consequence pictogram.
+// A short value with commas breaks only after a comma, so its lines stay whole phrases. A value without a comma keeps its spaces.
+test('a comma-separated value breaks only after its commas', () => {
+  expect(breakAfterCommas('0 XP, bez straty')).toBe('0\u00a0XP, bez\u00a0straty');
+  expect(breakAfterCommas('0 XP, no loss')).toBe('0\u00a0XP, no\u00a0loss');
+  expect(breakAfterCommas('bez zmian')).toBe('bez zmian');
+  expect(plainText(breakAfterCommas('15 XP, bez straty'))).toBe('15 XP, bez straty');
 });

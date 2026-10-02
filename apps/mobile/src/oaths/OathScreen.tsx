@@ -8,7 +8,7 @@ import { Action } from '../ui/Action';
 import { useSceneEntrance } from '../ui/useSceneEntrance';
 import { GameChoice } from '../ui/GameChoice';
 import { tokens } from '../ui/tokens';
-import { SceneSurface } from '../ui/SceneSurface';
+import { SCENE_FLOOR, SceneSurface } from '../ui/SceneSurface';
 import { SceneDoor } from '../ui/SceneDoor';
 import { FadeStrips } from '../ui/FadeStrips';
 import { BackLink } from '../ui/BackLink';
@@ -28,7 +28,7 @@ import { resolveLocale } from '../localization/locale';
 import { promiseText, SnapshotRules } from './SnapshotRules';
 import { ReviewFold, ReviewRules } from './ReviewRules';
 import { reviewPictograms, type PictogramId } from './ruleCards';
-import { HoldSeal } from '../ui/HoldSeal';
+import { HOLD_LABEL_TOP, HoldSeal } from '../ui/HoldSeal';
 import { DialoguePanel, PANEL_RISE } from '../forge/DialoguePanel';
 import type { GuideStorage } from '../forge/guideStorage';
 import { bindShortWords } from '../localization/typography';
@@ -134,7 +134,12 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
   const cardTop = guideTops.block + guideTops.grid + (guideCard ? guideTops.cards[guideCard] ?? 0 : 0);
   const stepTop = Math.max(0, cardTop - GUIDE_MARGIN);
   const holdOvershoot = hold && viewport > 0 && hold.y - stepTop < viewport ? hold.y + hold.height - stepTop - viewport : 0;
-  const guideTop = guideShown ? Math.min(stepTop + Math.max(0, holdOvershoot), Math.max(stepTop, cardTop)) : null;
+  const cappedTop = Math.min(stepTop + Math.max(0, holdOvershoot), Math.max(stepTop, cardTop));
+  // Native check, 2026-10-02 (MVP-22-E3r2): at the cap the edge sliced the promise line under the seal in half. An edge that
+  // would fall in the label or the hint moves up into the gap under the seal's ring, so the label waits whole below it.
+  const holdEdge = hold && viewport > 0 ? cappedTop + viewport - hold.y : 0;
+  const labelTop = hold && holdEdge > HOLD_LABEL_TOP && holdEdge < hold.height ? Math.max(0, hold.y + HOLD_LABEL_TOP - viewport) : null;
+  const guideTop = guideShown ? labelTop ?? cappedTop : null;
   // Native check, 2026-09-30: at the largest text size the 280 pt panel cut the fourth line of the first Polish guide line.
   // The line is capped at 2x, 46 pt a line, and the longest Polish and English lines wrap to four lines at 375 and 402 pt.
   // The frame and the step row take 114 pt, so 344 pt holds five lines and leaves the upper half of the screen for the card.
@@ -303,6 +308,9 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
             ? { disabled: true, unavailableReason: !valid ? t(missingChoice()) : t('oath.error.ambiguous_local_time') } : { disabled: false })} />
       </>}
     </Animated.ScrollView>
+    {/* Native check, 2026-10-02 (MVP-22-E3r2): the bare edge above the bust read as broken. A soft fade into the scene floor
+        sits on it, drawn as solid strips. It stands in the same frame as the panel, so its bottom is the view's bottom edge. */}
+    {guideInset !== null && <FadeStrips testID="guide-edge-fade" stripTestID="guide-edge-fade-strip" from="bottom" color={SCENE_FLOOR} style={[styles.edgeFade, { bottom: guideInset }]} />}
     {/* Review, 2026-10-02: the barks count the snapshot's grace minutes, and VoiceOver hears the named pictogram before the bark. */}
     {guideShown && ready?.preview && <DialoguePanel frame={guideFrame}
       speaker="guide" lineId={`rules-${guideLine}`} text={bindShortWords(t(`oath.guide.${guideLine! + 1}`, { count: ready.preview.snapshot.review.receiptGraceSeconds / 60 }), i18n.language)}
@@ -321,6 +329,7 @@ const styles = StyleSheet.create({
   band: { marginHorizontal: -tokens.space.card, marginTop: -tokens.space.card, paddingHorizontal: tokens.space.card, paddingTop: tokens.space.card, paddingBottom: tokens.space.small,
     gap: tokens.space.section, backgroundColor: tokens.color.canvas, zIndex: 1 },
   bandFade: { position: 'absolute', left: 0, right: 0, top: '100%', height: 24 }, wideBench: { paddingHorizontal: 10 },
+  edgeFade: { position: 'absolute', left: 0, right: 0, height: 40 },
   confirmed: { gap: 14, alignItems: 'center', paddingVertical: 24 },
   track: { alignSelf: 'stretch' }, centred: { textAlign: 'center' },
   group: { gap: tokens.space.item },

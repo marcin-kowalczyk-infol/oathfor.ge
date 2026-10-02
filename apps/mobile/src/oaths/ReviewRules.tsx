@@ -5,7 +5,7 @@ import { useArt } from '../art/ArtProvider';
 import { SpriteFrame } from '../forge/Sprite';
 import { useTranslation } from '../localization/LocalizationProvider';
 import { resolveLocale } from '../localization/locale';
-import { bindShortWords } from '../localization/typography';
+import { bindShortWords, breakAfterCommas } from '../localization/typography';
 import { ActivityEmblem } from '../ui/ActivityEmblem';
 import { Disclosure } from '../ui/Disclosure';
 import { layoutMode } from '../ui/layoutMode';
@@ -63,8 +63,11 @@ function PictogramView({ item, size, room, highlighted = false, gesture = false,
       : <SpriteFrame testID={`pictogram-art-${item.id}`} sheet={art.ruleIcons} index={ruleIcon[item.icon]} width={size} />}
     <View style={[styles.words, stacked && styles.centred]}>
       <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, stacked && styles.centredText]}>{bindShortWords(item.label, i18n.language)}</Text>
+      {/* Native check, 2026-10-02 (MVP-22-E3r2): word values in the 20 pt value style broke "bez / zmian" in a third-width card
+          and "0 XP, bez / straty" beside a small pictogram. They take the word style and break only after a comma. */}
       {item.values.map((value, index) => <Text key={value} budget={item.labelValues && 'icon'} maxFontSizeMultiplier={tokens.maxScale.inset}
-        style={[index === 0 ? styles.value : styles.detail, !large && styles.smallValue, stacked && styles.centredText]}>{value}</Text>)}
+        style={[index === 0 ? styles.value : styles.detail, !large && styles.smallValue, item.labelValues && styles.wordValue, stacked && styles.centredText]}>
+        {item.labelValues ? breakAfterCommas(value) : value}</Text>)}
     </View>
   </View>;
 }
@@ -124,5 +127,8 @@ const styles = StyleSheet.create({
   value: { color: tokens.color.primary, fontSize: 20, lineHeight: 26, fontWeight: '700', fontVariant: ['tabular-nums'] },
   detail: { color: tokens.color.secondary, fontSize: 14, lineHeight: 20 },
   smallValue: { fontSize: 16, lineHeight: 22 },
+  // Words, not figures. At 15 pt "bez zmian" and "no changes" fit the 94 pt inside of a third-width card on a 402 pt phone,
+  // "no changes" also the 85 pt one on a 375 pt phone (measured SF bold widths, OathScreen.test.tsx).
+  wordValue: { fontSize: 15, lineHeight: 20 },
   fold: { gap: 16 },
 });

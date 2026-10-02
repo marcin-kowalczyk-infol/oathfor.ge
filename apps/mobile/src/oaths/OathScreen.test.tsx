@@ -10,6 +10,9 @@ import type { SessionController } from '../auth/session';
 import type { OathClient } from '../api/oaths';
 import type { PendingStorage } from './pendingStorage';
 import { tokens } from '../ui/tokens';
+import { HOLD_LABEL_TOP } from '../ui/HoldSeal';
+import { FADE_STEPS } from '../ui/FadeStrips';
+import { SCENE_FLOOR } from '../ui/SceneSurface';
 import { promiseText } from './SnapshotRules';
 import { plainText } from '../localization/typography';
 import en from '../localization/locales/en/messages.json';
@@ -452,6 +455,58 @@ test('a flag still being read shows nothing', async () => {
   expect(screen.queryByRole('button', { name: 'Ask Zharomir' })).toBeNull();
 });
 
+// Native check, 2026-10-02 (MVP-22-E3r2), iPhone 18 Pro, Polish, standard text: in the 402 pt room the word values took the 20 pt
+// value style, so "bez zmian" split over two lines in its third-width card and "0 XP, bez straty" wrapped as "0 XP, bez / straty".
+// Word values take a smaller style, numbers keep the large one. The widths below come from the rendered styles.
+describe('word values fit their pictograms on a 402 pt phone', () => {
+  const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
+  afterEach(() => act(() => { Dimensions.set(initial); }));
+  // SF bold advance widths at 15 pt, measured on macOS 26 with NSString.size(withAttributes:) on 2026-10-02.
+  // They scale with the font size. iOS SF Pro Text may differ by about a point, which the margins below absorb.
+  const at15: Record<string, number> = { 'bez zmian': 74.1, 'no changes': 84.0, '0 XP,': 37.5, 'bez straty': 73.8, '0 XP, no loss': 92.6 };
+  const flat = (node: { props: { style?: unknown } }) => StyleSheet.flatten(node.props.style as StyleProp<ViewStyle & TextStyle>) as ViewStyle & TextStyle;
+  const texts = (id: string) => within(screen.getByTestId(`pictogram-${id}`)).getAllByText(/./, { includeHiddenElements: true });
+  const value = (id: string) => texts(id)[1];
+  // The width inside a card: its share of the row less its padding and border.
+  function inner(id: string, count: number, row: string) {
+    const column = 402 - 2 * Number((StyleSheet.flatten(screen.getByTestId('oath-scroll').props.contentContainerStyle) as ViewStyle).padding);
+    const gap = Number(flat(screen.getByTestId(row)).gap);
+    const card = flat(screen.getByTestId(`pictogram-${id}`));
+    return (column - gap * (count - 1)) / count - 2 * (Number(card.padding) + Number(card.borderWidth));
+  }
+  test.each([['pl', 'bez zmian', '0 XP,', 'bez straty'], ['en', 'no changes', '0 XP, no loss', null]] as const)('%s word values keep whole lines', async (locale, fixed, first, second) => {
+    Dimensions.set({ window: { width: 402, height: 874, scale: 3, fontScale: 1 }, screen: { width: 402, height: 874, scale: 3, fontScale: 1 } });
+    const f = setup(); f.controller.start();
+    await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+    if (locale === 'en') await fillDeadline();
+    else {
+      await selectDate('Termin, data ukończenia', '25 października 2026');
+      await selectTime('Godzina ukończenia', '02', '30', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' });
+    }
+    await fireEvent.press(screen.getByRole('button', { name: locale === 'pl' ? 'Zobacz zasady' : 'View rules' }));
+    await screen.findByTestId('review-pictograms');
+    // The room's three columns.
+    expect(flat(screen.getByTestId('review-pictograms')).flexDirection).toBe('row');
+    const words = flat(value('fixed'));
+    expect(words.fontSize).toBeLessThan(20);
+    // "bez zmian" / "no changes" stays on one line in a third of the row.
+    expect(at15[fixed] * Number(words.fontSize) / 15).toBeLessThanOrEqual(inner('fixed', 3, 'review-pictograms'));
+    // The consequence value breaks only after its comma, so it takes at most two whole phrases beside the 48 pt pictogram.
+    const consequence = value('consequence');
+    const besideWidth = inner('consequence', 2, 'review-small') - 48 - Number(flat(screen.getByTestId('pictogram-consequence')).gap);
+    const size = Number(flat(consequence).fontSize);
+    expect(consequence.props.children).toBe(locale === 'pl' ? '0\u00a0XP, bez\u00a0straty' : '0\u00a0XP, no\u00a0loss');
+    for (const line of [first, second].filter(Boolean) as string[]) expect(at15[line] * size / 15).toBeLessThanOrEqual(besideWidth);
+    // Numbers keep the large value style: 18:00 in large cards, 40–50 XP in small ones.
+    expect(flat(value('deadline')).fontSize).toBe(20);
+    expect(flat(value('cutoff')).fontSize).toBe(20);
+    expect(flat(value('reward')).fontSize).toBe(16);
+    // The spoken labels stay plain.
+    expect(screen.getByTestId('pictogram-consequence').props.accessibilityLabel).not.toMatch(/[\u00a0\u2060]/);
+    expect(screen.getByTestId('pictogram-fixed').props.accessibilityLabel).toBe(locale === 'pl' ? 'Zasady stałe. Po złożeniu zasady się nie zmienią.' : 'Rules fixed. Once made, the rules do not change.');
+  });
+});
+
 // MVP-22-B2 (G21): the open guide covered the bottom cards ("M… z podjąć"). Native check, 2026-10-02 (MVP-22-E3r): Żaromir's
 // bust, which rises above the panel, still covered the hold hint and the "Pełne zasady" row. While the guide is open the scroll
 // view ends at the bust top, so neither the panel nor the bust ever stands over the review, and every card still scrolls clear.
@@ -465,9 +520,20 @@ test.each([[180], [300]])('while the guide is open the review ends %i points of 
   expect(flat('style').marginBottom).toBe(height + 24 + 48);
   expect(flat('contentContainerStyle').paddingBottom).toBe(closed);
   expect(screen.queryByTestId('guide-spacer')).toBeNull();
+  // Native check, 2026-10-02 (MVP-22-E3r2): the bare edge sliced a line in half. A soft fade into the scene floor sits on it,
+  // drawn as solid strips without blend modes, out of the way of touches and VoiceOver.
+  const fade = screen.getByTestId('guide-edge-fade', { includeHiddenElements: true });
+  const fadeStyle = StyleSheet.flatten(fade.props.style) as ViewStyle;
+  expect(fadeStyle).toEqual(expect.objectContaining({ position: 'absolute', left: 0, right: 0, bottom: height + 24 + 48 }));
+  expect(fadeStyle.height).toBeGreaterThanOrEqual(32); expect(fadeStyle.height).toBeLessThanOrEqual(48);
+  expect(fade).toHaveProp('pointerEvents', 'none'); expect(fade).toHaveProp('accessibilityElementsHidden', true);
+  const strips = screen.getAllByTestId('guide-edge-fade-strip', { includeHiddenElements: true }).map(strip => StyleSheet.flatten(strip.props.style) as ViewStyle);
+  expect(strips.map(strip => strip.opacity)).toEqual([...FADE_STEPS].reverse());
+  for (const strip of strips) expect(strip.backgroundColor).toBe(SCENE_FLOOR);
   await fireEvent.press(screen.getByRole('button', { name: 'Pomiń wprowadzenie' }));
   expect(flat('style').marginBottom).toBeUndefined();
   expect(flat('contentContainerStyle').paddingBottom).toBe(closed);
+  expect(screen.queryByTestId('guide-edge-fade', { includeHiddenElements: true })).toBeNull();
 });
 // Native check, 2026-10-02: the hold seal with its declaration and hint crossed the bottom edge while Żaromir named a card.
 // The page moves down by the overshoot, but never so far that the named card's top leaves the screen.
@@ -488,8 +554,14 @@ describe('while the guide names a card the hold seal is not cut by the bottom ed
   test('a seal block crossing the edge moves above it', async () => {
     expect(await guided(500, { y: 400, height: 245 })).toBe(138 + 7);
   });
-  test('the move stops with the named card at the top', async () => {
-    expect(await guided(480, { y: 400, height: 245 })).toBe(150);
+  test('the move stops with the named card at the top while the edge stays in the seal', async () => {
+    // 150 + 300 puts the edge 50 pt into the block, inside the seal with its ring, above the label.
+    expect(await guided(300, { y: 400, height: 245 })).toBe(150);
+  });
+  // Native check, 2026-10-02 (MVP-22-E3r2), iPhone 18 Pro: at the cap the edge cut the promise line under the seal in half.
+  // A capped step that would slice the label or the hint ends the view in the gap under the ring, above the label.
+  test.each([[480], [490]])('a capped step that would cut the label ends the view above it (viewport %i)', async viewport => {
+    expect(await guided(viewport, { y: 400, height: 245 })).toBe(400 + HOLD_LABEL_TOP - viewport);
   });
   test('a seal block wholly below the edge leaves the step where it was', async () => {
     expect(await guided(250, { y: 400, height: 245 })).toBe(138);

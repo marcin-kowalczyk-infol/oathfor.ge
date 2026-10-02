@@ -16,6 +16,8 @@ export const LIST_DROP = 0.3;
  * On a 402 x 874 pt phone the surface is about 768 pt tall and the plinth sits about 272 pt below the close-up's top, so -0.026 puts it 252 pt down.
  */
 export const DETAIL_DROP = -0.026;
+/** The page colour under a scrolled close-up. A fade at a clipped view edge ends in it (MVP-22-E3r2). */
+export const SCENE_FLOOR = '#111315';
 
 export function SceneSurface({ children, place = 'room', approach = null, drop = 0, scroll }: { children: ReactNode; place?: ForgePlace; approach?: number | null; drop?: number; scroll?: Animated.Value }) {
   const window = useWindowDimensions();
@@ -86,12 +88,12 @@ export function SceneSurface({ children, place = 'room', approach = null, drop =
   </View>;
 }
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#111315' },
+  root: { flex: 1, backgroundColor: SCENE_FLOOR },
   backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' },
   layer: { position: 'absolute' },
   quiet: { backgroundColor: '#101719df' },
   fade: { experimental_backgroundImage: 'linear-gradient(180deg, rgba(17,19,21,0.42) 0%, rgba(17,19,21,0.40) 30%, rgba(17,19,21,0.80) 52%, rgba(17,19,21,0.93) 72%, #111315 100%)' },
-  floor: { backgroundColor: '#111315' },
+  floor: { backgroundColor: SCENE_FLOOR },
   content: { flex: 1 },
   preload: { left: 0, top: 0, opacity: 0 },
   scroller: { position: 'absolute', top: 0, left: 0, right: 0, height: 20000 },

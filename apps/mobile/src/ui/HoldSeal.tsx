@@ -17,6 +17,11 @@ const WAX = Math.round(SEAL * 260 / 360);
 const TICK = { width: 4, height: 9 };
 const RING_RADIUS = SEAL / 2 - TICK.height / 2 - 2;
 const DIM = 0.22;
+/**
+ * The drawn label's top inside the control: the padding, the seal with its ring and one gap. The rules review ends its view
+ * in the gap above it, so the edge never slices the label (MVP-22-E3r2).
+ */
+export const HOLD_LABEL_TOP = tokens.space.small + SEAL + tokens.space.item;
 // A finger may wander this far past the control before the hold cancels, close to Pressable's retention (local decision).
 const SLOP = 16;
 const hidden = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' } as const;
@@ -173,6 +178,7 @@ export function HoldSeal({ label: drawnLabel, onSeal, actionLabel, hint, tapHint
 }
 
 const styles = StyleSheet.create({
+  // HOLD_LABEL_TOP adds up this padding, the seal and the gap.
   control: { alignSelf: 'stretch', alignItems: 'center', gap: tokens.space.item, paddingVertical: tokens.space.small, minHeight: 44, minWidth: 44 },
   unavailable: { opacity: 0.72 },
   seal: { width: SEAL, height: SEAL, alignItems: 'center', justifyContent: 'center' },
