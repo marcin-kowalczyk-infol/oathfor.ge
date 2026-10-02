@@ -307,19 +307,18 @@ describe('the braid strips meet the corners', () => {
     for (const id of ['panel-edge-top-tile', 'panel-edge-bottom-tile']) expect(strip(id)).toMatchObject({ left: corner, right: corner });
   });
 
-  test('the corner and the braid are whole pixels on a 3x screen', async () => {
-    await render(panel({ allowed: false }));
-    whole(Number(style('panel-corner-tl').width));
-    whole(tile('panel-edge-top-tile').height);
-    whole(tile('panel-edge-left-tile').width);
-  });
-
-  test.each([1, 2])('a fractional frame snaps to whole device pixels at font scale %s', async fontScale => {
+  // On a 3x screen a fractional frame snaps its edges, and the corner and braid sizes are whole pixels too, so every junction where
+  // a strip meets a corner lands on a whole device pixel.
+  test.each([1, 2])('a fractional frame on a 3x screen puts every corner junction on a whole device pixel at font scale %s', async fontScale => {
     jest.spyOn(PixelRatio, 'get').mockReturnValue(3);
     Dimensions.set({ window: { width: 402, height: 874, scale: 3, fontScale }, screen: { width: 402, height: 874, scale: 3, fontScale } });
     await render(panel({ allowed: false, frame: { left: 16.4, width: 370.3, bottom: 20.1, maxHeight: 300.05 } }));
     const box = style('dialogue-panel') as Record<string, number>;
     for (const edge of [box.left, box.left + box.width, box.bottom, box.maxHeight]) whole(edge);
+    const corner = Number(style('panel-corner-tl').width);
+    for (const size of [corner, tile('panel-edge-top-tile').height, tile('panel-edge-top-tile').width, tile('panel-edge-left-tile').width, tile('panel-edge-left-tile').height]) whole(size);
+    // The horizontal strips start and end at the corners, the vertical ones too, measured from the panel's snapped edges.
+    for (const junction of [box.left + corner, box.left + box.width - corner, box.bottom + corner, box.bottom + box.maxHeight - corner]) whole(junction);
     // Large text fixes the panel's height at its limit, so that height is whole too.
     if (fontScale > 1.3) whole(box.height);
     expect(box.left).toBeCloseTo(16.4, 0);

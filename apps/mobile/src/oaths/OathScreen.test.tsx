@@ -801,3 +801,41 @@ describe('drawn prose binding', () => {
     expect(await screen.findByText(/^Aktywna · termin [^ ]+ · Warszawa$/, raw)).toBeOnTheScreen();
   });
 });
+
+// MVP-22 G30, quality review: the server confirmed the Oath, but clearing the device record failed. The controller keeps both the
+// confirmed Oath and the pending record, so the detail and the pending band render together. One filled action stays (clarity.md rule 3).
+test.each(['pl', 'en'] as const)('%s a confirmed Oath whose record could not be cleared keeps one filled action and the retry', async locale => {
+  const words = locale === 'pl'
+    ? { view: 'Zobacz zasady', confirm: 'Złóż Przysięgę', recover: 'Sprawdź potwierdzenie', made: 'Przysięga złożona', viewOath: 'Zobacz Przysięgę', another: 'Złóż kolejną Przysięgę',
+      date: ['Data ukończenia', '25 października 2026'], completion: 'Godzina ukończenia', time: { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' } }
+    : { view: 'View rules', confirm: 'Commit to the Oath', recover: 'Check confirmation', made: 'Oath made', viewOath: 'View the Oath', another: 'Create another Oath',
+      date: ['Completion date', 'October 25, 2026'], completion: 'Completion time', time: { hour: 'Hour', minute: 'Minute', done: 'Use this time' } };
+  const oathId = '20000000-0000-4000-8000-0000000000c1';
+  const diamond = (button: ReturnType<typeof screen.getByRole>) => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0;
+  const filled = () => screen.queryAllByRole('button').filter(diamond);
+  const f = setup(); f.controller.start();
+  await render(<LocalizationProvider initialLocale={locale}><OathScreen {...f} timezone="Europe/Warsaw" onViewOath={jest.fn()} /></LocalizationProvider>);
+  await selectDate(words.date[0], words.date[1]);
+  await selectTime(words.completion, '02', '30', words.time);
+  await fireEvent.press(screen.getByRole('button', { name: words.view }));
+  // The first reply is lost, so the band offers the check.
+  await fireEvent.press(await screen.findByRole('button', { name: words.confirm }));
+  await screen.findByRole('button', { name: words.recover });
+  jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(oathId, f.envelope.preview.snapshot));
+  jest.mocked(f.storage.write).mockResolvedValueOnce({ kind: 'unavailable' });
+  await fireEvent.press(screen.getByRole('button', { name: words.recover }));
+  expect(await screen.findByRole('header', { name: words.made })).toBeOnTheScreen();
+  expect(f.controller.getState()).toMatchObject({ kind: 'ready', pending: { requestId: id }, oath: { id: oathId }, error: { kind: 'storage' } });
+  expect(filled()).toHaveLength(1);
+  expect(diamond(screen.getByRole('button', { name: words.viewOath }))).toBe(true);
+  // The retry stays as an outline action, so "try again" in the storage line has a control. No second Oath starts meanwhile.
+  expect(diamond(screen.getByRole('button', { name: words.recover }))).toBe(false);
+  expect(screen.queryByRole('button', { name: words.another })).toBeNull();
+  // The retry replays the same identity and, with storage back, clears the record. The detail stays with its one filled action.
+  jest.mocked(f.api.confirm).mockResolvedValueOnce(confirmed(oathId, f.envelope.preview.snapshot));
+  await fireEvent.press(screen.getByRole('button', { name: words.recover }));
+  expect(jest.mocked(f.api.confirm).mock.calls.at(-1)![1]).toEqual({ previewId: id, requestId: id, accepted: true });
+  expect(screen.queryByRole('button', { name: words.recover })).toBeNull();
+  expect(screen.getByRole('header', { name: words.made })).toBeOnTheScreen();
+  expect(filled()).toHaveLength(1);
+});

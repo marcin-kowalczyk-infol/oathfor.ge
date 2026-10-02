@@ -222,6 +222,20 @@ test.each([
   expect(screen.getByLabelText(label)).toHaveProp('accessibilityHint', hint);
 });
 
+// MVP-22 G30, quality review: the unavailable reason reached the button's spoken hint with the word joiner of the drawn form.
+// VoiceOver hears the plain reason. Only the drawn reason under the button keeps the slash joined.
+test.each([
+  ['pl', 'Potwierdź wybory', 'Wpisz obsługiwaną strefę czasową, na przykład Europe/Warsaw, aby kontynuować.'],
+  ['en', 'Confirm choices', 'Enter a supported timezone, for example Europe/Warsaw, to continue.'],
+] as const)('%s the unavailable reason is plain in the hint and joined in the drawn text', async (locale, save, reason) => {
+  const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
+  await render(<LocalizationProvider initialLocale={locale}><OnboardingView state={{ ...ready, draft: { locale, timezone: 'Not/AZone', intention: true } }} {...callbacks} /></LocalizationProvider>);
+  const hint = String(screen.getByRole('button', { name: save, disabled: true }).props.accessibilityHint);
+  expect(hint).toBe(reason);
+  expect(hint).not.toMatch(/[⁠ ]/);
+  expect(screen.getByText(reason.replace('Europe/', 'Europe/⁠'), { normalizer: text => text })).toBeOnTheScreen();
+});
+
 // MVP-22-B1 (G4): Polish single-letter words stay with the next word in Żaromir's introduction.
 test('the Polish introduction keeps "z" with "Welesem"', async () => {
   const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };

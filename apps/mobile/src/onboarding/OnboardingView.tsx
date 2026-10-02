@@ -50,8 +50,9 @@ export function OnboardingView({ state, onDraft, onSave, onIntroduce, onComplete
   else if (ready?.error && introduction) error = t('onboarding.introductionError');
   else if (ready?.error && review) error = t(ready.error === 'load' ? 'onboarding.completionLoadError' : 'onboarding.error_complete');
   else if (ready && !complete && !basics && !introduction && notificationError) error = t(`notifications.error_${notificationError}`);
-  const reason = ready && !isSupportedTimezone(ready.draft.timezone) ? prose(t('onboarding.timezoneRequired'))
-    : ready && !ready.draft.intention ? prose(t('onboarding.intentionRequired')) : undefined;
+  // Plain text, because Action also speaks the reason as its hint. Action binds the drawn copy itself (MVP-22 G30).
+  const reason = ready && !isSupportedTimezone(ready.draft.timezone) ? t('onboarding.timezoneRequired')
+    : ready && !ready.draft.intention ? t('onboarding.intentionRequired') : undefined;
   return <SafeAreaView style={styles.safeArea}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{heading}</Text>

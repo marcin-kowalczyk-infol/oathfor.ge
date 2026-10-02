@@ -74,6 +74,9 @@ test('a backward secondary action draws its chevron before the label, like the o
 test.each([
   ['pl', 'Wpisz imię i wybierz tytuł.', 'Wpisz imię i wybierz tytuł.'],
   ['en', 'Enter a name and choose a title.', 'Enter a name and choose a title.'],
+  // MVP-22 G30: a zone example in the drawn reason never breaks after its slash.
+  ['pl', 'Wpisz strefę, na przykład Europe/Warsaw, i potwierdź.', 'Wpisz strefę, na przykład Europe/⁠Warsaw, i potwierdź.'],
+  ['en', 'Enter a zone such as Europe/Warsaw to continue.', 'Enter a zone such as Europe/⁠Warsaw to continue.'],
 ] as const)('%s binds only the drawn reason', async (locale, reason, drawn) => {
   await render(<LocalizationProvider initialLocale={locale}><Action label="Go" onPress={jest.fn()} disabled unavailableReason={reason} /></LocalizationProvider>);
   expect(screen.getByText(drawn, { normalizer: text => text })).toBeOnTheScreen();

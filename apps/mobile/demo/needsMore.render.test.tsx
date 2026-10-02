@@ -19,19 +19,36 @@ function controllerFor(dummy: ReturnType<typeof createDummy>) {
   const state: OathControllerState = { kind: 'ready', busy: false, preview: null, pending: null, oath: null, needsReview: false };
   return { clock: createServerClock(), getState: () => state, subscribe: () => () => {}, list: (query: Parameters<OathController['list']>[0]) => api.list(token, query), detail: (id: string) => api.detail(token, id), getPause: jest.fn(), pause: jest.fn(), resetCreation: jest.fn(), recover: jest.fn() } as unknown as OathController;
 }
-test.each([[1, 'room layout with the seal wall'], [2, 'simple layout at 200% text']] as const)('the needs-more-proof Oath renders on Today and its detail at font scale %s (%s)', async (fontScale, _layout) => {
+// The seal shows the short state, its spoken label the full one.
+const seal = /^Pieczęć Przysięgi: .* · Potrzebne uzupełnienie · /;
+const allOaths = 'Wszystkie Twoje Przysięgi';
+// An empty Forge with one character, so the seeded record is the only Oath on Today.
+async function seedAndRender(fontScale: number) {
   Dimensions.set({ window: phone(fontScale), screen: phone(fontScale) });
-  // An empty Forge with one character, so the seeded record is the only Oath on Today.
   const dummy = createDummy('pl', true, false);
   await dummy.runtime().characterApi.create(token, { requestId: '40000000-0000-4000-8000-000000000001', name: 'Mira', presetId: 'starter_02', build: 'thin', form: 'feminine' });
   const seeded = dummy.addNeedsMore();
   await render(<LocalizationProvider initialLocale="pl"><OathHomeScreen controller={controllerFor(dummy)} timezone="Europe/Warsaw" forgeNavigation={{ request: null, onReturn: jest.fn() }} /></LocalizationProvider>);
   expect((await screen.findAllByText('Do uzupełnienia')).length).toBeGreaterThan(0);
-  // The seal shows the short state, its spoken label the full one.
-  if (fontScale === 1) expect(screen.getByRole('button', { name: /^Pieczęć Przysięgi: .* · Potrzebne uzupełnienie · / })).toBeOnTheScreen();
-  const fold = screen.queryByRole('button', { name: 'Wszystkie Twoje Przysięgi' });
-  if (fold && !fold.props.accessibilityState?.expanded) await fireEvent.press(fold);
+  return seeded;
+}
+async function openDetail(seeded: { state: string }) {
   await fireEvent.press(screen.getByRole('button', { name: /^Otwórz Przysięgę: / }));
   expect(await screen.findByLabelText('Status: Potrzebne uzupełnienie')).toBeOnTheScreen();
   expect(seeded.state).toBe('needs_more_evidence');
+}
+// Each layout states what it draws, so no assertion is skipped silently.
+test('the needs-more-proof Oath renders on the seal wall, the folded list and its detail in the room layout at font scale 1', async () => {
+  const seeded = await seedAndRender(1);
+  expect(screen.getByRole('button', { name: seal })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: allOaths })).toHaveProp('accessibilityState', expect.objectContaining({ expanded: false }));
+  await fireEvent.press(screen.getByRole('button', { name: allOaths }));
+  expect(screen.getByRole('button', { name: allOaths })).toHaveProp('accessibilityState', expect.objectContaining({ expanded: true }));
+  await openDetail(seeded);
+});
+test('the needs-more-proof Oath renders in the open list and its detail in the simple layout at 200% text', async () => {
+  const seeded = await seedAndRender(2);
+  expect(screen.queryByRole('button', { name: seal })).toBeNull();
+  expect(screen.queryByRole('button', { name: allOaths })).toBeNull();
+  await openDetail(seeded);
 });

@@ -416,7 +416,7 @@ test('the Polish wait line keeps single-letter words with the next word', async 
   jest.useFakeTimers();
   try {
     await setup(ready({ pendingCreation: pending, error: { kind: 'rate_limited', retry: 'request', retryAfterSeconds: 5 } }), 'pl'); await act(async () => {});
-    expect(screen.getByText('Kuźnia prosi o krótką przerwę. Postać Zoya czeka zapisana na tym urządzeniu, spróbuj ponownie za 5 sekund.', raw)).toBeOnTheScreen();
+    expect(screen.getByText('Kuźnia prosi o krótką przerwę. Postać Zoya czeka zapisana na tym urządzeniu, spróbuj ponownie za 5 sekund.', raw)).toBeOnTheScreen();
   } finally { jest.useRealTimers(); }
 });
 

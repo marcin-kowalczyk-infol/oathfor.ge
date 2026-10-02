@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { useTranslation } from '../localization/LocalizationProvider';
-import { bindShortWords } from '../localization/typography';
+import { bindShortWords, keepSlashJoined } from '../localization/typography';
 import { tokens } from './tokens';
 import { useMotionAllowed } from './useMotion';
 
@@ -45,8 +45,9 @@ export function Action({ label, onPress, disabled = false, busy = false, unavail
       <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, variant === 'primary' ? styles.primaryLabel : styles.secondaryLabel, unavailable && styles.mutedText]}>{label}</Text>
       {variant === 'secondary' && !back && arrow}
     </Pressable></Animated.View>
-    {/* The drawn reason keeps Polish single-letter words with the next word. The hint above keeps the plain form. */}
-    {unavailable && reason && <Text style={styles.reason}>{bindShortWords(reason, i18n.language)}</Text>}
+    {/* The drawn reason keeps Polish single-letter words with the next word and a zone such as Europe/Warsaw whole.
+        The hint above keeps the plain form, so callers pass plain text (MVP-22 G30). */}
+    {unavailable && reason && <Text style={styles.reason}>{keepSlashJoined(bindShortWords(reason, i18n.language))}</Text>}
   </View>;
 }
 

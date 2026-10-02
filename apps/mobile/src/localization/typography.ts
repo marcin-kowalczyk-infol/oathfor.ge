@@ -1,8 +1,9 @@
 const shortWord = /(^|[\s („"«])([aiouwz]) +/gi;
 
 // Units that follow a count in rendered copy. Whole words only, so "dniach" or "history" keep their space.
+// The rate-limit waits count seconds ("za 5 sekund", "in 5 seconds"). No catalog uses a bare "s" as a unit, so it is not listed.
 const units = ['XP', 'min', 'h', 'd', 'dzień', 'dnia', 'dni', 'minuta', 'minutę', 'minuty', 'minut', 'godzina', 'godzinę', 'godziny', 'godzin',
-  'day', 'days', 'hour', 'hours', 'minute', 'minutes'];
+  'sekunda', 'sekundę', 'sekundy', 'sekund', 'day', 'days', 'hour', 'hours', 'minute', 'minutes', 'second', 'seconds'];
 const numberUnit = new RegExp(`(^|[^\\p{L}\\p{N}_])(\\d+(?:[.,]\\d+)?) +(${units.join('|')})(?![\\p{L}\\p{N}_])`, 'gu');
 
 /**

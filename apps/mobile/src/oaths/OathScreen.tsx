@@ -180,7 +180,10 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         {/* MVP-22-G27: the pending line and its action stand on the band after the error line, never on the hearth fire. */}
         {pending && <>
           <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{prose(t('oath.pending'))}</Text>
-          <Action label={t('oath.recover')} busy={busy} onPress={() => { void controller.recover(); }} />
+          {/* MVP-22 G30: the server confirmed the Oath but clearing the device record failed, so the detail and this band show together.
+              The detail's action stays the one filled action (clarity.md rule 3). The check steps to outline and stays, because the
+              storage line asks to try again and the record still blocks a new Oath. It replays the same identity, so it is harmless. */}
+          <Action label={t('oath.recover')} busy={busy} variant={detail ? 'secondary' : 'primary'} onPress={() => { void controller.recover(); }} />
         </>}
         {forming && <Text accessibilityRole="header" style={styles.label}>{t('oath.activity')}</Text>}
       </View>}

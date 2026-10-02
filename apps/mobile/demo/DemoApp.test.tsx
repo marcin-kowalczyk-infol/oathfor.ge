@@ -3,6 +3,12 @@ import DemoApp from './DemoApp';
 import pl from './locales/pl.json';
 import en from './locales/en.json';
 import messages from '../src/localization/locales/pl/messages.json';
+// A passthrough that keeps each DUMMY scenario, so a control test can check the data it changed.
+const mockDummies: Array<ReturnType<typeof import('./runtime').createDummy>> = [];
+jest.mock('./runtime', () => {
+  const actual = jest.requireActual('./runtime');
+  return { ...actual, createDummy: (...args: Parameters<typeof actual.createDummy>) => { const dummy = actual.createDummy(...args); mockDummies.push(dummy); return dummy; } };
+});
 jest.mock('../src/auth/AuthScreen', () => ({ AuthScreen: ({ guideStorage, profileApi }: any) => {
   const React = require('react'); const { TextInput, Text } = require('react-native');
   const [draft, setDraft] = React.useState('');
@@ -50,9 +56,14 @@ test('a control adds a needs-more-proof Oath and closes the controls', async () 
   await render(<DemoApp />);
   await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
   await fireEvent.press(screen.getByText(pl.returning));
+  // The returning scenario is a new DUMMY, so its Oaths are counted after the reset.
+  const dummy = mockDummies.at(-1)!;
+  const before = dummy.state.oaths.length;
   await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
   await fireEvent.press(screen.getByText(pl.addNeedsMore));
   expect(screen.queryByText(pl.addNeedsMore)).toBeNull();
+  expect(dummy.state.oaths).toHaveLength(before + 1);
+  expect(dummy.state.oaths.at(-1)!.state).toBe('needs_more_evidence');
   await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
   await fireEvent.press(screen.getByRole('button', { name: 'English' }));
   expect(screen.getByText(en.addNeedsMore)).toBeOnTheScreen();

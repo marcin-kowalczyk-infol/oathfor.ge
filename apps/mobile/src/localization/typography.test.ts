@@ -32,6 +32,15 @@ test('a number keeps its unit on the same line in every language', () => {
   expect(bindShortWords('40 XP for a photo, up to 3 days, 15 minutes', 'en')).toBe('40 XP for a photo, up to 3 days, 15 minutes');
 });
 
+// MVP-22 G30, quality review: the rate-limit waits ("za 5 sekund", "in 5 seconds") could break between the count and its unit.
+test('a number keeps a seconds unit on the same line in Polish and English', () => {
+  expect(bindShortWords('za 1 sekundę, 2 sekundy, 5 sekund, 1 sekunda', 'pl'))
+    .toBe('za 1 sekundę, 2 sekundy, 5 sekund, 1 sekunda');
+  expect(bindShortWords('try again in 1 second or 5 seconds', 'en')).toBe('try again in 1 second or 5 seconds');
+  // A longer word that starts like the unit keeps its space.
+  expect(bindShortWords('5 sekundnik, 2 secondary', 'en')).toBe('5 sekundnik, 2 secondary');
+});
+
 test('a number before another word, or a unit inside a longer word, keeps its space', () => {
   expect(bindShortWords('pt 2 paź 18:00', 'pl')).toBe('pt 2 paź 18:00');
   expect(bindShortWords('3 dniach i 5 hours', 'en')).toBe('3 dniach i 5 hours');
