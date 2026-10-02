@@ -104,15 +104,26 @@ export function WallTimePicker({ field, value, disabled, now, onChange, parts = 
   return <View style={styles.group}>
     {parts.map(part => {
       const shown = part === 'date' ? value.date ? dateName(value.date) : null : part === 'time' ? value.time.slice(0, 5) || null : zoneName(value.zone);
-      // MVP-22-E1.R (WCAG 2.5.3): the date's spoken name opens with its drawn caption, "Termin" or "Start". The zone draws its whole name.
-      // The time draws no caption: a clock and "18:30" name it, and the spoken name stays whole (word budget).
-      const caption = part === 'date' ? t(`oath.${field}Caption`) : part === 'zone' ? label('zone') : null;
-      return <Pressable key={part} accessibilityRole="button" accessibilityLabel={part === 'date' ? t(`oath.${field}DateField`) : label(part)} accessibilityValue={{ text: part === 'date' ? value.date ? dateName(value.date) : t('timePicker.chooseDate') : part === 'time' ? value.time.slice(0, 5) || t('timePicker.chooseTime') : `${zoneName(value.zone)} · ${value.zone}` }} accessibilityState={{ disabled }} disabled={disabled} onPress={() => show(part)} style={({ pressed }) => [styles.field, styles.fieldRow, largeText && styles.wideField, pressed && styles.pressed]}>
-        <View style={[styles.fieldText, part === 'time' && styles.inline]}>
-          {caption !== null && <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{caption}</Text>}
-          {/* MVP-22-E1.R, native check: an ellipsis read as loading. An empty date shows a calendar, the time always leads with a clock. */}
-          {part === 'time' && <ClockGlyph />}
-          {shown !== null ? <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.value}>{shown}</Text> : part === 'date' && <CalendarGlyph />}
+      // MVP-22-E1.R (WCAG 2.5.3): each spoken name opens with its drawn caption, "Termin", "Start" or "Godzina". The zone draws its whole name.
+      // MVP-22-E1.5, native check 2026-10-02: the date drew its caption above a calendar and the time only a clock, so the rows differed.
+      // Date and time now share one row: pictogram, caption, chevron. Empty, the caption stands where the value goes. Chosen, the value
+      // stands under the small caption, which keeps a start apart from a deadline. Both rows keep FIELD_HEIGHT in either state.
+      // The caption is the pictogram's one-word label, the `icon` exemption of the word budget (engagement.md D-E4).
+      if (part !== 'zone') {
+        const caption = part === 'date' ? t(`oath.${field}Caption`) : t('oath.timeCaption');
+        return <Pressable key={part} accessibilityRole="button" accessibilityLabel={t(`oath.${field}${part === 'date' ? 'Date' : 'Time'}Field`)} accessibilityValue={{ text: shown ?? t(part === 'date' ? 'timePicker.chooseDate' : 'timePicker.chooseTime') }} accessibilityState={{ disabled }} disabled={disabled} onPress={() => show(part)} style={({ pressed }) => [styles.field, styles.fieldRow, styles.pictured, largeText && styles.wideField, pressed && styles.pressed]}>
+          {part === 'date' ? <CalendarGlyph /> : <ClockGlyph />}
+          <View style={[styles.fieldText, styles.stacked]}>
+            <Text budget="icon" maxFontSizeMultiplier={tokens.maxScale.choice} style={shown === null ? styles.placeholder : styles.caption}>{caption}</Text>
+            {shown !== null && <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={[styles.value, styles.fieldValue]}>{shown}</Text>}
+          </View>
+          <Text accessible={false} allowFontScaling={false} style={styles.chevron}>›</Text>
+        </Pressable>;
+      }
+      return <Pressable key={part} accessibilityRole="button" accessibilityLabel={label(part)} accessibilityValue={{ text: `${zoneName(value.zone)} · ${value.zone}` }} accessibilityState={{ disabled }} disabled={disabled} onPress={() => show(part)} style={({ pressed }) => [styles.field, styles.fieldRow, largeText && styles.wideField, pressed && styles.pressed]}>
+        <View style={styles.fieldText}>
+          <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.caption}>{label('zone')}</Text>
+          <Text maxFontSizeMultiplier={tokens.maxScale.choice} style={styles.value}>{shown}</Text>
         </View>
         <Text accessible={false} allowFontScaling={false} style={styles.chevron}>›</Text>
       </Pressable>;
@@ -169,7 +180,7 @@ function ClockGlyph() {
     <View style={glyph.minute} /><View style={glyph.hour} />
   </View>;
 }
-// 20 pt, about the value's cap height plus its descender, so an empty field keeps the height of a filled one.
+// 20 pt, about the value's cap height plus its descender.
 const glyph = StyleSheet.create({
   box: { width: 20, height: 20, marginVertical: 1, borderWidth: 2, borderRadius: 4, borderColor: tokens.color.primary },
   band: { height: 4, backgroundColor: tokens.color.primary },
@@ -179,9 +190,13 @@ const glyph = StyleSheet.create({
   hour: { position: 'absolute', left: 7, top: 7, width: 6, height: 2, borderRadius: 1, backgroundColor: tokens.color.primary },
 });
 
+/** A date or time row: 16 pt padding, the 21 pt caption line, the 22 pt value line and 16 pt padding (MVP-22-E1.5). An empty row keeps it too. */
+export const FIELD_HEIGHT = 16 + 21 + 22 + 16;
+
 const styles = StyleSheet.create({
   group: { gap: 12 }, field: { padding: 16, gap: 4, minHeight: 64, backgroundColor: tokens.color.surface, borderRadius: 20, borderBottomWidth: 3, borderBottomColor: tokens.warm.edge }, wideField: { paddingHorizontal: tokens.space.small },
-  fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, fieldText: { flex: 1, gap: 4 }, inline: { flexDirection: 'row', alignItems: 'center', gap: 10 }, chevron: { color: tokens.color.secondary, fontSize: 28, lineHeight: 32 },
+  fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, fieldText: { flex: 1, gap: 4 }, stacked: { gap: 0 }, pictured: { minHeight: FIELD_HEIGHT },
+  placeholder: { color: tokens.color.secondary, fontSize: 17, lineHeight: 22 }, fieldValue: { lineHeight: 22 }, chevron: { color: tokens.color.secondary, fontSize: 28, lineHeight: 32 },
   caption: { color: tokens.color.secondary, fontSize: 14, lineHeight: 21 }, value: { color: tokens.color.text, fontSize: 17, fontWeight: '600' },
   modal: { flex: 1, backgroundColor: tokens.color.canvas }, header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingLeft: 16, paddingRight: 8 }, title: { color: tokens.color.text, fontSize: 24, fontWeight: '700' },
   month: { flex: 1, flexShrink: 1, textAlign: 'center' },

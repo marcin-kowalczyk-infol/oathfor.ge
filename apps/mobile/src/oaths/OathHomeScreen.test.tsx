@@ -194,7 +194,7 @@ test('returning through Today preserves uncommitted workout and deadline choices
   await fireEvent.press(await screen.findByRole('button', { name: 'Create an Oath' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Mobility' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Later' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Time, deadline' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Hour 21' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Minute 45' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Use this time' }));
@@ -212,7 +212,7 @@ test('confirmation arriving after returning to Today clears the committed draft'
   await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
   await fireEvent.press(await screen.findByRole('button', { name: 'Create an Oath' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Mobility' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Time, deadline' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Hour 21' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Use this time' }));
   await act(async () => f.change({ kind: 'ready', busy: true, preview: null, oath: null, needsReview: false, pending: { version: 2, accountId: id, characterId, previewId: id, requestId: id } }));
@@ -221,7 +221,7 @@ test('confirmation arriving after returning to Today clears the committed draft'
   await act(async () => f.change({ kind: 'ready', busy: false, preview: null, oath: oath({ state: 'active', reason: null, review: null }), needsReview: false, pending: null }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Create an Oath' }));
   expect(screen.getByRole('radio', { name: 'Running', selected: true })).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Completion time' }).props.accessibilityValue).toEqual({ text: 'Choose a time' });
+  expect(screen.getByRole('button', { name: 'Time, deadline' }).props.accessibilityValue).toEqual({ text: 'Choose a time' });
   expect(screen.queryByText('21:00')).toBeNull();
 });
 

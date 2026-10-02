@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react-native
 import en from '../localization/locales/en/messages.json';
 import pl from '../localization/locales/pl/messages.json';
 import { LocalizationProvider } from '../localization/LocalizationProvider';
-import { WallTimePicker, type TimeDraft } from './WallTimePicker';
+import { FIELD_HEIGHT, WallTimePicker, type TimeDraft } from './WallTimePicker';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 
 // 2026-09-28 11:20 UTC is 13:20 in Warsaw and already 00:20 on 29 September in Auckland.
@@ -41,7 +41,7 @@ test('today follows the chosen zone', async () => {
 
 test('hours and minutes that passed today are disabled, other days are open', async () => {
   const onChange = await picker({ date: '2026-09-28' });
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Time, deadline' }));
   expect(screen.getByRole('radio', { name: 'Hour 12' })).toBeDisabled();
   expect(screen.getByRole('radio', { name: 'Hour 13' })).toBeEnabled();
   await fireEvent.press(screen.getByRole('radio', { name: 'Hour 13' }));
@@ -56,7 +56,7 @@ test('hours and minutes that passed today are disabled, other days are open', as
 
 test('a past time reached in the sheet for today cannot be confirmed', async () => {
   await picker({ date: '2026-09-28' });
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Time, deadline' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Hour 14' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Minute 05' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'Hour 13' }));
@@ -69,7 +69,7 @@ test.each([
   ['nothing chosen yet', ''], ['a stored time that already passed', '09:00:00'],
 ])('for today with %s the time sheet opens on the first minute after now', async (_case, time) => {
   const onChange = await picker({ date: '2026-09-28', time }, jest.fn(), 'en', () => Date.parse('2026-09-28T20:54:30Z'));
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Time, deadline' }));
   expect(screen.getByText('22:55')).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Hour 22' })).toBeSelected();
   expect(screen.getByRole('radio', { name: 'Minute 55' })).toBeSelected();
@@ -79,13 +79,13 @@ test.each([
 
 test('the first minute after now rolls into the next hour', async () => {
   await picker({ date: '2026-09-28' }, jest.fn(), 'en', () => Date.parse('2026-09-28T19:59:10Z'));
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Time, deadline' }));
   expect(screen.getByText('22:00')).toBeOnTheScreen();
 });
 
 test('an allowed stored time for today stays as it was', async () => {
   await picker({ date: '2026-09-28', time: '23:30:00' }, jest.fn(), 'en', () => Date.parse('2026-09-28T20:54:30Z'));
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Time, deadline' }));
   expect(screen.getByRole('radio', { name: 'Hour 23' })).toBeSelected();
   expect(screen.getByRole('radio', { name: 'Minute 30' })).toBeSelected();
   expect(screen.getByRole('button', { name: 'Use this time' })).toBeEnabled();
@@ -96,7 +96,7 @@ test('the time sheet reads now when it opens, not when the form rendered', async
   let instant = Date.parse('2026-09-28T20:50:00Z');
   await picker({ date: '2026-09-28' }, jest.fn(), 'en', () => instant);
   instant = Date.parse('2026-09-28T20:56:00Z');
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Time, deadline' }));
   expect(screen.getByText('22:57')).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Minute 56' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Use this time' })).toBeEnabled();
@@ -113,7 +113,7 @@ test('the date sheet reads today when it opens, after midnight started a new mon
 
 test('with no minute left today the sheet keeps 18:00 and cannot confirm it', async () => {
   await picker({ date: '2026-09-28' }, jest.fn(), 'en', () => Date.parse('2026-09-28T21:59:30Z'));
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Time, deadline' }));
   expect(screen.getByText('18:00')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Use this time' })).toBeDisabled();
 });
@@ -209,7 +209,7 @@ test('at the largest text size the full-width day rows carry no weekday header',
 
 test('another day keeps every hour and minute', async () => {
   await picker({ date: '2026-09-29' });
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Time, deadline' }));
   expect(screen.getByRole('radio', { name: 'Hour 00' })).toBeEnabled();
   expect(screen.getByRole('radio', { name: 'Minute 00' })).toBeEnabled();
 });
@@ -219,7 +219,7 @@ test.each([[402], [375]])('at width %i and the largest text size a long Polish m
   size(width, 3.571);
   await picker({ date: '2026-10-08' }, jest.fn(), 'pl');
   const field = screen.getByRole('button', { name: 'Termin, data ukończenia' });
-  expect(field).toHaveStyle({ paddingHorizontal: 8, minHeight: 64 });
+  expect(field).toHaveStyle({ paddingHorizontal: 8, minHeight: FIELD_HEIGHT });
   expect(screen.getByText('8 października 2026').props.maxFontSizeMultiplier).toBe(2.5);
   // Native check, 2026-09-30: uncapped 14 pt captions grew past the capped 17 pt value, so the captions share the cap.
   // MVP-22-E1.4: the drawn captions are short and the zone id is only spoken.
@@ -234,7 +234,7 @@ test('at the default text size the field keeps its padding and height', async ()
   size(402, 1);
   await picker({ date: '2026-10-08' }, jest.fn(), 'pl');
   const field = screen.getByRole('button', { name: 'Termin, data ukończenia' });
-  expect(field).toHaveStyle({ padding: 16, minHeight: 64 });
+  expect(field).toHaveStyle({ padding: 16, minHeight: FIELD_HEIGHT });
   expect(field).not.toHaveStyle({ paddingHorizontal: 8 });
 });
 
@@ -315,21 +315,22 @@ test('past days, past hours and the past month glyph stay readable at 3:1', asyn
   expect(day('September 27, 2026')).toHaveStyle({ opacity: 0.6 });
   expect(screen.getByText('‹')).toHaveStyle({ opacity: 0.6 });
   await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Completion time' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Time, deadline' }));
   expect(screen.getByRole('radio', { name: 'Hour 12' })).toHaveStyle({ opacity: 0.6 });
 });
 
 // MVP-22-E1.R, review finding (WCAG 2.5.3 Label in Name, https://www.w3.org/TR/WCAG22/#label-in-name): the spoken name holds the
-// drawn caption, so a voice command with the visible word reaches the field. The date caption opens its name, the zone caption is
-// its whole name, and the time field draws a clock and its value with no caption (word budget).
+// drawn caption, so a voice command with the visible word reaches the field. The date and time captions open their names, the
+// zone caption is its whole name. MVP-22-E1.5, native check 2026-10-02: the time field now draws its own caption like the date.
 test.each([['pl', 'activation'], ['pl', 'deadline'], ['en', 'activation'], ['en', 'deadline']] as const)('the %s %s fields speak their drawn captions', async (locale, field) => {
   const oath = (locale === 'pl' ? pl : en).oath;
   await render(<LocalizationProvider initialLocale={locale}><WallTimePicker field={field} value={{ date: '', time: '18:30:00', zone: 'Europe/Warsaw' }} disabled={false} now={now} onChange={jest.fn()} /></LocalizationProvider>);
   const [date, time, zone] = screen.getAllByRole('button');
-  expect(within(date).getByText(oath[`${field}Caption`])).toBeOnTheScreen();
-  expect(date.props.accessibilityLabel.startsWith(oath[`${field}Caption`])).toBe(true);
-  expect(within(time).getAllByText(/./).map(text => text.props.children)).toEqual(['18:30', '›']);
-  expect(within(time).getByTestId('field-clock')).toBeOnTheScreen();
+  for (const [button, caption] of [[date, oath[`${field}Caption`]], [time, oath.timeCaption]] as const) {
+    expect(within(button).getByText(caption)).toBeOnTheScreen();
+    expect(button.props.accessibilityLabel.startsWith(caption)).toBe(true);
+  }
+  expect(within(time).getAllByText(/./).map(text => text.props.children)).toEqual([oath.timeCaption, '18:30', '›']);
   expect(within(zone).getByText(oath[`${field}Zone`])).toBeOnTheScreen();
   expect(zone.props.accessibilityLabel).toBe(oath[`${field}Zone`]);
 });
@@ -339,24 +340,44 @@ test('a picker draws only the parts it is given', async () => {
   expect(screen.getAllByRole('button').map(button => button.props.accessibilityLabel)).toEqual(['Completion timezone']);
 });
 
-// MVP-22-E1.R, native check: an ellipsis read as loading. An empty date shows a calendar, an empty time a clock, and every field
-// ends in a chevron, so it reads as a control. The pictograms draw no text and the spoken value still asks for a choice.
-test('empty fields draw a pictogram and a chevron, not an ellipsis', async () => {
-  await picker();
+// MVP-22-E1.R, native check: an ellipsis read as loading. Every field ends in a chevron, so it reads as a control.
+// MVP-22-E1.5, native check 2026-10-02: the date drew "Termin" above its calendar while the time drew only a clock, so the two
+// rows had different heights and read as unrelated. Both now draw one row, pictogram, caption, chevron. An empty field shows its
+// caption where the value goes, a chosen value stands under the small caption. The spoken value still asks for a choice.
+test.each(['en', 'pl'] as const)('%s empty fields draw a pictogram, their caption in the value place and a chevron', async locale => {
+  const oath = (locale === 'pl' ? pl : en).oath;
+  await picker({}, jest.fn(), locale);
   expect(screen.queryByText('…')).toBeNull();
   const [date, time, zone] = screen.getAllByRole('button');
   expect(within(date).getByTestId('field-calendar')).toBeOnTheScreen();
   expect(within(time).getByTestId('field-clock')).toBeOnTheScreen();
+  expect(within(date).getAllByText(/./).map(text => text.props.children)).toEqual([oath.deadlineCaption, '›']);
+  expect(within(time).getAllByText(/./).map(text => text.props.children)).toEqual([oath.timeCaption, '›']);
   for (const button of [date, time, zone]) expect(within(button).getByText('›')).toHaveProp('accessible', false);
-  expect(date.props.accessibilityValue).toEqual({ text: 'Choose a date' });
-  expect(time.props.accessibilityValue).toEqual({ text: 'Choose a time' });
+  expect(date.props.accessibilityValue).toEqual({ text: locale === 'pl' ? 'Wybierz datę' : 'Choose a date' });
+  expect(time.props.accessibilityValue).toEqual({ text: locale === 'pl' ? 'Wybierz godzinę' : 'Choose a time' });
 });
 
-test('a chosen date replaces its calendar, a chosen time stands beside its clock', async () => {
+test('a chosen value stands under its small caption, beside its pictogram', async () => {
   await picker({ date: '2026-10-08', time: '18:30:00' });
   const [date, time] = screen.getAllByRole('button');
-  expect(within(date).getByText('October 8, 2026')).toBeOnTheScreen();
-  expect(within(date).queryByTestId('field-calendar')).toBeNull();
-  expect(within(time).getByText('18:30')).toBeOnTheScreen();
+  expect(within(date).getAllByText(/./).map(text => text.props.children)).toEqual(['Deadline', 'October 8, 2026', '›']);
+  expect(within(date).getByTestId('field-calendar')).toBeOnTheScreen();
+  expect(within(time).getAllByText(/./).map(text => text.props.children)).toEqual(['Time', '18:30', '›']);
   expect(within(time).getByTestId('field-clock')).toBeOnTheScreen();
+});
+
+// The pictogram labels are the `icon` exemption of the word budget (engagement.md D-E4): one word beside a calendar or a clock.
+test.each([['empty', {}], ['chosen', { date: '2026-10-08', time: '18:30:00' }]] as const)('%s date and time fields share one structure, style and height', async (_case, value) => {
+  await picker(value);
+  const [date, time] = screen.getAllByRole('button');
+  expect(flat(date.props.style)).toEqual(flat(time.props.style));
+  // 16 pt padding, the 21 pt caption line and the 22 pt value line, 16 pt padding. An empty row keeps the height of a chosen one.
+  expect(FIELD_HEIGHT).toBe(16 + 21 + 22 + 16);
+  expect(flat(date.props.style).minHeight).toBe(FIELD_HEIGHT);
+  const texts = (button: typeof date) => within(button).getAllByText(/./).map(text => [flat(text.props.style), text.props.budget ?? null]);
+  expect(texts(date)).toEqual(texts(time));
+  const caption = within(date).getByText('Deadline');
+  expect(caption.props.budget).toBe('icon');
+  expect(within(time).getByText('Time').props.budget).toBe('icon');
 });
