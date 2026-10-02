@@ -24,6 +24,7 @@ final class RuleCatalogTest extends TestCase
         self::assertSame(15, $snapshot['recovery']['totalXp']);
         self::assertSame('Bieganie', $snapshot['copy']['pl']['activity']);
         self::assertSame('Running', $snapshot['copy']['en']['activity']);
+        self::assertSame('I confirm that I completed the workout named in this Oath. The proof I submit is from that workout.', $snapshot['copy']['en']['declaration']);
         foreach (['pl', 'en'] as $locale) {
             self::assertStringContainsString('40', $snapshot['copy'][$locale]['sections']['rewards']);
             self::assertStringContainsString('50', $snapshot['copy'][$locale]['sections']['rewards']);

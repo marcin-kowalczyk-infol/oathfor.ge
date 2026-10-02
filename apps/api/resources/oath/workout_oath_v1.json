@@ -136,7 +136,7 @@
       "title": "Trial of the Spark",
       "subtitle": "Complete your planned workout",
       "promise": "I will complete my workout: {activity}, by {deadline}. I will confirm completion and submit a photo or screenshot under this Oath’s evidence rules.",
-      "declaration": "I confirm that I completed the workout named in this Oath. The evidence I submit relates to that workout.",
+      "declaration": "I confirm that I completed the workout named in this Oath. The proof I submit is from that workout.",
       "sections": {
         "activation": "Choose activation now or at a future time, and a separate, later completion deadline. “Now” means server time during confirmation. If a selected future start passes before confirmation, you will choose and accept a time again. A committed Oath’s rules remain unchanged.",
         "timing": "Complete your workout by the displayed deadline D, inclusive. Complete evidence with your declaration must reach the server by S, inclusive, 15 minutes after D. These extra minutes are for submission, not exercise. Starting an upload or saving on your device does not establish receipt. Being offline does not move the deadlines. Changing your language or device timezone does not change the accepted instants.",

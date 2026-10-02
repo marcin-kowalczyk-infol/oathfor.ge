@@ -642,7 +642,7 @@ describe('drawn prose binding', () => {
   });
   test('English keeps single-letter words unbound', async () => {
     await show('en');
-    expect(screen.getByText('I confirm that I completed the workout named in this Oath. The evidence I submit relates to that workout.', raw)).toBeOnTheScreen();
+    expect(screen.getByText('I confirm that I completed the workout named in this Oath. The proof I submit is from that workout.', raw)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'About the assessment' }));
     expect(screen.getByText('An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.', raw)).toBeOnTheScreen();
   });
