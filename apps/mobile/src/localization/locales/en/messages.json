@@ -523,6 +523,7 @@
       "again": "Touch another place or close our talk.",
       "end": "Those are all the rules the Forge follows today. The Tutorial stays in the menu whenever you want to come back.",
       "next": "Next",
+      "more": "More",
       "another": "Another place",
       "finish": "Finish",
       "close": "Close the tutorial",
@@ -539,22 +540,26 @@
         "1": "At the hearth you choose a workout: running, strength training or mobility.",
         "2": "You set a start, now or at a time you choose, and a later deadline to finish by.",
         "3": "Before you make the Oath, you see all its rules. It is made only when you explicitly accept them.",
-        "4": "Once it is made, no one can change its rules, not even the Forge. A different promise means a new Oath."
+        "4": "Once it is made, no one can change its rules, not even the Forge. A different promise means a new Oath.",
+        "bark": "At the fire you forge a new Oath."
       },
       "seals": {
         "1": "The seals are your current Oaths: scheduled, active and those awaiting a result.",
         "2": "Each Oath keeps its times in its own timezone. Changing your phone’s timezone does not move them.",
-        "3": "The Forge decides the state, not your phone’s clock. After the last deadline the Oath is under review, not missed."
+        "3": "The Forge decides the state, not your phone’s clock. After the last deadline the Oath is under review, not missed.",
+        "bark": "The seals are your current Oaths."
       },
       "chronicle": {
         "1": "The chronicle keeps your finished Oaths and their results.",
-        "2": "Nobody rewrites the chronicle. Each Oath keeps the rules you accepted when you made it."
+        "2": "Nobody rewrites the chronicle. Each Oath keeps the rules you accepted when you made it.",
+        "bark": "The chronicle remembers every finished Oath."
       },
       "door": {
         "1": "The door leads to the menu. There you can switch characters or create a new one, up to three.",
         "2": "Each character has its own Oaths, chronicle and pause.",
         "3": "When you turn it on in Settings, pause withdraws this character’s scheduled and active Oaths. Those awaiting a result continue.",
-        "4": "While paused you cannot make a new Oath. Resuming lifts the pause but does not restore withdrawn Oaths."
+        "4": "While paused you cannot make a new Oath. Resuming lifts the pause but does not restore withdrawn Oaths.",
+        "bark": "The door leads to the menu, characters and pause."
       }
     },
     "door": "Door",

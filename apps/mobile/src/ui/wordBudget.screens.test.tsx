@@ -253,10 +253,17 @@ const states: Record<string, (locale: Locale) => Promise<unknown>> = {
     await fireEvent.press(screen.getByRole('button', { name: copyOf(locale).room.talk.label }));
   },
   'room.tutorial': locale => room(locale, { tutorial: 1 }),
+  // MVP-22-E2.3: a chapter opens on its bark. "More" plays the player's question, then the accepted lines.
   'room.tutorialChapter': async locale => {
     await room(locale, { tutorial: 1 });
     const copy = copyOf(locale).room;
     await fireEvent.press(screen.getByRole('button', { name: copy.tutorial.hear.replace('{{place}}', copy.hearth) }));
+  },
+  'room.tutorialMore': async locale => {
+    await room(locale, { tutorial: 1 });
+    const copy = copyOf(locale).room;
+    await fireEvent.press(screen.getByRole('button', { name: copy.tutorial.hear.replace('{{place}}', copy.hearth) }));
+    await fireEvent.press(screen.getByRole('button', { name: copy.tutorial.more }));
     await fireEvent.press(screen.getByRole('button', { name: copy.tutorial.next }));
   },
   'tutorialScreen': locale => render(<LocalizationProvider initialLocale={locale}><TutorialScreen onBack={jest.fn()} /></LocalizationProvider>),

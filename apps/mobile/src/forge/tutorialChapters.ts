@@ -20,15 +20,22 @@ export type Tour = { place: TutorialPlace | null; line: number; heard: TutorialP
 
 export const freshTour: Tour = { place: null, line: 1, heard: [], ended: false };
 
-export const hearPlace = (tour: Tour, place: TutorialPlace): Tour => ({ ...tour, place, line: 1, ended: false });
+// MVP-22-E2.3 (engagement.md D-E8): a chapter opens on line 0, its bark. Lines 1 and up are the accepted lines behind "Więcej".
+export const hearPlace = (tour: Tour, place: TutorialPlace): Tour => ({ ...tour, place, line: 0, ended: false });
 
-/** The chapter footer control: next line, back to the choice, or finish after the fourth distinct place. */
-export function tourControl(tour: Tour): { line: number; lines: number; action: 'next' | 'another' | 'finish' } | null {
+/** "Więcej" on a bark opens the chapter's accepted lines. Anywhere else it changes nothing. */
+export const moreTour = (tour: Tour): Tour => tour.place && tour.line === 0 ? { ...tour, line: 1 } : tour;
+
+/**
+ * The chapter footer control: next line, back to the choice, or finish after the fourth distinct place.
+ * On the bark the step already leaves the chapter, and more offers its accepted lines.
+ */
+export function tourControl(tour: Tour): { line: number; lines: number; action: 'next' | 'another' | 'finish'; more: boolean } | null {
   const chapter = tutorialChapters.find(item => item.place === tour.place);
   if (!chapter || !tour.place) return null;
-  const action = tour.line < chapter.lines ? 'next'
-    : tour.heard.length === tutorialChapters.length - 1 && !tour.heard.includes(tour.place) ? 'finish' : 'another';
-  return { line: tour.line, lines: chapter.lines, action };
+  const leaving = tour.heard.length === tutorialChapters.length - 1 && !tour.heard.includes(tour.place) ? 'finish' : 'another';
+  const action = tour.line > 0 && tour.line < chapter.lines ? 'next' : leaving;
+  return { line: tour.line, lines: chapter.lines, action, more: tour.line === 0 };
 }
 
 export function advanceTour(tour: Tour): Tour {
@@ -39,4 +46,4 @@ export function advanceTour(tour: Tour): Tour {
 }
 
 export const tourTextKey = (tour: Tour) => tour.ended ? 'room.tutorial.end'
-  : tour.place ? `room.tutorial.${tour.place}.${tour.line}` : tour.heard.length ? 'room.tutorial.again' : 'room.tutorial.intro';
+  : tour.place ? `room.tutorial.${tour.place}.${tour.line === 0 ? 'bark' : tour.line}` :tour.heard.length ? 'room.tutorial.again' : 'room.tutorial.intro';

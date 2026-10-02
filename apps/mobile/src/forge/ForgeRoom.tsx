@@ -11,7 +11,7 @@ import { chapterScript, startScript, unlitScript, visitScript, type ScriptLine }
 import { placeLit } from './placeLit';
 import { useArt } from '../art/ArtProvider';
 import { presetArt } from '../characters/presetArt';
-import { advanceTour, freshTour, hearPlace, tourControl, tourTextKey, type Tour, type TutorialPlace } from './tutorialChapters';
+import { advanceTour, freshTour, hearPlace, moreTour, tourControl, tourTextKey, type Tour, type TutorialPlace } from './tutorialChapters';
 import { HearthFire } from '../ui/HearthFire';
 import { HeroSprite, ACT_BEFORE_TURN_MS, TURN_FRAME_MS, type HeroPose } from './HeroSprite';
 import { CandleFlames } from './CandleFlames';
@@ -111,7 +111,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   }, [allowed, guide.walking, player.walking, guide.run, player.run]);
   const [zoomed, setZoomed] = useState(false);
   const [bubbleOpen, setBubbleOpen] = useState(false);
-  // The line shown in a place visit (0 the player's, 1 Żaromir's) and whether a chapter still shows the player's opening line.
+  // The line shown in a place visit (0 the player's, 1 Żaromir's) and whether a chapter, after "Więcej", still shows the player's question.
   const [visitLine, setVisitLine] = useState(0);
   const [opening, setOpening] = useState(false);
   // Talking to Żaromir (owner decisions D4 to D6, 2026-09-28): one touch, and he answers with one hint line.
@@ -223,7 +223,7 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     if (tour?.place === place) return;
     setTouchRequest(value => value + 1);
     setTour(current => current && hearPlace(current, place));
-    setOpening(true);
+    setOpening(false);
     guide.walkTo(place);
     player.walkTo(place);
   }
@@ -236,6 +236,10 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
   }
   function advance() {
     setTour(current => current && advanceTour(current));
+  }
+  function more() {
+    setTour(current => current && moreTour(current));
+    setOpening(true);
   }
   // Unlit is not locked: an unlit place stays touchable and its name tells VoiceOver it is not active yet.
   const placeLabel = (place: TutorialPlace) => tour
@@ -287,7 +291,10 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     line = { ...startScript[0], id: 'gate-start', dismiss: finishGuide };
   } else if (tour && (telling || !tour.place)) {
     const script = told ? chapterScript(told, form) : null;
-    if (script && opening) line = { ...script[0], id: `tour-${told}-open`, more: true, next: () => setOpening(false), dismiss: endTour };
+    // MVP-22-E2.3 (engagement.md D-E8): a chapter opens on Żaromir's bark. "Więcej" plays the player's question, then the accepted lines.
+    if (script && control?.more) line = { speaker: 'guide', key: tourTextKey(tour), id: `tour-${told}-bark`, dismiss: endTour,
+      controls: { expand: { label: t('room.tutorial.more'), onPress: more }, step: { count: '', label: t(`room.tutorial.${control.action}`), text: true, onPress: advance } } };
+    else if (script && opening) line ={ ...script[0], id: `tour-${told}-open`, more: true, next: () => setOpening(false), dismiss: endTour };
     else if (script && control) line = { ...script[control.line], id: `tour-${told}-${control.line}`, dismiss: endTour, next: control.action === 'next' ? advance : undefined,
       controls: { step: { count: `${control.line} / ${control.lines}`, label: t(`room.tutorial.${control.action}`), mark: '→', text: control.action !== 'next', onPress: advance } } };
     else line = { speaker: 'guide', key: tourTextKey(tour), id: `tour-${tourTextKey(tour)}`, dismiss: endTour,

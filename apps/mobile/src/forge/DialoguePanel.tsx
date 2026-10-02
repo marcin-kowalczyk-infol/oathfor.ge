@@ -33,7 +33,8 @@ const segmenter = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.
 const graphemesOf = (text: string) => segmenter ? Array.from(segmenter.segment(text), part => part.segment) : Array.from(text);
 
 type Step = { count: string; label: string; mark?: string; text?: boolean; onPress: () => void };
-export type PanelControls = { action?: { label: string; onPress: () => void }; step?: Step };
+/** expand: "Więcej" on a tutorial chapter's bark (MVP-22-E2.3). It takes the counter's place in the step row. */
+export type PanelControls = { action?: { label: string; onPress: () => void }; step?: Step; expand?: { label: string; onPress: () => void } };
 
 /**
  * The carved dialogue panel of the Forge room (docs/product/forge-scene.md "Dialogue panel").
@@ -184,8 +185,12 @@ export function DialoguePanel({ frame, speaker, lineId, text, title, extra, play
       {controls.action && <Pressable accessibilityRole="button" accessibilityLabel={controls.action.label} onPress={controls.action.onPress} style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
         <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.display} numberOfLines={1} style={styles.actionLabel}>{controls.action.label} →</Text>
       </Pressable>}
-      {controls.step && <View style={styles.step}>
-        <Text accessible={false} allowFontScaling={false} style={styles.count}>{controls.step.count}</Text>
+      {controls.step && <View testID="dialogue-step" style={styles.step}>
+        {controls.expand
+          ? <Pressable accessibilityRole="button" accessibilityLabel={controls.expand.label} onPress={controls.expand.onPress} style={({ pressed }) => [styles.textNext, styles.expand, pressed && styles.pressed]}>
+            <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.display} numberOfLines={1} style={styles.nextLabel}>{controls.expand.label}</Text>
+          </Pressable>
+          : <Text accessible={false} allowFontScaling={false} style={styles.count}>{controls.step.count}</Text>}
         <Pressable accessibilityRole="button" accessibilityLabel={controls.step.label} onPress={controls.step.onPress} style={({ pressed }) => [controls.step!.text ? styles.textNext : styles.next, pressed && styles.pressed]}>
           {controls.step.text ? <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.display} numberOfLines={1} style={styles.nextLabel}>{controls.step.label}</Text>
             : <Text accessible={false} allowFontScaling={false} style={styles.nextMark}>{controls.step.mark ?? '→'}</Text>}
@@ -280,6 +285,8 @@ const styles = StyleSheet.create({
   next: { width: 52, height: 44, alignItems: 'center', justifyContent: 'center' },
   nextMark: { color: '#e7b86e', fontSize: 30 },
   textNext: { height: 44, flexShrink: 1, justifyContent: 'center', paddingHorizontal: 10 },
+  // "Więcej" starts where the counter does, so its word lines up with the text above.
+  expand: { marginLeft: -10 },
   nextLabel: { color: '#e7b86e', fontFamily: tokens.font.body, fontSize: 17, fontWeight: '600' },
   pressed: { opacity: 0.6 },
   // Inside the painted band like the step row, right-aligned under the ×.

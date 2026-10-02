@@ -367,9 +367,10 @@ describe('tutorial', () => {
     await open(place, heard);
     for (let line = 1; line < lines; line++) await next();
   }
-  // A chapter opens with the player's line, the next touch brings Żaromir's first line.
+  // A chapter opens on Żaromir's bark. "More" brings the player's line, the next touch Żaromir's first line (MVP-22-E2.3).
   async function open(place: Place, heard = false) {
     await press(hear(place, heard));
+    await press(tut.more);
     await next();
   }
 
@@ -393,8 +394,10 @@ describe('tutorial', () => {
     await press(hear('hearth'));
     // The first walk brings Żaromir to his tutorial place, then he and the player walk to the hearth.
     expect(walkTimers()).toHaveLength(3);
-    expect(screen.queryByText(en.room.player.tutorial.hearth)).toBeNull();
+    expect(screen.queryByText(tut.hearth.bark)).toBeNull();
     for (const finish of finishes) await act(async () => finish({ finished: true }));
+    expect(screen.getByText(tut.hearth.bark)).toBeOnTheScreen();
+    await press(tut.more);
     expect(screen.getByText(en.room.player.tutorial.hearth)).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId('dialogue-panel-touch'));
     await next();
@@ -407,6 +410,52 @@ describe('tutorial', () => {
     expect(screen.getByText(tut.hearth['4'])).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: tut.next })).toBeNull();
     expect(screen.getByRole('button', { name: tut.another })).toBeOnTheScreen();
+  });
+
+  // MVP-22-E2.3 (engagement.md E2, D-E8): one bark per chapter, the accepted lines wait behind "More".
+  test('a chapter opens on Żaromir\'s bark with "More" and "Another place", without a counter', async () => {
+    await render(room({ tutorial: 1 }));
+    await press(hear('seals'));
+    expect(screen.getByText(tut.seals.bark)).toBeOnTheScreen();
+    expect(screen.getByTestId('dialogue-plate', hidden)).toHaveTextContent('Zharomir');
+    expect(screen.getByRole('button', { name: tut.more })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: tut.another })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: tut.next })).toBeNull();
+    expect(screen.queryByText(en.room.player.tutorial.seals)).toBeNull();
+    expect(screen.queryByText(/\d \/ \d/)).toBeNull();
+  });
+
+  test('"More" plays the player\'s line, then every accepted line in order with the counter', async () => {
+    await render(room({ tutorial: 1 }));
+    await press(hear('seals'));
+    await press(tut.more);
+    expect(screen.getByText(en.room.player.tutorial.seals)).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: tut.more })).toBeNull();
+    for (const line of ['1', '2', '3'] as const) {
+      await next();
+      expect(screen.getByText(tut.seals[line])).toBeOnTheScreen();
+      expect(screen.getByText(`${line} / 3`)).toBeOnTheScreen();
+    }
+    expect(screen.getByRole('button', { name: tut.another })).toBeOnTheScreen();
+  });
+
+  test('another place from the bark marks the place as heard', async () => {
+    await render(room({ tutorial: 1 }));
+    await press(hear('chronicle'));
+    await press(tut.another);
+    expect(screen.getByText(tut.again)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: hear('chronicle', true) })).toBeOnTheScreen();
+  });
+
+  test('four barks heard, the fourth offers "Finish" and leads to the closing bubble', async () => {
+    await render(room({ tutorial: 1 }));
+    for (const place of ['hearth', 'seals', 'chronicle'] as const) { await press(hear(place)); await press(tut.another); }
+    await press(hear('door'));
+    expect(screen.getByText(tut.door.bark)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: tut.more })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: tut.another })).toBeNull();
+    await press(tut.finish);
+    expect(screen.getByText(tut.end)).toBeOnTheScreen();
   });
 
   test('another place returns to the choice and marks the place as heard', async () => {
@@ -522,6 +571,7 @@ describe('tutorial after review', () => {
     await press(hear('chronicle'));
     for (const walk of walks) await act(async () => walk.done({ finished: true }));
     expect(screen.getByTestId('hero-pose-chronicle', { includeHiddenElements: true })).toBeTruthy();
+    await press(tut.more);
     // With motion the first touch completes the typed opening line, the second continues.
     await press(tut.next); await press(tut.next);
     await press(tut.next);
@@ -541,7 +591,7 @@ describe('tutorial after review', () => {
     expect(screen.getByTestId('hero-turn', { includeHiddenElements: true })).toBeTruthy();
     await act(async () => { jest.advanceTimersByTime(TURN_FRAME_MS * 4); });
     expect(screen.getByTestId('hero-talk', { includeHiddenElements: true })).toBeTruthy();
-    expect(screen.getByText(en.room.player.tutorial.seals)).toBeOnTheScreen();
+    expect(screen.getByText(tut.seals.bark)).toBeOnTheScreen();
   });
 
   // Native check, 2026-09-30: arriving first, he stood facing the room until the player arrived, then snapped around.
@@ -577,6 +627,7 @@ describe('tutorial after review', () => {
   test('touching the place being told keeps the current line', async () => {
     await render(room({ tutorial: 1 }));
     await press(hear('hearth'));
+    await press(tut.more);
     await press(tut.next);
     await press(tut.next);
     await press(hear('hearth'));
@@ -608,6 +659,7 @@ test('closing or finishing the tutorial reports its end once', async () => {
   await view.rerender(room({ tutorial: 2, onTutorialEnd }));
   for (const [place, lines] of [['hearth', 4], ['seals', 3], ['chronicle', 2], ['door', 4]] as const) {
     await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.hear.replace('{{place}}', en.room[place]) }));
+    await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.more }));
     for (let line = 0; line < lines; line++) await fireEvent.press(screen.getByRole('button', { name: en.room.tutorial.next }));
     await fireEvent.press(screen.getByRole('button', { name: place === 'door' ? en.room.tutorial.finish : en.room.tutorial.another }));
   }
@@ -634,6 +686,7 @@ describe('tutorial after the native check', () => {
   test('Polish tutorial lines keep single-letter words with the next word', async () => {
     await render(room({ tutorial: 1 }, 'pl'));
     await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.hear.replace('{{place}}', pl.room.seals) }));
+    await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.more }));
     for (let line = 0; line < 3; line++) await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.next }));
     // The default text matcher folds the non-breaking space, so the rendered string is checked directly.
     expect(screen.getByText(/nie zegar w.telefonie/).props.children[0]).toContain('nie zegar w\u00A0telefonie');
@@ -643,6 +696,7 @@ describe('tutorial after the native check', () => {
   test('paging a chapter keeps the panel bottom and its button in place', async () => {
     await render(room({ tutorial: 1 }));
     await fireEvent.press(screen.getByRole('button', { name: hear('seals') }));
+    await fireEvent.press(screen.getByRole('button', { name: tut.more }));
     const bottom = () => (StyleSheet.flatten(screen.getByTestId('dialogue-panel').props.style) as { bottom: number }).bottom;
     expect(bottom()).toBe(20);
     for (let line = 0; line < 3; line++) {
@@ -769,9 +823,9 @@ describe('tutorial with the player', () => {
     const chapter = walks.slice(1);
     expect(chapter.map(walk => walk.to).sort((a, b) => (a as { x: number }).x - (b as { x: number }).x)).toEqual([places.chronicle.guide, places.chronicle.player]);
     await act(async () => chapter[0].done({ finished: true }));
-    expect(screen.queryByText(en.room.player.tutorial.chronicle.feminine)).toBeNull();
+    expect(screen.queryByText(tut.chronicle.bark)).toBeNull();
     await act(async () => chapter[1].done({ finished: true }));
-    expect(screen.getByText(en.room.player.tutorial.chronicle.feminine)).toBeOnTheScreen();
+    expect(screen.getByText(tut.chronicle.bark)).toBeOnTheScreen();
   });
 
   test('at a told place the player handles it while Żaromir works, turns and talks', async () => {
@@ -821,6 +875,7 @@ describe('tutorial with the player', () => {
     await render(room({ tutorial: 1 }));
     for (const [place, lines] of [['hearth', 4], ['seals', 3], ['chronicle', 2], ['door', 4]] as const) {
       await press(hear(place));
+      await press(tut.more);
       for (let line = 0; line < lines; line++) await press(tut.next);
       await press(place === 'door' ? tut.finish : tut.another);
     }
@@ -836,7 +891,7 @@ describe('tutorial with the player', () => {
     await press(hear('hearth'));
     expectAt('room-player', places.hearth.player);
     expectAt('room-guide', places.hearth.guide);
-    expect(screen.getByText(en.room.player.tutorial.hearth)).toBeOnTheScreen();
+    expect(screen.getByText(tut.hearth.bark)).toBeOnTheScreen();
     expect(walkTimers()).toHaveLength(0);
   });
 });
@@ -869,10 +924,13 @@ describe('dialogue panel', () => {
     expect(onOpenStation).toHaveBeenCalledWith('hearth');
   });
 
-  test('a tutorial chapter opens with the player line, then counts only Żaromir\'s lines', async () => {
+  test('after "More" a chapter plays the player line, then counts only Żaromir\'s lines', async () => {
     await render(room({ tutorial: 1 }));
     await press(tut.hear.replace('{{place}}', en.room.seals));
+    expect(plate()).toHaveTextContent('Zharomir');
+    await press(tut.more);
     expect(screen.getByText(en.room.player.tutorial.seals)).toBeOnTheScreen();
+    expect(plate()).toHaveTextContent('Mira');
     expect(screen.queryByText('1 / 3')).toBeNull();
     await press(tut.next);
     expect(screen.getByText(tut.seals['1'])).toBeOnTheScreen();
@@ -882,9 +940,10 @@ describe('dialogue panel', () => {
     expect(screen.getByRole('button', { name: tut.another })).toBeOnTheScreen();
   });
 
-  test('the chronicle chapter opens with the line for the character\'s form', async () => {
+  test('the chronicle chapter\'s player line is in the character\'s form', async () => {
     await render(room({ tutorial: 1 }, 'pl'));
     await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.hear.replace('{{place}}', pl.room.chronicle) }));
+    await fireEvent.press(screen.getByRole('button', { name: pl.room.tutorial.more }));
     expect(screen.getByText(pl.room.player.tutorial.chronicle.feminine)).toBeOnTheScreen();
   });
 
@@ -910,10 +969,11 @@ describe('dialogue panel', () => {
     ringAt(tutor);
   });
 
-  test('closing the tutorial on the player\'s opening line ends it', async () => {
+  test.each([['bark', false], ['player\'s line', true]] as const)('closing the tutorial on a chapter\'s %s ends it', async (_line, more) => {
     const onTutorialEnd = jest.fn();
     await render(room({ tutorial: 1, onTutorialEnd }));
     await press(tut.hear.replace('{{place}}', en.room.door));
+    if (more) await press(tut.more);
     await press(tut.close);
     expect(onTutorialEnd).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('dialogue-panel')).toBeNull();
@@ -937,6 +997,7 @@ describe('dialogue panel', () => {
     const tpl = pl.room.tutorial;
     await fireEvent.press(screen.getByRole('button', { name: tpl.hear.replace('{{place}}', pl.room.seals) }));
     const first = StyleSheet.flatten(screen.getByTestId('dialogue-panel').props.style) as { bottom: number; maxHeight: number };
+    await fireEvent.press(screen.getByRole('button', { name: tpl.more }));
     for (let line = 0; line < 3; line++) await fireEvent.press(screen.getByRole('button', { name: tpl.next }));
     expect(screen.getByText(tpl.seals['3'])).toBeOnTheScreen();
     const last = StyleSheet.flatten(screen.getByTestId('dialogue-panel').props.style) as { bottom: number; maxHeight: number };
@@ -1171,7 +1232,7 @@ describe('skill gate', () => {
   test('the tutorial still tells every place with nothing yet', async () => {
     await render(room({ tutorial: 1, progress: nothing }));
     await press(en.room.tutorial.hear.replace('{{place}}', en.room.seals));
-    expect(screen.getByText(en.room.player.tutorial.seals)).toBeOnTheScreen();
+    expect(screen.getByText(en.room.tutorial.seals.bark)).toBeOnTheScreen();
   });
 });
 

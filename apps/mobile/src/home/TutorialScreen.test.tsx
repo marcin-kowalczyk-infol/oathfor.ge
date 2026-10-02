@@ -21,7 +21,8 @@ const filled = () => screen.queryAllByRole('button').filter(button => within(but
 
 const chapters = (copy: typeof pl | typeof en) => {
   const { titles, hearth, seals, chronicle, door } = copy.room.tutorial;
-  const lines = (chapter: Record<string, string>) => Object.values(chapter).map(line => bindShortWords(line, copy === pl ? 'pl' : 'en'));
+  // The room's chapter barks (MVP-22-E2.3) are not part of the simple screen, which keeps the accepted lines unchanged.
+  const lines = (chapter: Record<string, string>) => Object.entries(chapter).filter(([key]) => key !== 'bark').map(([, line]) => bindShortWords(line, copy === pl ? 'pl' : 'en'));
   return [
     [titles.hearth, ...lines(hearth)],
     [titles.seals, ...lines(seals)],
@@ -51,6 +52,7 @@ test.each([['pl', pl], ['en', en]] as const)('the %s screen shows the intro and 
     expect(order.every(index => index >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
   }
+  for (const place of ['hearth', 'seals', 'chronicle', 'door'] as const) expect(screen.queryByText(copy.room.tutorial[place].bark)).toBeNull();
   // The raw string with its no-break spaces, which the default text matcher would fold into plain ones (MVP-22-A8c).
   if (locale === 'pl') expect(screen.getByText('O\u00a0stanie decyduje Kuźnia, nie zegar w\u00a0telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, a\u00a0nie niewykonana.', { normalizer: text => text })).toBeOnTheScreen();
 });

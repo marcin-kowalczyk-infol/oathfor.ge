@@ -1,5 +1,5 @@
 import { catalogs } from '../localization/createTranslation';
-import { tutorialChapters, tutorialLineKeys, tutorialTitleKey } from './tutorialChapters';
+import { advanceTour, freshTour, hearPlace, moreTour, tourControl, tourTextKey, tutorialChapters, tutorialLineKeys, tutorialTitleKey, type Tour } from './tutorialChapters';
 
 type Catalog = Record<string, unknown>;
 
@@ -67,7 +67,65 @@ test('chapters follow the spec order and line counts without orphan copy', () =>
   for (const chapter of tutorialChapters) {
     const numbers = tutorialLineKeys(chapter).map(key => key.split('.').pop());
     for (const catalog of [catalogs.pl, catalogs.en]) {
-      expect(Object.keys(lookup(catalog, `room.tutorial.${chapter.place}`) as object)).toEqual(numbers);
+      expect(Object.keys(lookup(catalog, `room.tutorial.${chapter.place}`) as object)).toEqual([...numbers, 'bark']);
     }
   }
+});
+
+// MVP-22-E2.3 (engagement.md E2, D-E8): each chapter in the room opens with one bark. "Więcej" plays its accepted lines.
+const barks: [string, string, string][] = [
+  ['room.tutorial.hearth.bark', 'Przy ogniu wykuwasz nową Przysięgę.', 'At the fire you forge a new Oath.'],
+  ['room.tutorial.seals.bark', 'Pieczęcie to Twoje bieżące Przysięgi.', 'The seals are your current Oaths.'],
+  ['room.tutorial.chronicle.bark', 'Kronika pamięta każdą zakończoną Przysięgę.', 'The chronicle remembers every finished Oath.'],
+  ['room.tutorial.door.bark', 'Drzwi prowadzą do menu, postaci i pauzy.', 'The door leads to the menu, characters and pause.'],
+  ['room.tutorial.more', 'Więcej', 'More'],
+];
+
+test.each(barks)('%s reads as written in both languages', (key, polish, english) => {
+  expect([lookup(catalogs.pl, key), lookup(catalogs.en, key)]).toEqual([polish, english]);
+});
+
+// The engagement spec allows 12 words. The owner's bark cap for slice E is 8 Polish words, here in one sentence.
+test.each(tutorialChapters.map(chapter => chapter.place))('the %s bark keeps to 8 Polish words and one sentence', place => {
+  for (const catalog of [catalogs.pl, catalogs.en]) {
+    const bark = lookup(catalog, `room.tutorial.${place}.bark`) as string;
+    expect(bark.split(/[.!?](?:\s|$)/).filter(part => part.trim())).toHaveLength(1);
+  }
+  expect((lookup(catalogs.pl, `room.tutorial.${place}.bark`) as string).trim().split(/\s+/).length).toBeLessThanOrEqual(8);
+});
+
+describe('a chapter in the room', () => {
+  const heard = (places: Tour['heard']): Tour => ({ ...freshTour, heard: places });
+
+  test('opens on its bark with "Więcej" and the way to another place', () => {
+    const tour = hearPlace(freshTour, 'seals');
+    expect(tourTextKey(tour)).toBe('room.tutorial.seals.bark');
+    expect(tourControl(tour)).toEqual({ line: 0, lines: 3, action: 'another', more: true });
+  });
+
+  test('"Więcej" plays the accepted lines in order with their counter', () => {
+    let tour = moreTour(hearPlace(freshTour, 'seals'));
+    expect(tourTextKey(tour)).toBe('room.tutorial.seals.1');
+    expect(tourControl(tour)).toEqual({ line: 1, lines: 3, action: 'next', more: false });
+    tour = advanceTour(advanceTour(tour));
+    expect(tourTextKey(tour)).toBe('room.tutorial.seals.3');
+    expect(tourControl(tour)).toEqual({ line: 3, lines: 3, action: 'another', more: false });
+  });
+
+  test('leaving from the bark counts the chapter as heard', () => {
+    expect(advanceTour(hearPlace(freshTour, 'hearth'))).toEqual({ place: null, line: 1, heard: ['hearth'], ended: false });
+  });
+
+  test('the fourth distinct chapter finishes from its bark or its last line', () => {
+    const fourth = hearPlace(heard(['hearth', 'seals', 'chronicle']), 'door');
+    expect(tourControl(fourth)).toEqual({ line: 0, lines: 4, action: 'finish', more: true });
+    expect(advanceTour(fourth)).toEqual({ place: null, line: 1, heard: ['hearth', 'seals', 'chronicle', 'door'], ended: true });
+    expect(tourControl({ ...moreTour(fourth), line: 4 })?.action).toBe('finish');
+  });
+
+  test('"Więcej" outside a bark changes nothing', () => {
+    expect(moreTour(freshTour)).toBe(freshTour);
+    const second = { ...hearPlace(freshTour, 'hearth'), line: 2 };
+    expect(moreTour(second)).toBe(second);
+  });
 });

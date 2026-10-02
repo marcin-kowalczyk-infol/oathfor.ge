@@ -50,6 +50,7 @@
   "room.door": {"pl": 7, "en": 8, "target": "E2"},
   "room.talk": {"pl": 14, "en": 15, "target": "E2"},
   "room.tutorial": {"pl": 15, "en": 20, "target": "E2"},
-  "room.tutorialChapter": {"pl": 13, "en": 16, "target": "E2"},
+  "room.tutorialChapter": {"pl": 12, "en": 15, "target": "E2"},
+  "room.tutorialMore": {"pl": 13, "en": 16, "target": "E2"},
   "tutorialScreen": {"pl": 30, "en": 36, "target": "E2"}
 }

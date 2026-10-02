@@ -535,6 +535,7 @@
       "again": "Dotknij kolejnego miejsca albo zamknij rozmowę.",
       "end": "To wszystko, co dziś obowiązuje w Kuźni. Samouczek czeka w menu, gdy zechcesz wrócić.",
       "next": "Dalej",
+      "more": "Więcej",
       "another": "Inne miejsce",
       "finish": "Zakończ",
       "close": "Zamknij samouczek",
@@ -551,22 +552,26 @@
         "1": "Przy palenisku wybierasz trening: bieganie, trening siłowy albo mobilność.",
         "2": "Ustalasz start, teraz albo w wybranym terminie, i późniejszy termin ukończenia.",
         "3": "Zanim złożysz Przysięgę, zobaczysz wszystkie jej zasady. Tworzy ją dopiero Twoja wyraźna zgoda.",
-        "4": "Złożonych zasad nikt już nie zmieni, także Kuźnia. Inna obietnica to nowa Przysięga."
+        "4": "Złożonych zasad nikt już nie zmieni, także Kuźnia. Inna obietnica to nowa Przysięga.",
+        "bark": "Przy ogniu wykuwasz nową Przysięgę."
       },
       "seals": {
         "1": "Pieczęcie to Twoje bieżące Przysięgi: zaplanowane, trwające i te, które czekają na wynik.",
         "2": "Każda Przysięga trzyma czas w swojej strefie. Zmiana strefy w telefonie go nie przesunie.",
-        "3": "O stanie decyduje Kuźnia, nie zegar w telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, a nie niewykonana."
+        "3": "O stanie decyduje Kuźnia, nie zegar w telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, a nie niewykonana.",
+        "bark": "Pieczęcie to Twoje bieżące Przysięgi."
       },
       "chronicle": {
         "1": "Kronika przechowuje zakończone Przysięgi razem z ich wynikiem.",
-        "2": "Zapisów w kronice nikt nie przepisuje. Każda Przysięga zachowuje zasady przyjęte przy jej złożeniu."
+        "2": "Zapisów w kronice nikt nie przepisuje. Każda Przysięga zachowuje zasady przyjęte przy jej złożeniu.",
+        "bark": "Kronika pamięta każdą zakończoną Przysięgę."
       },
       "door": {
         "1": "Drzwi prowadzą do menu. Tam zmienisz postać albo stworzysz nową, najwyżej trzy.",
         "2": "Każda postać ma własne Przysięgi, własną kronikę i własną pauzę.",
         "3": "Pauza, włączana w Ustawieniach, wycofuje zaplanowane i trwające Przysięgi tej postaci. Czekające na wynik trwają dalej.",
-        "4": "W czasie pauzy nie złożysz nowej Przysięgi. Wznowienie zdejmuje pauzę, ale nie przywraca wycofanych."
+        "4": "W czasie pauzy nie złożysz nowej Przysięgi. Wznowienie zdejmuje pauzę, ale nie przywraca wycofanych.",
+        "bark": "Drzwi prowadzą do menu, postaci i pauzy."
       }
     },
     "door": "Drzwi",

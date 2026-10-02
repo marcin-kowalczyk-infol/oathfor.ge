@@ -217,6 +217,24 @@ test('every control is at least 44 points', async () => {
   expect(screen.getByText('2 / 4')).toBeOnTheScreen();
 });
 
+// MVP-22-E2.3: a chapter bark offers "More" beside the way on, both as words, and neither shows the rune.
+test('"More" sits in the step row as a 44 point word control beside the step', async () => {
+  const more = jest.fn();
+  const another = jest.fn();
+  await render(panel({ allowed: false, more: false, controls: {
+    expand: { label: 'More', onPress: more },
+    step: { count: '', label: 'Another place', text: true, onPress: another },
+  } }));
+  const box = StyleSheet.flatten(screen.getByRole('button', { name: 'More' }).props.style) as { height?: number; minHeight?: number };
+  expect(Math.max(box.height ?? 0, box.minHeight ?? 0)).toBeGreaterThanOrEqual(44);
+  expect(within(screen.getByTestId('dialogue-step')).getByText('More')).toBeOnTheScreen();
+  expect(within(screen.getByTestId('dialogue-step')).getByText('Another place')).toBeOnTheScreen();
+  expect(screen.queryByTestId('dialogue-rune', hidden)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'More' }));
+  expect(more).toHaveBeenCalledTimes(1);
+  expect(another).not.toHaveBeenCalled();
+});
+
 describe('painted frame', () => {
   test('draws the painted corners, tiled braid edges, wood and plate', async () => {
     await render(panel({ allowed: false }));
