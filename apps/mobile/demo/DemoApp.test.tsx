@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import DemoApp from './DemoApp';
 import pl from './locales/pl.json';
 import en from './locales/en.json';
@@ -74,6 +74,81 @@ test('a control arms one lost acceptance record clear for checking a confirmed O
   await fireEvent.press(screen.getByRole('button', { name: 'English' }));
   expect(screen.getByRole('button', { name: en.loseRecordClear })).toBeOnTheScreen();
   expect(screen.getByText(en.recordClearArmed)).toBeOnTheScreen();
+});
+
+const accountId = '10000000-0000-4000-8000-000000000001';
+const characterId = '30000000-0000-4000-8000-000000000001';
+const sections = ['sectionScenarios', 'sectionLanguage', 'sectionFailures', 'sectionAdd', 'sectionTools'] as const;
+const actions = ['new', 'empty', 'returning', 'offline', 'expire', 'lose', 'loseProof', 'loseRecordClear', 'add', 'addNeedsMore', 'restart', 'close'] as const;
+// Owner feedback 2026-10-02: every control says what it simulates, and the controls sit under short headers.
+test.each([['pl', pl], ['en', en]] as const)('the %s controls show every header, action and hint', async (locale, copy) => {
+  await render(<DemoApp />);
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  if (locale === 'en') await fireEvent.press(screen.getByRole('button', { name: 'English' }));
+  for (const key of sections) expect(screen.getByRole('header', { name: copy[key] })).toBeOnTheScreen();
+  for (const key of actions) expect(screen.getByRole('button', { name: copy[key] })).toBeOnTheScreen();
+  expect(screen.getByRole('switch', { name: copy.wireCheck })).toBeOnTheScreen();
+  expect(screen.getByText(copy.resetHint)).toBeOnTheScreen();
+  expect(screen.getByText(copy.addHint)).toBeOnTheScreen();
+});
+
+// A one-shot failure shows its armed line inside the control's own group, right under the button,
+// and the button keeps its plain label so it can still be found and pressed.
+test.each([
+  ['lose', 'armed', 'loseNext'],
+  ['loseProof', 'proofArmed', 'loseNextProof'],
+  ['loseRecordClear', 'recordClearArmed', 'loseNextRecordClear'],
+] as const)('arming %s shows the armed line next to its button', async (key, armedKey, flag) => {
+  await render(<DemoApp />);
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  const group = screen.getByTestId(`demo-control-${key}`);
+  expect(within(group).queryByText(pl[armedKey])).toBeNull();
+  await fireEvent.press(within(group).getByRole('button', { name: pl[key] }));
+  expect(mockDummies.at(-1)!.state[flag]).toBe(true);
+  expect(within(screen.getByTestId(`demo-control-${key}`)).getByRole('alert')).toHaveTextContent(pl[armedKey]);
+  for (const other of ['lose', 'loseProof', 'loseRecordClear'].filter(name => name !== key)) {
+    expect(within(screen.getByTestId(`demo-control-${other}`)).queryByRole('alert')).toBeNull();
+  }
+});
+
+test('the armed line stays until the runtime spends the failure', async () => {
+  await render(<DemoApp />);
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  await fireEvent.press(screen.getByRole('button', { name: pl.loseRecordClear }));
+  await fireEvent.press(screen.getByRole('button', { name: pl.close }));
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  expect(within(screen.getByTestId('demo-control-loseRecordClear')).getByText(pl.recordClearArmed)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: pl.close }));
+  // The next clear of the device acceptance record spends the flag, as after a confirmed Oath.
+  const runtime = mockDummies.at(-1)!.runtime();
+  expect(await runtime.acceptanceStorage.write(accountId, characterId, null)).toEqual({ kind: 'unavailable' });
+  runtime.controller.dispose();
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  expect(screen.queryByText(pl.recordClearArmed)).toBeNull();
+});
+
+test('a scenario reset clears every armed line', async () => {
+  await render(<DemoApp />);
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  await fireEvent.press(screen.getByRole('button', { name: pl.lose }));
+  await fireEvent.press(screen.getByRole('button', { name: pl.loseProof }));
+  expect(screen.getAllByRole('alert')).toHaveLength(2);
+  await fireEvent.press(screen.getByRole('button', { name: pl.returning }));
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  expect(screen.queryAllByRole('alert')).toHaveLength(0);
+  expect(screen.queryByText(pl.armed)).toBeNull();
+  expect(screen.queryByText(pl.proofArmed)).toBeNull();
+});
+
+test('the offline control switches to the reconnect label and back', async () => {
+  await render(<DemoApp />);
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  await fireEvent.press(screen.getByRole('button', { name: pl.offline }));
+  expect(mockDummies.at(-1)!.state.offline).toBe(true);
+  expect(screen.queryByRole('button', { name: pl.offline })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: pl.online }));
+  expect(mockDummies.at(-1)!.state.offline).toBe(false);
+  expect(screen.getByRole('button', { name: pl.offline })).toBeOnTheScreen();
 });
 
 test('a control adds a needs-more-proof Oath and closes the controls', async () => {

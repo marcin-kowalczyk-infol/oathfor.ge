@@ -39,17 +39,31 @@ export default function DemoApp() {
     setDummy(next); restart(); setControls(false);
   }
   function language(next: Locale) { dummy.state.profile.profile.locale = next; setLocale(next); restart(); }
-  const buttons: [string, () => void][] = [
-    [copy.new, () => reset(false)], [copy.empty, () => reset(true, false)], [copy.returning, () => reset(true)],
-    [copy.restart, () => { restart(); setControls(false); }],
-    [copy.expire, () => { dummy.state.expired = true; restart(); setControls(false); }],
-    [dummy.state.offline ? copy.online : copy.offline, () => { dummy.setOffline(!dummy.state.offline); repaint(value => value + 1); }],
-    [copy.lose, () => { dummy.state.loseNext = true; repaint(value => value + 1); }],
-    [copy.loseProof, () => { dummy.state.loseNextProof = true; repaint(value => value + 1); }],
-    [copy.loseRecordClear, () => { dummy.state.loseNextRecordClear = true; repaint(value => value + 1); }],
-    [copy.add, () => { dummy.add(); repaint(value => value + 1); setControls(false); }],
-    [copy.addNeedsMore, () => { dummy.addNeedsMore(); repaint(value => value + 1); setControls(false); }],
+  // A one-shot failure stays armed until the runtime spends it or a scenario resets the data.
+  // Its line renders under its own button, read from the runtime state each time the controls render.
+  const arm = (flag: 'loseNext' | 'loseNextProof' | 'loseNextRecordClear') => () => { dummy.state[flag] = true; repaint(value => value + 1); };
+  type Control = { key: string; label: string; onPress: () => void; armed?: string | false };
+  const scenarios: Control[] = [
+    { key: 'new', label: copy.new, onPress: () => reset(false) },
+    { key: 'empty', label: copy.empty, onPress: () => reset(true, false) },
+    { key: 'returning', label: copy.returning, onPress: () => reset(true) },
   ];
+  const failures: Control[] = [
+    { key: 'offline', label: dummy.state.offline ? copy.online : copy.offline, onPress: () => { dummy.setOffline(!dummy.state.offline); repaint(value => value + 1); } },
+    { key: 'expire', label: copy.expire, onPress: () => { dummy.state.expired = true; restart(); setControls(false); } },
+    { key: 'lose', label: copy.lose, onPress: arm('loseNext'), armed: dummy.state.loseNext && copy.armed },
+    { key: 'loseProof', label: copy.loseProof, onPress: arm('loseNextProof'), armed: dummy.state.loseNextProof && copy.proofArmed },
+    { key: 'loseRecordClear', label: copy.loseRecordClear, onPress: arm('loseNextRecordClear'), armed: dummy.state.loseNextRecordClear && copy.recordClearArmed },
+  ];
+  const additions: Control[] = [
+    { key: 'add', label: copy.add, onPress: () => { dummy.add(); repaint(value => value + 1); setControls(false); } },
+    { key: 'addNeedsMore', label: copy.addNeedsMore, onPress: () => { dummy.addNeedsMore(); repaint(value => value + 1); setControls(false); } },
+  ];
+  const header = (text: string) => <Text accessibilityRole="header" style={styles.section}>{text}</Text>;
+  const list = (controls: Control[]) => controls.map(({ key, label, onPress, armed }) => <View key={key} testID={`demo-control-${key}`} style={styles.group}>
+    <Pressable accessibilityRole="button" style={[styles.button, armed ? styles.armed : null]} onPress={onPress}><Text style={styles.text}>{label}</Text></Pressable>
+    {armed ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.armedText}>{armed}</Text> : null}
+  </View>);
   // The bar keeps the top inset. The product gets its own provider, which on a device starts under the bar,
   // so the product screens get no second top inset. A Modal needs its own provider too.
   // Initial metrics let the first frame render before the native insets arrive.
@@ -60,12 +74,18 @@ export default function DemoApp() {
       <SafeAreaProvider><SafeAreaView style={styles.root}><ScrollView contentContainerStyle={styles.controls}>
         <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>
         <Text style={styles.text}>{copy.notice}</Text>
-        <View style={styles.languages}>{(['pl', 'en'] as const).map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: locale === value }} accessibilityLabel={value === 'pl' ? 'Polski' : 'English'} onPress={() => language(value)} style={styles.button}><Text style={styles.text}>{value.toUpperCase()}</Text></Pressable>)}</View>
-        <Text style={styles.text}>{copy.resetHint}</Text>
-        {buttons.map(([label, action]) => <Pressable key={label} accessibilityRole="button" style={styles.button} onPress={action}><Text style={styles.text}>{label}</Text></Pressable>)}
-        {dummy.state.loseNext && <Text accessibilityRole="alert" style={styles.text}>{copy.armed}</Text>}
-        {dummy.state.loseNextProof && <Text accessibilityRole="alert" style={styles.text}>{copy.proofArmed}</Text>}
-        {dummy.state.loseNextRecordClear && <Text accessibilityRole="alert" style={styles.text}>{copy.recordClearArmed}</Text>}
+        {header(copy.sectionScenarios)}
+        <Text style={styles.hint}>{copy.resetHint}</Text>
+        {list(scenarios)}
+        {header(copy.sectionLanguage)}
+        <View style={styles.languages}>{(['pl', 'en'] as const).map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: locale === value }} accessibilityLabel={value === 'pl' ? 'Polski' : 'English'} onPress={() => language(value)} style={[styles.button, locale === value ? styles.armed : null]}><Text style={styles.text}>{value.toUpperCase()}</Text></Pressable>)}</View>
+        {header(copy.sectionFailures)}
+        {list(failures)}
+        {header(copy.sectionAdd)}
+        <Text style={styles.hint}>{copy.addHint}</Text>
+        {list(additions)}
+        {header(copy.sectionTools)}
+        {list([{ key: 'restart', label: copy.restart, onPress: () => { restart(); setControls(false); } }])}
         <Pressable accessibilityRole="switch" accessibilityState={{ checked: dummy.state.wireCheck }} accessibilityLabel={copy.wireCheck} style={styles.button} onPress={() => { dummy.state.wireCheck = !dummy.state.wireCheck; repaint(value => value + 1); }}>
           <Text style={styles.text}>{copy.wireCheck} · {dummy.state.wireCheck ? copy.wireCheckOn : copy.wireCheckOff}</Text>
         </Pressable>
@@ -75,4 +95,4 @@ export default function DemoApp() {
     </Modal>
   </View></SafeAreaProvider>;
 }
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#15191c' }, product: { flex: 1, overflow: 'hidden' }, badge: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', paddingHorizontal: 16 }, badgeText: { color: '#ffd380', fontSize: 12 }, controls: { padding: 20, gap: 14 }, languages: { flexDirection: 'row', gap: 12 }, title: { color: '#ffd380', fontSize: 26, fontWeight: '700' }, text: { color: '#fff', fontSize: 16 }, button: { minHeight: 48, justifyContent: 'center', borderWidth: 1, borderColor: '#ffd380', borderRadius: 12, padding: 12 } });
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#15191c' }, product: { flex: 1, overflow: 'hidden' }, badge: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', paddingHorizontal: 16 }, badgeText: { color: '#ffd380', fontSize: 12 }, controls: { padding: 20, gap: 12 }, section: { color: '#ffd380', fontSize: 18, fontWeight: '700', marginTop: 10 }, hint: { color: '#c9c2b4', fontSize: 14 }, group: { gap: 6 }, armed: { backgroundColor: '#3d3220' }, armedText: { color: '#ffd380', fontSize: 15 }, languages: { flexDirection: 'row', gap: 12 }, title: { color: '#ffd380', fontSize: 26, fontWeight: '700' }, text: { color: '#fff', fontSize: 16 }, button: { minHeight: 48, justifyContent: 'center', borderWidth: 1, borderColor: '#ffd380', borderRadius: 12, padding: 12 } });
