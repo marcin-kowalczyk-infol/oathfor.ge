@@ -30,6 +30,15 @@ final class RuleCatalogTest extends TestCase
             self::assertStringContainsString('50', $snapshot['copy'][$locale]['sections']['rewards']);
             self::assertStringContainsString('15', $snapshot['copy'][$locale]['sections']['recovery']);
         }
+        /** @var array{promise: string, declaration: string, sections: array<string, string>} $english */
+        $english = $snapshot['copy']['en'];
+        foreach (['promise' => $english['promise'], 'declaration' => $english['declaration']] + $english['sections'] as $key => $text) {
+            self::assertDoesNotMatchRegularExpression('/\bevidence\b/i', $text, "English {$key} says proof, not evidence.");
+        }
+        foreach (['promise' => $english['promise']] + array_intersect_key($english['sections'], array_flip(['timing', 'evidence', 'pause', 'recovery', 'review', 'appeal'])) as $key => $text) {
+            self::assertStringNotContainsString(';', $text, "English {$key} has no semicolon.");
+            self::assertStringNotContainsString("\u{2014}", $text, "English {$key} has no em dash.");
+        }
         $snapshot['rewards']['photoTotal'] = 999;
         self::assertSame(40, (new RuleCatalog())->snapshot('running', ['mode' => 'now', 'time' => null], $deadline)['rewards']['photoTotal']);
     }
