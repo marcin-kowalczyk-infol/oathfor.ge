@@ -535,14 +535,14 @@ Visual defects found in (d) were fixed and rechecked on the 18 Pro: proof screen
 
 ## Clarity acceptance (MVP-22), 2026-10-02
 
-The implementation landed in T00 to T12c, A0 to A8c and B1 to B2c, from 34573fe to 12aaa8f. The native pass of 2026-10-02 added D1, G24, G24b and G27 to G30, from 463a06a to 9d39b89. The rules are in [clarity](../product/clarity.md). The local plan and task records name every commit. This section records what ran and what is still open.
+The implementation landed in T00 to T12c, A0 to A8c and B1 to B2c, from 34573fe to 12aaa8f. The native pass of 2026-10-02 added D1, G24, G24b and G27 to G34 and D4 to D6, from 463a06a to 7af7bd6. The rules are in [clarity](../product/clarity.md). The local plan and task records name every commit. This section records what ran and what is still open.
 
 | Layer | Status | Result |
 | --- | --- | --- |
-| Mobile jest and typecheck | Ran | Last run on 9d39b89 (G31), Node 24.21.0: 109 suites and 1827 tests passed, typecheck exit 0 |
+| Mobile jest and typecheck | Ran | Last run on 7af7bd6 (G34b), Node 24.21.0: 112 suites and 1849 tests passed, 0 console warnings or errors, typecheck exit 0 |
 | Catalog guards | Ran | `clarityCopy.test.ts` checks "what next" lines at 12 Polish words and 70 characters, Żaromir lines at two sentences, pool sizes and the catalog-wide two-sentence cap. `review_copy.py` ran after each copy change, the last flags were resolved |
 | Screen tests | Ran | Every touched screen state asserts at most one filled action and renders in PL and EN at text scale 2 |
-| Independent reviews | Ran per batch | T01 to T03, T02b with T04, T05 to T08b, T09 with T09b, T09c to T09e, T10 to T12b, A0 to A4, A5 to A8b, B1 with A8c, B2 with B2b, D1 with G24, G27 and G28, G24b with G30. Findings were fixed in T02b, T08b, T09b, T09d, T12b, T12c, A4b, A8c, B2b, B2c, G30 and G31 |
+| Independent reviews | Ran per batch | T01 to T03, T02b with T04, T05 to T08b, T09 with T09b, T09c to T09e, T10 to T12b, A0 to A4, A5 to A8b, B1 with A8c, B2 with B2b, D1 with G24, G27 and G28, G24b with G30, D4 with D5, G34. Findings were fixed in T02b, T08b, T09b, T09d, T12b, T12c, A4b, A8c, B2b, B2c, G30, G31, D5 and G34b |
 | Native checks | Ran in part | iPhone 18 Pro simulator, demo build after a cold relaunch, default and largest standard text. Each check found defects that later tasks fixed with a failing test first |
 | English native pass | Ran in part | Main menu, room, hearth, Oath form and review, Today, detail, History and Settings at default text. Character creation, the menu and the simple Today list at the largest text |
 
@@ -562,18 +562,22 @@ Native observations on the iPhone 18 Pro, all in Polish. Screenshots are local e
 | Date and time sheets, countdown chip, confirmation, needs more proof | Native pass 2026-10-02 | The disabled ‹ and past days read as dimmed, not hidden. The chip and the confirmation fit at largest text. The seal wall shows "Do uzupełnienia" at default text, and its row and detail fit at largest text (demo control from 463a06a) |
 | Polish tutorial in the room and the simple tutorial | Native pass 2026-10-02 | The new lines read whole, the heard plate shows, and the simple chapters fold and open at largest text |
 | Separators at line ends | Native pass 2026-10-02 | "18:00 ·" and "15:32 ·" ended lines at largest text. 498972f moves the dot to the next line. Covered by jest, the wrapped case was not observed again |
+| Proof screen, rules review with the guide, pause review | Afternoon pass 2026-10-02, standard text | Three numbered steps, the choice folds to "✓ Zdjęcie kontekstu · Zmień" and "Zmień" reopens both options. Żaromir's four rule steps highlight their cards. The pause review lists three withdrawn and one kept Oath above "Potwierdź pauzę" |
+| English screens | Afternoon pass 2026-10-02, standard text | Menu, room guide 1 to 4, hearth, Oath form, rules with the guide, confirmation, detail and proof screen. Two copy questions went to the owner: a line in the room ends with "I", and the declaration from the rules file says "evidence" |
+| Confirmed Oath with a kept device record (G30, G32) | Afternoon pass 2026-10-02, standard text | The demo control from 90c5eaf reaches the state. PL and EN show one line on the band, the outline check and one filled "View the Oath". One press on the check clears the band |
+| Dialogue panel side strips | Afternoon pass 2026-10-02, standard text | A 1 px line crossed both side strips where they meet the lower corners when the panel height ended in half a pixel (G34). Fixed in 36a3deb. A pixel scan of the same line and of a 625 frame recording of a line change shows no line. The braid tile joins every 142 px match, so no art correction is needed |
 
 Open native gates:
 
 | Gate | Reason |
 | --- | --- |
-| Recheck after the fixes | Proof screen, review with the guide open and pause review were not observed again after their fixes |
-| English at largest text | Room dialogue, Oath detail, confirmation and proof screen in English were seen at default text only |
 | Separator wrap | The dot that moves to the next line (498972f) is covered by jest only |
-| G30 and G31 checks | The outlined "Sprawdź potwierdzenie" beside a confirmed detail after a failed save, the retry that keeps the screen in place and the "· Zmień" unit on the proof screen are covered by jest only |
-| Panel art on first entry | After a cold launch the first room entry showed one frame of the dialogue panel without its frame and plate, while the art loaded over Metro. Likely a development build effect, needs the Release build |
+| G31 retry | The retry that keeps the screen in place is covered by jest only |
+| Panel art on first entry | After a cold launch the first room entry shows the dialogue text without the panel frame, plate and Żaromir for a moment, while the art loads over Metro. The demo is development only, so a Release build of it cannot run. The owner decides whether to preload the panel art |
+| Largest text | Post-MVP by owner decision. English room dialogue, detail, confirmation and proof screen were not seen at the largest text |
 | Simple layout and Reduce Motion | Proof steps open, fold behaviour and the static equivalents are covered by jest only |
 | VoiceOver | Deferred. Labels, headings and announcements are set and tested, the rotor, the B2 sheet hints and the onboarding hint from G30 are unverified |
 | iPhone SE 3 | Pending by owner instruction. On 2x screens the braid tiles inside a panel strip still fall on fractional pixels |
+| Android | Not run. Insets, the panel strips and the sheets are unverified there |
 | Real device and Release build | Not run |
 | Owner acceptance | The delegated decisions in clarity.md, the new PL and EN copy, the step badge art and the room after the tutorial (no visible control except the door) await the owner |
