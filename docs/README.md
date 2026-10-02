@@ -10,6 +10,7 @@ All product and delivery documents live here except business plans, which belong
 | [First-Oath visual polish](product/oath-visual-polish.md) | MVP-05 visual implementation, remaining native acceptance and owner review |
 | [Oath screens](product/oath-screens.md) | Accepted MVP-21 rule cards, sealing, countdowns and simpler history, not yet implemented |
 | [Clarity](product/clarity.md) | App-wide rules for light screens, the Oath step track and Żaromir's line, MVP-22, accepted, implemented locally 2026-10-02, owner acceptance pending |
+| [Engagement](product/engagement.md) | Word budget, teaching at the moment of use, press-to-seal review, the living Oath seal, Żaromir's moods and the proof hand-over to Światowid, MVP-22 slice E, delegated decisions pending owner review, not implemented |
 | [Player character](product/player-character.md) | Proposed avatar identity, Żaromir distinction and Forge station roles |
 | [Onboarding](product/onboarding.md) | Accepted intention, confirmed profile steps, recovery and optional notifications |
 | [MVP](product/mvp.md) | Draft loop, boundaries and acceptance scenarios |

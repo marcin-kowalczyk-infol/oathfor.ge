@@ -69,6 +69,8 @@ Below the cards a scroll icon opens "Pełne zasady" / "Full rules": the complete
 
 The reward and consequence cards let the player see both without opening the full rules (decision Q2).
 
+Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, not implemented yet): the review shows the promise, three large pictograms (deadline, last chance, rules fixed), two small pictograms for reward and consequence (keeping Q2, D-E6) and a press-and-hold seal whose label is the stored declaration (D-E1, D-E5). The cards for start, proof, review and pause move into "Pełne zasady" with the stored rules. The consent line is reworded because the "Złóż Przysięgę" button no longer exists.
+
 **Żaromir the first time.** The first time a player reaches the review screen, Żaromir's dialogue panel (the MVP-20 `DialoguePanel`) rises over the bottom of the screen. Each line lights the card it names. Accepted lines (decision Q5):
 
 | Line | Polish | English |
@@ -79,6 +81,8 @@ The reward and consequence cards let the player see both without opening the ful
 | 4 | Kowadło z kłódką mówi, że po złożeniu nic tu się nie zmieni. | The anvil with the lock means none of this changes once the Oath is made. |
 
 Superseded on 2026-10-02 (MVP-22-C1, native English pass): the English lines 1, 3 and 4 and the English card title "Last chance for proof" were rewritten, because "meet its rules", "last moment for proof" and "says nothing here changes" read as translated. The Polish lines are unchanged. These replace accepted Q5 wording and await owner confirmation.
+
+Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, not implemented yet): the four lines become one bark of at most 8 words per pictogram while that pictogram plays its gesture. The panel and the "seen" flag of Q4 stay (E3).
 
 The last line offers "Zakończ" / "Finish" instead of "Dalej" / "Next", because it closes the explanation. The × skips the explanation. A small Żaromir button on the screen replays it. The "seen" flag is stored like the first-visit guide flag, in device storage per account (decision Q4). Simple layout and Reduce Motion show the lines without typing, in a static panel.
 
@@ -192,6 +196,9 @@ The demo's art style row (owner decision 2026-09-29, demo only) switches these s
 Answered by the owner on 2026-09-28. Each answer took the recommended option.
 
 - **Q1. Full rules before acceptance:** folded under "Pełne zasady" below the cards, with the new consent line in section 2.
+
+  Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, not implemented yet): the declaration is the label of the hold control instead of a text block, and the consent line changes (D-E1). The Q5 wording of the guide lines and consent line is replaced by new copy for owner review (E3).
+
 - **Q2. Reward and consequence cards:** added, with values from the snapshot and two new icons.
 - **Q3. Past times today:** hours and minutes that passed today are disabled too.
 - **Q4. When Żaromir explains the rules:** the first review per account on this device.

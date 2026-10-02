@@ -44,7 +44,7 @@ Until the player art is delivered the player is the static menu figure of the ch
 
 ## Żaromir
 
-- Guided mode: in the tutorial he starts walking together with the player, to his spot beside the chosen place. In the first-visit guide only he walks, to his spot beside each step's place, and the player stays at the start (owner decision D3, 2026-09-28). On arrival he turns to the player and talks with the existing gestures. The tutorial chapter text stays as accepted.
+- Guided mode: in the tutorial he starts walking together with the player, to his spot beside the chosen place. In the first-visit guide only he walks, to his spot beside each step's place, and the player stays at the start (owner decision D3, 2026-09-28). Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, not implemented yet): the four-step first-visit guide ends. On the first entry Żaromir stands beside the lit hearth and says one bark (D-E7). On arrival he turns to the player and talks with the existing gestures. The tutorial chapter text stays as accepted.
 - Normal mode: he stands aside and breathes. He does not follow the player.
 - One touch on him in normal mode turns him to the player and opens the panel with his hint and two counters, with no player line before it (owner decisions D4 to D6, 2026-09-28). His touch target has a VoiceOver label, "Żaromir, your progress" / "Żaromir, Twoje postępy".
 

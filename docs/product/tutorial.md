@@ -14,6 +14,8 @@ The four-step room guide only names the places. The player also needs the rules 
 - The first room entry keeps the short four-step guide. The Tutorial tile in the menu starts the full conversation.
 - In simple layout the same chapters appear as one plain text screen. Superseded on 2026-10-02: each chapter folds behind its title, see [clarity](clarity.md).
 
+Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, not implemented yet): in the room each chapter plays one bark of at most 12 words while Żaromir gestures at the place, and "Więcej" / "More" plays the chapter's other existing lines (D-E8). The first room entry no longer plays the four-step guide. Only the hearth is lit and the other places light when they have something (D-E7). Proof submission, which works since MVP-07, is taught at the moment of use on the first proof screen instead of in a new chapter (D-E9).
+
 ## Flow
 
 | From | Action | To |
@@ -37,6 +39,8 @@ The four-step room guide only names the places. The player also needs the rules 
 **Progress.** Heard marks live only for the current tutorial run. Nothing is stored, locally or on the server. A new start from the menu begins with no marks.
 
 **First visit.** The automatic guide on the first room entry stays four steps. Its last step now points to the Tutorial. A tutorial started before the first room entry takes priority, the guide does not start and the guide counts as seen.
+
+Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, not implemented yet): the first room entry lights only the hearth with one bark from Żaromir. Unlit places stay touchable and say when they light. Unknown counts light every place (D-E7).
 
 **Simple layout.** The Tutorial tile is visible again in simple layout, full width like Settings. It opens a scrolling screen with Żaromir's portrait, the intro line and the four chapters, each with a heading and its bubbles as paragraphs. Superseded on 2026-10-02: each chapter heading is a link that opens its paragraphs in place, so the screen shows the intro and four titles first, see [clarity](clarity.md). A plain "Back to menu" link returns to the menu. The copy is the same as in the room.
 
