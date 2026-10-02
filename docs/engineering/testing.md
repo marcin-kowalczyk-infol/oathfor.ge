@@ -598,6 +598,8 @@ The ratchet runs inside the mobile jest suite. To run only the counter and the s
 | Copy review | Skipped | `review_copy.py` skipped in E1.3, E1.4 and E1.5 because `TYPESAFE_API_KEY` was not set |
 | Independent review | Ran in part | Review findings on E1.1 to E1.4 were fixed in E1.R (d4a897b). E1.5 has no review yet |
 | Native check | Ran in part | Main agent, iPhone 18 Pro, PL, standard text. One defect on the Oath form, see below. The other E1 screens are pending |
+| Native check E1 to E3, evening 2026-10-02 | Ran | iPhone 18 Pro, standard text, cold relaunch after every merge. Oath form: date and time rows share one structure and height, the missing line names the missing part (E1.R2). Room for a new character: only the hearth glows, seals and chronicle are darkened by a feathered shade with no edges, the gate barks play (E2.2, E2.R2). The first grey box shade (985de89) rendered as two flat rectangles and was replaced in ee9fc9a. Rules review in PL and EN: three large and two small pictograms, the seal carries the promise, Żaromir's three barks light their pictogram and the panel no longer covers content, a 0.4 s hold does nothing and a full hold makes the Oath (E3.1 to E3.R2) |
+| Independent review E2.3 to E3.3 | Ran | The seal first carried the past-tense declaration. D-E1 was corrected to the promise in the E3.R branch. A paused character got urging in the room, fixed in E2.R3 |
 
 Measured E1 ceilings from `apps/mobile/src/ui/wordBudget.baseline.json` on 5010d79:
 
