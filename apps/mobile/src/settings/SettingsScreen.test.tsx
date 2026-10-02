@@ -153,6 +153,15 @@ test('renders in English', async () => {
   expect(screen.getByText('Reminders are not sent yet. Your choice is kept for later.')).toBeOnTheScreen();
 });
 
+// MVP-22-G24: drawn Polish notes and errors keep a single-letter word with the next word. English keeps ordinary spaces.
+test.each([
+  ['pl', ['Tylko w wersji demo. Gdzie brakuje grafiki filmowej, zostaje dawna.', 'iOS blokuje powiadomienia z Oathforge. Włącz je w ustawieniach iOS.']],
+  ['en', ['Demo only. Where cinematic art is missing, the classic art stays.', 'iOS blocks notifications from Oathforge. Turn them on in iOS Settings.']],
+] as const)('%s binds single-letter words in drawn notes only in Polish', async (ui, lines) => {
+  await setup({ artStyle: { value: 'current', onChange: jest.fn() }, notificationState: { permission: { kind: 'denied', canAskAgain: false }, busy: false } }, ui);
+  for (const line of lines) expect(screen.getByText(line, { normalizer: text => text })).toBeOnTheScreen();
+});
+
 test('text inside the cards is capped so long Polish words never break mid-word at the largest text', async () => {
   // Native MVP-18 check on iPhone SE 3: "Zapamiętamy" broke as "Zapamiętam / y" in the notifications card.
   await setup({ notificationState: { permission: { kind: 'denied', canAskAgain: false }, busy: false }, localeState: { saving: false, error: true } }, 'pl');

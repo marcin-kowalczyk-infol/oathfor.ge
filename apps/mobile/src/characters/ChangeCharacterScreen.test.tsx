@@ -70,6 +70,19 @@ test('a failed switch keeps the current character and shows a localized error', 
   expect(f.onChoose).toHaveBeenCalledTimes(2);
 });
 
+test('a Polish switch error keeps single-letter words with the next word and English keeps ordinary spaces', async () => {
+  const raw = { normalizer: (text: string) => text };
+  const f = await setup(ready(), 'pl');
+  await fireEvent.press(screen.getByRole('button', { name: 'Bor, Obrońca Przysięgi' }));
+  await f.rerender(ready({ error: { kind: 'unavailable', retry: 'request' } }));
+  expect(screen.getByText('Kuźnia jest teraz nieosiągalna. Sprawdź połączenie i spróbuj ponownie.', raw)).toBeOnTheScreen();
+  await screen.unmount();
+  const g = await setup();
+  await fireEvent.press(screen.getByRole('button', { name: 'Bor, Oathkeeper' }));
+  await g.rerender(ready({ error: { kind: 'unavailable', retry: 'request' } }));
+  expect(screen.getByText('The Forge cannot be reached right now. Check your connection and try again.', raw)).toBeOnTheScreen();
+});
+
 test('an error from before opening the screen is not shown', async () => {
   await setup(ready({ error: { kind: 'character_error', code: 'invalid_preset' } }));
   expect(screen.queryByText('We could not change the character. Try again.')).toBeNull();

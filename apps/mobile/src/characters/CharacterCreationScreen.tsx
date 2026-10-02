@@ -3,6 +3,7 @@ import { Animated, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, TextI
 import { Text } from '../ui/Text';
 import type { CharacterBuild, CharacterForm } from '../api/characters';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import { useSceneEntrance } from '../ui/useSceneEntrance';
@@ -63,7 +64,9 @@ function useRateLimitWait(error: CharacterError | undefined): number {
 
 /** Full-screen creation of a player character. Presentational: the character controller owns requests and retries. */
 export function CharacterCreationScreen(props: CharacterCreationScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Drawn Polish prose keeps a single-letter word with the next word. Spoken labels and hints keep the plain form.
+  const prose = (value: string) => bindShortWords(value, i18n.language);
   const { fontScale } = useWindowDimensions();
   const { state, onReload } = props;
   // iOS keeps stale text measurements after a live Dynamic Type change, so the content remounts, as in SceneSurface.
@@ -74,9 +77,9 @@ export function CharacterCreationScreen(props: CharacterCreationScreenProps) {
         : <ScrollView contentContainerStyle={styles.content}>
           <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('character.title')}</Text>
           {state.kind === 'loading' || state.kind === 'idle'
-            ? <Text accessibilityLiveRegion="polite" style={styles.intro}>{t('character.loading')}</Text>
+            ? <Text accessibilityLiveRegion="polite" style={styles.intro}>{prose(t('character.loading'))}</Text>
             : <>
-              <Message text={t(state.kind === 'storage_unavailable' ? 'character.storageUnavailable' : 'character.error.unavailable')} />
+              <Message text={prose(t(state.kind === 'storage_unavailable' ? 'character.storageUnavailable' : 'character.error.unavailable'))} />
               <Action label={t('character.retry')} onPress={onReload} />
             </>}
         </ScrollView>}
@@ -85,7 +88,9 @@ export function CharacterCreationScreen(props: CharacterCreationScreenProps) {
 }
 
 function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCancel, onSignOut }: CharacterCreationScreenProps & { state: Ready }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Drawn Polish prose keeps a single-letter word with the next word. Spoken labels and hints keep the plain form.
+  const prose = (value: string) => bindShortWords(value, i18n.language);
   const { height, fontScale } = useWindowDimensions();
   const large = fontScale > 1.5;
   const entrance = useSceneEntrance('character-creation');
@@ -136,7 +141,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
     </Pressable>}
     <View style={styles.header}>
       <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('character.title')}</Text>
-      <Text style={styles.intro}>{t('character.intro')}</Text>
+      <Text style={styles.intro}>{prose(t('character.intro'))}</Text>
     </View>
 
     <Animated.View testID="character-preview" style={[styles.card, entrance]}>
@@ -160,7 +165,7 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
     <View style={styles.section}>
       <Text maxFontSizeMultiplier={tokens.maxScale.display} style={[styles.label, large && styles.labelLarge]}>{t('character.looks')}</Text>
       {looks.length === 0 ? <>
-        <Message text={t('character.noLooks')} />
+        <Message text={prose(t('character.noLooks'))} />
         <Action variant="secondary" label={t('character.reloadLooks')} onPress={onReload} />
       </> : <ScrollView testID="character-looks" horizontal showsHorizontalScrollIndicator={false} accessibilityRole="radiogroup" accessibilityLabel={t('character.looks')} style={styles.lookRow} contentContainerStyle={styles.looks}>
         {looks.map((id, index) => {
@@ -192,8 +197,8 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
         autoCapitalize="words" autoCorrect={false} autoComplete="off" textContentType="none" importantForAutofill="no" spellCheck={false} maxLength={40} returnKeyType="done"
         style={[styles.input, nameProblem !== null && styles.inputProblem, locked && styles.inputLocked, locked && styles.locked]} />
       {nameProblem !== null
-        ? <Text accessibilityLiveRegion="polite" style={styles.problem}>{t(`character.nameError.${nameProblem}`)}</Text>
-        : <Text style={styles.hint}>{t('character.nameHint')}</Text>}
+        ? <Text accessibilityLiveRegion="polite" style={styles.problem}>{prose(t(`character.nameError.${nameProblem}`))}</Text>
+        : <Text style={styles.hint}>{prose(t('character.nameHint'))}</Text>}
     </View>
 
     <View style={styles.section} accessibilityRole="radiogroup" accessibilityLabel={t('character.titles')}>
@@ -204,11 +209,11 @@ function CreationForm({ state, draft, onDraft, onCreate, onRetry, onReload, onCa
         return <Choice key={option} title={title} detail={detail} label={t('character.formChoice', { title, detail })} stacked={large}
           selected={form === option} disabled={locked} onPress={() => onDraft({ form: option })} />;
       })}
-      <Text style={styles.hint}>{t('character.titlesHint')}</Text>
+      <Text style={styles.hint}>{prose(t('character.titlesHint'))}</Text>
     </View>
 
-    {message && !(limitShown && full) && !waitText && <Message text={t(message.key, message.name === undefined ? {} : { name: message.name })} />}
-    {pending && state.busy && <Text accessibilityLiveRegion="polite" style={styles.intro}>{t('character.finishing', { name: pending.name })}</Text>}
+    {message && !(limitShown && full) && !waitText && <Message text={prose(t(message.key, message.name === undefined ? {} : { name: message.name }))} />}
+    {pending && state.busy && <Text accessibilityLiveRegion="polite" style={styles.intro}>{prose(t('character.finishing', { name: pending.name }))}</Text>}
     {state.error?.kind === 'character_error' && state.error.code === 'invalid_preset' && !state.busy
       && <Action variant="secondary" label={t('character.reloadLooks')} onPress={onReload} />}
 

@@ -34,6 +34,26 @@ test.each(['pl', 'en'] as const)('%s renders every stored rule section and subst
   expect(screen.queryByRole('button')).toBeNull();
 });
 
+// MVP-22-G24: drawn Polish rules keep a single-letter word with the next word. Binding happens at render, the stored snapshot stays as it is.
+test('Polish rules bind single-letter words at render without changing the stored snapshot', async () => {
+  const value = snapshot();
+  const stored = JSON.parse(JSON.stringify(value));
+  const raw = { normalizer: (text: string) => text };
+  await render(<LocalizationProvider initialLocale="pl"><SnapshotRules snapshot={value} /></LocalizationProvider>);
+  expect(screen.getByText(/^Ukończę trening: Bieganie, do 25 października 2026 o 02:30 · UTC\+2\. .*zdjęcie lub zrzut ekranu zgodnie z zasadami/, raw)).toBeOnTheScreen();
+  expect(screen.getByText(/^Przy składaniu dowodu wybierzesz zdjęcie kontekstu albo zapis aktywności i potwierdzisz/, raw)).toBeOnTheScreen();
+  expect(screen.getByText('Rozpoczęcie i zobowiązanie', raw)).toBeOnTheScreen();
+  expect(screen.getByText('Teraz, w chwili potwierdzenia na serwerze', raw)).toBeOnTheScreen();
+  expect(value).toEqual(stored);
+});
+
+test('English rules keep ordinary spaces around single-letter words', async () => {
+  const raw = { normalizer: (text: string) => text };
+  await render(<LocalizationProvider initialLocale="en"><SnapshotRules snapshot={snapshot()} /></LocalizationProvider>);
+  expect(screen.getByText('Now, at server confirmation', raw)).toBeOnTheScreen();
+  expect(screen.getByText(/^I will complete my workout: Running, by October 25, 2026 at 02:30 · UTC\+2\. I will confirm completion and submit a photo/, raw)).toBeOnTheScreen();
+});
+
 test('shows the second repeated occurrence distinctly and keeps scheduled activation in its own zone', async () => {
   const value = snapshot();
   value.deadline.offset = '+01:00'; value.deadline.utc = '2026-10-25T01:30:00Z'; value.deadline.receiptCutoff = '2026-10-25T01:45:00Z';

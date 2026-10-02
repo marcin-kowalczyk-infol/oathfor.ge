@@ -401,3 +401,32 @@ test.each((['pl', 'en'] as const).flatMap(locale => states.map(([name, state]) =
     });
   } finally { jest.useRealTimers(); }
 });
+
+// MVP-22-G24: at the largest text size the intro broke as "imię i" | "tytuł.". Drawn Polish prose keeps a single-letter word with the next one.
+const raw = { normalizer: (text: string) => text };
+test('Polish drawn prose keeps single-letter words with the next word', async () => {
+  await setup(ready(), 'pl'); await act(async () => {});
+  expect(screen.getByText('Wybierz wygląd, budowę, imię i tytuł.', raw)).toBeOnTheScreen();
+  expect(screen.getByText('Wpisz imię i wybierz tytuł, aby przejść dalej.', raw)).toBeOnTheScreen();
+  // The spoken hint keeps the plain form.
+  expect(screen.getByRole('button', { name: 'Stwórz postać' }).props.accessibilityHint).toBe('Wpisz imię i wybierz tytuł, aby przejść dalej.');
+});
+
+test('the Polish wait line keeps single-letter words with the next word', async () => {
+  jest.useFakeTimers();
+  try {
+    await setup(ready({ pendingCreation: pending, error: { kind: 'rate_limited', retry: 'request', retryAfterSeconds: 5 } }), 'pl'); await act(async () => {});
+    expect(screen.getByText('Kuźnia prosi o krótką przerwę. Postać Zoya czeka zapisana na tym urządzeniu, spróbuj ponownie za 5 sekund.', raw)).toBeOnTheScreen();
+  } finally { jest.useRealTimers(); }
+});
+
+test('the Polish unavailable message keeps single-letter words with the next word', async () => {
+  await setup({ kind: 'unavailable', error: { kind: 'unavailable', retry: 'request' } } as CharacterControllerState, 'pl');
+  expect(screen.getByText('Kuźnia jest teraz nieosiągalna. Sprawdź połączenie i spróbuj ponownie.', raw)).toBeOnTheScreen();
+});
+
+test('English drawn prose keeps ordinary spaces', async () => {
+  await setup(); await act(async () => {});
+  expect(screen.getByText('Choose a look, build, name and title.', raw)).toBeOnTheScreen();
+  expect(screen.getByText('Enter a name and choose a title to continue.', raw)).toBeOnTheScreen();
+});

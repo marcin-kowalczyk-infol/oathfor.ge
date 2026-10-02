@@ -2,6 +2,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '../ui/Text';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import { Action } from '../ui/Action';
 import { tokens } from '../ui/tokens';
 import type { SessionState } from './session';
@@ -15,7 +16,9 @@ export type AuthViewProps = {
 };
 
 export function AuthView({ state, availability, onLogin, onRetry, onLogout }: AuthViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Drawn Polish prose keeps a single-letter word with the next word.
+  const prose = (value: string) => bindShortWords(value, i18n.language);
   let heading = t('auth.signInTitle');
   let description: string;
   let error: string | undefined;
@@ -53,11 +56,11 @@ export function AuthView({ state, availability, onLogin, onRetry, onLogout }: Au
   }
   return <SafeAreaView style={styles.safeArea}>
     <ScrollView contentContainerStyle={styles.content}>
-      <Text accessibilityRole="header" style={styles.title}>{heading}</Text>
+      <Text accessibilityRole="header" style={styles.title}>{prose(heading)}</Text>
       {/* An error after the player's own sign-in replaces the description (docs/product/clarity.md decision 3).
           While Apple sign-in is unavailable that reason stays, because it explains the missing button. */}
       <View style={styles.status} accessibilityLiveRegion="polite">
-        {error && availability === 'available' ? <Text accessibilityRole="alert" style={styles.body}>{error}</Text> : <Text style={styles.body}>{description}</Text>}
+        {error && availability === 'available' ? <Text accessibilityRole="alert" style={styles.body}>{prose(error)}</Text> : <Text style={styles.body}>{prose(description)}</Text>}
       </View>
       {state.kind === 'signed_out' && availability === 'available' && <AppleAuthentication.AppleAuthenticationButton
         testID="native-apple-button"

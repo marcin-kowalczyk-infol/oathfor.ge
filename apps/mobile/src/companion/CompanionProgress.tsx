@@ -3,6 +3,7 @@ import { Image, StyleSheet, View } from 'react-native';
 import { Text } from '../ui/Text';
 import { useArt } from '../art/ArtProvider';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import { tokens } from '../ui/tokens';
 import { AppearanceId, CompanionPresentation, appearances } from './catalog';
 
@@ -10,7 +11,7 @@ import { AppearanceId, CompanionPresentation, appearances } from './catalog';
 type ArtProps = { appearance: AppearanceId; decorative?: boolean; scale?: number };
 
 function ArtPanel({ appearance, decorative = false, scale = 1 }: ArtProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [failed, setFailed] = useState(false);
   const selected = appearances[appearance];
   const { image, frames } = useArt().companion[appearance];
@@ -19,7 +20,7 @@ function ArtPanel({ appearance, decorative = false, scale = 1 }: ArtProps) {
   return <View testID="companion-art-panel" style={styles.panel} accessibilityElementsHidden={decorative} importantForAccessibility={decorative ? 'no-hide-descendants' : 'auto'}>
     {!decorative && <Text accessibilityRole="header" style={styles.name}>{t(`companion.${selected.copyKey}.name`)}</Text>}
     {/* The style's frame keeps Żaromir the same size in the 180 × 270 panel, whatever his size in the picture. */}
-    {failed ? <Text style={styles.body}>{t('companion.unavailable')}</Text> : <View testID="companion-art-frame" style={[styles.frame, { width: FRAME.width * scale, height: FRAME.height * scale }]}><Image
+    {failed ? <Text style={styles.body}>{bindShortWords(t('companion.unavailable'), i18n.language)}</Text> : <View testID="companion-art-frame" style={[styles.frame, { width: FRAME.width * scale, height: FRAME.height * scale }]}><Image
       source={image}
       style={[styles.image, place]}
       resizeMode="stretch"
@@ -28,7 +29,8 @@ function ArtPanel({ appearance, decorative = false, scale = 1 }: ArtProps) {
       accessibilityLabel={decorative ? undefined : description}
       onError={() => setFailed(true)}
     /></View>}
-    {!decorative && <Text style={styles.body}>{description}</Text>}
+    {/* The image label keeps the plain description. */}
+    {!decorative && <Text style={styles.body}>{bindShortWords(description, i18n.language)}</Text>}
   </View>;
 }
 

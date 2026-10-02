@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import { Text } from './Text';
 import { tokens } from './tokens';
 
@@ -10,7 +11,7 @@ export type PauseMarkState = 'active' | 'paused' | 'unknown';
  * In play is a filled seal, paused two bars, unknown a hollow ring. None of them is red.
  */
 export function PauseMark({ state }: { state: PauseMarkState }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const label = t(`pauseMark.${state}`);
   return <View testID="pause-mark" accessible accessibilityLabel={label} style={styles.mark}>
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.shape}>
@@ -18,7 +19,7 @@ export function PauseMark({ state }: { state: PauseMarkState }) {
       {state === 'paused' && <View testID="pause-mark-bars" style={styles.bars}><View style={styles.bar} /><View style={styles.bar} /></View>}
       {state === 'unknown' && <View testID="pause-mark-ring" style={styles.ring} />}
     </View>
-    <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.label}>{label}</Text>
+    <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.label}>{bindShortWords(label, i18n.language)}</Text>
   </View>;
 }
 

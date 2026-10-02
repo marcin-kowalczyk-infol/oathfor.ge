@@ -13,3 +13,10 @@ test.each([
   expect(screen.getByTestId(`pause-mark-${shape}`, { includeHiddenElements: true })).toBeTruthy();
   expect(screen.getByTestId('pause-mark')).toHaveProp('accessibilityLabel', label);
 });
+
+// MVP-22-G24: the drawn Polish label keeps "W" with "grze". The spoken label stays plain.
+test.each([['pl', 'W grze', 'W grze'], ['en', 'In play', 'In play']] as const)('%s draws the active label with its binding only in Polish', async (locale, drawn, spoken) => {
+  await render(<LocalizationProvider initialLocale={locale}><PauseMark state="active" /></LocalizationProvider>);
+  expect(screen.getByText(drawn, { normalizer: text => text })).toBeOnTheScreen();
+  expect(screen.getByTestId('pause-mark')).toHaveProp('accessibilityLabel', spoken);
+});

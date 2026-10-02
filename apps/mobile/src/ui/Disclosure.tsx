@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { tokens } from './tokens';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 
 /**
  * One link that opens moved text in place (docs/product/clarity.md rules 1 and 2). The label names what opens.
@@ -18,7 +19,7 @@ export function Disclosure({ label, icon, children, testID, defaultOpen = false,
   /** Reports the state on mount and on every change, so a parent can remember it across a remount. */
   onToggle?(open: boolean): void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(defaultOpen);
   useEffect(() => { onToggle?.(open); }, [open]);
   return <View style={styles.group}>
@@ -26,7 +27,7 @@ export function Disclosure({ label, icon, children, testID, defaultOpen = false,
       accessibilityState={{ expanded: open }} onPress={() => setOpen(value => !value)}
       style={({ pressed }) => [styles.toggle, pressed && styles.pressed]}>
       {icon}
-      <Text maxFontSizeMultiplier={heading ? tokens.maxScale.display : tokens.maxScale.inset} style={styles.label}>{label}</Text>
+      <Text maxFontSizeMultiplier={heading ? tokens.maxScale.display : tokens.maxScale.inset} style={styles.label}>{bindShortWords(label, i18n.language)}</Text>
       <Text accessible={false} maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.mark}>{open ? '▴' : '▾'}</Text>
     </Pressable>
     {open && children}

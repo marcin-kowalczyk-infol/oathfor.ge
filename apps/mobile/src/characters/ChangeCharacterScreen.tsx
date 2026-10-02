@@ -3,6 +3,7 @@ import { Animated, Pressable, SafeAreaView, ScrollView, StyleSheet, View, useWin
 import { Text } from '../ui/Text';
 import type { Character } from '../api/characters';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import { tokens } from '../ui/tokens';
 import { useSceneEntrance } from '../ui/useSceneEntrance';
 import { CharacterPortrait } from './CharacterPortrait';
@@ -21,7 +22,9 @@ function errorKey(error: CharacterError | undefined): string | null {
 
 /** Up to three character cards. Choosing another card makes it active, the active card or Back returns without a request. */
 export function ChangeCharacterScreen({ state, onChoose, onNew, onBack }: ChangeCharacterScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Drawn Polish prose keeps a single-letter word with the next word. Spoken labels keep the plain form.
+  const prose = (value: string) => bindShortWords(value, i18n.language);
   const { fontScale } = useWindowDimensions();
   const entrance = useSceneEntrance('change-character');
   const sent = useRef(false);
@@ -49,7 +52,7 @@ export function ChangeCharacterScreen({ state, onChoose, onNew, onBack }: Change
       </Pressable>
       <View style={styles.header}>
         <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('character.change.title')}</Text>
-        <Text style={styles.intro}>{t('character.change.intro')}</Text>
+        <Text style={styles.intro}>{prose(t('character.change.intro'))}</Text>
       </View>
       <Animated.View testID="character-cards" style={[styles.cards, entrance]}>
         {state.characters.map(character => {
@@ -73,8 +76,8 @@ export function ChangeCharacterScreen({ state, onChoose, onNew, onBack }: Change
             onPress={() => { if (!state.busy) onNew(); }} style={({ pressed }) => [styles.card, styles.newCard, stacked && styles.stackedCard, pressed && styles.pressed]}>
             <CharacterPortrait id={pending.requestId} presetId={pending.presetId} build={pending.build} name={pending.name} size={72} />
             <View style={[styles.identity, stacked && styles.stackedIdentity]}>
-              <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.newTitle}>{t('character.change.resume', { name: pending.name })}</Text>
-              <Text style={styles.detail}>{t('character.change.resumeDetail')}</Text>
+              <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.newTitle}>{prose(t('character.change.resume', { name: pending.name }))}</Text>
+              <Text style={styles.detail}>{prose(t('character.change.resumeDetail'))}</Text>
             </View>
           </Pressable>
           : state.characters.length < state.limit
@@ -83,14 +86,14 @@ export function ChangeCharacterScreen({ state, onChoose, onNew, onBack }: Change
             <View style={styles.plus}><Text allowFontScaling={false} style={styles.plusMark}>+</Text></View>
             <View style={[styles.identity, stacked && styles.stackedIdentity]}>
               <Text maxFontSizeMultiplier={tokens.maxScale.display} style={styles.newTitle}>{t('character.change.new')}</Text>
-              <Text style={styles.detail}>{t('character.change.newDetail')}</Text>
+              <Text style={styles.detail}>{prose(t('character.change.newDetail'))}</Text>
             </View>
           </Pressable>
-          : <Text style={styles.detail}>{t('character.change.full')}</Text>}
+          : <Text style={styles.detail}>{prose(t('character.change.full'))}</Text>}
       </Animated.View>
-      {pending && <Text style={styles.intro}>{t('character.change.pending', { name: pending.name })}</Text>}
-      {state.busy && <Text accessibilityLiveRegion="polite" style={styles.intro}>{t('character.change.switching')}</Text>}
-      {message && <View style={styles.message}><Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.messageText}>{t(message)}</Text></View>}
+      {pending && <Text style={styles.intro}>{prose(t('character.change.pending', { name: pending.name }))}</Text>}
+      {state.busy && <Text accessibilityLiveRegion="polite" style={styles.intro}>{prose(t('character.change.switching'))}</Text>}
+      {message && <View style={styles.message}><Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.messageText}>{prose(t(message))}</Text></View>}
     </ScrollView>
   </SafeAreaView>;
 }

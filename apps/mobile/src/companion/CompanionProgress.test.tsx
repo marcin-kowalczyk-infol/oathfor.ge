@@ -40,6 +40,16 @@ test.each([['pl', 'Grafika niedostępna', 'Wędrowiec', 'Żaromir, drewniany wę
   expect(screen.getByRole('image')).toBeOnTheScreen();
 });
 
+// MVP-22-G24: the drawn Polish description keeps a single-letter word with the next word. The image label stays plain.
+test.each([
+  ['pl', 'Żaromir, drewniany wędrowiec z żelazną latarnią.', 'Żaromir, drewniany wędrowiec z żelazną latarnią.'],
+  ['en', 'Zharomir, a wooden wanderer carrying an iron lantern.', 'Zharomir, a wooden wanderer carrying an iron lantern.'],
+] as const)('%s binds the drawn description only in Polish', async (locale, drawn, spoken) => {
+  await render(<LocalizationProvider initialLocale={locale}><CompanionArt appearance="zharomir-wanderer-v01" /></LocalizationProvider>);
+  expect(screen.getByText(drawn, { normalizer: text => text })).toBeOnTheScreen();
+  expect(screen.getByRole('image')).toHaveProp('accessibilityLabel', spoken);
+});
+
 test('decorative art is absent from the accessibility tree', async () => {
   await render(<LocalizationProvider initialLocale="en"><CompanionArt appearance="zharomir-wanderer-v01" decorative /></LocalizationProvider>);
   expect(screen.queryByRole('image')).not.toBeOnTheScreen();

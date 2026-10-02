@@ -5,7 +5,7 @@ import { LocalizationProvider } from '../localization/LocalizationProvider';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 
 test('the label names what opens, and pressing it shows and hides the content', async () => {
-  await render(<Disclosure label="Pełny opis"><Text>Dowód odebrany o 18:05.</Text></Disclosure>);
+  await render(<LocalizationProvider initialLocale="pl"><Disclosure label="Pełny opis"><Text>Dowód odebrany o 18:05.</Text></Disclosure></LocalizationProvider>);
   const toggle = screen.getByRole('button', { name: 'Pełny opis' });
   expect(toggle).toHaveProp('accessibilityState', expect.objectContaining({ expanded: false }));
   expect(screen.queryByText('Dowód odebrany o 18:05.')).toBeNull();
@@ -20,7 +20,7 @@ test('the label names what opens, and pressing it shows and hides the content', 
 });
 
 test('the target is at least 44 pt and the label wraps instead of being cut', async () => {
-  await render(<Disclosure label="Pełne zasady"><Text>Treść</Text></Disclosure>);
+  await render(<LocalizationProvider initialLocale="pl"><Disclosure label="Pełne zasady"><Text>Treść</Text></Disclosure></LocalizationProvider>);
   expect(StyleSheet.flatten(screen.getByRole('button', { name: 'Pełne zasady' }).props.style).minHeight).toBeGreaterThanOrEqual(44);
   const label = screen.getByText('Pełne zasady');
   expect(label.props.numberOfLines).toBeUndefined();
@@ -49,4 +49,11 @@ test('a plain fold stays a button without the heading hint', async () => {
   await render(<LocalizationProvider initialLocale="en"><Disclosure label="Full description"><Text>Treść</Text></Disclosure></LocalizationProvider>);
   expect(screen.getByRole('button', { name: 'Full description' })).not.toHaveProp('accessibilityHint', 'Expands or collapses this section.');
   expect(screen.queryAllByRole('header')).toHaveLength(0);
+});
+
+// MVP-22-G24: a drawn Polish label keeps a single-letter word with the next word. The spoken label stays plain.
+test.each([['pl', 'Zasady w skrócie', 'Zasady w skrócie'], ['en', 'Rules in a nutshell', 'Rules in a nutshell']] as const)('%s binds only the drawn label', async (locale, label, drawn) => {
+  await render(<LocalizationProvider initialLocale={locale}><Disclosure label={label}><Text>Treść</Text></Disclosure></LocalizationProvider>);
+  expect(screen.getByText(drawn, { normalizer: text => text })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: label })).toBeOnTheScreen();
 });

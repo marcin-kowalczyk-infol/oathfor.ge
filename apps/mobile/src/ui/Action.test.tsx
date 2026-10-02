@@ -69,3 +69,13 @@ test('a backward secondary action draws its chevron before the label, like the o
   expect(screen.getByRole('button', { name: 'Back' })).toHaveStyle({ justifyContent: 'flex-start' });
   expect(screen.getByRole('button', { name: 'On' })).toHaveTextContent(/^On\s*›$/);
 });
+
+// MVP-22-G24: the drawn reason keeps a Polish single-letter word with the next word. The spoken hint stays plain.
+test.each([
+  ['pl', 'Wpisz imię i wybierz tytuł.', 'Wpisz imię i wybierz tytuł.'],
+  ['en', 'Enter a name and choose a title.', 'Enter a name and choose a title.'],
+] as const)('%s binds only the drawn reason', async (locale, reason, drawn) => {
+  await render(<LocalizationProvider initialLocale={locale}><Action label="Go" onPress={jest.fn()} disabled unavailableReason={reason} /></LocalizationProvider>);
+  expect(screen.getByText(drawn, { normalizer: text => text })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Go' })).toHaveProp('accessibilityHint', reason);
+});

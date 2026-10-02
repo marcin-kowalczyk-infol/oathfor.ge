@@ -21,7 +21,7 @@ test('the neutral surface and the edge under it are warm', () => {
 });
 
 test('an unselected choice and its medallion stand on warm fills', async () => {
-  await render(<GameChoice label="W przyszłym terminie" symbol="◷" selected={false} disabled={false} onPress={jest.fn()} />);
+  await render(<LocalizationProvider initialLocale="pl"><GameChoice label="W przyszłym terminie" symbol="◷" selected={false} disabled={false} onPress={jest.fn()} /></LocalizationProvider>);
   const choice = flat(screen.getByRole('radio', { name: 'W przyszłym terminie' }).props.style);
   expect(choice).toMatchObject({ backgroundColor: tokens.color.surface, borderBottomColor: tokens.warm.edge });
   expect(flat(screen.getByTestId('choice-medallion').props.style).backgroundColor).toBe(tokens.warm.raised);

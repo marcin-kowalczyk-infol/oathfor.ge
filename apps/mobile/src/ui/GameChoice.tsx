@@ -1,11 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
+import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import { tokens } from './tokens';
 import { useMotionAllowed } from './useMotion';
 
 /** A choice remains an explicit radio action; motion never submits a form. */
 export function GameChoice({ label, symbol, selected, disabled, onPress, stacked = false }: { label: string; symbol: string; selected: boolean; disabled: boolean; onPress(): void; /** Large text: the medallion and the marker share a line and the label gets the full width below. */ stacked?: boolean }) {
+  const { i18n } = useTranslation();
   const motion = useMotionAllowed();
   const scale = useRef(new Animated.Value(1)).current;
   useEffect(() => { if (!motion) { scale.stopAnimation(); scale.setValue(1); } return () => scale.stopAnimation(); }, [motion, scale]);
@@ -20,7 +23,7 @@ export function GameChoice({ label, symbol, selected, disabled, onPress, stacked
     accessibilityState={{ selected, disabled }} disabled={disabled} onPress={() => { if (!disabled) onPress(); }} onPressIn={() => touch(true)} onPressOut={() => touch(false)}
     style={({ pressed }) => [styles.choice, selected && styles.selected, pressed && styles.pressed, stacked && styles.stacked]}>
     {stacked ? <View style={styles.top}>{medallion}{mark}</View> : medallion}
-    <Text style={[styles.label, stacked ? styles.stackedLabel : styles.rowLabel]}>{label}</Text>
+    <Text style={[styles.label, stacked ? styles.stackedLabel : styles.rowLabel]}>{bindShortWords(label, i18n.language)}</Text>
     {!stacked && mark}
   </Pressable></Animated.View>;
 }

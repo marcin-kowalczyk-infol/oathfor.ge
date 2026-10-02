@@ -3,6 +3,7 @@ import { Pressable, SafeAreaView, ScrollView, StyleSheet, View, useWindowDimensi
 import { Text } from '../ui/Text';
 import { ART_STYLES, type ArtStyle } from '../art/registry';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import type { Locale } from '../localization/locale';
 import type { NotificationState } from '../onboarding/notifications';
 import { Action } from '../ui/Action';
@@ -40,7 +41,9 @@ const gold = tokens.warm;
 /** Presentational Settings. The server owns every saved value, so the screen only reflects confirmed props. */
 export function SettingsScreen(props: SettingsScreenProps) {
   const { locale, localeState, notificationState, preference, character, paused, artStyle } = props;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Drawn Polish prose keeps a single-letter word with the next word. Spoken labels keep the plain form.
+  const prose = (key: string) => bindShortWords(t(key), i18n.language);
   const { fontScale } = useWindowDimensions();
   // One call per rendered state: a double tap before the parent answers must not send twice.
   const sent = useRef({ locale: false, signOut: false });
@@ -91,8 +94,8 @@ export function SettingsScreen(props: SettingsScreenProps) {
               </Pressable>;
             })}
           </View>
-          {localeState.saving && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.note}>{t('settings.language.saving')}</Text>}
-          {localeState.error && !localeState.saving && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{t('settings.language.error')}</Text>}
+          {localeState.saving && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.note}>{prose('settings.language.saving')}</Text>}
+          {localeState.error && !localeState.saving && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{prose('settings.language.error')}</Text>}
         </View>
 
         {artStyle && <View style={styles.card}>
@@ -108,7 +111,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
               </Pressable>;
             })}
           </View>
-          <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.note}>{t('settings.artStyle.note')}</Text>
+          <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.note}>{prose('settings.artStyle.note')}</Text>
         </View>}
 
         <View style={styles.card}>
@@ -120,13 +123,13 @@ export function SettingsScreen(props: SettingsScreenProps) {
             <View testID="notification-track" accessible={false} style={[styles.track, enabled && styles.trackOn]}><View style={[styles.knob, enabled && styles.knobOn]} /></View>
           </Pressable>
           {/* A permission action shows its own busy reason, so the note covers the other cases. */}
-          {busy && !mayRetry && !mayOpenSettings && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.note}>{t('settings.notifications.busy')}</Text>}
-          <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.note}>{t('settings.notifications.future')}</Text>
-          {unknownPermission && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.body}>{t(`settings.notifications.permission_${permission.kind}`)}</Text>}
-          {blocked && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.body}>{t(mayOpenSettings ? 'settings.notifications.denied' : 'settings.notifications.notAllowed')}</Text>}
+          {busy && !mayRetry && !mayOpenSettings && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.note}>{prose('settings.notifications.busy')}</Text>}
+          <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={styles.note}>{prose('settings.notifications.future')}</Text>
+          {unknownPermission && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.body}>{prose(`settings.notifications.permission_${permission.kind}`)}</Text>}
+          {blocked && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityLiveRegion="polite" style={styles.body}>{prose(mayOpenSettings ? 'settings.notifications.denied' : 'settings.notifications.notAllowed')}</Text>}
           {mayRetry && <Action label={t('settings.notifications.askPermission')} onPress={props.onRetryPermission} busy={busy} variant="secondary" />}
           {mayOpenSettings && <Action label={t('settings.notifications.openSettings')} onPress={props.onOpenSystemSettings} busy={busy} variant="secondary" />}
-          {error && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{t(`settings.notifications.error_${error}`)}</Text>}
+          {error && <Text maxFontSizeMultiplier={tokens.maxScale.inset} accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{prose(`settings.notifications.error_${error}`)}</Text>}
         </View>
 
         <View style={styles.card}>

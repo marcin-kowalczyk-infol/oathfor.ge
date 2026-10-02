@@ -8,6 +8,7 @@ import { currentArt } from '../art/current';
 import type { ArtStyle } from '../art/registry';
 import { presetArt } from '../characters/presetArt';
 import { MainMenuScreen, type MainMenuScreenProps } from './MainMenuScreen';
+import { tokens } from '../ui/tokens';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 
@@ -184,4 +185,20 @@ test.each([['pl', 'W pauzie', 'Przysięga czeka na potwierdzenie'], ['en', 'Paus
   expect(screen.getByText(mark)).toBeOnTheScreen();
   expect(screen.getByText(detail)).toBeOnTheScreen();
   expect(screen.queryAllByRole('button').filter(button => within(button).queryAllByText('◆', { includeHiddenElements: true }).length > 0)).toHaveLength(0);
+});
+
+// MVP-22-G24: a drawn Polish tile detail keeps a single-letter word with the next word. The spoken tile label stays plain.
+test.each([
+  ['pl', 'Palenisko, pieczęcie i kronika', 'Wejdź do Kuźni, Palenisko, pieczęcie i kronika'],
+  ['en', 'Hearth, seals and chronicle', 'Enter the Forge, Hearth, seals and chronicle'],
+] as const)('%s binds the drawn Forge detail only in Polish', async (locale, drawn, spoken) => {
+  await setup({}, locale);
+  expect(screen.getByText(drawn, { normalizer: text => text })).toBeOnTheScreen();
+  expect(screen.getByTestId('menu-forge')).toHaveProp('accessibilityLabel', spoken);
+});
+
+// MVP-22-G24: the demo bar sits right above the app, so the wordmark needs its own gap at the top.
+test('the menu content leaves a top gap above the wordmark', async () => {
+  await setup();
+  expect(StyleSheet.flatten(screen.getByTestId('menu-scroll').props.contentContainerStyle).paddingTop).toBe(tokens.space.card);
 });

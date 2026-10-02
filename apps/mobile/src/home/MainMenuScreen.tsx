@@ -5,6 +5,7 @@ import type { Character } from '../api/characters';
 import { useArt } from '../art/ArtProvider';
 import { presetArt } from '../characters/presetArt';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import { layoutMode } from '../ui/layoutMode';
 import { StateSeal } from '../ui/StateSeal';
 import { PauseMark } from '../ui/PauseMark';
@@ -49,7 +50,7 @@ export function MainMenuScreen({ character, summary, pending, onForge, onTutoria
     <Backdrop />
     <SafeAreaView style={styles.safeArea}>
       {/* iOS keeps stale text measurements after a live Dynamic Type change, so the content remounts, as in SceneSurface. */}
-      <ScrollView key={fontScale} contentContainerStyle={styles.content}>
+      <ScrollView testID="menu-scroll" key={fontScale} contentContainerStyle={styles.content}>
         <View accessible accessibilityRole="header" accessibilityLabel="Oathforge" style={styles.wordmark}>
           <View style={[styles.hairline, styles.hairlineLeft]} />
           <Text maxFontSizeMultiplier={tokens.maxScale.name} style={styles.wordmarkText}>OATHFORGE</Text>
@@ -198,11 +199,12 @@ function Tile({ testID, title, detail, label, stacked, onPress, art, detailLines
 }
 
 function TileLabel({ title, detail, stacked, hero = false, detailLines = 0, onDetailLines }: { title: string; detail: string; stacked: boolean; hero?: boolean; detailLines?: number; onDetailLines?(lines: number): void }) {
+  const { i18n } = useTranslation();
   // Half tile titles are single words. They shrink instead of breaking inside the word.
   const fit = !stacked && !hero ? { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.7 } : {};
   return <View style={[styles.tileLabel, hero && styles.heroLabel]}>
     <Text {...fit} maxFontSizeMultiplier={tokens.maxScale.display} style={hero ? styles.heroTitle : styles.tileTitle}>{title}</Text>
-    <Text onTextLayout={({ nativeEvent }) => onDetailLines?.(nativeEvent.lines.length)} style={[styles.tileDetail, detailLines > 1 && { minHeight: detailLines * DETAIL_LINE }]}>{detail}</Text>
+    <Text onTextLayout={({ nativeEvent }) => onDetailLines?.(nativeEvent.lines.length)} style={[styles.tileDetail, detailLines > 1 && { minHeight: detailLines * DETAIL_LINE }]}>{bindShortWords(detail, i18n.language)}</Text>
   </View>;
 }
 
@@ -235,7 +237,8 @@ const styles = StyleSheet.create({
   darken: { backgroundColor: 'rgba(0,0,0,0.68)' },
   vignette: { experimental_backgroundImage: 'linear-gradient(180deg, rgba(15,16,18,0.2) 0%, rgba(15,16,18,0.65) 70%, #0f1012 100%)' },
   warmth: { experimental_backgroundImage: 'radial-gradient(120% 70% at 50% 30%, rgba(255,150,60,0.10) 0%, rgba(255,150,60,0) 60%)' },
-  content: { paddingHorizontal: 20, paddingBottom: 20 },
+  // MVP-22-G24: the demo bar sits right above the app, so the wordmark keeps a gap like the top of character creation.
+  content: { paddingHorizontal: 20, paddingTop: tokens.space.card, paddingBottom: 20 },
   wordmark: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   wordmarkText: { fontFamily: tokens.font.display, fontSize: 15, lineHeight: 18, letterSpacing: 6, color: gold.mark },
   hairline: { width: 34, height: 1, marginHorizontal: 12 },

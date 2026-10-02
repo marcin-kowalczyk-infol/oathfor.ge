@@ -71,6 +71,19 @@ test.each([
   expect(screen.getByTestId('native-apple-button')).toBeOnTheScreen();
 });
 
+// MVP-22-G24: the drawn Polish heading and description keep a single-letter word with the next word. English keeps ordinary spaces.
+test.each([
+  ['pl', 'Witaj w Oathforge', 'Nie udało się potwierdzić sesji. Sprawdź połączenie i spróbuj ponownie lub wyloguj się.'],
+  ['en', 'Welcome to Oathforge', 'We could not confirm your session. Check your connection and try again, or sign out.'],
+] as const)('%s binds single-letter words in drawn lines only in Polish', async (locale, heading, description) => {
+  const raw = { normalizer: (text: string) => text };
+  const view = await show(locale, { kind: 'signed_out' });
+  expect(screen.getByText(heading, raw)).toBeOnTheScreen();
+  await view.unmount();
+  await show(locale, { kind: 'verification_unavailable' });
+  expect(screen.getByText(description, raw)).toBeOnTheScreen();
+});
+
 test('while Apple sign-in is unavailable the reason stays instead of an older error', async () => {
   await show('en', { kind: 'signed_out', error: { kind: 'unavailable', retry: 'request' } }, 'unavailable');
   expect(screen.getByText('Sign in with Apple is unavailable on this device right now.')).toBeOnTheScreen();

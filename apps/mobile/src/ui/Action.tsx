@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { useTranslation } from '../localization/LocalizationProvider';
+import { bindShortWords } from '../localization/typography';
 import { tokens } from './tokens';
 import { useMotionAllowed } from './useMotion';
 
@@ -15,7 +16,7 @@ export type ActionProps = {
 } & ({ disabled: true; unavailableReason: string } | { disabled?: false; unavailableReason?: string });
 
 export function Action({ label, onPress, disabled = false, busy = false, unavailableReason, variant = 'primary', direction = 'forward' }: ActionProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const motion = useMotionAllowed();
   const depth = useRef(new Animated.Value(0)).current;
   useEffect(() => { if (!motion) { depth.stopAnimation(); depth.setValue(0); } return () => depth.stopAnimation(); }, [motion, depth]);
@@ -44,7 +45,8 @@ export function Action({ label, onPress, disabled = false, busy = false, unavail
       <Text maxFontSizeMultiplier={tokens.maxScale.inset} style={[styles.label, variant === 'primary' ? styles.primaryLabel : styles.secondaryLabel, unavailable && styles.mutedText]}>{label}</Text>
       {variant === 'secondary' && !back && arrow}
     </Pressable></Animated.View>
-    {unavailable && reason && <Text style={styles.reason}>{reason}</Text>}
+    {/* The drawn reason keeps Polish single-letter words with the next word. The hint above keeps the plain form. */}
+    {unavailable && reason && <Text style={styles.reason}>{bindShortWords(reason, i18n.language)}</Text>}
   </View>;
 }
 
