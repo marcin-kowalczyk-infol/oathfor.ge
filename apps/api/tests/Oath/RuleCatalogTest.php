@@ -35,9 +35,15 @@ final class RuleCatalogTest extends TestCase
         foreach (['promise' => $english['promise'], 'declaration' => $english['declaration']] + $english['sections'] as $key => $text) {
             self::assertDoesNotMatchRegularExpression('/\bevidence\b/i', $text, "English {$key} says proof, not evidence.");
         }
-        foreach (['promise' => $english['promise']] + array_intersect_key($english['sections'], array_flip(['timing', 'evidence', 'pause', 'recovery', 'review', 'appeal'])) as $key => $text) {
-            self::assertStringNotContainsString(';', $text, "English {$key} has no semicolon.");
-            self::assertStringNotContainsString("\u{2014}", $text, "English {$key} has no em dash.");
+        foreach (['pl', 'en'] as $locale) {
+            /** @var array{title: string, subtitle: string, promise: string, declaration: string, activity: string, sections: array<string, string>} $copy */
+            $copy = $snapshot['copy'][$locale];
+            $sections = $copy['sections'];
+            unset($copy['sections']);
+            foreach ($copy + $sections as $key => $text) {
+                self::assertStringNotContainsString(';', $text, "Copy {$locale}.{$key} has no semicolon.");
+                self::assertStringNotContainsString("\u{2014}", $text, "Copy {$locale}.{$key} has no em dash.");
+            }
         }
         $snapshot['rewards']['photoTotal'] = 999;
         self::assertSame(40, (new RuleCatalog())->snapshot('running', ['mode' => 'now', 'time' => null], $deadline)['rewards']['photoTotal']);
