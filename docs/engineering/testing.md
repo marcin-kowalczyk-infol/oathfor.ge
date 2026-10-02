@@ -532,3 +532,43 @@ Visual defects found in (d) were fixed and rechecked on the 18 Pro: proof screen
 | Scheduling and monitoring of `app:proof:purge-staging` | Deployment gate, like `app:oath:reconcile` |
 | S3-compatible storage adapter | MVP-14 |
 | Assessment consumer | MVP-08. No consumer exists by design, so worker consumption was not checked |
+
+## Clarity acceptance (MVP-22), 2026-10-02
+
+The implementation landed in T00 to T12c, A0 to A8c and B1 to B2b, from 34573fe to 60def81. The rules are in [clarity](../product/clarity.md). The local plan and task records name every commit. This section records what ran and what is still open.
+
+| Layer | Status | Result |
+| --- | --- | --- |
+| Mobile jest and typecheck | Ran | Last run on 60def81, Node 24.21.0: 106 suites and 1743 tests passed, typecheck exit 0 |
+| Catalog guards | Ran | `clarityCopy.test.ts` checks "what next" lines at 12 Polish words and 70 characters, Żaromir lines at two sentences, pool sizes and the catalog-wide two-sentence cap. `review_copy.py` ran after each copy change, the last flags were resolved |
+| Screen tests | Ran | Every touched screen state asserts at most one filled action and renders in PL and EN at text scale 2 |
+| Independent reviews | Ran per batch | T01 to T03, T02b with T04, T05 to T08b, T09 with T09b, T09c to T09e, T10 to T12b, A0 to A4, A5 to A8b, B1 with A8c. Findings were fixed in T02b, T08b, T09b, T09d, T12b, T12c, A4b, A8c and B2b. B2 had an advisor check only. No independent review is recorded for B2b and the B2 follow-up |
+| Native checks | Ran in part | iPhone 18 Pro simulator, demo build after a cold relaunch, Polish only, default and largest standard text. Each check found defects that later tasks fixed with a failing test first |
+| English native pass | Not run | English is covered by jest at text scale 2 only |
+
+Native observations on the iPhone 18 Pro, all in Polish. Screenshots are local evidence in the ignored `.local/tasks/shots/`.
+
+| Observed | When | Result |
+| --- | --- | --- |
+| Active detail, default and largest text | After T09 | The action fell below the fold. T09c removed the title and tabs and shortened the art band |
+| Active detail, default text | After 60def81 | Emblem, four-step track, card with "Aktywna", one line, the chip and the single filled "Prześlij dowód" fit without scrolling |
+| Active detail, largest text | After 60def81 | Vertical track and the card line fit. The chip and the action need one scroll. Decision 11 promises the fit at default size only |
+| Detail in assessment, proof screen in three steps, Today rows | After T12b | Text on artwork, a repeated top link, a doubled declaration, repeated badge words, a hard band edge, current and done pips alike and the IANA id in the group header. Fixed in T12c (P1 to P7) |
+| Main menu, room dialogue, seals panel, simple Oath list | T09 checkpoint | Contract tone on the seals line fixed in A5, list header over art fixed in T09c. The menu header touching the demo bar is still open |
+| Onboarding steps, Settings, pause review | Sweep 1 | Slate styling, a broken IANA example, long notification and review text, single-letter line ends and long pause rows. Fixed in B1 (G1 to G10) |
+| Room dialogue, tutorial heard plate, History, Oath form, review, confirmation, date and time sheets | Sweep 2 | Low-contrast continue mark, a system-style plate, a large History bubble, header text on hearth art, slate fields, heavy sheet headers, a hidden minute scroll, a repeated review title, the guide covering cards and split number units. Fixed in B2 (G11 to G23) |
+
+Open native gates:
+
+| Gate | Reason |
+| --- | --- |
+| Recheck after the fixes | The T09c to T12c, A1 to A8c and B1 to B2b records each list items marked "native check". Only the active detail was observed again after them |
+| Today fold "Wszystkie Twoje Przysięgi" | Added in A8, not observed natively |
+| English on device | No English native pass in this epic |
+| Simple layout and Reduce Motion | Proof steps open, fold behaviour and the static equivalents are covered by jest only |
+| VoiceOver | Deferred. Labels, headings and announcements are set and tested, the rotor and the B2 sheet hints are unverified |
+| Dialogue panel seam | The B2 fix of the hairline at the lower corners is a hypothesis from screenshots |
+| Main menu header under the demo bar | Found at the T09 checkpoint, not addressed |
+| iPhone SE 3 | Pending by owner instruction |
+| Real device and Release build | Not run |
+| Owner acceptance | The delegated decisions in clarity.md, the new PL and EN copy, the step badge art and the room after the tutorial (no visible control except the door) await the owner |
