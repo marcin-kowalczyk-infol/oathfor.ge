@@ -349,8 +349,9 @@ export function ForgeRoom({ character, progress, onTalk, from = null, onReturned
     </Animated.View>
     {flight.overlay(viewport)}
     {flight.busy && <View testID="flight-shield" style={styles.shield} onStartShouldSetResponder={() => true} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />}
-    {/* MVP-22-B3: the way back to the menu stays visible in every room mode. It is fixed to the screen, outside the camera, and leaves with the flight. */}
-    {!flight.busy && <SafeAreaView testID="room-menu-corner" pointerEvents="box-none" style={styles.corner}>
+    {/* MVP-22-B3: the way back to the menu stays visible in every room mode. It is fixed to the screen, outside the camera. */}
+    {/* It hides during a flight out and the return flight from a place, so it never sits on the close-up. */}
+    {!flight.place && <SafeAreaView testID="room-menu-corner" pointerEvents="box-none" style={styles.corner}>
       <Pressable testID="room-menu-plate" accessibilityRole="button" accessibilityLabel={t('forge.returnMenu')} onPress={still(leaveToMenu)}
         style={({ pressed }) => [styles.menuPlate, pressed && styles.menuPlatePressed]}>
         <Text accessible={false} numberOfLines={1} maxFontSizeMultiplier={PLATE_SCALE} style={styles.menuPlateText}>‹ {t('forge.returnMenu')}</Text>

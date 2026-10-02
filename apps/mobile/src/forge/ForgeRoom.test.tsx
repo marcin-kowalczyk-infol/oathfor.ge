@@ -1266,11 +1266,14 @@ describe('camera flight', () => {
     const timings = captureTimings();
     await render(room({ from: 'seals' }));
     expect(screen.getByTestId('flight-closeup', hidden)).toBeTruthy();
+    // MVP-22-B3: the menu plate waits for the return flight, so it never sits on the fading close-up.
+    expect(screen.queryByTestId('room-menu-plate')).toBeNull();
     expectAt('room-player', places.seals.player);
     const back = timings.find(timing => timing.duration === 650)!;
     expect(back.to).toBe(0);
     await act(async () => back.done!({ finished: true }));
     expect(screen.queryByTestId('flight-closeup', hidden)).toBeNull();
+    expect(screen.getByTestId('room-menu-plate')).toBeOnTheScreen();
     // The entrance zoom does not play on top of the return.
     expect(timings.filter(timing => timing.duration === 1100)).toHaveLength(0);
   });
