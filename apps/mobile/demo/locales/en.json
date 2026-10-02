@@ -15,6 +15,7 @@
   "loseProof": "Lose next proof reply",
   "proofArmed": "Next proof reply will be lost. The demo server records the proof, and sending again returns the same receipt.",
   "add": "Add demo Oath",
+  "addNeedsMore": "Add Oath: needs more proof",
   "resetHint": "Scenarios reset all synthetic data.",
   "wireCheck": "DUMMY: send proof to local capture server",
   "wireCheckOn": "on",

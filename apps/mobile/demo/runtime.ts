@@ -90,8 +90,17 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     const row: Oath = { id: id(), characterId: state.activeCharacterId ?? characterId, state: kind, snapshot: snapshot(kind === 'scheduled' ? 'mobility' : kind === 'withdrawn' ? 'strength_training' : 'running', { mode: scheduled ? 'scheduled' : 'now', time: resolved(activation) }, resolved(deadline)),
       createdAt: iso(scheduled ? state.now - 86400000 : activation), activatedAt: scheduled ? null : iso(activation),
       terminalAt: kind === 'withdrawn' ? iso(state.now - 1000 + delta) : null, reason: kind === 'withdrawn' ? 'character_paused' : kind === 'review_pending' ? 'service_availability_unknown' : null,
-      // No seeded state holds a receipt, so no DUMMY Oath carries proof metadata.
+      // These seeded states hold no receipt. Only seedNeedsMore below carries proof metadata.
       review: kind === 'review_pending' ? { enteredAt: iso(state.now - 3600000), closesAt: iso(state.now + 255600000) } : null, proof: null };
+    state.oaths.push(row); state.revision++; return row;
+  }
+  // DUMMY correction case for native review: a timely first proof, then an assessment asking for more. Deadline and receipt cutoff have passed.
+  // The client contract has no adverse assessment, correction window or reason code yet (MVP-08), so the proof stays 'queued' and the reason null.
+  function seedNeedsMore() {
+    const activation = state.now - 21600000, deadline = state.now - 7200000;
+    const row: Oath = { id: id(), characterId: state.activeCharacterId ?? characterId, state: 'needs_more_evidence', snapshot: snapshot('running', { mode: 'now', time: resolved(activation) }, resolved(deadline)),
+      createdAt: iso(activation), activatedAt: iso(activation), terminalAt: null, reason: null, review: null,
+      proof: { submissionId: id(), mode: 'photo', revision: 1, receivedAt: iso(deadline - 3600000), assessment: 'queued' } };
     state.oaths.push(row); state.revision++; return row;
   }
   if (populated) { seed('scheduled'); seed('active'); seed('review_pending'); for (let i = 0; i < 22; i++) seed('withdrawn', -i * 60000); }
@@ -254,5 +263,5 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     state.offline = offline;
     if (reconnected) reconnectListeners.forEach(listener => listener());
   }
-  return { state, runtime, setOffline, add: () => seed('active') };
+  return { state, runtime, setOffline, add: () => seed('active'), addNeedsMore: seedNeedsMore };
 }

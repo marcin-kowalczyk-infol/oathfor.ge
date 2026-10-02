@@ -46,6 +46,18 @@ test('a control arms one lost proof reply for checking an interrupted upload', a
   expect(screen.getByText(pl.proofArmed)).toBeOnTheScreen();
 });
 
+test('a control adds a needs-more-proof Oath and closes the controls', async () => {
+  await render(<DemoApp />);
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  await fireEvent.press(screen.getByText(pl.returning));
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  await fireEvent.press(screen.getByText(pl.addNeedsMore));
+  expect(screen.queryByText(pl.addNeedsMore)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: pl.badge }));
+  await fireEvent.press(screen.getByRole('button', { name: 'English' }));
+  expect(screen.getByText(en.addNeedsMore)).toBeOnTheScreen();
+});
+
 test('the DUMMY wire check switch shows the capture address and survives a scenario change', async () => {
   await render(<DemoApp />);
   await fireEvent.press(screen.getByRole('button', { name: pl.badge }));

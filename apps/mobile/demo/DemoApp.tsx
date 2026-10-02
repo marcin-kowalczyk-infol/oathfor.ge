@@ -46,6 +46,7 @@ export default function DemoApp() {
     [copy.lose, () => { dummy.state.loseNext = true; repaint(value => value + 1); }],
     [copy.loseProof, () => { dummy.state.loseNextProof = true; repaint(value => value + 1); }],
     [copy.add, () => { dummy.add(); repaint(value => value + 1); setControls(false); }],
+    [copy.addNeedsMore, () => { dummy.addNeedsMore(); repaint(value => value + 1); setControls(false); }],
   ];
   return <View style={styles.root}>
     <SafeAreaView><Pressable accessibilityRole="button" accessibilityLabel={copy.badge} onPress={() => setControls(true)} style={styles.badge}><Text key={fontScale} maxFontSizeMultiplier={1.4} style={styles.badgeText}>{copy.badge}{dummy.state.offline ? ' · OFFLINE' : ''}</Text></Pressable></SafeAreaView>

@@ -1,5 +1,6 @@
 import { createDummy } from './runtime';
 import { cacheProofFiles } from '../src/proof/proofFiles';
+import { isOath } from '../src/api/oathSchema';
 const token = 'A'.repeat(43);
 async function character(dummy: ReturnType<typeof createDummy>) {
   if (dummy.state.activeCharacterId) return;
@@ -176,4 +177,30 @@ test('DUMMY proof record survives an interface restart, uses the real file copy 
   expect(await dummy.runtime().proofStorage.read(account, character)).toEqual({ kind: 'success', value: record });
   expect(await runtime.proofStorage.write(account, character, { ...record, characterId: '30000000-0000-4000-8000-000000000002' })).toEqual({ kind: 'unavailable' });
   expect(await createDummy('en', true).runtime().proofStorage.read(account, character)).toEqual({ kind: 'success', value: null });
+});
+
+test('the needs-more-proof control seeds one received Oath past its cutoff that reconciliation keeps', async () => {
+  const dummy = createDummy('en', true);
+  const runtime = dummy.runtime();
+  const before = await runtime.oathApi.list(token, { view: 'today', limit: 20 });
+  if (before.kind !== 'success') throw new Error('List failed');
+  const seeded = dummy.addNeedsMore();
+  expect(dummy.state.oaths.filter(oath => oath.state === 'needs_more_evidence')).toHaveLength(1);
+  // Both list reads reconcile first, so the second one proves the state is stable.
+  for (let read = 0; read < 2; read++) {
+    const today = await runtime.oathApi.list(token, { view: 'today', limit: 20 });
+    if (today.kind !== 'success') throw new Error('List failed');
+    expect(today.value.total).toBe(before.value.total + 1);
+    const item = today.value.items.find(oath => oath.id === seeded.id)!;
+    expect(item).toMatchObject({ state: 'needs_more_evidence', characterId: dummy.state.activeCharacterId, terminalAt: null, review: null, proof: { mode: 'photo', revision: 1, assessment: 'queued' } });
+    expect(isOath(item)).toBe(true);
+    expect(Date.parse(item.snapshot.deadline.receiptCutoff)).toBeLessThan(Date.parse(today.value.serverTime));
+    expect(Date.parse(item.proof!.receivedAt)).toBeLessThanOrEqual(Date.parse(item.snapshot.deadline.utc));
+  }
+  expect(await runtime.oathApi.detail(token, seeded.id)).toMatchObject({ kind: 'success', value: { oath: { state: 'needs_more_evidence' } } });
+  expect(await runtime.oathApi.getPause(token)).toMatchObject({ kind: 'success', value: { preserve: expect.arrayContaining([seeded.id]) } });
+  // Corrections arrive in a later slice, so a new proof is refused and the Oath keeps its first receipt.
+  const other = '40000000-0000-4000-8000-000000000005';
+  expect(await runtime.proofApi.submit(token, seeded.id, { submissionId: other, mode: 'photo', file: proofFile(other) })).toEqual({ kind: 'proof_refused', code: 'oath_not_active', state: 'needs_more_evidence' });
+  expect(dummy.state.oaths.find(oath => oath.id === seeded.id)!.proof!.submissionId).not.toBe(other);
 });
