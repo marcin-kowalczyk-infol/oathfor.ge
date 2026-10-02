@@ -138,6 +138,35 @@ Not applicable.
 
 ## E2. Teach at the moment of use (opportunity 6)
 
+### Status
+
+Implemented locally on 2026-10-02 in MVP-22-E2.1 to E2.4, with a follow-up after the E2.2 native check. Owner review of D-E7, D-E8 and D-E9 is pending. Native checks on the iPhone 18 Pro are pending for the tutorial barks, the first proof bark and the stronger shade. The first entry gate was checked natively before the follow-up.
+
+- `apps/mobile/src/forge/placeLit.ts` decides which place glows. Unknown counts light every place.
+- The first entry is one bark beside the lit hearth. An unlit place walks the player there, plays its bark and offers no action. Its VoiceOver label ends with "jeszcze nieaktywne" / "not active yet".
+- Unlit places carry a DUMMY code-drawn shade over the whole station. A grey saturation blend drains the colour and a dark layer dims it. While another place is unlit the hearth glows brighter and breathes with the room's glow. Reduce Motion keeps that glow still. The shade boxes are `unlitShades` in `apps/mobile/src/forge/sceneLayout.ts`.
+- Each tutorial chapter in the room opens on one bark with "Więcej" / "More" and "Inne miejsce" / "Another place", or "Zakończ" / "Finish" on the fourth place. A bark alone counts the chapter as heard. The simple tutorial screen is unchanged.
+- The first proof screen per account on this device shows Żaromir's teaching bark. Its flag uses the device guide storage under the name `proof-guide`.
+
+Local decisions, 2026-10-02, owner review pending:
+
+- Chapter barks keep to 8 Polish words, the bark cap for slice E, which is stricter than the 12 words below.
+- "Więcej" plays the player's question first, then Żaromir's accepted lines with the counter. So the tutorial player lines of the [Forge scene](forge-scene.md) stay in use.
+- The proof flag is kept per account, as "Acceptance" says. The behaviour line below names a character. The account wins because the teaching is for the player, not for one character.
+- The proof bark replaces only the rotating proof line. Between D and S the conditional cutoff line stays. While a proof is sent, while an upload waits and on an Oath that is no longer active Żaromir behaves as before. The flag is written only once the bark is on screen.
+- On the seal cut that covers a figure behind the drums, the shade only darkens. The blend cannot reach through the cut's own layer. Native check pending.
+
+| Key | Polish | English |
+| --- | --- | --- |
+| `room.tutorial.hearth.bark` | Przy ogniu wykuwasz nową Przysięgę. | At the fire you forge a new Oath. |
+| `room.tutorial.seals.bark` | Pieczęcie to Twoje bieżące Przysięgi. | The seals are your current Oaths. |
+| `room.tutorial.chronicle.bark` | Kronika pamięta każdą zakończoną Przysięgę. | The chronicle remembers every finished Oath. |
+| `room.tutorial.door.bark` | Drzwi prowadzą do menu, postaci i pauzy. | The door leads to the menu, characters and pause. |
+| `room.tutorial.more` | Więcej | More |
+| `zaromir.proofFirst.0` | Najpierw wybierz rodzaj dowodu. | First, choose the proof type. |
+
+Measured word budgets in `apps/mobile/src/ui/wordBudget.baseline.json`: `room.tutorialChapter` 12 Polish and 15 English words, `room.tutorialMore` 13 and 16, `proof.firstVisit` 67 and 80. The proof form stays an E6 target.
+
 ### Player-facing behaviour
 
 - **First room entry, skill gate (D-E7).** Only the hearth glows. Żaromir stands beside it and says one bark, such as PL "Zacznij tutaj, od ognia." EN "Start here, at the fire." The other places are drawn unlit.

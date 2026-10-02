@@ -14,7 +14,7 @@ The four-step room guide only names the places. The player also needs the rules 
 - The first room entry keeps the short four-step guide. The Tutorial tile in the menu starts the full conversation.
 - In simple layout the same chapters appear as one plain text screen. Superseded on 2026-10-02: each chapter folds behind its title, see [clarity](clarity.md).
 
-Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, not implemented yet): in the room each chapter plays one bark of at most 12 words while Żaromir gestures at the place, and "Więcej" / "More" plays the chapter's other existing lines (D-E8). The first room entry no longer plays the four-step guide. Only the hearth is lit and the other places light when they have something (D-E7). Proof submission, which works since MVP-07, is taught at the moment of use on the first proof screen instead of in a new chapter (D-E9).
+Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, implemented locally in MVP-22-E2.2 to E2.4, native check pending): in the room each chapter plays one bark of at most 12 words while Żaromir gestures at the place, and "Więcej" / "More" plays the chapter's other existing lines (D-E8). The first room entry no longer plays the four-step guide. Only the hearth is lit and the other places light when they have something (D-E7). Proof submission, which works since MVP-07, is taught at the moment of use on the first proof screen instead of in a new chapter (D-E9).
 
 ## Flow
 
@@ -36,11 +36,13 @@ Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, own
 
 **Chapter bubble.** It keeps the existing room bubble: speaker name, text, a step counter such as "2 / 4", a next button and ×. The last bubble replaces next with "Another place". When it is the fourth distinct heard chapter, the button is "Finish" and leads to the closing bubble. Touching the place being told keeps the current line. At the door Żaromir stands in the doorway.
 
+Superseded on 2026-10-02 (MVP-22-E2.3, [engagement](engagement.md) D-E8, owner review pending): a touched place now opens on Żaromir's bark, without the player's question or a counter. Its controls are "Więcej" / "More" where the counter sits and "Inne miejsce" / "Another place", or "Zakończ" / "Finish" on the fourth distinct place. A bark alone counts the chapter as heard. "Więcej" plays the player's question, then the chapter lines above with their counter, and the last line keeps "Another place" or "Finish" (local decision). The bark copy is in [engagement](engagement.md#status). The simple tutorial screen keeps only the chapter lines.
+
 **Progress.** Heard marks live only for the current tutorial run. Nothing is stored, locally or on the server. A new start from the menu begins with no marks.
 
 **First visit.** The automatic guide on the first room entry stays four steps. Its last step now points to the Tutorial. A tutorial started before the first room entry takes priority, the guide does not start and the guide counts as seen.
 
-Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, not implemented yet): the first room entry lights only the hearth with one bark from Żaromir. Unlit places stay touchable and say when they light. Unknown counts light every place (D-E7).
+Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, implemented locally in MVP-22-E2.2): the first room entry lights only the hearth with one bark from Żaromir. Unlit places stay touchable and say when they light. Unknown counts light every place (D-E7).
 
 **Simple layout.** The Tutorial tile is visible again in simple layout, full width like Settings. It opens a scrolling screen with Żaromir's portrait, the intro line and the four chapters, each with a heading and its bubbles as paragraphs. Superseded on 2026-10-02: each chapter heading is a link that opens its paragraphs in place, so the screen shows the intro and four titles first, see [clarity](clarity.md). A plain "Back to menu" link returns to the menu. The copy is the same as in the room.
 

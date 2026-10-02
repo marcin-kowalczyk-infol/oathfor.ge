@@ -44,7 +44,7 @@ Until the player art is delivered the player is the static menu figure of the ch
 
 ## Żaromir
 
-- Guided mode: in the tutorial he starts walking together with the player, to his spot beside the chosen place. In the first-visit guide only he walks, to his spot beside each step's place, and the player stays at the start (owner decision D3, 2026-09-28). Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, not implemented yet): the four-step first-visit guide ends. On the first entry Żaromir stands beside the lit hearth and says one bark (D-E7). On arrival he turns to the player and talks with the existing gestures. The tutorial chapter text stays as accepted.
+- Guided mode: in the tutorial he starts walking together with the player, to his spot beside the chosen place. In the first-visit guide only he walks, to his spot beside each step's place, and the player stays at the start (owner decision D3, 2026-09-28). Superseded by [engagement](engagement.md) on 2026-10-02 (delegated decision, owner review pending, implemented locally in MVP-22-E2.2): the four-step first-visit guide ends. On the first entry Żaromir stands beside the lit hearth and says one bark (D-E7). On arrival he turns to the player and talks with the existing gestures. The tutorial chapter text stays as accepted.
 - Normal mode: he stands aside and breathes. He does not follow the player.
 - One touch on him in normal mode turns him to the player and opens the panel with his hint and two counters, with no player line before it (owner decisions D4 to D6, 2026-09-28). His touch target has a VoiceOver label, "Żaromir, your progress" / "Żaromir, Twoje postępy".
 
@@ -54,7 +54,7 @@ Until the player art is delivered the player is the static menu figure of the ch
 - The speaker's bust rises above the frame and is drawn over it, so the frame never hides part of it (owner demo review, 2026-09-28). Żaromir is on the left, the player on the right. A change of speaker slides the old bust out and the new one in, and the plate moves to that side.
 - A soft ring of light under the speaking character in the room shows who speaks. The panel has no tail.
 - Text appears letter by letter. The first touch shows the whole line, the next touch continues. A pulsing rune shows that more follows. It sits in its own 44 pt row at the bottom right, tinted the cream of the × (MVP-22-B2).
-- The panel keeps today's controls: the place action as a bronze button, the counter such as "2 / 4", "Another place", "Finish" and ×. Superseded on 2026-10-02: the first-visit guide's step control shows its words, "Następne miejsce" / "Next place" and "Zacznij odkrywać" / "Start exploring", instead of an arrow or a check. See [clarity](clarity.md).
+- The panel keeps today's controls: the place action as a bronze button, the counter such as "2 / 4", "Another place", "Finish" and ×. Superseded on 2026-10-02: the first-visit guide's step control shows its words, "Następne miejsce" / "Next place" and "Zacznij odkrywać" / "Start exploring", instead of an arrow or a check. See [clarity](clarity.md). Superseded again on 2026-10-02 (MVP-22-E2.2): the four-step guide is gone, the first entry is one bark. Added on 2026-10-02 (MVP-22-E2.3): a tutorial chapter's bark shows the word control "Więcej" / "More" where the counter sits, beside "Inne miejsce" / "Zakończ".
 - The bottom edge stays fixed and the panel grows upward, so a button never moves under the finger. At large text the content scrolls inside the panel.
 - VoiceOver reads the speaker and the whole line at once. Busts are decorative. Controls are at least 44 pt.
 - Reduce Motion shows the whole line at once and swaps busts without sliding.
@@ -75,6 +75,8 @@ Object layers are cut from the room image: the three seal drums, the book and th
 
 Touching the place again replays its response.
 
+Added on 2026-10-02 (MVP-22-E2.2 and its follow-up, [engagement](engagement.md) D-E7, owner review pending): a place lights when the server counts give it something. An unlit place has no glow, wisp or response, and a DUMMY code-drawn shade covers the whole station. A grey saturation blend drains its colour and a dark layer dims it, both fading toward the box corners. The first native check on the iPhone 18 Pro found the earlier shade too weak, so it was strengthened and sized to each station. While another place is unlit the hearth glows brighter and breathes with the room's glow, and under Reduce Motion it keeps a steady glow. The stronger shade awaits its native check.
+
 When the player picks the place action, the camera flies to the object, about 1.9 times over 650 ms, crossfades into the matching station close-up and opens the screen. Returning to the Forge plays it backward. The door pulls the camera back and opens the menu. Reduce Motion uses a crossfade only. The transition delays navigation by at most 700 ms and ignores a second touch while it runs.
 
 ## Hint and counters
@@ -94,7 +96,7 @@ A known Today answer lets Żaromir speak at once, even while the touch refreshes
 
 ## Player lines
 
-One player line opens each place description and each tutorial chapter. Żaromir's talk has no player line (owner decision D6, 2026-09-28). Polish lines agree with the character's form (masculine, feminine or neutral). The neutral form avoids gendered past tense. The lines below are proposals for owner review, written without em dashes or semicolons.
+One player line opens each place description and each tutorial chapter. Żaromir's talk has no player line (owner decision D6, 2026-09-28). Polish lines agree with the character's form (masculine, feminine or neutral). The neutral form avoids gendered past tense. The lines below are proposals for owner review, written without em dashes or semicolons. Superseded on 2026-10-02 (MVP-22-E2.3, local decision, owner review pending): a tutorial chapter opens on Żaromir's bark, and the player's question follows "Więcej" / "More".
 
 Lines without a gendered form use one Polish text for all forms.
 
