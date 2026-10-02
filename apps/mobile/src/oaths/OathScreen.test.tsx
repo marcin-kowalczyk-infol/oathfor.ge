@@ -482,7 +482,7 @@ test('after the seal a short card shows the countdown, the deadline and the next
   expect(screen.getByLabelText(/^Step 2 of 4, Workout/)).toBeOnTheScreen();
   expect(screen.getByTestId('step-node-1-done', { includeHiddenElements: true })).toBeTruthy();
   const zaromir = screen.getByLabelText(/^Zharomir: /).props.accessibilityLabel.replace('Zharomir: ', '');
-  expect(['The Oath is made and already under way. Think about when and where you will train.', 'Your word is forged. Now the workout, at your own pace, then the proof.',
+  expect(['Your word is given. Think about when and where you will train.', 'Your word is forged. Now the workout, at your own pace, then the proof.',
     'The seal is set. Pick a time and place that fit your day.']).toContain(zaromir);
   expect(screen.queryAllByText('◆', { includeHiddenElements: true })).toHaveLength(1);
   expect(within(screen.getByRole('button', { name: 'View the Oath' })).getByText('◆', { includeHiddenElements: true })).toBeTruthy();
@@ -511,7 +511,7 @@ test('Polish card and a scheduled Oath counting down to its start', async () => 
   expect(screen.getByLabelText('Etap 1 z 4, Przysięga, Czeka na start')).toBeOnTheScreen();
   expect(screen.getByText(/^Zaplanowana · termin /)).toBeOnTheScreen();
   const zaromir = screen.getByLabelText(/^Żaromir: /).props.accessibilityLabel.replace('Żaromir: ', '');
-  expect(['Przysięga złożona, start już ustalony. Do tego czasu możesz spokojnie się przygotować.', 'Słowo wykute, czeka na swój start. Dobrze wiedzieć, gdzie wtedy zrobisz trening.']).toContain(zaromir);
+  expect(['Start już ustalony. Do tego czasu możesz spokojnie się przygotować.', 'Słowo wykute, czeka na swój start. Warto wiedzieć, gdzie wtedy zrobisz trening.']).toContain(zaromir);
 });
 // MVP-22-T12c: a replayed acceptance can return an Oath that has already moved on. Żaromir greets only a scheduled or active one.
 test('a replayed acceptance that returns a withdrawn Oath shows no Żaromir greeting', async () => {

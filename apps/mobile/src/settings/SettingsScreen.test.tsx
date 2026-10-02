@@ -49,7 +49,7 @@ test('while the language saves both options are disabled', async () => {
 
 test('a failed language save shows the error line and keeps the current language selected', async () => {
   await setup({ localeState: { saving: false, error: true } });
-  expect(screen.getByText('Could not save the language, the previous one stays. Try again.')).toBeOnTheScreen();
+  expect(screen.getByText('Could not save the language, so the previous one stays. Try again.')).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Polski' })).toBeSelected();
   expect(screen.getByRole('radio', { name: 'English' })).not.toBeSelected();
 });

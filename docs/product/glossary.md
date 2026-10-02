@@ -6,7 +6,7 @@ Status: accepted first-loop terms and reviewed mechanical PL/EN copy; other lore
 | --- | --- |
 | Oath / Przysięga | Accepted EN/PL commitment term; commitment with a deadline and agreed evidence (owner decision, 2026-09-24) |
 | Trial of the Spark / Próba Iskry | Accepted EN/PL name of the first initiation task; the commitment itself remains an Oath (owner decision, 2026-09-24) |
-| Proof | Evidence submitted for an Oath |
+| Proof | What the player submits for an Oath, such as a photo. English player-facing copy says proof, never evidence (owner decision, 2026-10-02) |
 | Verification | Assessment against the agreed evidence requirement |
 | Companion | Player-facing AI character |
 | Weles / Veles | Accepted PL/EN mythological anchor for an original companion, not the companion’s selected proper name (owner decision, 2026-09-24) |

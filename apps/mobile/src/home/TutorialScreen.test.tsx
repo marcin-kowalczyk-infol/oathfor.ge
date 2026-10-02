@@ -52,7 +52,7 @@ test.each([['pl', pl], ['en', en]] as const)('the %s screen shows the intro and 
     expect(order).toEqual([...order].sort((a, b) => a - b));
   }
   // The raw string with its no-break spaces, which the default text matcher would fold into plain ones (MVP-22-A8c).
-  if (locale === 'pl') expect(screen.getByText('O\u00a0stanie decyduje Kuźnia, nie zegar w\u00a0telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, to nie niewykonanie.', { normalizer: text => text })).toBeOnTheScreen();
+  if (locale === 'pl') expect(screen.getByText('O\u00a0stanie decyduje Kuźnia, nie zegar w\u00a0telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, a\u00a0nie niewykonana.', { normalizer: text => text })).toBeOnTheScreen();
 });
 
 test('back to menu calls onBack once', async () => {

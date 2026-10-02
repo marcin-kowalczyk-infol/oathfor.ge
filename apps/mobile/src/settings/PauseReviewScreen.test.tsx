@@ -66,7 +66,7 @@ test('pause shows meaningful complete-set summaries and a changed revision requi
   expect(screen.queryByText(/Europe\/Warsaw/)).toBeNull();
   expect(screen.queryByText(id)).toBeNull(); expect(f.controller.pause).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('button', { name: 'Confirm pause' }));
-  expect(await screen.findByText('Your Oaths changed. Review them again, pause does not extend deadlines.')).toBeOnTheScreen();
+  expect(await screen.findByText('Your Oaths changed, and pause does not extend deadlines. Review them again.')).toBeOnTheScreen();
   expect(f.controller.pause).toHaveBeenCalledTimes(1); expect(f.onChanged).not.toHaveBeenCalled();
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
   expect(jest.mocked(f.controller.pause).mock.calls.map(call => call[0])).toEqual([{ paused: true, revision: 'a'.repeat(64) }, { paused: true, revision: 'b'.repeat(64) }]);
@@ -195,7 +195,7 @@ test('a changed Oath list replaces the intro instead of stacking under it', asyn
   await show(f);
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm pause' }));
   await screen.findByRole('button', { name: 'Confirm pause' });
-  plain('Your Oaths changed. Review them again, pause does not extend deadlines.');
+  plain('Your Oaths changed, and pause does not extend deadlines. Review them again.');
   expect(screen.queryByText(intro)).toBeNull();
 });
 

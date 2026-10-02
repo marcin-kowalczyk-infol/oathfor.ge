@@ -161,7 +161,7 @@ test('the A8c copy decisions hold in both languages', () => {
   expect(at(en, 'zaromir.cutoff.1')).toBe('If the workout ended by the deadline, the proof can still make it.');
   expect(at(pl, 'oath.formRequiredScheduled')).toBe('Wybierz trening, start i termin, aby zobaczyć zasady.');
   expect(at(en, 'oath.formRequiredScheduled')).toBe('Choose a workout, start and deadline to see the rules.');
-  expect(at(en, 'room.tutorial.seals.1')).toMatch(/under review/);
+  expect(at(en, 'room.tutorial.seals.1')).toMatch(/awaiting a result/);
   expect(at(en, 'room.tutorial.seals.1')).not.toMatch(/awaiting review/);
   expect(at(en, 'room.tutorial.door.3')).toMatch(/you turn it on in Settings/);
 });

@@ -650,7 +650,7 @@ test('a language the server rejects keeps the current language and shows the err
   await signIn(runtime);
   await fireEvent.press(await screen.findByRole('button', { name: 'Settings, Language, pause, account' }));
   await fireEvent.press(await screen.findByRole('radio', { name: 'Polski' }));
-  expect(await screen.findByText('Could not save the language, the previous one stays. Try again.')).toBeOnTheScreen();
+  expect(await screen.findByText('Could not save the language, so the previous one stays. Try again.')).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'English', selected: true })).toBeOnTheScreen();
 });
 

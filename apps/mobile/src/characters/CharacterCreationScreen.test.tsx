@@ -135,7 +135,7 @@ test('a stored creation prefills its values and retries it instead of creating a
   expect(screen.getByRole('radio', { name: 'Look 3 of 4', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Stout build', selected: true })).toBeDisabled();
   expect(screen.getByTestId('character-figure').props.source).toBe(presetArt(currentArt.presets, 'starter_03', 'heavy')!.figure);
-  expect(screen.getByText('The connection dropped before the Forge answered. Zoya waits on this device, try again.')).toBeOnTheScreen();
+  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device, so you can try again.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Create character' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
   expect(f.onRetry).toHaveBeenCalledTimes(1); expect(f.onCreate).not.toHaveBeenCalled();
@@ -212,7 +212,7 @@ test('the name field announces the current name problem as its hint', async () =
 
 test('a pending creation keeps the pending message for non-storage errors', async () => {
   await setup(ready({ pendingCreation: pending, error: { kind: 'configuration' } })); await act(async () => {});
-  expect(screen.getByText('The connection dropped before the Forge answered. Zoya waits on this device, try again.')).toBeOnTheScreen();
+  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device, so you can try again.')).toBeOnTheScreen();
 });
 
 test('a rate limit disables Retry until the server wait has elapsed', async () => {
@@ -220,9 +220,9 @@ test('a rate limit disables Retry until the server wait has elapsed', async () =
   try {
     const f = await setup(ready({ pendingCreation: pending, error: { kind: 'rate_limited', retry: 'request', retryAfterSeconds: 2 } })); await act(async () => {});
     expect(screen.getByRole('button', { name: 'Try again' })).toBeDisabled();
-    expect(screen.getAllByText('The Forge asks for a short break. Zoya is saved on this device, try again in 2 seconds.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('The Forge asks for a short break. Zoya is saved on this device, and you can try again in 2 seconds.').length).toBeGreaterThan(0);
     await act(async () => { jest.advanceTimersByTime(1000); });
-    expect(screen.getAllByText('The Forge asks for a short break. Zoya is saved on this device, try again in 1 second.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('The Forge asks for a short break. Zoya is saved on this device, and you can try again in 1 second.').length).toBeGreaterThan(0);
     await act(async () => { jest.advanceTimersByTime(1000); });
     expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled();
     await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
@@ -277,7 +277,7 @@ test('an unresolved creation hides the way back and still explains itself withou
   await render(<LocalizationProvider initialLocale="en"><CharacterCreationScreen state={ready({ pendingCreation: pending })} draft={emptyCreationDraft} onDraft={jest.fn()} onCreate={jest.fn()} onRetry={jest.fn()} onReload={jest.fn()} onCancel={onCancel} /></LocalizationProvider>);
   await act(async () => {});
   expect(screen.queryByRole('button', { name: 'Back to characters' })).toBeNull();
-  expect(screen.getByText('The connection dropped before the Forge answered. Zoya waits on this device, try again.')).toBeOnTheScreen();
+  expect(screen.getByText('The connection dropped before the Forge answered. Zoya is saved on this device, so you can try again.')).toBeOnTheScreen();
 });
 
 test('creation opened from the change screen offers a way back when nothing is pending', async () => {

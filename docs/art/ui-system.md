@@ -41,7 +41,7 @@ The status words below are the primary distinction even without color; the accom
 | Domain/presentation state | Polish / English heading | Marker and treatment | Explanation / available action |
 | --- | --- | --- | --- |
 | `proof_pending` | Ocena trwa / Assessment pending | Clock, neutral | Evidence received; assessment delay preserves receipt time. Show receipt and rules; no new first-submit action. |
-| `needs_more_evidence` | Potrzebne uzupełnienie / More evidence needed | Document, neutral | Explain missing information, same workout, two lifetime corrections and fixed cutoff; offer correction only while eligible. |
+| `needs_more_evidence` | Potrzebne uzupełnienie / More proof needed | Document, neutral | Explain missing information, same workout, two lifetime corrections and fixed cutoff; offer correction only while eligible. |
 | `review_pending` | W trakcie rozpatrywania / Under review | Magnifier, neutral | Review is not a miss. Show review context and server-provided deadline; no punishment or fabricated guaranteed verdict. |
 | `fulfilled` | Spełniona / Fulfilled | Check, positive | Show awarded XP from the backend; eligible evidence upgrade remains separate from fulfillment. |
 | `missed` | Niewykonana / Missed | Dash, missed | State the established reason calmly; show existing XP and an eligible Recovery offer, never a reset. |

@@ -43,9 +43,9 @@ test('the same seed keeps the same text across rerenders', async () => {
 
 // MVP-22-B1 (G4): the drawn line binds Polish single-letter words, the spoken label keeps the catalog text.
 test('the Polish line keeps "i" with the next word, the label stays plain', async () => {
-  const line = lineOf(pl, 'review', 'oath-4:review');
-  expect(line).toContain(' i to ');
-  await render(show('review', 'oath-4:review'));
-  expect(screen.getByText(line.replace(' i to ', ' i\u00a0to '), { normalizer: text => text })).toBeOnTheScreen();
+  const line = lineOf(pl, 'confirmed', 'oath-4:confirmed');
+  expect(line).toContain(' i gdzie ');
+  await render(show('confirmed', 'oath-4:confirmed'));
+  expect(screen.getByText(line.replace(' i gdzie ', ' i\u00a0gdzie '), { normalizer: text => text })).toBeOnTheScreen();
   expect(screen.getByLabelText(`Żaromir: ${line}`)).toBeOnTheScreen();
 });

@@ -51,7 +51,7 @@
     "reviewTimezone": "Strefa",
     "reviewIntention": "Intencja",
     "reviewNotifications": "Powiadomienia",
-    "error_complete": "Nie udało się zakończyć przygotowań, zapisane wybory zostają. Spróbuj ponownie.",
+    "error_complete": "Nie udało się potwierdzić zakończenia przygotowań, ale zapisane wybory zostają. Spróbuj ponownie.",
     "completionLoadError": "Nie udało się sprawdzić, czy przygotowania są zakończone. Spróbuj ponownie sprawdzić zapisany postęp.",
     "trialTitle": "Próba Iskry",
     "trialPending": "Tworzenie pierwszej Przysięgi nie jest jeszcze dostępne. Żadna Przysięga się nie rozpoczęła.",
@@ -545,9 +545,9 @@
         "4": "Złożonych zasad nikt już nie zmieni, także Kuźnia. Inna obietnica to nowa Przysięga."
       },
       "seals": {
-        "1": "Pieczęcie to Twoje bieżące Przysięgi: zaplanowane, trwające i te, które są pod rozwagą.",
+        "1": "Pieczęcie to Twoje bieżące Przysięgi: zaplanowane, trwające i te, które czekają na wynik.",
         "2": "Każda Przysięga trzyma czas w swojej strefie. Zmiana strefy w telefonie go nie przesunie.",
-        "3": "O stanie decyduje Kuźnia, nie zegar w telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, to nie niewykonanie."
+        "3": "O stanie decyduje Kuźnia, nie zegar w telefonie. Po ostatnim terminie Przysięga jest pod rozwagą, a nie niewykonana."
       },
       "chronicle": {
         "1": "Kronika przechowuje zakończone Przysięgi razem z ich wynikiem.",
@@ -556,7 +556,7 @@
       "door": {
         "1": "Drzwi prowadzą do menu. Tam zmienisz postać albo stworzysz nową, najwyżej trzy.",
         "2": "Każda postać ma własne Przysięgi, własną kronikę i własną pauzę.",
-        "3": "Pauzę włączysz w Ustawieniach, wycofa zaplanowane i trwające Przysięgi tej postaci. Te pod rozwagą czekają dalej.",
+        "3": "Pauza, włączana w Ustawieniach, wycofuje zaplanowane i trwające Przysięgi tej postaci. Czekające na wynik trwają dalej.",
         "4": "W czasie pauzy nie złożysz nowej Przysięgi. Wznowienie zdejmuje pauzę, ale nie przywraca wycofanych."
       }
     },
@@ -665,7 +665,7 @@
     "openSettings": "Otwórz Ustawienia",
     "confirm": "Tak, potwierdzam",
     "caveatHeading": "Ocena dowodu",
-    "caveat": "AI ocenia tylko to, co widać na obrazie. Obraz nie pokaże ukończenia, czasu trwania ani osoby na treningu, dlatego Kuźnia opiera się też na Twojej deklaracji.",
+    "caveat": "Obraz nie pokaże ukończenia, czasu trwania ani osoby na treningu, dlatego Kuźnia opiera się też na Twojej deklaracji.",
     "missing": {
       "route": "Wybierz rodzaj dowodu.",
       "image": "Dodaj obraz.",
@@ -752,43 +752,43 @@
       "0": "Przysięga czeka na swój start. Warto już teraz wiedzieć, gdzie zrobisz trening.",
       "1": "Do startu jest jeszcze czas. Przygotuj, co trzeba, kiedy zechcesz.",
       "2": "Start już wykuty. Pomyśl, o której i gdzie ruszysz.",
-      "3": "Ta Przysięga ruszy o czasie. Do tego czasu nic nie trzeba robić.",
+      "3": "Do startu nic nie trzeba robić. Przysięga ruszy sama.",
       "4": "Plan już stoi. Gdy przyjdzie pora, będę przy palenisku."
     },
     "active": {
       "0": "Przysięga trwa. Kiedy trening będzie za Tobą, prześlij dowód.",
       "1": "Czas jest po Twojej stronie. Wybierz porę i miejsce, które Ci pasują.",
       "2": "Ogień płonie równo. Najpierw trening, potem dowód, w swoim tempie.",
-      "3": "Do terminu jest jeszcze czas. Dobrze wiedzieć, o której wyruszysz.",
+      "3": "Do terminu jest jeszcze czas. Warto wiedzieć, o której wyruszysz.",
       "4": "Po treningu wróć tu z dowodem. Będę czekać przy pieczęci."
     },
     "activeSoon": {
-      "0": "Do terminu została niecała godzina. To dobra chwila, by ruszyć.",
+      "0": "Termin jest już blisko. To dobra chwila, by ruszyć.",
       "1": "Zostało mniej niż godzina. Jeśli trening już za Tobą, prześlij dowód.",
       "2": "Ogień przygasa, termin jest blisko. Ruszaj, gdy tylko możesz.",
-      "3": "Termin jest blisko, zostaje niecała godzina. Trening teraz, dowód zaraz po nim."
+      "3": "Termin jest blisko. Trening teraz, dowód zaraz po nim."
     },
     "cutoff": {
-      "0": "Okno na dowód trwa. Prześlij go, jeśli trening skończył się przed terminem.",
+      "0": "Okno na dowód otwarte. Prześlij go, jeśli trening skończył się w terminie.",
       "1": "Jeśli trening skończył się w terminie, dowód może jeszcze zdążyć.",
       "2": "Świeca jeszcze płonie. Jeśli trening zakończył się w terminie, prześlij dowód teraz."
     },
     "interrupted": {
-      "0": "To nie Twoja wina. Kopia dowodu czeka, wyślij ją ponownie."
+      "0": "To nie Twoja wina. Wystarczy wysłać kopię jeszcze raz."
     },
     "assessing": {
       "0": "Dowód dotarł. Teraz razem czekamy na ocenę.",
-      "1": "Dowód jest już w Kuźni. Wynik pojawi się tutaj.",
+      "1": "Dowód jest już w Kuźni. Możesz zająć się swoim dniem.",
       "2": "Dowód przesłany, to był ważny krok. Możesz odpocząć.",
       "3": "Ogień zrobił swoje, teraz ocena. Na razie nic więcej nie trzeba.",
-      "4": "Dowód odebrany. Reszta należy teraz do oceny."
+      "4": "Twoja część zrobiona. Reszta należy teraz do oceny."
     },
     "review": {
-      "0": "Ta Przysięga jest pod rozwagą i to nie jest niewykonanie."
+      "0": "Kuźnia wciąż rozważa tę Przysięgę."
     },
     "fulfilled": {
-      "0": "Przysięga spełniona. Ten trening zostaje na Twojej drodze.",
-      "1": "Słowo dotrzymane, trening zapisany w kronice. Kolejna Przysięga, kiedy zechcesz.",
+      "0": "Udało się. Ten trening zostaje częścią Twojej drogi.",
+      "1": "Słowo dotrzymane. Kolejna Przysięga, kiedy zechcesz.",
       "2": "Ogień przyjął ten trening. Dobra, równa robota.",
       "3": "Spełniona Przysięga to kolejny krok na szlaku. Odpocznij, zanim ruszysz dalej.",
       "4": "Ten trening się liczy. Palenisko czeka na następną Przysięgę."
@@ -796,25 +796,25 @@
     "missed": {
       "0": "Palenisko jest gotowe na nową Przysięgę. Ruszymy, gdy zechcesz.",
       "1": "Wcześniejsze ślady zostają w kronice. Gdy zechcesz, wykujemy nową Przysięgę.",
-      "2": "Następna Przysięga może być mniejsza i bliżej Twojego dnia. Palenisko poczeka."
+      "2": "Następna Przysięga może być mniejsza, na miarę Twojego dnia. Palenisko poczeka."
     },
     "unresolved": {
-      "0": "Tego nie dało się rozstrzygnąć i to nie jest niewykonanie.",
+      "0": "Ogień wciąż płonie. Nowa Przysięga może się zacząć, kiedy zechcesz.",
       "1": "Brak rozstrzygnięcia to nie porażka. Palenisko czeka na kolejną Przysięgę, gdy zechcesz."
     },
     "withdrawn": {
-      "0": "Ta Przysięga odeszła razem z pauzą. Nowa może zacząć się, kiedy zechcesz.",
+      "0": "Ta Przysięga jest już za Tobą. Nowa może zacząć się, kiedy zechcesz.",
       "1": "Pauza była Twoim wyborem. Palenisko czeka na nową Przysięgę.",
       "2": "Dobrze, że jesteś z powrotem. Nową Przysięgę wykujemy, gdy zechcesz."
     },
     "confirmed": {
-      "0": "Przysięga złożona i już trwa. Pomyśl, kiedy i gdzie zrobisz trening.",
+      "0": "Słowo dane. Pomyśl, kiedy i gdzie zrobisz trening.",
       "1": "Słowo wykute w ogniu. Teraz trening, w swoim tempie, a potem dowód.",
       "2": "Pieczęć przyłożona. Wybierz porę i miejsce, które pasują do Twojego dnia."
     },
     "confirmedScheduled": {
-      "0": "Przysięga złożona, start już ustalony. Do tego czasu możesz spokojnie się przygotować.",
-      "1": "Słowo wykute, czeka na swój start. Dobrze wiedzieć, gdzie wtedy zrobisz trening."
+      "0": "Start już ustalony. Do tego czasu możesz spokojnie się przygotować.",
+      "1": "Słowo wykute, czeka na swój start. Warto wiedzieć, gdzie wtedy zrobisz trening."
     },
     "proofScreen": {
       "0": "Trzy kroki: rodzaj, obraz i potwierdzenie. Pójdziemy po kolei.",

@@ -188,10 +188,10 @@ test.each([['pl', 375, 1, 'row'], ['en', 402, 1, 'row'], ['pl', 340, 1, 'column'
   expect(screen.getByText(pl ? 'Zapis aktywności' : 'Activity record')).toBeOnTheScreen();
   // MVP-22-T11: the declaration, the privacy line and the AI line stay visible. The committed rules, the crop note and the caveat are moved behind links, never deleted.
   expect(screen.getByText(value.snapshot.copy[locale].declaration)).toBeOnTheScreen();
-  expect(screen.getByText(pl ? 'Prywatne fragmenty zasłoń w Zdjęciach, zanim wybierzesz obraz.' : 'Cover anything private in Photos before you choose.')).toBeOnTheScreen();
+  expect(screen.getByText(pl ? 'Prywatne fragmenty zasłoń w Zdjęciach, zanim wybierzesz obraz.' : 'Cover anything private in Photos before you choose an image.')).toBeOnTheScreen();
   expect(screen.getByText(pl ? 'AI ocenia tylko to, co widać na obrazie.' : 'AI assesses only what the image shows.')).toBeOnTheScreen();
-  const caveat = pl ? 'AI ocenia tylko to, co widać na obrazie. Obraz nie pokaże ukończenia, czasu trwania ani osoby na treningu, dlatego Kuźnia opiera się też na Twojej deklaracji.'
-    : 'AI assesses only what the image shows. An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.';
+  const caveat = pl ? 'Obraz nie pokaże ukończenia, czasu trwania ani osoby na treningu, dlatego Kuźnia opiera się też na Twojej deklaracji.'
+    : 'An image cannot show completion, duration or who trained, so the Forge also relies on your declaration.';
   const crop = pl ? /Prywatne fragmenty przytnij lub zasłoń wcześniej w Zdjęciach/ : /Crop or cover anything private in Photos first/;
   expect(screen.queryByText(value.snapshot.copy[locale].sections.photo)).toBeNull();
   expect(screen.queryByText(caveat)).toBeNull();
@@ -203,7 +203,7 @@ test.each([['pl', 375, 1, 'row'], ['en', 402, 1, 'row'], ['pl', 340, 1, 'column'
   expect(screen.getByText(crop)).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: pl ? 'O ocenie dowodu' : 'About the assessment' }));
   expect(screen.getByText(caveat)).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: pl ? 'Prześlij dowód' : 'Submit proof' })).toHaveProp('accessibilityHint', pl ? 'Wybierz rodzaj dowodu.' : 'Choose the type of evidence.');
+  expect(screen.getByRole('button', { name: pl ? 'Prześlij dowód' : 'Submit proof' })).toHaveProp('accessibilityHint', pl ? 'Wybierz rodzaj dowodu.' : 'Choose the proof type.');
   expect(screen.getByTestId('proof-sources')).toHaveStyle({ flexDirection: direction });
 });
 
@@ -433,7 +433,7 @@ test('the English checkbox reads "Yes, I confirm" with the declaration', async (
 test('between the deadline and the cutoff Żaromir keeps the conditional cutoff line', async () => {
   await show('pl', oath(), fakeController(), clockAt('2026-10-25T00:35:00Z'));
   const line = screen.getByLabelText(/^Żaromir: /).props.accessibilityLabel.replace('Żaromir: ', '');
-  expect(['Okno na dowód trwa. Prześlij go, jeśli trening skończył się przed terminem.', 'Jeśli trening skończył się w terminie, dowód jeszcze zdąży.',
+  expect(['Okno na dowód otwarte. Prześlij go, jeśli trening skończył się w terminie.', 'Jeśli trening skończył się w terminie, dowód może jeszcze zdążyć.',
     'Świeca jeszcze płonie. Jeśli trening zakończył się w terminie, prześlij dowód teraz.']).toContain(line);
 });
 
