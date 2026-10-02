@@ -43,6 +43,8 @@ Superseded on 2026-10-02: the notification step shows only the saved preference,
 
 Superseded on 2026-10-02 (MVP-22-B1): the notification step shows the line that notifications are optional, the line that reminders are not sent yet and the buttons. The saved preference sentence also folds behind "Jak działają powiadomienia" / "How notifications work". The device line stays visible only when the player turned notifications on and the device blocks them (denied, not decided yet, unavailable or quiet only). The final review shows one line, "Przejście dalej nie tworzy jeszcze Przysięgi." / "Continuing does not create an Oath yet.", and one summary card with the language, the zone label such as "Warszawa", the intention and the notification preference. The reminder line and a device line that blocks nothing fold behind the same link there. See [clarity](clarity.md).
 
+Superseded on 2026-10-02 (MVP-22-B2b): when the saved preference is enabled, the review keeps the line that reminders are not sent yet visible under the summary card, next to "Włączone" / "On". With the preference disabled it stays in the fold. See [clarity](clarity.md).
+
 Denied, unavailable, provisional and ephemeral permission all have accurate copy and permit continuation after the preference is saved. Quiet authorization is not a promise of alert delivery. Ignore a permission result arriving after logout. This epic registers no push token, schedules no notification and installs no foreground delivery handler. Sources: [Expo SDK57 notifications](https://docs.expo.dev/versions/v57.0.0/sdk/notifications/) (checked 2026-09-24), [companion boundaries](../art/companion.md); the sequencing and account/device separation are local choices.
 
 ## Bilingual copy handoff

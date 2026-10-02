@@ -1539,6 +1539,22 @@ describe('Today full list fold', () => {
     expect(await screen.findByRole('button', { name: 'All your Oaths' })).toHaveProp('accessibilityState', { expanded: false });
     expect(rows()).toHaveLength(0);
   });
+  // MVP-22-B2b (review finding): the fold restored open and left open is the player's choice too, so a reload keeps it open.
+  test('a fold left open after the return stays open when the list reloads', async () => {
+    Dimensions.set({ window: phone(1), screen: phone(1) });
+    const items = three(); const f = setup(items);
+    jest.mocked(f.controller.detail).mockImplementation(async selectedId => ({ kind: 'success', value: { oath: items.find(item => item.id === selectedId)!, serverTime } }));
+    const view = (reload: number) => <LocalizationProvider initialLocale="en"><OathHomeScreen {...f} timezone="Europe/Warsaw" reload={reload} /></LocalizationProvider>;
+    const screenView = await render(view(0));
+    await fireEvent.press(await screen.findByRole('button', { name: 'All your Oaths' }));
+    await fireEvent.press(rows()[2]);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Today' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'All your Oaths' })).toHaveProp('accessibilityState', { expanded: true }));
+    await screenView.rerender(view(1));
+    await waitFor(() => expect(f.controller.list).toHaveBeenCalledTimes(3));
+    expect(await screen.findByRole('button', { name: 'All your Oaths' })).toHaveProp('accessibilityState', { expanded: true });
+    expect(rows()).toHaveLength(3);
+  });
   test('a detail opened from a seal returns to the closed fold', async () => {
     Dimensions.set({ window: phone(1), screen: phone(1) });
     const items = three(); const f = setup(items);

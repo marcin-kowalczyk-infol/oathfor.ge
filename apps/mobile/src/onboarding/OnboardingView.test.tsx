@@ -259,6 +259,31 @@ test.each([
   for (const text of [honesty, denied, disabled]) expect(screen.getByText(text)).toBeOnTheScreen();
 });
 
+// MVP-22-B2b (review finding): "Włączone" on the summary card needs the honesty fact beside it, so with notifications on
+// the line that reminders are not sent yet stays visible under the card. With notifications off it stays in the fold.
+test.each([
+  ['pl', 'enabled', 'Przypomnienia nie są jeszcze wysyłane. Zapamiętamy Twój wybór na później.', 'Jak działają powiadomienia'],
+  ['en', 'enabled', 'Reminders are not sent yet. Your choice is kept for later.', 'How notifications work'],
+  ['pl', 'disabled', 'Przypomnienia nie są jeszcze wysyłane. Zapamiętamy Twój wybór na później.', 'Jak działają powiadomienia'],
+  ['en', 'disabled', 'Reminders are not sent yet. Your choice is kept for later.', 'How notifications work'],
+] as const)('%s review with notifications %s shows the honesty line only beside an on state', async (locale, preference, honesty, link) => {
+  const callbacks = { onComplete: jest.fn(), onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };
+  const granted = { ...notificationProps, state: { permission: { kind: 'granted' as const, canAskAgain: true }, busy: false } };
+  await render(<LocalizationProvider initialLocale={locale}>
+    <OnboardingView state={{ ...ready, value: { profile: { ...profile, locale, notificationPreference: preference }, onboardingStatus: 'pending' } }} {...callbacks} notifications={granted} />
+  </LocalizationProvider>);
+  expect(screen.getByTestId('onboarding-summary')).toBeOnTheScreen();
+  if (preference === 'enabled') {
+    expect(screen.getByText(honesty)).toBeOnTheScreen();
+    const texts = screen.getAllByText(/./).map(text => text.props.children);
+    expect(texts.indexOf(honesty)).toBeGreaterThan(texts.indexOf(locale === 'pl' ? 'Włączone' : 'On'));
+  } else {
+    expect(screen.queryByText(honesty)).toBeNull();
+  }
+  await fireEvent.press(screen.getByRole('button', { name: link }));
+  expect(screen.getAllByText(honesty)).toHaveLength(1);
+});
+
 // MVP-22-B1 (G2): onboarding uses the display font and the warm tokens of Settings and character creation, never slate.
 test('onboarding titles use the display font and choices and the input use warm tokens', async () => {
   const callbacks = { onIntroduce: jest.fn(), onDraft: jest.fn(), onSave: jest.fn(), onRetry: jest.fn(), onLogout: jest.fn() };

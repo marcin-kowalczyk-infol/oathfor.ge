@@ -100,7 +100,8 @@
   "common": {
     "greeting": "Welcome, {{name}}.",
     "working": "Working…",
-    "statusAnnouncement": "{{heading}}. {{description}}"
+    "statusAnnouncement": "{{heading}}. {{description}}",
+    "disclosureHint": "Expands or collapses this section."
   },
   "companion": {
     "speaker": "Zharomir",

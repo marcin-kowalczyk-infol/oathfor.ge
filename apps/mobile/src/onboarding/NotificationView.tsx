@@ -27,20 +27,22 @@ export function NotificationView({ state, preference, onEnable, onSkip, onRetryP
   // rule 1, MVP-22-B1). Settings shows the same cases. Quiet (provisional) delivery counts, because alerts are not guaranteed.
   const blocks = preference === 'enabled' && (permission.kind === 'denied' || permission.kind === 'not_determined'
     || permission.kind === 'unavailable' || permission.kind === 'provisional');
-  // Before the choice the honesty line stays visible. After it the review's summary card names the choice, so it folds.
+  // Before the choice the honesty line stays visible. After it, the review's summary card names the choice. Beside "On" the
+  // fact that reminders are not sent yet stays visible, beside "Off" it folds (MVP-22-B2b).
   const chosen = preference !== null;
+  const honestyShown = !chosen || preference === 'enabled';
   const device = <Text style={styles.body}>{text(`notifications.permission_${permission.kind}`)}</Text>;
   const honesty = <Text style={styles.body}>{text('settings.notifications.future')}</Text>;
   return <View style={styles.content}>
-    {(!chosen || blocks || error) && <View style={styles.group} accessibilityLiveRegion="polite">
-      {!chosen && honesty}
+    {(honestyShown || blocks || error) && <View style={styles.group} accessibilityLiveRegion="polite">
+      {honestyShown && honesty}
       {blocks && device}
       {error && <Text accessibilityRole="alert" style={styles.body}>{text(`notifications.error_${error}`)}</Text>}
     </View>}
     <Disclosure label={t('notifications.howItWorks')}>
       <View style={styles.group}>
         <Text style={styles.body}>{text(`notifications.preference_${preference ?? 'undecided'}`)}</Text>
-        {chosen && honesty}
+        {!honestyShown && honesty}
       </View>
       <View style={styles.group}>
         <Text style={styles.heading} accessibilityRole="header">{t('notifications.accountTitle')}</Text>

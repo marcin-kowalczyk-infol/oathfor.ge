@@ -104,7 +104,8 @@
   "common": {
     "greeting": "Witaj, {{name}}.",
     "working": "Trwa przetwarzanie…",
-    "statusAnnouncement": "{{heading}}. {{description}}"
+    "statusAnnouncement": "{{heading}}. {{description}}",
+    "disclosureHint": "Rozwija lub zwija tę część."
   },
   "companion": {
     "speaker": "Żaromir",

@@ -72,7 +72,8 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   // Where a row opened the detail: that list and its scroll. Only a row sets it, so creation, a receipt or the proof screen return to the top (MVP-22-T12b).
   const leftAt = useRef<{ view: ViewName; y: number } | null>(null);
   // Polish P8: whether Today's folded full list is open now, and whether it was open when a row or seal opened the detail.
-  // The second is used once: the fold clears it when it mounts, so a later remount keeps the player's own choice (MVP-22-A8c).
+  // The second follows every toggle after the return, so a later remount of the restored list keeps the player's own choice,
+  // open or closed (MVP-22-A8c, MVP-22-B2b).
   const foldOpen = useRef(false);
   const foldOpenAtLeave = useRef(false);
   const scrollKey = `${route}-${view}`;
@@ -493,7 +494,7 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
         {view === 'today' && !!list?.items.length && !wallShowsAll && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.section}>{t('forge.all')}</Text>}
         {/* Cards of one heading stand close together. A new heading or an upload line under the previous card opens a section's space. */}
         {list && !!list.items.length && (wallShowsAll
-          ? <View style={styles.fold}><Disclosure testID="all-oaths" label={t('forge.all')} defaultOpen={!!restoredAt && foldOpenAtLeave.current} onToggle={open => { foldOpen.current = open; foldOpenAtLeave.current = false; }}>{entries}</Disclosure></View>
+          ? <View style={styles.fold}><Disclosure testID="all-oaths" label={t('forge.all')} defaultOpen={!!restoredAt && foldOpenAtLeave.current} onToggle={open => { foldOpen.current = open; foldOpenAtLeave.current = open; }}>{entries}</Disclosure></View>
           : entries)}
         {/* Żaromir does not suggest a workout while paused (clarity.md rule 8). The pause note above says what holds. */}
         {/* An acceptance that may have arrived is not an empty Today (MVP-22-A8c). */}

@@ -38,14 +38,14 @@ test.each([['pl', pl], ['en', en]] as const)('the %s screen shows the intro and 
   expect(screen.getByText(copy.room.tutorial.intro)).toBeOnTheScreen();
   const expected = chapters(copy);
   expect(expected.flat().length - expected.length).toBe(13);
-  const toggles = screen.getAllByRole('button').filter(button => button.props.accessibilityState?.expanded !== undefined);
+  // MVP-22-A8c, B2b: each chapter toggle is itself a heading with its expanded state, so the rotor finds every chapter once.
+  const toggles = screen.getAllByRole('header').filter(header => header.props.accessibilityState?.expanded !== undefined);
   expect(toggles.map(toggle => toggle.props.accessibilityLabel)).toEqual(expected.map(([title]) => title));
-  // MVP-22-A8c: the chapter titles inside the fold toggles stay headings, so the rotor still finds every chapter.
-  expect(screen.getAllByRole('header').map(header => header.props.children)).toEqual([copy.tutorial.title, ...expected.map(([title]) => title)]);
+  expect(screen.getAllByRole('header').map(header => header.props.accessibilityLabel ?? header.props.children)).toEqual([copy.tutorial.title, ...expected.map(([title]) => title)]);
   for (const [, ...lines] of expected) for (const line of lines) expect(screen.queryByText(line)).toBeNull();
   expect(filled()).toHaveLength(0);
   for (const [title, ...lines] of expected) {
-    await fireEvent.press(screen.getByRole('button', { name: title }));
+    await fireEvent.press(screen.getByRole('header', { name: title }));
     const texts = screen.getAllByText(/./).map(text => text.props.children);
     const order = lines.map(line => texts.indexOf(line));
     expect(order.every(index => index >= 0)).toBe(true);
@@ -63,10 +63,11 @@ test('back to menu calls onBack once', async () => {
 
 test('every text is capped for the largest accessibility size and the content scrolls', async () => {
   await setup('pl');
-  for (const title of chapters(pl).map(([title]) => title)) await fireEvent.press(screen.getByRole('button', { name: title }));
+  for (const title of chapters(pl).map(([title]) => title)) await fireEvent.press(screen.getByRole('header', { name: title }));
   const headers = screen.getAllByRole('header');
   expect(headers).toHaveLength(5);
-  for (const header of headers) expect(header.props.maxFontSizeMultiplier).toBeLessThanOrEqual(tokens.maxScale.display);
+  // A chapter heading is its toggle, so its drawn title carries the cap.
+  for (const header of headers) expect((header.props.maxFontSizeMultiplier ?? within(header).getByText(header.props.accessibilityLabel).props.maxFontSizeMultiplier)).toBeLessThanOrEqual(tokens.maxScale.display);
   for (const text of screen.getAllByText(/./)) {
     if (text.props.allowFontScaling === false) continue;
     expect(text.props.maxFontSizeMultiplier).toBeLessThanOrEqual(tokens.maxScale.inset);
