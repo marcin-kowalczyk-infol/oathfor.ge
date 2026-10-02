@@ -60,3 +60,13 @@ test('a named guide keeps its own key and leaves the forge guide alone', async (
   await expect(createGuideStorage(store).read(accountId)).resolves.toBe(false);
   expect(store.setItemAsync).toHaveBeenCalledWith(expect.any(String), 'seen', expect.objectContaining({ keychainService: 'oathforge.oath-rules-guide' }));
 });
+
+// MVP-22-E2.4: the first proof bark keeps its own flag.
+test('the proof guide keeps its own key apart from the other guides', async () => {
+  const store = memoryStore();
+  await createGuideStorage(store, 'proof-guide').markSeen(accountId);
+  expect(store.items.get(`oathforge.proof-guide.v1.${accountId}`)).toBe('seen');
+  await expect(createGuideStorage(store).read(accountId)).resolves.toBe(false);
+  await expect(createGuideStorage(store, 'oath-rules-guide').read(accountId)).resolves.toBe(false);
+  await expect(createGuideStorage(store, 'proof-guide').read(accountId)).resolves.toBe(true);
+});

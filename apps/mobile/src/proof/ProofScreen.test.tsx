@@ -647,3 +647,82 @@ describe('drawn prose binding', () => {
     expect(screen.getByText('An image cannot show that you finished, how long you trained or who trained, so the Forge also relies on your declaration.', raw)).toBeOnTheScreen();
   });
 });
+
+// MVP-22-E2.4 (engagement.md E2, D-E9): the first proof screen per account on this device teaches its first step.
+describe('the first proof bark', () => {
+  const accountId = '10000000-0000-4000-8000-000000000001';
+  const first = { pl: 'Najpierw wybierz rodzaj dowodu.', en: 'First, choose the proof type.' };
+  const rotating = ['Trzy kroki: rodzaj, obraz i potwierdzenie. Pójdziemy po kolei.', 'Wybierz rodzaj, dodaj obraz, potwierdź. Resztę zrobi Kuźnia.', 'Dowód to tylko trzy kroki. Zacznij od rodzaju.'];
+  const said = (): string | null => screen.queryByLabelText(/^(Żaromir|Zharomir): /)?.props.accessibilityLabel.replace(/^(Żaromir|Zharomir): /, '') ?? null;
+  const storage = (read: () => Promise<boolean>) => ({ read: jest.fn(read), markSeen: jest.fn(async () => {}) });
+  async function visit(guide: ReturnType<typeof storage>, { locale = 'pl', value = oath(), f = fakeController(), clock }: { locale?: 'pl' | 'en'; value?: Oath; f?: ReturnType<typeof fakeController>; clock?: ReturnType<typeof createServerClock> } = {}) {
+    await render(<LocalizationProvider initialLocale={locale}><ProofScreen oath={value} controller={f.controller} clock={clock} guide={{ storage: guide, accountId }}
+      onDone={jest.fn()} onBack={jest.fn()} backLabel={locale === 'pl' ? 'Wróć' : 'Back'} /></LocalizationProvider>);
+    await act(async () => { await Promise.resolve(); });
+    return f;
+  }
+
+  test.each(['pl', 'en'] as const)('an unseen flag gives the %s teaching bark and marks it seen once', async locale => {
+    const guide = storage(async () => false);
+    await visit(guide, { locale });
+    expect(said()).toBe(first[locale]);
+    expect(guide.read).toHaveBeenCalledWith(accountId);
+    expect(guide.markSeen).toHaveBeenCalledTimes(1);
+    expect(guide.markSeen).toHaveBeenCalledWith(accountId);
+  });
+
+  test('the bark stays for the rest of the visit after it is marked', async () => {
+    const guide = storage(async () => false);
+    await visit(guide);
+    await fireEvent.press(screen.getByRole('radio', { name: /Zdjęcie kontekstu/ }));
+    expect(said()).toBe(first.pl);
+    expect(guide.markSeen).toHaveBeenCalledTimes(1);
+  });
+
+  test('a seen flag gives the rotating line and writes nothing', async () => {
+    const guide = storage(async () => true);
+    await visit(guide);
+    expect(rotating).toContain(said());
+    expect(guide.markSeen).not.toHaveBeenCalled();
+  });
+
+  test('a failed read gives the bark, because showing it again is the safe loss', async () => {
+    const guide = storage(async () => { throw new Error('keychain'); });
+    await visit(guide);
+    expect(said()).toBe(first.pl);
+  });
+
+  test('while the flag is read Żaromir is silent', async () => {
+    const guide = storage(() => new Promise<boolean>(() => {}));
+    await visit(guide);
+    expect(said()).toBeNull();
+    expect(guide.markSeen).not.toHaveBeenCalled();
+  });
+
+  test('a sending proof keeps Żaromir silent and the flag unwritten', async () => {
+    const guide = storage(async () => false);
+    await visit(guide, { f: fakeController({ kind: 'ready', busy: true, pending: null, oath: null }) });
+    expect(said()).toBeNull();
+    expect(guide.markSeen).not.toHaveBeenCalled();
+  });
+
+  test('an Oath withdrawn by a pause keeps Żaromir silent and the flag unwritten', async () => {
+    const guide = storage(async () => false);
+    await visit(guide, { value: oath({ state: 'withdrawn', terminalAt: '2026-10-24T06:00:00Z' }) });
+    expect(said()).toBeNull();
+    expect(guide.markSeen).not.toHaveBeenCalled();
+  });
+
+  test('between the deadline and the cutoff the conditional cutoff line stays and the flag waits', async () => {
+    const guide = storage(async () => false);
+    await visit(guide, { clock: clockAt('2026-10-25T00:35:00Z') });
+    expect(said()).not.toBe(first.pl);
+    expect(said()).toMatch(/w terminie/);
+    expect(guide.markSeen).not.toHaveBeenCalled();
+  });
+
+  test('without a guide the screen keeps the rotating line', async () => {
+    await show('pl');
+    expect(rotating).toContain(said());
+  });
+});

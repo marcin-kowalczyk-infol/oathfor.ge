@@ -18,7 +18,7 @@ function createRuntime() {
   const oathApi = createOathClient({ baseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? '', development: __DEV__ });
   const characterApi = createCharacterClient({ baseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? '', development: __DEV__ });
   const proofApi = createProofClient({ baseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? '', development: __DEV__ });
-  return { profileApi, oathApi, acceptanceStorage: securePendingStorage, characterApi, creationStorage: secureCreationStorage, proofApi, proofStorage: secureProofPendingStorage, proofFiles: cacheProofFiles, guideStorage: createGuideStorage(), rulesGuideStorage: createGuideStorage(undefined, 'oath-rules-guide'), controller: createSessionController({ api, storage: secureSessionStorage }), authenticate: createAppleAuthentication(api) };
+  return { profileApi, oathApi, acceptanceStorage: securePendingStorage, characterApi, creationStorage: secureCreationStorage, proofApi, proofStorage: secureProofPendingStorage, proofFiles: cacheProofFiles, guideStorage: createGuideStorage(), rulesGuideStorage: createGuideStorage(undefined, 'oath-rules-guide'), proofGuideStorage: createGuideStorage(undefined, 'proof-guide'), controller: createSessionController({ api, storage: secureSessionStorage }), authenticate: createAppleAuthentication(api) };
 }
 let runtime: ReturnType<typeof createRuntime> | undefined;
 

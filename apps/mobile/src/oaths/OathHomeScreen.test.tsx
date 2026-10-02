@@ -10,6 +10,7 @@ import { DETAIL_DROP, LIST_DROP } from '../ui/SceneSurface';
 import type { OathController, OathControllerState } from './controller';
 import type { Oath } from '../api/oathSchema';
 import type { ProofController, ProofControllerError, ProofControllerState } from '../proof/proofController';
+import en from '../localization/locales/en/messages.json';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en' }] }));
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 jest.mock('expo-image-picker', () => ({ requestCameraPermissionsAsync: jest.fn(), launchCameraAsync: jest.fn(), launchImageLibraryAsync: jest.fn() }));
@@ -665,6 +666,25 @@ test('an active detail opens the proof screen, and the server receipt returns to
   await act(async () => proof.change({ kind: 'ready', busy: false, pending: null, oath: received }));
   expect(await screen.findByLabelText('Status: Assessment pending')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Submit proof' })).toBeNull();
+});
+// MVP-22-E2.4 (engagement.md D-E9): the account's first proof screen on this device teaches the first step, later ones rotate.
+test('the first proof screen teaches its first step once per account, a later visit rotates the line', async () => {
+  const active = oath({ state: 'active', reason: null, review: null });
+  const f = setup([active]); const proof = proofController();
+  const accountId = '10000000-0000-4000-8000-000000000001';
+  (f.controller as unknown as { boundCharacter: () => unknown }).boundCharacter = () => ({ accountId, characterId });
+  const seen = new Set<string>();
+  const proofGuideStorage = { read: jest.fn(async (owner: string) => seen.has(owner)), markSeen: jest.fn(async (owner: string) => { seen.add(owner); }) };
+  await render(<LocalizationProvider initialLocale="en"><OathHomeScreen {...f} proof={proof.controller} proofGuideStorage={proofGuideStorage} timezone="Europe/Warsaw" /></LocalizationProvider>);
+  await fireEvent.press(await screen.findByRole('button', { name: /Open Oath: Running/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Submit proof' }));
+  expect(await screen.findByLabelText('Zharomir: First, choose the proof type.')).toBeOnTheScreen();
+  expect(proofGuideStorage.markSeen).toHaveBeenCalledWith(accountId);
+  await fireEvent.press(screen.getByRole('button', { name: en.proof.back }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Submit proof' }));
+  expect(await screen.findByLabelText(/^Zharomir: /)).toBeOnTheScreen();
+  expect(Object.values(en.zaromir.proofScreen).map(line => `Zharomir: ${line}`)).toContain(screen.getByLabelText(/^Zharomir: /).props.accessibilityLabel);
+  expect(proofGuideStorage.markSeen).toHaveBeenCalledTimes(1);
 });
 // MVP-22 G36: the detail remounts after the proof screen. On device it showed a stale offset, so the header sat under the
 // top bar. A return from the proof screen places the detail at its top, by the receipt or by the way back.

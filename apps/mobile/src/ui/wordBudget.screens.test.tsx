@@ -132,9 +132,9 @@ async function review(locale: Locale, seen: boolean) {
   await screen.findByRole('button', { name: copyOf(locale).oath.confirm });
 }
 
-async function proof(locale: Locale, serverTime: string, state?: ProofControllerState) {
+async function proof(locale: Locale, serverTime: string, state?: ProofControllerState, guide?: { storage: GuideStorage; accountId: string }) {
   const clock = createServerClock(); clock.observe(serverTime);
-  await render(<LocalizationProvider initialLocale={locale}><ProofScreen oath={oath()} controller={proofController(state)} clock={clock} onDone={jest.fn()} onBack={jest.fn()} backLabel={copyOf(locale).proof.back} /></LocalizationProvider>);
+  await render(<LocalizationProvider initialLocale={locale}><ProofScreen oath={oath()} controller={proofController(state)} clock={clock} guide={guide} onDone={jest.fn()} onBack={jest.fn()} backLabel={copyOf(locale).proof.back} /></LocalizationProvider>);
 }
 
 const progress = (today: number, history: number) => ({ today: { total: today, paused: false }, history: { total: history }, loading: false });
@@ -228,6 +228,8 @@ const states: Record<string, (locale: Locale) => Promise<unknown>> = {
   'detail.unresolved': locale => detail(locale, oath({ state: 'unresolved', terminalAt: '2026-11-01T01:45:01Z', review: { enteredAt: '2026-10-29T01:45:01Z', closesAt: '2026-11-01T01:45:01Z' } }), '2026-11-02T00:00:00Z'),
   'detail.withdrawn': locale => detail(locale, oath({ state: 'withdrawn', reason: 'character_paused', terminalAt: '2026-10-28T15:00:00Z' }), '2026-10-30T00:00:00Z'),
   'proof.form': locale => proof(locale, NOW),
+  // MVP-22-E2.4: the account's first proof screen on this device, with Żaromir's teaching bark.
+  'proof.firstVisit': locale => proof(locale, NOW, undefined, { storage: guideStorage(false), accountId }),
   'proof.cutoff': locale => proof(locale, '2026-10-29T01:35:00Z'),
   'proof.windowClosed': locale => proof(locale, '2026-10-29T01:46:00Z'),
   'proof.pending': locale => proof(locale, NOW, { kind: 'ready', busy: false, pending: record(), oath: null }),

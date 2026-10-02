@@ -817,6 +817,9 @@
       "0": "Three steps: type, image and confirmation. We will take them in order.",
       "1": "Choose the type, add an image, confirm. The Forge does the rest.",
       "2": "Proof is just three steps. Start with the type."
+    },
+    "proofFirst": {
+      "0": "First, choose the proof type."
     }
   }
 }

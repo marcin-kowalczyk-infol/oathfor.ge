@@ -78,6 +78,7 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
     // The room guide flag per account. Interface restart keeps it, a scenario starts without it, so the guide shows on the first room entry.
     guideSeen: new Set<string>(),
     rulesGuideSeen: new Set<string>(),
+    proofGuideSeen: new Set<string>(),
     // The demo's art style, like guideSeen: an interface restart keeps it, a new scenario starts cinematic (owner decision 2026-09-30).
     artStyle: 'cinematic' as ArtStyle,
     creations: new Map<string, string>(), creation: null as PendingCreation | null, paused: new Set<string>(), previewOwners: new Map<string, string>(),
@@ -252,6 +253,7 @@ export function createDummy(locale: Locale, completed: boolean, populated = comp
       creationStorage: { async read(owner: string) { return success(state.creation?.accountId === owner ? clone(state.creation) : null); }, async write(owner: string, value: PendingCreation | null) { if (value && value.accountId !== owner) return { kind: 'unavailable' as const }; state.creation = clone(value); return { kind: 'success' as const }; } },
       guideStorage: { async read(owner: string) { return state.guideSeen.has(owner); }, async markSeen(owner: string) { state.guideSeen.add(owner); } },
       rulesGuideStorage: { async read(owner: string) { return state.rulesGuideSeen.has(owner); }, async markSeen(owner: string) { state.rulesGuideSeen.add(owner); } },
+      proofGuideStorage: { async read(owner: string) { return state.proofGuideSeen.has(owner); }, async markSeen(owner: string) { state.proofGuideSeen.add(owner); } },
       apple: { async isAvailable() { return true; }, onRevoked() { return () => {}; } },
       permissions: { async read() { return { kind: 'denied' as const, canAskAgain: false }; }, async request() { return { kind: 'denied' as const, canAskAgain: false }; }, async openSettings() { return false; } },
       artStyle: { read: () => state.artStyle, write(style: ArtStyle) { state.artStyle = style; } },

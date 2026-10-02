@@ -35,6 +35,7 @@
   "detail.unresolved": {"pl": 26, "en": 38, "target": "E5"},
   "detail.withdrawn": {"pl": 23, "en": 30, "target": "E5"},
   "proof.form": {"pl": 72, "en": 87, "target": "E6"},
+  "proof.firstVisit": {"pl": 67, "en": 80, "target": "E6"},
   "proof.cutoff": {"pl": 84, "en": 101, "target": "E6"},
   "proof.windowClosed": {"pl": 16, "en": 22, "target": "E6"},
   "proof.pending": {"pl": 35, "en": 42, "target": "E6"},

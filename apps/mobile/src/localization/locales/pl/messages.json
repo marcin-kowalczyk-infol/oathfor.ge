@@ -843,6 +843,9 @@
       "0": "Trzy kroki: rodzaj, obraz i potwierdzenie. Pójdziemy po kolei.",
       "1": "Wybierz rodzaj, dodaj obraz, potwierdź. Resztę zrobi Kuźnia.",
       "2": "Dowód to tylko trzy kroki. Zacznij od rodzaju."
+    },
+    "proofFirst": {
+      "0": "Najpierw wybierz rodzaj dowodu."
     }
   }
 }

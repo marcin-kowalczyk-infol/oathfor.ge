@@ -22,6 +22,7 @@ import { oathPath, proofScreenSituation } from '../oaths/oathPath';
 import { pathTimeText } from '../oaths/compactStoredTime';
 import { usePathMoments } from '../oaths/usePathMoments';
 import type { ServerClock } from '../oaths/serverClock';
+import type { GuideStorage } from '../forge/guideStorage';
 import { Text } from '../ui/Text';
 import { tokens } from '../ui/tokens';
 import { captureImage, deleteLocalImage, type ProofSource } from './capture';
@@ -65,9 +66,26 @@ export function errorMessage(error: ProofControllerError, t: Translate): string 
  * MVP-22-T11 (docs/product/clarity.md decision 12): a compact step badge, Żaromir's line and three numbered steps. A finished step folds
  * to a one-line summary with "Zmień", except in the simple layout and under Reduce Motion. Long texts sit behind links.
  * clock: server time for Żaromir's window and day, and for the card line that moves at D and S. Without it he speaks the plain proof screen line.
+ * guide: the account's "seen" flag of the first proof bark on this device (MVP-22-E2.4, engagement.md D-E9). Without it he rotates his lines.
  */
-export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock }: { oath: Oath; controller: ProofController; onDone(oath: Oath): void; onBack(): void; backLabel: string; clock?: ServerClock }) {
+export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock, guide }: { oath: Oath; controller: ProofController; onDone(oath: Oath): void; onBack(): void; backLabel: string; clock?: ServerClock; guide?: { storage: GuideStorage; accountId: string } }) {
   const { t, i18n } = useTranslation();
+  // Unknown while read, and he is silent meanwhile. A failed read counts as unseen: teaching again is the safe loss.
+  // The bark is marked seen once it shows and stays for the rest of this visit.
+  const [guideSeen, setGuideSeen] = useState<boolean | null>(guide ? null : true);
+  useEffect(() => {
+    if (!guide || guideSeen !== null) return;
+    let live = true;
+    const settle = (seen: boolean) => { if (live) setGuideSeen(seen); };
+    guide.storage.read(guide.accountId).then(settle, () => settle(false));
+    return () => { live = false; };
+  }, [guide?.storage, guide?.accountId, guideSeen]);
+  const barkMarked = useRef(false);
+  function barkShown() {
+    if (barkMarked.current || !guide) return;
+    barkMarked.current = true;
+    void guide.storage.markSeen(guide.accountId);
+  }
   const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   const ruleIcons = useArt().oaths.ruleIcons;
   const { width, fontScale } = useWindowDimensions();
@@ -217,7 +235,10 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
     body = <>
       {cutoffTime && card('proof-cutoff', t('path.next.cutoff', { time: cutoffTime }))}
       {/* While sending Żaromir is silent (decision 5). Between D and S he keeps the conditional cutoff line. */}
-      {!busy && speaker(proofScreenSituation(path))}
+      {/* MVP-22-E2.4: the first visit teaches the first step instead of his rotating line. */}
+      {!busy && (proofScreenSituation(path) !== 'proofScreen' ? speaker(proofScreenSituation(path))
+        : guideSeen === false ? <FirstBark onShown={barkShown}><ZaromirLine message={t('zaromir.proofFirst.0')} /></FirstBark>
+        : guideSeen ? speaker('proofScreen') : null)}
       <View style={styles.section}>
         <StepHead number={1} title={t('proof.steps.type')} />
         {typeFolded ? <Summary choice={t(`proof.routes.${mode}.title`)} change={t('proof.change')} step={t('proof.steps.type')} disabled={busy} onChange={() => setReopened('type')} /> : <>
@@ -301,6 +322,11 @@ export function ProofScreen({ oath, controller, onDone, onBack, backLabel, clock
   return <View testID="proof-screen" style={styles.screen}><SafeAreaView style={styles.safeArea}>
     <ScrollView testID="proof-scroll" contentContainerStyle={styles.content}>{back}{head}{body}</ScrollView>
   </SafeAreaView></View>;
+}
+/** Reports once that its content is on screen, so a one-time line is marked seen only when the player could read it. */
+function FirstBark({ onShown, children }: { onShown(): void; children: ReactNode }) {
+  useEffect(() => { onShown(); }, []);
+  return <>{children}</>;
 }
 /** A numbered step heading on a plaque, read as "1. Rodzaj dowodu". */
 function StepHead({ number, title }: { number: number; title: string }) {

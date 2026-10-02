@@ -51,7 +51,7 @@ export type ForgeNavigation = { request: { id: number; target: 'create' | ViewNa
 /** reload: a new value reloads the visible list, for example after a pause change made in Settings. */
 /** network: a reconnect reloads the visible list, like a return to the foreground. */
 /** proof: the shell's one proof controller. An active detail offers "Submit proof" only when it is given. */
-export function OathHomeScreen({ controller, timezone, forgeNavigation, reload = 0, rulesGuideStorage, network, proof }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; reload?: number; rulesGuideStorage?: GuideStorage; network?: NetworkEvents; proof?: ProofController }) {
+export function OathHomeScreen({ controller, timezone, forgeNavigation, reload = 0, rulesGuideStorage, proofGuideStorage, network, proof }: { controller: OathController; timezone: string; forgeNavigation?: ForgeNavigation; reload?: number; rulesGuideStorage?: GuideStorage; /** The "seen" flag of the first proof bark, per account on this device (MVP-22-E2.4). */ proofGuideStorage?: GuideStorage; network?: NetworkEvents; proof?: ProofController }) {
   const art = useArt(); const chronicleIcon = art.talk.chronicle;
   const { t, i18n } = useTranslation(); const locale = resolveLocale(i18n.resolvedLanguage ?? i18n.language);
   // Drawn prose keeps Polish single-letter words with the next word and never ends a line on a separator (MVP-22-G24b).
@@ -392,7 +392,9 @@ export function OathHomeScreen({ controller, timezone, forgeNavigation, reload =
   const place: ForgePlace = hearthRequest ? 'hearth' : route === 'detail' ? 'seals' : view === 'history' ? 'chronicle' : 'seals';
   // After the room's own flight the close-up is already in view, so the screen skips its zoom.
   const approach = arrival && !arrival.flown ? arrival : null;
+  const proofAccount = proofGuideStorage ? controller.boundCharacter()?.accountId : undefined;
   if (available && route === 'proof' && detail && proof) return <ProofScreen key={detail.id} oath={detail} controller={proof} clock={controller.clock} backLabel={t('proof.back')}
+    guide={proofGuideStorage && proofAccount ? { storage: proofGuideStorage, accountId: proofAccount } : undefined}
     onBack={() => { void openDetail(detail.id); }} onDone={showReceipt} />;
   if (available && route === 'create') return <OathScreen approach={approach?.place === 'hearth' ? approach.id : null} controller={controller} timezone={timezone} rulesGuideStorage={rulesGuideStorage} onViewOath={id => { void openDetail(id); }} initialDraft={creationDraft} onDraftChange={setCreationDraft} backLabel={forgeNavigation ? returnLabel : undefined} backPlain={!!forgeNavigation && !interactiveForge} onBack={forgeNavigation ? () => forgeNavigation.onReturn('hearth') : () => { void loadList('today'); }} />;
   // In the room layout every list leaves a band under the tabs (Today's hub, the chronicle band). The close-up is lowered into it.

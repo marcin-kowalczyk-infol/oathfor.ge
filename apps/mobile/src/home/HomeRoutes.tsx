@@ -39,6 +39,7 @@ export type HomeRoutesProps = {
   timezone: string;
   guideStorage: GuideStorage;
   rulesGuideStorage?: GuideStorage;
+  proofGuideStorage?: GuideStorage;
   /** Reconnects reload the visible Oath list. */
   network?: NetworkEvents;
   /** The demo's art style choice for Settings. Absent in production. */
@@ -170,7 +171,7 @@ export function HomeRoutes(props: HomeRoutesProps) {
     {front && <View style={styles.fill}>{front}</View>}
     <View style={hidden ? styles.hidden : styles.fill} accessibilityElementsHidden={hidden} importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}>
       <MotionSuspended suspended={hidden}>
-        <OathHomeScreen key={`${accountId}.${character.id}`} controller={oaths} proof={props.proof} timezone={props.timezone} rulesGuideStorage={props.rulesGuideStorage} network={props.network} reload={oathReload}
+        <OathHomeScreen key={`${accountId}.${character.id}`} controller={oaths} proof={props.proof} timezone={props.timezone} rulesGuideStorage={props.rulesGuideStorage} proofGuideStorage={props.proofGuideStorage} network={props.network} reload={oathReload}
           forgeNavigation={{ request: route.kind === 'oaths' ? route.request : null, onReturn: place => dispatch({ type: 'back', layout, from: place }) }} />
       </MotionSuspended>
     </View>

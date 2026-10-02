@@ -37,6 +37,15 @@ test.each(Object.entries(ZAROMIR_POOLS))('zaromir.%s has %i lines in both langua
   for (const line of Object.values(group(en, 'zaromir', situation)) as string[]) expect(sentences(line)).toBeLessThanOrEqual(2);
 });
 
+// MVP-22-E2.4 (engagement.md D-E9): the first proof bark is outside the rotating pools, so its cap is checked here.
+test('the first proof bark is one line of at most 8 Polish words and one sentence', () => {
+  expect(Object.keys(group(pl, 'zaromir', 'proofFirst'))).toEqual(['0']);
+  expect(Object.keys(group(en, 'zaromir', 'proofFirst'))).toEqual(['0']);
+  expect(words(group(pl, 'zaromir', 'proofFirst')['0'] as string)).toBeLessThanOrEqual(8);
+  expect(sentences(group(pl, 'zaromir', 'proofFirst')['0'] as string)).toBe(1);
+  expect(sentences(group(en, 'zaromir', 'proofFirst')['0'] as string)).toBe(1);
+});
+
 test('in review Żaromir says one sentence', () => {
   expect(sentences(group(pl, 'zaromir', 'review')['0'] as string)).toBe(1);
   expect(sentences(group(en, 'zaromir', 'review')['0'] as string)).toBe(1);
