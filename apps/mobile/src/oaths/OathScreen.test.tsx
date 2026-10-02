@@ -702,6 +702,46 @@ describe('header text never sits on the hearth art', () => {
     expect(screen.queryByText('Read the rules, then make the Oath.')).toBeNull();
     expect(within(band()).getByText('We could not confirm this step. Try again.')).toBeOnTheScreen();
   });
+  // MVP-22-G27, native check: after a lost acceptance response the pending line and "Sprawdź potwierdzenie" sat on the hearth fire
+  // under the band's fade. They stand in the band after the error line, in the room and the simple layout.
+  describe('the pending line and its action stand on the band', () => {
+    const initial = { window: Dimensions.get('window'), screen: Dimensions.get('screen') };
+    afterEach(() => Dimensions.set(initial));
+    const pendingLine = 'Twoje potwierdzenie mogło już dotrzeć. Sprawdź tę samą Przysięgę, zanim rozpoczniesz kolejną.';
+    const errorLine = 'Nie udało się potwierdzić tego kroku. Spróbuj ponownie.';
+    test.each([[1, false], [2, true]])('pl at text scale %d with plain back %s', async (fontScale, backPlain) => {
+      const phone = { width: 402, height: 874, scale: 3, fontScale };
+      Dimensions.set({ window: phone, screen: phone });
+      const f = setup(); f.controller.start();
+      await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" onBack={jest.fn()} backLabel="Wróć do Kuźni" backPlain={backPlain} /></LocalizationProvider>);
+      await selectDate('Data ukończenia', '25 października 2026');
+      await selectTime('Godzina ukończenia', '02', '30', { hour: 'Godzina', minute: 'Minuta', done: 'Ustaw godzinę' });
+      await fireEvent.press(screen.getByRole('button', { name: 'Zobacz zasady' }));
+      await fireEvent.press(await screen.findByRole('button', { name: 'Złóż Przysięgę' }));
+      await screen.findByText(pendingLine);
+      const header = band();
+      expect(within(header).getByRole('button', { name: 'Wróć do Kuźni' })).toBeOnTheScreen();
+      expect(within(header).getByRole('button', { name: 'Sprawdź potwierdzenie' })).toBeOnTheScreen();
+      const line = within(header).getByText(pendingLine);
+      expect(line).toHaveProp('accessibilityLiveRegion', 'polite');
+      expect(line).toHaveProp('maxFontSizeMultiplier', tokens.maxScale.display);
+      const lines = within(header).getAllByText(/./).map(node => String(node.props.children));
+      expect(lines.indexOf(errorLine)).toBeGreaterThan(-1);
+      expect(lines.indexOf(errorLine)).toBeLessThan(lines.indexOf(pendingLine));
+      expect(lines.indexOf(pendingLine)).toBeLessThan(lines.indexOf('Sprawdź potwierdzenie'));
+      expect(screen.getAllByText(pendingLine)).toHaveLength(1);
+      expect(screen.getAllByRole('button', { name: 'Sprawdź potwierdzenie' })).toHaveLength(1);
+    });
+    test('pl after a restart with no way back and no error the band still holds them', async () => {
+      const f = setup(); jest.mocked(f.storage.read).mockResolvedValueOnce({ kind: 'success', value: { version: 2, accountId, characterId, previewId: id, requestId: id } });
+      f.controller.start(); await render(<LocalizationProvider initialLocale="pl"><OathScreen {...f} timezone="Europe/Warsaw" /></LocalizationProvider>);
+      await screen.findByRole('button', { name: 'Sprawdź potwierdzenie' });
+      const header = band();
+      expect(within(header).getByText(pendingLine)).toBeOnTheScreen();
+      expect(within(header).getByRole('button', { name: 'Sprawdź potwierdzenie' })).toBeOnTheScreen();
+      expect(within(header).queryByText(errorLine)).toBeNull();
+    });
+  });
   // MVP-22-B2c, review finding: the error and review-again lines stood between the Workout header and its offerings.
   test('the error and review-again lines sit in the band above the Workout header', async () => {
     const f = setup(); f.controller.start(); jest.mocked(f.api.confirm).mockResolvedValueOnce({ kind: 'oath_error', code: 'preview_superseded' });

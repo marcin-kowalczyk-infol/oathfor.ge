@@ -165,7 +165,7 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
     <Animated.ScrollView testID="oath-scroll" ref={scrollView as never} style={entrance} key={scene} contentContainerStyle={[styles.content, guideInset !== null && { paddingBottom: guideInset }]} keyboardShouldPersistTaps="handled" scrollEventThrottle={16} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scroll } } }], { useNativeDriver: true })}>
       {/* MVP-22-B2 (G16): the hearth close-up starts at the top, so the way back, the title, the line and the workout label
           stand on a solid band that fades into the art, as on the detail. Cards and offerings carry their own fills below it. */}
-      {(onBack || titled || intro || (ready && errorText) || ready?.needsReview) && <View testID="screen-header" style={styles.band}>
+      {(onBack || titled || intro || (ready && errorText) || ready?.needsReview || pending) && <View testID="screen-header" style={styles.band}>
         <FadeStrips testID="header-fade" stripTestID="header-fade-strip" style={styles.bandFade} />
         {onBack && (backPlain ? <BackLink label={backLabel ?? t('oathHome.today')} onPress={onBack} /> : <SceneDoor label={backLabel ?? t('oathHome.today')} onPress={onBack} />)}
         {titled && <Text accessibilityRole="header" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.title}>{t('oath.title')}</Text>}
@@ -174,15 +174,16 @@ export function OathScreen({ controller, timezone, onBack, backLabel, backPlain 
         {/* MVP-22-B2c: the error and review-again lines stand above the workout header, so the header stays with its offerings. */}
         {ready && errorText && <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{errorText}</Text>}
         {ready?.needsReview && <Text style={styles.body}>{t('oath.reviewAgain')}</Text>}
+        {/* MVP-22-G27: the pending line and its action stand on the band after the error line, never on the hearth fire. */}
+        {pending && <>
+          <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t('oath.pending')}</Text>
+          <Action label={t('oath.recover')} busy={busy} onPress={() => { void controller.recover(); }} />
+        </>}
         {forming && <Text accessibilityRole="header" style={styles.label}>{t('oath.activity')}</Text>}
       </View>}
       {!ready && <>
         <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t(state.kind === 'storage_unavailable' ? 'oath.storageError' : 'oath.loading')}</Text>
         {state.kind === 'storage_unavailable' && <Action label={t('oath.retry')} onPress={() => { void controller.refresh(); }} />}
-      </>}
-      {pending && <>
-        <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={tokens.maxScale.display} style={styles.body}>{t('oath.pending')}</Text>
-        <Action label={t('oath.recover')} busy={busy} onPress={() => { void controller.recover(); }} />
       </>}
       {detail && <>
         {/* After the stamp (clarity.md decision 13): emblem, header, the track with the Oath step done, the large countdown,
